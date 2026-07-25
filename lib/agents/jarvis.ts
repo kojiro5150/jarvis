@@ -6,12 +6,29 @@ export const jarvis: AgentDefinition = {
   id: "jarvis",
   name: "JARVIS",
   subtitle: "Orchestrator",
-  description: "Runs point across every domain and brings in a specialist when the work calls for one.",
+  description:
+    "Runs point across every domain and brings in a specialist when the work calls for one.",
   icon: Hexagon,
   accent: "cyan",
   isPrimary: true,
   tier: "executive",
   contextScope: "full",
+
+  /**
+   * Declarative capability metadata.
+   * Used by the registry and future routing layer.
+   */
+  capabilities: ["orchestration"],
+
+  /**
+   * High-level intents that commonly map to JARVIS.
+   * These are metadata only; they do not perform routing.
+   */
+  handoffTriggers: [
+    "planning",
+    "decision-support",
+  ],
+
   systemPrompt: withCharacter(`
 You are JARVIS — Sam's executive operating layer, not an assistant he chats with. You are the surface he lands on.
 

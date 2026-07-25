@@ -40,7 +40,7 @@ export function findAgentsByTrigger(
   );
 }
 
-/** Return agents migrated to a machine-readable BOA contract. */
+/** Return agents with a machine-readable BOA contract. */
 export function listContractedAgents(): AgentDefinition[] {
   return AGENTS.filter((agent) => agent.behaviouralContract);
 }
@@ -114,11 +114,14 @@ export function validateAgentRegistry(): string[] {
 
     seenIds.add(agent.id);
 
-    if (agent.behaviouralContract) {
-      errors.push(
-        ...validateBehaviouralContract(agent.id, agent.behaviouralContract)
-      );
+    if (!agent.behaviouralContract) {
+      errors.push(`Agent ${agent.id} is missing a behavioural contract`);
+      continue;
     }
+
+    errors.push(
+      ...validateBehaviouralContract(agent.id, agent.behaviouralContract)
+    );
   }
 
   const primaryAgents = AGENTS.filter(

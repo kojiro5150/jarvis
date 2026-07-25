@@ -9,20 +9,28 @@ import type { ContextScope } from "@/lib/context-builder";
 export interface AgentDefinition {
   /** Stable machine id, e.g. "oracle" */
   id: string;
+
   /** Display name, e.g. "ORACLE" */
   name: string;
+
   /** Short subtitle shown under the name in the rail, e.g. "Research & Insight" */
   subtitle: string;
+
   /** One-line description used in tooltips / headers */
   description: string;
+
   /** Lucide icon component */
   icon: LucideIcon;
-  /** Tailwind text/border/bg color token, e.g. "cyan", "violet" */
+
+  /** Tailwind text/border/bg colour token, e.g. "cyan", "violet" */
   accent: AgentAccent;
+
   /** The system prompt sent to Claude when this agent is active */
   systemPrompt: string;
+
   /** Whether this agent is the default/orchestrator (JARVIS) */
   isPrimary?: boolean;
+
   /**
    * Which layer this agent belongs to, per DESIGN_CONSTITUTION.md Principle 8:
    * "executive" — JARVIS and DAWNWATCH. Continuous situational awareness;
@@ -31,6 +39,7 @@ export interface AgentDefinition {
    *   PHDSS, MARCUS) that JARVIS routes to.
    */
   tier: "executive" | "specialist";
+
   /**
    * Which slice of OperationalState this agent's conversational context is
    * built from (see lib/context-builder.ts). Set per Sprint 2.4: there is
@@ -39,6 +48,18 @@ export interface AgentDefinition {
    * bug) or inferring/guessing what the state might be.
    */
   contextScope: ContextScope;
+
+  /**
+   * Declares the functions this agent is designed to perform.
+   * Optional during the staged migration of existing agent definitions.
+   */
+  capabilities?: AgentCapability[];
+
+  /**
+   * High-level intents that may justify a hand-off to this agent.
+   * Declarative metadata only; it does not execute routing.
+   */
+  handoffTriggers?: HandoffTrigger[];
 }
 
 export type AgentAccent =
@@ -54,6 +75,30 @@ export type AgentAccent =
   | "gold"
   | "red"
   | "white";
+
+export type AgentCapability =
+  | "orchestration"
+  | "operations"
+  | "research"
+  | "markets"
+  | "communications"
+  | "software"
+  | "collaboration"
+  | "governance"
+  | "reflection";
+
+export type HandoffTrigger =
+  | "research"
+  | "evidence"
+  | "literature"
+  | "market-analysis"
+  | "communications"
+  | "coding"
+  | "implementation"
+  | "governance"
+  | "decision-support"
+  | "reflection"
+  | "planning";
 
 /**
  * How JARVIS arrived at a routing decision.

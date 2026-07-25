@@ -6,87 +6,78 @@ import {
 } from "./registry";
 
 import type {
-  AgentCapability,
-  HandoffTrigger,
-  RoutingConfidence,
   RoutingDecision,
-  RoutingSource,
+  RoutingIntent,
 } from "./types";
 
 /**
- * Structured routing facts produced before deterministic specialist selection.
- *
- * This contract accepts interpreted intent. It does not classify raw user text,
- * call a model, execute a hand-off, or authorise an external action.
- */
-export interface RoutingInput {
-  /** Explicit specialist requested by the user or orchestrator. */
-  requestedAgentId?: string;
-
-  /** Capability required to handle the task. */
-  capability?: AgentCapability;
-
-  /** High-level intent associated with the task. */
-  trigger?: HandoffTrigger;
-
-  /** How the interpreted routing facts were produced. */
-  source: RoutingSource;
-
-  /** Confidence in the interpreted routing facts. */
-  confidence: RoutingConfidence;
-}
-
-/**
- * Select a specialist using deterministic registry metadata.
+ * Select a specialist from an already-interpreted routing intent using
+ * deterministic registry metadata.
  *
  * Precedence:
  * 1. Explicit valid specialist request
- * 2. First capability match in constitutional registry order
- * 3. First trigger match in constitutional registry order
+ * 2. First capability match, following inferred capability order
+ * 3. First trigger match, following inferred trigger order
  * 4. JARVIS fallback
+ *
+ * Reasoning depth is carried forward unchanged. This function does not
+ * classify raw user text, call a model, execute a hand-off, or authorise an
+ * external action.
  */
-export function routeTask(input: RoutingInput): RoutingDecision {
-  if (input.requestedAgentId && AGENTS_BY_ID[input.requestedAgentId]) {
+export function routeTask(intent: RoutingIntent): RoutingDecision {
+  if (intent.requestedAgentId) {
+    if (AGENTS_BY_ID[intent.requestedAgentId]) {
+      return {
+        selectedAgentId: intent.requestedAgentId,
+        reason: `Explicit specialist request: ${intent.requestedAgentId}`,
+        confidence: intent.confidence,
+        source: intent.source,
+        reasoningDepth: intent.reasoningDepth,
+      };
+    }
+
     return {
-      selectedAgentId: input.requestedAgentId,
-      reason: `Explicit specialist request: ${input.requestedAgentId}`,
-      confidence: input.confidence,
-      source: input.source,
+      selectedAgentId: jarvis.id,
+      reason: `Unknown specialist requested: ${intent.requestedAgentId}; routed to JARVIS`,
+      confidence: "low",
+      source: "fallback",
+      reasoningDepth: intent.reasoningDepth,
     };
   }
 
-  if (input.capability) {
-    const [agent] = findAgentsByCapability(input.capability);
+  for (const capability of intent.inferredCapabilities) {
+    const [agent] = findAgentsByCapability(capability);
 
     if (agent) {
       return {
         selectedAgentId: agent.id,
-        reason: `Matched capability: ${input.capability}`,
-        confidence: input.confidence,
-        source: input.source,
+        reason: `Matched capability: ${capability}`,
+        confidence: intent.confidence,
+        source: intent.source,
+        reasoningDepth: intent.reasoningDepth,
       };
     }
   }
 
-  if (input.trigger) {
-    const [agent] = findAgentsByTrigger(input.trigger);
+  for (const trigger of intent.inferredTriggers) {
+    const [agent] = findAgentsByTrigger(trigger);
 
     if (agent) {
       return {
         selectedAgentId: agent.id,
-        reason: `Matched hand-off trigger: ${input.trigger}`,
-        confidence: input.confidence,
-        source: input.source,
+        reason: `Matched hand-off trigger: ${trigger}`,
+        confidence: intent.confidence,
+        source: intent.source,
+        reasoningDepth: intent.reasoningDepth,
       };
     }
   }
 
   return {
     selectedAgentId: jarvis.id,
-    reason: input.requestedAgentId
-      ? `Unknown specialist requested: ${input.requestedAgentId}; routed to JARVIS`
-      : "No specialist match; routed to JARVIS",
+    reason: "No specialist match; routed to JARVIS",
     confidence: "low",
     source: "fallback",
+    reasoningDepth: intent.reasoningDepth,
   };
 }

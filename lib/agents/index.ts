@@ -9,18 +9,39 @@ import { cowork } from "./cowork";
 import { phdss } from "./phdss";
 import { marcus } from "./marcus";
 
-export type { AgentDefinition, AgentAccent, ChatMessage } from "./types";
+export type {
+  AgentDefinition,
+  AgentAccent,
+  AgentCapability,
+  HandoffTrigger,
+  RoutingDecision,
+  RoutingSource,
+  RoutingConfidence,
+  AgentHandoff,
+  HandoffAuthority,
+  ChatMessage,
+} from "./types";
 
 /**
  * Ordered list of every agent, JARVIS first — this drives the agent rail.
- * Nine constitutional specialists as of the v2 UI architecture pass:
- * Executive Orchestration (JARVIS) → Executive Operations (DAWNWATCH) →
- * Specialist Intelligence (ORACLE, GECKO, HERALD, STEVE, CO-WORK, MARCUS,
- * PHDSS) — orchestration → operations → intelligence → execution →
- * reflection → governance, per Sam's explicit ordering. GECKO (external
- * market/ecosystem intelligence) and CO-WORK (long-form collaboration/
- * execution) are deliberately distinct and coexist — GECKO answers "what's
- * happening outside," CO-WORK answers "how do we build this together."
+ *
+ * Constitutional ordering:
+ *
+ * Executive
+ * ├─ JARVIS      (Executive Orchestration)
+ * └─ DAWNWATCH   (Executive Operations)
+ *
+ * Specialists
+ * ├─ ORACLE      (Research & Insight)
+ * ├─ GECKO       (Markets & External Intelligence)
+ * ├─ HERALD      (Communications)
+ * ├─ STEVE       (Software Engineering)
+ * ├─ CO-WORK     (Long-form Collaboration)
+ * ├─ MARCUS      (Reflection & Decision Quality)
+ * └─ PHDSS       (Governance & Public Health Decision Stewardship)
+ *
+ * This registry is intentionally declarative. It provides discovery,
+ * lookup and ordering only. Routing behaviour is implemented elsewhere.
  */
 export const AGENTS: AgentDefinition[] = [
   jarvis,
@@ -42,4 +63,14 @@ export function getAgent(id: string): AgentDefinition {
   return AGENTS_BY_ID[id] ?? jarvis;
 }
 
-export { jarvis, dawnwatch, oracle, gecko, herald, steve, cowork, marcus, phdss };
+export {
+  jarvis,
+  dawnwatch,
+  oracle,
+  gecko,
+  herald,
+  steve,
+  cowork,
+  marcus,
+  phdss,
+};

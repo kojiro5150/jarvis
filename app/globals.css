@@ -1,0 +1,627 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@import "highlight.js/styles/atom-one-dark.css";
+
+html,
+body {
+  height: 100%;
+  /*
+   * v24 Sprint 6, bug #2: this is a fixed-viewport app shell — every
+   * scrollable region (dashboard column, RH rail, agent rail nav,
+   * Mission Workspace's message list) already has its own scoped
+   * `overflow-y-auto`. A page-level scrollbar should never be able to
+   * appear on top of that. Explicitly hiding overflow at the html/body
+   * level guarantees it: if any component's internal height math is
+   * ever off at a short viewport (e.g. a 956px-tall laptop display),
+   * the mistake is contained to that component's own scroll region
+   * instead of growing the whole page taller than the viewport.
+   */
+  overflow: hidden;
+}
+
+body {
+  /* Phase 2.7 (v17 spec) exact page background. */
+  background-color: #080e14;
+  background-image:
+    radial-gradient(circle at 15% 10%, rgba(0, 224, 255, 0.06), transparent 40%),
+    radial-gradient(circle at 85% 20%, rgba(168, 85, 247, 0.06), transparent 40%),
+    radial-gradient(circle at 50% 100%, rgba(0, 224, 255, 0.04), transparent 50%);
+  color: #e6edf3;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(63, 216, 255, 0.2);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(63, 216, 255, 0.35);
+}
+
+.panel {
+  /* Phase 2.7 (v17 spec) CommandPanel treatment — same class name kept so
+     every existing card/panel picks this up with no per-file changes. */
+  background: linear-gradient(180deg, rgba(15, 24, 36, 0.88), rgba(8, 14, 20, 0.88));
+  border-color: rgba(30, 52, 74, 0.75);
+  box-shadow:
+    0 0 0 1px rgba(0, 224, 255, 0.03),
+    0 16px 40px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+}
+
+/* CommandOrb (v19) keyframes — plain CSS animations driven entirely by
+   className/inline-style props from React, never a JS timer/rAF loop,
+   so there's no per-frame re-render and nothing to leak on unmount. */
+@keyframes orbSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes orbPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+@keyframes orbWave {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+@keyframes orbBurst {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  60% {
+    transform: scale(1.5);
+    opacity: 0.15;
+  }
+  100% {
+    transform: scale(1.05);
+    opacity: 0.5;
+  }
+}
+@keyframes orbTwinkle {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+.orb-rotate {
+  animation-name: orbSpin;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.orb-pulse {
+  animation-name: orbPulse;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.orb-wave {
+  animation-name: orbWave;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.orb-burst {
+  animation-name: orbBurst;
+  animation-timing-function: ease-out;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.orb-twinkle {
+  animation-name: orbTwinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* CommandCore (v20) additions — same rules as above: pure CSS, driven by
+   className/inline style only, nothing computed per-frame in JS. */
+@keyframes orbRotateEase {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+/*
+ * v34 (Sprint 16, Section 2): the restored ring/wireframe design's 3
+ * rotating arcs need one to spin counter-clockwise (alternating with the
+ * other two, for visual variety) while still being SVG elements — SVG's
+ * default transform-origin is the viewport's top-left corner, not its own
+ * centre, so (like `.orb-rotate` above) this needs the explicit
+ * `transform-box: fill-box; transform-origin: center;` pair. `.orb-spin-
+ * ccw` (below) doesn't have that pair — it was built for the HTML-div
+ * technique (rings/swarm/tokens), which centres via `centered()`'s
+ * left/top/margin math instead and doesn't need it. Same keyframe
+ * direction as `orbSpinCcw`, just paired with `orb-rotate`'s SVG-safe
+ * class rules instead.
+ */
+@keyframes orbRotateCcw {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+@keyframes orbFlash {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes orbRipple {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+@keyframes orbTickOut {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+@keyframes orbDraw {
+  0% {
+    stroke-dashoffset: 240;
+    opacity: 0.2;
+  }
+  55% {
+    stroke-dashoffset: 0;
+    opacity: 0.9;
+  }
+  100% {
+    stroke-dashoffset: -240;
+    opacity: 0.2;
+  }
+}
+@keyframes orbTravelRoute {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-170px, -30px) scale(0.4);
+    opacity: 0;
+  }
+}
+@keyframes orbTravelDelegate {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-150px, -90px) scale(0.4);
+    opacity: 0;
+  }
+}
+
+.orb-rotate-ease {
+  animation-name: orbRotateEase;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.orb-rotate-ccw {
+  animation-name: orbRotateCcw;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.orb-flash {
+  animation-name: orbFlash;
+  animation-timing-function: ease-out;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+}
+.orb-ripple {
+  animation-name: orbRipple;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.orb-tick {
+  animation-name: orbTickOut;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.orb-draw {
+  animation-name: orbDraw;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+.orb-travel-route {
+  animation-name: orbTravelRoute;
+  animation-timing-function: ease-in;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.orb-travel-delegate {
+  animation-name: orbTravelDelegate;
+  animation-timing-function: ease-in;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/*
+ * CommandCore (v31, Sprint 12) — new base layer set ported from the
+ * Claude Design orb export. These are plain HTML/CSS divs (not SVG, per
+ * the export's own technique — the wireframe sphere in particular needs
+ * real `perspective`/`preserve-3d`, which SVG doesn't support), so no
+ * `transform-box: fill-box` here; positioning is done via
+ * left/top/margin rather than a `translate()` transform specifically so
+ * each element's `transform` property is left free for its own keyframe
+ * animation (rotate/scale/translate) without the two fighting over the
+ * same CSS property.
+ *
+ * Keyframe bodies are used exactly as specified — only the names got the
+ * existing file's camelCase-keyframe/kebab-class convention applied.
+ */
+@keyframes orbSpinCw {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes orbSpinCcw {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+@keyframes orbSpinY {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(360deg);
+  }
+}
+@keyframes orbPulseNode {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.78);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+@keyframes orbDriftA {
+  0% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(10px, -14px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+@keyframes orbDriftB {
+  0% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-12px, 10px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+@keyframes orbCoreBreathe {
+  0%,
+  100% {
+    opacity: 0.88;
+    filter: blur(0px);
+  }
+  50% {
+    opacity: 1;
+    filter: blur(0.4px);
+  }
+}
+@keyframes orbRippleOut {
+  0% {
+    transform: scale(0.3);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+@keyframes orbRadarSweep {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.orb-spin-cw {
+  animation-name: orbSpinCw;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.orb-spin-ccw {
+  animation-name: orbSpinCcw;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.orb-spin-y {
+  animation-name: orbSpinY;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.orb-pulse-node {
+  animation-name: orbPulseNode;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+.orb-drift-a {
+  animation-name: orbDriftA;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+.orb-drift-b {
+  animation-name: orbDriftB;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+.orb-core-breathe {
+  animation-name: orbCoreBreathe;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+.orb-ripple-out {
+  animation-name: orbRippleOut;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+.orb-radar-sweep {
+  animation-name: orbRadarSweep;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+/*
+ * CommandCore (v32, Sprint 14) — the plasma-core-and-swarm redesign's
+ * two new animations. `orb-talk-pulse` varies by VOICE_MOTION.pulseDur,
+ * so it stays on the usual className+inline-animationDuration pattern.
+ * Sprint 12's spin-cw/spin-ccw/drift-a/drift-b above are still used too
+ * — carried over for particles and the orbiting swarm/token ring.
+ *
+ * v33 (Sprint 15, Section 1/3): `orb-blob-morph` used to bake a fixed 20s
+ * duration directly into its shorthand ("always running" per the Sprint
+ * 14 spec, never varying). This sprint's voice-state motion table
+ * (VOICE_MOTION.blobDur) genuinely varies that duration by state now, so
+ * it moved to the same longhand-properties-plus-inline-duration pattern
+ * `orb-talk-pulse` already used — `standby`'s value (20s) is exactly the
+ * old baked-in constant, so idle orbs look identical to before.
+ */
+@keyframes orbBlobMorph {
+  0%,
+  100% {
+    border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%;
+  }
+  33% {
+    border-radius: 63% 37% 41% 59% / 52% 63% 37% 48%;
+  }
+  66% {
+    border-radius: 37% 63% 56% 44% / 63% 41% 59% 37%;
+  }
+}
+@keyframes orbTalkPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.18);
+  }
+}
+/*
+ * v33 (Sprint 15, Section 1): the export's error state pairs
+ * `error-flicker` with a red palette swap. This app keeps agent hue
+ * throughout (see CommandCore's header comment / the sprint's explicit
+ * "keep agent colour" decision) — the flicker itself (an opacity
+ * stutter, not a colour change) is the part that carries over.
+ */
+@keyframes orbErrorFlicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  8% {
+    opacity: 0.4;
+  }
+  16% {
+    opacity: 1;
+  }
+  24% {
+    opacity: 0.5;
+  }
+  32% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  78% {
+    opacity: 0.6;
+  }
+  86% {
+    opacity: 1;
+  }
+}
+
+.orb-blob-morph {
+  animation-name: orbBlobMorph;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+.orb-talk-pulse {
+  animation-name: orbTalkPulse;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+.orb-error-flicker {
+  animation: orbErrorFlicker 2.4s steps(1, end) infinite;
+}
+
+/*
+ * v35 (Sprint 17, Section 1, layer 13) — the holoDepth design's one
+ * genuinely new animation: a thin bright band sweeping top-to-bottom
+ * across the orb's HUD field, fading in/out at both ends so it never
+ * appears to "cut" abruptly, then looping. Duration comes from
+ * VOICE_MOTION.sweepDuration (CommandCore.tsx).
+ */
+@keyframes orbScanSweep {
+  0% {
+    top: -10%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0;
+  }
+  100% {
+    top: 110%;
+    opacity: 0;
+  }
+}
+.orb-scan-sweep {
+  animation-name: orbScanSweep;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+/*
+ * v37 (Sprint 20, Section 3) — the corner telemetry readout's "scrolling
+ * data tick." The rendered span's own text content is the same string
+ * duplicated twice back-to-back (see CommandCore.tsx); looping
+ * `translateX` from 0% to -50% on that doubled string is the standard
+ * seamless-marquee technique — the moment the first copy has scrolled
+ * fully out of view, the second copy is in exactly the position the
+ * first one started in, so the loop point is invisible.
+ */
+@keyframes orbTelemetryScroll {
+  from {
+    transform: translateX(0%);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.orb-telemetry-scroll {
+  animation: orbTelemetryScroll 22s linear infinite;
+}
+
+/* Respect the OS-level motion preference for every CommandOrb/CommandCore
+   animation at once — a blanket CSS rule rather than a per-state JS
+   branch, so it applies even before hydration finishes and can't cause
+   a mismatch. */
+@media (prefers-reduced-motion: reduce) {
+  .orb-rotate,
+  .orb-rotate-ease,
+  .orb-rotate-ccw,
+  .orb-pulse,
+  .orb-wave,
+  .orb-burst,
+  .orb-twinkle,
+  .orb-flash,
+  .orb-ripple,
+  .orb-tick,
+  .orb-draw,
+  .orb-travel-route,
+  .orb-travel-delegate,
+  .orb-spin-cw,
+  .orb-spin-ccw,
+  .orb-spin-y,
+  .orb-pulse-node,
+  .orb-drift-a,
+  .orb-drift-b,
+  .orb-core-breathe,
+  .orb-ripple-out,
+  .orb-radar-sweep,
+  .orb-blob-morph,
+  .orb-talk-pulse,
+  .orb-error-flicker,
+  .orb-scan-sweep,
+  .orb-telemetry-scroll {
+    animation: none !important;
+  }
+}

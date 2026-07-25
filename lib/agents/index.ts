@@ -14,6 +14,8 @@ export type {
   AgentAccent,
   AgentCapability,
   HandoffTrigger,
+  ReasoningDepth,
+  RoutingIntent,
   RoutingDecision,
   RoutingSource,
   RoutingConfidence,

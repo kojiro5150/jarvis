@@ -60,6 +60,12 @@ export interface AgentDefinition {
    * Declarative metadata only; it does not execute routing.
    */
   handoffTriggers?: HandoffTrigger[];
+
+  /**
+   * Machine-readable BOA behavioural boundary.
+   * Optional while existing agents are migrated incrementally.
+   */
+  behaviouralContract?: BehaviouralContract;
 }
 
 export type AgentAccent =
@@ -186,6 +192,38 @@ export type HandoffAuthority =
   | "advise"
   | "draft"
   | "propose-action";
+
+/**
+ * Machine-readable BOA specification for an executive or specialist.
+ *
+ * This describes the intended behavioural boundary. It does not itself enforce
+ * runtime behaviour, authorise tool use, or replace the system prompt.
+ */
+export interface BehaviouralContract {
+  /** Bounded organisational identity of the agent. */
+  role: string;
+
+  /** Work the agent exists to perform. */
+  mandate: string;
+
+  /** Failure modes the role is specifically designed to prevent. */
+  prevents: string[];
+
+  /** Positive behaviours required whenever the role is active. */
+  obligations: string[];
+
+  /** Rules for evidence, uncertainty and claims. */
+  epistemicDiscipline: string[];
+
+  /** Maximum hand-off authorities this role may receive. */
+  authority: HandoffAuthority[];
+
+  /** Conditions requiring escalation or another specialist. */
+  escalationConditions: string[];
+
+  /** Human-readable description of the expected output. */
+  outputContract: string;
+}
 
 /**
  * Structured context passed from one agent to another.

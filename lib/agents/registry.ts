@@ -4,6 +4,7 @@ import { jarvis } from "./jarvis";
 import type {
   AgentCapability,
   AgentDefinition,
+  BehaviouralContract,
   HandoffTrigger,
 } from "./types";
 
@@ -39,6 +40,11 @@ export function findAgentsByTrigger(
   );
 }
 
+/** Return agents migrated to a machine-readable BOA contract. */
+export function listContractedAgents(): AgentDefinition[] {
+  return AGENTS.filter((agent) => agent.behaviouralContract);
+}
+
 /**
  * Return the unique capabilities currently declared
  * across the registered agents.
@@ -49,6 +55,46 @@ export function listCapabilities(): AgentCapability[] {
       AGENTS.flatMap((agent) => agent.capabilities ?? [])
     )
   );
+}
+
+function validateBehaviouralContract(
+  agentId: string,
+  contract: BehaviouralContract
+): string[] {
+  const errors: string[] = [];
+  const scalarFields: Array<keyof Pick<
+    BehaviouralContract,
+    "role" | "mandate" | "outputContract"
+  >> = ["role", "mandate", "outputContract"];
+
+  for (const field of scalarFields) {
+    if (!contract[field].trim()) {
+      errors.push(`Agent ${agentId} has empty behavioural contract field: ${field}`);
+    }
+  }
+
+  const arrayFields: Array<keyof Pick<
+    BehaviouralContract,
+    | "prevents"
+    | "obligations"
+    | "epistemicDiscipline"
+    | "authority"
+    | "escalationConditions"
+  >> = [
+    "prevents",
+    "obligations",
+    "epistemicDiscipline",
+    "authority",
+    "escalationConditions",
+  ];
+
+  for (const field of arrayFields) {
+    if (contract[field].length === 0) {
+      errors.push(`Agent ${agentId} has empty behavioural contract field: ${field}`);
+    }
+  }
+
+  return errors;
 }
 
 /**
@@ -67,6 +113,12 @@ export function validateAgentRegistry(): string[] {
     }
 
     seenIds.add(agent.id);
+
+    if (agent.behaviouralContract) {
+      errors.push(
+        ...validateBehaviouralContract(agent.id, agent.behaviouralContract)
+      );
+    }
   }
 
   const primaryAgents = AGENTS.filter(

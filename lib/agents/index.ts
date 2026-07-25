@@ -22,6 +22,8 @@ export type {
   BehaviouralContract,
   AgentHandoff,
   HandoffAuthority,
+  CoordinationRequest,
+  CoordinationDecision,
   ChatMessage,
 } from "./types";
 

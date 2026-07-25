@@ -19,6 +19,7 @@ export type {
   RoutingDecision,
   RoutingSource,
   RoutingConfidence,
+  BehaviouralContract,
   AgentHandoff,
   HandoffAuthority,
   ChatMessage,

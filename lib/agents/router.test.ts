@@ -4,18 +4,21 @@ import { jarvis } from "./jarvis";
 import { oracle } from "./oracle";
 import { routeTask } from "./router";
 
-import type { RoutingInput } from "./router";
+import type { RoutingIntent } from "./types";
 
-const baseInput: RoutingInput = {
+const baseIntent: RoutingIntent = {
+  inferredCapabilities: [],
+  inferredTriggers: [],
+  reasoningDepth: "standard",
   source: "orchestrator",
   confidence: "medium",
 };
 
-describe("deterministic typed router", () => {
+describe("typed routing intent boundary", () => {
   it("honours an explicit valid specialist request", () => {
     expect(
       routeTask({
-        ...baseInput,
+        ...baseIntent,
         requestedAgentId: oracle.id,
         source: "user-selection",
         confidence: "high",
@@ -25,90 +28,115 @@ describe("deterministic typed router", () => {
       reason: `Explicit specialist request: ${oracle.id}`,
       confidence: "high",
       source: "user-selection",
+      reasoningDepth: "standard",
     });
   });
 
-  it("prefers an explicit specialist over capability and trigger matches", () => {
+  it("prefers an explicit specialist over inferred routing facts", () => {
     expect(
       routeTask({
-        ...baseInput,
+        ...baseIntent,
         requestedAgentId: oracle.id,
-        capability: "orchestration",
-        trigger: "planning",
+        inferredCapabilities: ["orchestration"],
+        inferredTriggers: ["planning"],
       }).selectedAgentId
     ).toBe(oracle.id);
   });
 
-  it("routes by capability when no valid explicit specialist is supplied", () => {
+  it("routes by the first matching inferred capability", () => {
     expect(
       routeTask({
-        ...baseInput,
-        capability: "orchestration",
+        ...baseIntent,
+        inferredCapabilities: ["orchestration"],
       })
     ).toEqual({
       selectedAgentId: jarvis.id,
       reason: "Matched capability: orchestration",
       confidence: "medium",
       source: "orchestrator",
+      reasoningDepth: "standard",
     });
   });
 
-  it("routes by trigger when no capability match is supplied", () => {
+  it("evaluates capabilities before triggers", () => {
     expect(
       routeTask({
-        ...baseInput,
-        trigger: "planning",
-      })
-    ).toEqual({
-      selectedAgentId: jarvis.id,
-      reason: "Matched hand-off trigger: planning",
-      confidence: "medium",
-      source: "orchestrator",
-    });
+        ...baseIntent,
+        inferredCapabilities: ["orchestration"],
+        inferredTriggers: ["planning"],
+      }).reason
+    ).toBe("Matched capability: orchestration");
+  });
+
+  it("evaluates inferred triggers in declared order", () => {
+    expect(
+      routeTask({
+        ...baseIntent,
+        inferredTriggers: ["decision-support", "planning"],
+      }).reason
+    ).toBe("Matched hand-off trigger: decision-support");
   });
 
   it("falls back to JARVIS for an unknown explicit specialist", () => {
     expect(
       routeTask({
-        ...baseInput,
+        ...baseIntent,
         requestedAgentId: "unknown-agent",
+        reasoningDepth: "deep",
       })
     ).toEqual({
       selectedAgentId: jarvis.id,
       reason: "Unknown specialist requested: unknown-agent; routed to JARVIS",
       confidence: "low",
       source: "fallback",
+      reasoningDepth: "deep",
     });
   });
 
   it("falls back to JARVIS when no routing facts match", () => {
-    expect(routeTask(baseInput)).toEqual({
+    expect(routeTask(baseIntent)).toEqual({
       selectedAgentId: jarvis.id,
       reason: "No specialist match; routed to JARVIS",
       confidence: "low",
       source: "fallback",
+      reasoningDepth: "standard",
     });
   });
 
-  it("returns stable decisions for identical input", () => {
-    const input: RoutingInput = {
-      ...baseInput,
-      capability: "orchestration",
-      trigger: "planning",
-    };
-
-    expect(routeTask(input)).toEqual(routeTask(input));
+  it("carries reasoning depth forward without reinterpretation", () => {
+    expect(
+      routeTask({
+        ...baseIntent,
+        inferredCapabilities: ["orchestration"],
+        reasoningDepth: "high-stakes",
+      }).reasoningDepth
+    ).toBe("high-stakes");
   });
 
-  it("does not mutate the routing input", () => {
-    const input: RoutingInput = {
-      ...baseInput,
-      capability: "orchestration",
+  it("returns stable decisions for identical intent", () => {
+    const intent: RoutingIntent = {
+      ...baseIntent,
+      inferredCapabilities: ["orchestration"],
+      inferredTriggers: ["planning"],
     };
-    const snapshot = { ...input };
 
-    routeTask(input);
+    expect(routeTask(intent)).toEqual(routeTask(intent));
+  });
 
-    expect(input).toEqual(snapshot);
+  it("does not mutate the routing intent or its ordered facts", () => {
+    const intent: RoutingIntent = {
+      ...baseIntent,
+      inferredCapabilities: ["orchestration"],
+      inferredTriggers: ["planning", "decision-support"],
+    };
+    const snapshot: RoutingIntent = {
+      ...intent,
+      inferredCapabilities: [...intent.inferredCapabilities],
+      inferredTriggers: [...intent.inferredTriggers],
+    };
+
+    routeTask(intent);
+
+    expect(intent).toEqual(snapshot);
   });
 });

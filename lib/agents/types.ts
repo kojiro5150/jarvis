@@ -101,6 +101,19 @@ export type HandoffTrigger =
   | "planning";
 
 /**
+ * Proportional reasoning depth selected before specialist routing.
+ *
+ * The deterministic router carries this value forward but does not infer,
+ * increase, decrease, or otherwise interpret it.
+ */
+export type ReasoningDepth =
+  | "quick"
+  | "standard"
+  | "deep"
+  | "high-stakes"
+  | "phdss";
+
+/**
  * How JARVIS arrived at a routing decision.
  */
 export type RoutingSource =
@@ -117,6 +130,32 @@ export type RoutingSource =
 export type RoutingConfidence = "high" | "medium" | "low";
 
 /**
+ * Typed output of an intent interpreter and input to deterministic routing.
+ *
+ * This contract contains interpreted routing facts only. It does not classify
+ * raw user text, execute a hand-off, or authorise an external action.
+ */
+export interface RoutingIntent {
+  /** Explicit specialist requested by the user or orchestrator. */
+  requestedAgentId?: string;
+
+  /** Ordered capabilities inferred as relevant to the task. */
+  inferredCapabilities: AgentCapability[];
+
+  /** Ordered high-level intents inferred as relevant to the task. */
+  inferredTriggers: HandoffTrigger[];
+
+  /** Proportional reasoning depth to preserve for downstream orchestration. */
+  reasoningDepth: ReasoningDepth;
+
+  /** How the interpreted routing facts were produced. */
+  source: RoutingSource;
+
+  /** Confidence in the interpreted routing facts. */
+  confidence: RoutingConfidence;
+}
+
+/**
  * A machine-readable record of which agent should handle a request and why.
  */
 export interface RoutingDecision {
@@ -131,6 +170,9 @@ export interface RoutingDecision {
 
   /** Whether routing was explicit, inferred, or produced by a fallback. */
   source: RoutingSource;
+
+  /** Reasoning depth carried forward without reinterpretation by the router. */
+  reasoningDepth: ReasoningDepth;
 }
 
 /**

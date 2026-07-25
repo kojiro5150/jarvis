@@ -55,6 +55,80 @@ export type AgentAccent =
   | "red"
   | "white";
 
+/**
+ * How JARVIS arrived at a routing decision.
+ */
+export type RoutingSource =
+  | "user-selection"
+  | "orchestrator"
+  | "fallback";
+
+/**
+ * Confidence expressed by the routing layer.
+ *
+ * This is routing confidence, not confidence in the specialist's eventual
+ * answer or recommendation.
+ */
+export type RoutingConfidence = "high" | "medium" | "low";
+
+/**
+ * A machine-readable record of which agent should handle a request and why.
+ */
+export interface RoutingDecision {
+  /** Stable id of the selected agent. */
+  selectedAgentId: string;
+
+  /** Human-readable explanation suitable for logs and later inspection. */
+  reason: string;
+
+  /** Confidence that the selected agent is appropriate for the request. */
+  confidence: RoutingConfidence;
+
+  /** Whether routing was explicit, inferred, or produced by a fallback. */
+  source: RoutingSource;
+}
+
+/**
+ * The maximum authority granted to an agent through a hand-off.
+ *
+ * No value in this contract independently authorises an external side effect.
+ * Tool execution and other consequential actions require a separate control
+ * path and user approval.
+ */
+export type HandoffAuthority =
+  | "advise"
+  | "draft"
+  | "propose-action";
+
+/**
+ * Structured context passed from one agent to another.
+ */
+export interface AgentHandoff {
+  /** Stable id of the agent initiating the hand-off. */
+  fromAgentId: string;
+
+  /** Stable id of the receiving agent. */
+  toAgentId: string;
+
+  /** Concise statement of what the user is trying to achieve. */
+  userIntent: string;
+
+  /** Specific task assigned to the receiving agent. */
+  task: string;
+
+  /** Operational-state view available to the receiving agent. */
+  contextScope: ContextScope;
+
+  /** Constraints the receiving agent must preserve. */
+  constraints: string[];
+
+  /** Description of the output the receiving agent should return. */
+  expectedOutput: string;
+
+  /** Maximum authority granted by this hand-off. */
+  authority: HandoffAuthority;
+}
+
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;

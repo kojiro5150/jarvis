@@ -14,6 +14,7 @@ export {
   buildBehaviouralCapabilityMatrix,
 } from "./capability-matrix";
 export { buildBehaviouralCollaborationGraph } from "./collaboration-graph";
+export { diagnoseBehaviouralArchitecture } from "./behavioural-diagnostics";
 export {
   compareConstitutionComplianceIssues,
   validateConstitutionCompliance,
@@ -48,3 +49,10 @@ export type {
   BehaviouralCollaborationGraph,
   BehaviouralCollaborationNode,
 } from "./collaboration-graph";
+export type {
+  BehaviouralDiagnostic,
+  BehaviouralDiagnosticCode,
+  BehaviouralDiagnosticSeverity,
+  BehaviouralDiagnosticsReport,
+  BehaviouralDiagnosticsSummary,
+} from "./behavioural-diagnostics";

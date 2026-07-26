@@ -43,11 +43,15 @@ export const SHARED_BOA_INSTRUCTIONS = {
   ],
 } as const;
 
-const emptySections = (): Record<BoaInstructionSection, string[]> =>
-  Object.fromEntries(BOA_INSTRUCTION_SECTIONS.map((section) => [section, []])) as Record<
-    BoaInstructionSection,
-    string[]
-  >;
+const emptySections = (): Record<BoaInstructionSection, string[]> => {
+  const sections = {} as Record<BoaInstructionSection, string[]>;
+
+  for (const section of BOA_INSTRUCTION_SECTIONS) {
+    sections[section] = [];
+  }
+
+  return sections;
+};
 
 export function createBoaInstructionFramework(agentId: string): BoaInstructionFile {
   const sections = emptySections();

@@ -8,11 +8,9 @@ export interface ExecutionAuditStore {
   list(limit?: number): Promise<ExecutionAuditRecord[]>;
 }
 
-export const DEFAULT_EXECUTION_AUDIT_PATH = path.join(
-  process.cwd(),
-  ".data",
-  "execution-audit.jsonl"
-);
+export const DEFAULT_EXECUTION_AUDIT_PATH = process.env.VERCEL
+  ? path.join("/tmp", "jarvis-execution-audit.jsonl")
+  : path.join(process.cwd(), ".data", "execution-audit.jsonl");
 
 export class JsonlExecutionAuditStore implements ExecutionAuditStore {
   constructor(

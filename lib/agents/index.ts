@@ -36,6 +36,14 @@ export type {
   ExecutionDecision,
 } from "./executor";
 
+export type {
+  ModelExecutionRequest,
+  ModelExecutionResponse,
+  ModelAdapter,
+  ModelExecutionOptions,
+  ModelExecutionResult,
+} from "./model-executor";
+
 /**
  * Ordered list of every agent, JARVIS first — this drives the agent rail.
  *

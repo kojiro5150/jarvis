@@ -26,6 +26,14 @@ The shared constitutional layer is inherited by each constitution and contains s
 
 Sprint 3.9 provides constitutions for JARVIS, GECKO, MARCUS, ORACLE, STEVE, HERALD and DAWNWATCH. CO-WORK and PHDSS remain unchanged. Constitutions are architectural specifications during this sprint; `systemPrompt`, `BoaInstructionFile` and `BehaviouralContract` continue to drive the existing runtime and authority paths without behavioural change.
 
+### Structural and compliance validation
+
+Structural validation checks that a typed constitution has its required shape and basic required content. Compliance validation treats that structure as an auditable behavioural artefact: it checks metadata and registry identity, mission and responsibility completeness, authority limits, collaboration references, output-contract completeness, and complete inheritance of the declared shared constitutional principles. It reports every issue as typed specialist, category, field, code and message data in deterministic order rather than failing fast.
+
+Both validators are pure architectural checks. They produce no console output or side effects and do not change prompts, routing, orchestration, model execution, APIs, or any other runtime behaviour.
+
+Collaboration prose is matched only against registered specialist identities. An otherwise unknown identity must use the explicit `[[specialist:identifier]]` form to be treated as a specialist reference; ordinary uppercase acronyms are not specialist references.
+
 ## Bounded responsibility
 
 | Agent | Tier | Primary responsibility |

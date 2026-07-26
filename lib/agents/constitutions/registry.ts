@@ -8,8 +8,13 @@ import { oracleConstitution } from "./oracle";
 import { SHARED_CONSTITUTION } from "./shared";
 import { steveConstitution } from "./steve";
 import { validateBehaviouralConstitution } from "./constitution";
+import {
+  validateConstitutionComplianceRegistry,
+} from "./compliance";
 
 import type { BehaviouralConstitution } from "./constitution";
+import type { ConstitutionComplianceIssue } from "./compliance";
+import type { SharedPrincipleComplianceInput } from "./compliance";
 import type { SharedConstitutionalLayer } from "./shared";
 
 export const CONSTITUTION_SPECIALIST_IDS = [
@@ -63,6 +68,43 @@ export function getEffectiveBehaviouralConstitution(
     shared: SHARED_CONSTITUTION,
     specialist: getBehaviouralConstitution(specialistId),
   };
+}
+
+export interface ConstitutionComplianceRegistryInput {
+  readonly constitutions: Readonly<Partial<Record<ConstitutionSpecialistId, BehaviouralConstitution>>>;
+  readonly sharedPrinciples: SharedPrincipleComplianceInput;
+}
+
+const DEFAULT_COMPLIANCE_INPUT: ConstitutionComplianceRegistryInput = {
+  constitutions: BEHAVIOURAL_CONSTITUTIONS,
+  sharedPrinciples: SHARED_CONSTITUTION.principles,
+};
+
+/** Validate every core constitution, accumulating and deterministically ordering all issues. */
+export function validateConstitutionRegistryCompliance(
+  input: ConstitutionComplianceRegistryInput = DEFAULT_COMPLIANCE_INPUT
+): ConstitutionComplianceIssue[] {
+  const coreSpecialistIdentities = CONSTITUTION_SPECIALIST_IDS.flatMap(
+    (specialistId) => [specialistId, AGENTS_BY_ID[specialistId]?.name ?? specialistId]
+  );
+  const registeredSpecialistIdentities = Object.values(AGENTS_BY_ID).flatMap(
+    (agent) => [agent.id, agent.name]
+  );
+
+  return validateConstitutionComplianceRegistry(
+    CONSTITUTION_SPECIALIST_IDS.map((specialistId) => ({
+      specialistId,
+      constitution: input.constitutions[specialistId],
+      context: {
+        registryKey: specialistId,
+        coreSpecialistIdentities,
+        registeredSpecialistIdentities,
+        existingAuthorityCeiling:
+          AGENTS_BY_ID[specialistId]?.behaviouralContract?.authority ?? [],
+        sharedPrinciples: input.sharedPrinciples,
+      },
+    }))
+  );
 }
 
 export function validateBehaviouralConstitutionRegistry(): string[] {

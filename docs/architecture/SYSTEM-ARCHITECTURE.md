@@ -164,7 +164,7 @@ Executive Operating System
 ════════════════════════════════════════
 Situational Awareness Model
         ↓
-Future Situational Awareness Builder
+Projection Engine
         ↓
 Future Decision Surface
         ↓
@@ -187,11 +187,29 @@ The model is a projection, not an authoritative or independently editable source
 
 Identity, roles, projects, commitments, waiting items, explicit source- or user-assigned priorities, active work and current context are represented as readonly plain data. Explicit priority is a supplied operational fact, not future Attention Engine ranking. Dates and instants are supplied ISO 8601 / RFC 3339 strings; the model does not read time or calculate lateness, urgency, conflicts or staleness.
 
-`createSituationalAwareness` is a safe model-construction boundary: it validates already-supplied facts and references, applies known-empty collection and unknown-context defaults, preserves caller order, copies all accepted data and deeply freezes the projection. It neither gathers nor normalises sources. A future Situational Awareness Builder will own approved source gathering and canonical source ordering.
+`createSituationalAwareness` remains the sole model-construction boundary: it validates already-supplied facts and references, applies known-empty collection and unknown-context defaults, copies accepted data and deeply freezes the projection. The Projection Engine now owns the preceding observation boundary. Explicitly registered adapters produce canonical Projection Artifacts; the engine validates them, merges entity categories without interpretation, rejects irreconcilable conflicts, orders entities and source states by stable identifier, and invokes `createSituationalAwareness` exactly once for the completed snapshot.
+
+```text
+Authoritative source
+        ↓
+Projection Adapter (observe and normalise)
+        ↓
+Projection Artifact (entities + provenance + availability)
+        ↓
+Structural and domain validation
+        ↓
+Deterministic merge
+        ↓
+createSituationalAwareness()
+        ↓
+Immutable Situational Awareness snapshot
+```
+
+The Projection Engine is connector-neutral and runtime-neutral. Registration is explicit, adapter execution and merged collections have stable identifier ordering, and identical artifacts therefore yield identical JSON-compatible snapshots independently of registration order. Source identifier, source kind, observation timestamp and availability survive construction in the existing bounded source-state collection. No raw connector payload, credential or inferred operational significance enters the snapshot.
 
 > The Situational Awareness Model describes what is currently represented as true. It does not determine what matters, what should happen next, which specialist should contribute or whether any action should be executed.
 
-Consequently this phase introduces no recommendations, decisions, attention ranking, behavioural routing, specialist invocation, persistence, UI, connector integration or active runtime consumer. JSON compatibility and defensive deep immutability provide a deterministic boundary for later derivation without turning the projection into mutable state.
+Consequently this phase introduces no recommendations, decisions, attention ranking, behavioural routing, specialist invocation, persistence, UI, concrete connector integration or active runtime consumer. JSON compatibility and defensive deep immutability provide a deterministic boundary for later derivation without turning the projection into mutable state.
 
 ## Architectural boundaries
 

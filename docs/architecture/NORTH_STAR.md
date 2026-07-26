@@ -1,232 +1,253 @@
-\# JARVIS North Star
+# JARVIS North Star
 
-\*\*Version:\*\* 1.0    
-\*\*Status:\*\* Vision    
-\*\*Owner:\*\* JARVIS Architecture    
-\*\*Last Updated:\*\* 26 July 2026
+**Version:** 1.0  
+**Status:** Active  
+**Owner:** JARVIS Architecture  
+**Last Updated:** 26 July 2026
 
-\---
+---
 
-\# Purpose
+# Purpose
 
-This document describes the long-term architectural vision for JARVIS.
+The North Star defines the enduring architectural vision for JARVIS.
 
-It is intentionally aspirational rather than implementation-specific.
+It answers one question:
 
-Where the Engineering Constitution governs how the system is built, the North Star defines what the system is ultimately intended to become.
+**What is JARVIS ultimately becoming?**
 
-All major architectural decisions should move JARVIS closer to this vision.
+Unlike implementation documents, sprint specifications or architectural decisions, the North Star should remain stable over time.
 
-\---
+Technology will change.
 
-\# Vision Statement
+Models will change.
+
+Frameworks will change.
+
+The vision should not.
+
+---
+
+# Vision
 
 JARVIS is an Executive Operating System.
 
-Its purpose is to extend human cognitive capability through adaptive reasoning, collaborative specialist intelligence, and trusted execution.
+Its purpose is to extend human cognitive capability through adaptive reasoning, collaborative specialist intelligence and trusted execution.
 
-JARVIS exists to help people think more clearly, decide more confidently, remember more effectively and execute more consistently.
+JARVIS should become a partner that helps people think more clearly, understand more deeply, decide more confidently and execute more effectively.
 
-It is designed to become a trusted executive partner rather than a conversational assistant.
+Its value is measured not by the sophistication of artificial intelligence, but by the quality of human outcomes it enables.
 
-\---
+---
 
-\# Core Mission
+# Mission
 
-The mission of JARVIS is to reduce the cognitive burden of modern knowledge work while increasing the quality, transparency and consistency of human judgement.
+Reduce cognitive burden.
 
-Rather than replacing human expertise, JARVIS amplifies it.
+Increase decision quality.
 
-\---
+Preserve human judgement.
 
-\# Guiding Philosophy
+Transform intention into execution.
+
+---
+
+# Philosophy
 
 Artificial intelligence should not replace human thinking.
 
-It should expand the space in which humans can think.
+It should expand the space in which humans are capable of thinking.
 
 JARVIS exists to increase:
 
-\- clarity  
-\- awareness  
-\- judgement  
-\- coordination  
-\- execution
+- awareness
+- clarity
+- understanding
+- judgement
+- coordination
+- execution
 
-while preserving human autonomy and accountability.
+while ensuring humans remain responsible for the decisions they make.
 
-\---
+---
 
-\# The Executive Partnership Model
+# Executive Partnership
 
-JARVIS should progressively behave less like software and more like an exceptional executive partner.
+The desired experience is not conversation.
+
+The desired experience is partnership.
 
 An exceptional executive partner:
 
-\- understands context  
-\- remembers commitments  
-\- anticipates needs  
-\- coordinates expertise  
-\- challenges assumptions  
-\- communicates clearly  
-\- protects attention  
-\- executes reliably  
-\- learns organisational preferences  
-\- remains trustworthy
+- understands context
+- remembers commitments
+- identifies risks
+- anticipates needs
+- coordinates expertise
+- protects attention
+- challenges assumptions
+- communicates clearly
+- executes reliably
+- remains trustworthy
 
-These characteristics define the desired user experience.
+Every architectural decision should strengthen one or more of these characteristics.
 
-\---
+---
 
-\# Adaptive Intelligence
+# Adaptive Intelligence
 
-JARVIS should continuously adapt the depth and breadth of its reasoning to match the complexity of the task.
+Not every problem deserves maximum intelligence.
 
-Simple requests should remain lightweight.
+Reasoning should scale with complexity.
 
-Complex decisions should naturally invoke broader reasoning, specialist collaboration and structured synthesis.
+Routine tasks should remain simple.
 
-Reasoning should always be proportional to the problem.
+Strategic decisions should naturally invoke broader reasoning, specialist collaboration and structured synthesis.
 
-\---
+The objective is not maximum intelligence.
 
-\# Behavioural Orchestration Architecture
+The objective is appropriate intelligence.
 
-Behavioural Orchestration Architecture (BOA) is the architectural foundation of JARVIS.
+---
 
-BOA provides the principles required for reliable collaborative reasoning:
+# Behavioural Orchestration Architecture
 
-\- behavioural specification  
-\- role segregation  
-\- structured collaboration  
-\- adversarial challenge  
-\- epistemic discipline  
-\- synthesis  
-\- transparency
+Behavioural Orchestration Architecture (BOA) provides the behavioural foundation of JARVIS.
+
+BOA enables collaborative reasoning through:
+
+- behavioural specification
+- role segregation
+- structured collaboration
+- epistemic discipline
+- adversarial challenge
+- transparent synthesis
 
 JARVIS applies these principles to executive cognition.
 
-\---
+---
 
-\# Specialists
+# Specialists
 
-JARVIS is intentionally designed as an orchestration system.
+JARVIS is an orchestrator rather than a monolithic intelligence.
 
-Its intelligence emerges through collaboration between specialist cognitive modules rather than from a single monolithic assistant.
+Its capability emerges from collaboration between specialised cognitive modules.
 
-Each specialist possesses:
+Every specialist should possess:
 
-\- a defined purpose  
-\- behavioural obligations  
-\- clear authority boundaries  
-\- explicit collaboration rules  
-\- structured output expectations
+- a clearly defined purpose
+- behavioural obligations
+- authority boundaries
+- collaboration protocols
+- executive communication standards
 
-The orchestrator coordinates these specialists to produce coherent executive support.
+The orchestrator exists to coordinate—not replace—specialist expertise.
 
-\---
+---
 
-\# Memory
+# Memory
 
-Memory is not merely storage.
+Memory provides continuity rather than storage.
 
-Memory enables continuity.
+JARVIS should progressively maintain long-term context while remaining transparent, privacy-conscious and user-controlled.
 
-JARVIS should progressively develop the ability to maintain long-term context while respecting user privacy and preserving transparency.
+Information should be surfaced because it is useful, not simply because it exists.
 
-Relevant memories should be surfaced deliberately rather than indiscriminately.
+---
 
-\---
+# Awareness
 
-\# Awareness
+Awareness reduces cognitive load.
 
-JARVIS should progressively increase situational awareness by integrating information from trusted sources such as:
+JARVIS should progressively integrate trusted information sources to build situational awareness without overwhelming the user.
 
-\- calendar  
-\- email  
-\- documents  
-\- research  
-\- news  
-\- projects  
-\- tasks
+The objective is to improve judgement rather than increase information volume.
 
-Awareness exists to reduce cognitive overhead rather than increase information overload.
+---
 
-\---
+# Execution
 
-\# Execution
+Reasoning without execution creates friction.
 
-Reasoning alone is insufficient.
+Execution without reasoning creates risk.
 
-JARVIS should progressively become capable of executing authorised actions across connected systems while maintaining explicit human authority.
+JARVIS should progressively connect reasoning to authorised action while ensuring that execution remains:
 
-Execution should be:
+- explicit
+- observable
+- auditable
+- accountable
+- reversible where practical
 
-\- deliberate  
-\- observable  
-\- auditable  
-\- reversible where practical
+---
 
-\---
+# Trust
 
-\# Trust
-
-Trust is the defining property of the system.
+Trust is the defining property of the architecture.
 
 Trust emerges from:
 
-\- behavioural consistency  
-\- transparency  
-\- reliability  
-\- explainability  
-\- predictable execution  
-\- respect for human authority
+- behavioural consistency
+- transparency
+- predictability
+- honesty about uncertainty
+- respect for human authority
+- reliable execution
 
 Capability should never be pursued at the expense of trust.
 
-\---
+---
 
-\# Architectural Evolution
+# Architectural Evolution
 
-JARVIS should evolve through disciplined architectural improvement rather than uncontrolled feature accumulation.
+Architecture should evolve deliberately.
 
-Every new capability should strengthen one or more of the following:
+Features should not accumulate simply because they are technically possible.
 
-\- reasoning  
-\- awareness  
-\- collaboration  
-\- memory  
-\- execution  
-\- executive experience
+Every significant addition should strengthen one or more of the following capabilities:
 
-Features that increase complexity without strengthening these capabilities should be reconsidered.
+- reasoning
+- awareness
+- memory
+- collaboration
+- execution
+- executive experience
 
-\---
+If it strengthens none of these, it should be reconsidered.
 
-\# Relationship to PHDSS
+---
 
-JARVIS and PHDSS share a common architectural lineage through Behavioural Orchestration Architecture.
+# Relationship to PHDSS
 
-They serve different purposes.
+JARVIS and the Public Health Decision Stewardship System (PHDSS) share a common architectural lineage through Behavioural Orchestration Architecture.
 
-PHDSS applies BOA to institutional governance and complex public decision-making.
+They solve different problems.
+
+PHDSS applies BOA to institutional governance and complex organisational decision-making.
 
 JARVIS applies BOA to executive cognition, personal productivity and intelligent execution.
 
-The two systems should continue to inform one another while remaining independently evolvable.
+Insights from either system should inform the evolution of the other while allowing each to remain independently evolvable.
 
-\---
+---
 
-\# Long-Term Direction
+# Long-Term Direction
 
-The long-term ambition is for JARVIS to become a trusted Executive Operating System that assists individuals and organisations in navigating increasingly complex environments through collaborative intelligence and disciplined execution.
+The long-term objective is to create a trusted Executive Operating System capable of supporting individuals, teams and organisations through increasingly complex environments.
 
-Success will not be measured by the sophistication of the underlying models.
+Success will not be measured by benchmark scores or model capability alone.
 
-Success will be measured by whether users consistently make better decisions, maintain greater awareness, execute more effectively and experience reduced cognitive burden.
+Success will be measured by whether people consistently:
 
-\---
+- make better decisions
+- remember what matters
+- coordinate more effectively
+- execute with greater confidence
+- experience less cognitive burden
 
-\# North Star
+---
 
-Every architectural decision should move JARVIS toward becoming the most trusted executive partner a human can work alongside.  
+# The North Star
+
+Every architectural decision should move JARVIS toward becoming the most trusted executive partner a human can work alongside.
+
+Everything else is implementation.

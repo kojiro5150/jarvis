@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { ProjectionEngine, createProjectionArtifact } from "./engine";
 import { ProjectionRegistry } from "./registry";
 import type { ProjectionAdapter, ProjectionArtifact } from "./types";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { resolve } from "node:path";
 
 function artifact(adapterId: string, sourceId = adapterId, title = adapterId): ProjectionArtifact {
   return {
@@ -59,6 +61,33 @@ describe("ProjectionArtifact", () => {
     ["invalid validation state", { ...artifact("a"), validationState: "invalid" }],
     ["missing metadata", { ...artifact("a"), metadata: undefined }],
   ])("rejects %s", (_label, value) => expect(() => createProjectionArtifact(value as never)).toThrow());
+
+  it("rejects structural and vocabulary failures independently", () => {
+    expect(() => createProjectionArtifact({ ...artifact("a"), entities: [] } as never)).toThrow("artifact.entities must be an object");
+    expect(() => createProjectionArtifact({ ...artifact("a"), entities: { ...artifact("a").entities, roles: [{ id: "r", name: "Role", status: "retired" }] } } as never)).toThrow("roles[0].status has invalid value: retired");
+  });
+
+  it.each(["not-a-date", "2026-02-31T12:00:00Z", "2026-07-26", "2026-07-26T12:00:00"])("rejects malformed projectedAt %s", (projectedAt) => {
+    expect(() => createProjectionArtifact({ ...artifact("a"), provenance: { ...artifact("a").provenance, projectedAt } })).toThrow("must be an RFC 3339 timestamp");
+  });
+
+  it("rejects non-JSON-compatible values instead of silently changing them", () => {
+    for (const invalid of [undefined, Number.NaN, BigInt(1), () => undefined]) {
+      expect(() => createProjectionArtifact({ ...artifact("a"), metadata: { invalid } } as never)).toThrow("JSON-compatible");
+    }
+    const cyclic = artifact("a") as ProjectionArtifact & { cycle?: unknown }; cyclic.cycle = cyclic;
+    expect(() => createProjectionArtifact(cyclic)).toThrow("JSON-compatible");
+  });
+
+  it("replays a serialized artifact without changing its projection", async () => {
+    const original = artifact("a");
+    const replay = JSON.parse(JSON.stringify(createProjectionArtifact(original))) as ProjectionArtifact;
+    const project = async (value: ProjectionArtifact) => {
+      const registry = new ProjectionRegistry(); registry.register(adapter("a", value));
+      return new ProjectionEngine(registry).project();
+    };
+    expect(await project(replay)).toEqual(await project(original));
+  });
 });
 
 describe("ProjectionEngine", () => {
@@ -104,6 +133,8 @@ describe("ProjectionEngine", () => {
     const second = { ...artifact("b"), entities: { ...artifact("b").entities, roles: [{ id: "role", name: "Other", status: "active" as const }] } };
     const registry = new ProjectionRegistry(); registry.register(adapter("a", first)); registry.register(adapter("b", second));
     await expect(new ProjectionEngine(registry).project()).rejects.toThrow("conflicting roles identifier: role");
+    const message = async () => new ProjectionEngine(registry).project().then(() => "", (error: Error) => error.message);
+    expect(await message()).toBe(await message());
   });
 
   it("rejects conflicting identity, context, provenance ownership and source identifiers", async () => {
@@ -127,5 +158,53 @@ describe("ProjectionEngine", () => {
     (input.provenance as { projectedAt: string }).projectedAt = "changed";
     expect(result.roles[0]?.name).toBe("a");
     expect(result.sources[0]?.observedAt).toBe("2026-07-26T12:00:00Z");
+  });
+
+  it("merges every supported entity collection across adapters", async () => {
+    const base = artifact("a");
+    const first: ProjectionArtifact = { ...base, entities: {
+      identity: base.entities.identity,
+      roles: [{ id: "role", name: "Lead", status: "active" }],
+      projects: [{ id: "project", name: "Project", status: "active", roleIds: ["role"] }],
+      commitments: [{ id: "commitment", title: "Meet", kind: "meeting", status: "scheduled", roleIds: ["role"], projectIds: ["project"] }],
+    } };
+    const second: ProjectionArtifact = { ...artifact("b"), entities: {
+      identity: base.entities.identity,
+      waitingItems: [{ id: "waiting", title: "Reply", status: "waiting", waitingOn: "Alex", roleIds: ["role"], projectIds: ["project"] }],
+      priorities: [{ id: "priority", title: "Focus", level: "high", source: "user", roleIds: ["role"], projectIds: ["project"] }],
+      activeWork: [{ id: "work", title: "Build", status: "active", roleIds: ["role"], projectIds: ["project"] }],
+    } };
+    const registry = new ProjectionRegistry(); registry.register(adapter("a", first)); registry.register(adapter("b", second));
+    const result = await new ProjectionEngine(registry).project();
+    expect([result.roles, result.projects, result.commitments, result.waitingItems, result.priorities, result.activeWork].map((items) => items.length)).toEqual([1, 1, 1, 1, 1, 1]);
+  });
+});
+
+describe("package conformance", () => {
+  it("keeps registry enumeration isolated from later registry changes", () => {
+    const registry = new ProjectionRegistry(); registry.register(adapter("a"));
+    const snapshot = registry.adapters(); registry.register(adapter("b"));
+    expect(snapshot.map(({ id }) => id)).toEqual(["a"]);
+  });
+
+  it("does not publicly export obsolete merge result contracts", () => {
+    const root = readFileSync(resolve(__dirname, "../index.ts"), "utf8");
+    const projection = readFileSync(resolve(__dirname, "index.ts"), "utf8");
+    expect(root).not.toMatch(/Merge(Result|Conflict)/);
+    expect(projection).not.toMatch(/Merge(Result|Conflict)/);
+  });
+
+  it("has no production runtime consumer outside its package and re-export boundary", () => {
+    const repository = resolve(__dirname, "../../../../..");
+    const files = (directory: string): string[] => readdirSync(directory).flatMap((name) => {
+      if (["node_modules", ".git", ".next", "docs"].includes(name)) return [];
+      const path = resolve(directory, name);
+      return statSync(path).isDirectory() ? files(path) : [path];
+    });
+    const consumers = files(repository).filter((path) => /\.(ts|tsx)$/.test(path))
+      .filter((path) => !path.includes("/situational-awareness/"))
+      .filter((path) => !path.endsWith(".test.ts") && !path.endsWith(".test.tsx"))
+      .filter((path) => /(?:from\s+|require\()["'][^"']*situational-awareness/.test(readFileSync(path, "utf8")));
+    expect(consumers).toEqual([]);
   });
 });

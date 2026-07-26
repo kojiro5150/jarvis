@@ -1,8 +1,8 @@
 export { createSituationalAwareness } from "./model";
 export { ProjectionEngine, ProjectionRegistry, createProjectionArtifact } from "./projection";
 export type {
-  MergeConflict, MergeConflictClassification, MergeResult, ProjectionAdapter, ProjectionArtifact,
-  ProjectionEntities, ProjectionValidationState, Provenance, SourceAvailability,
+  ProjectionAdapter, ProjectionArtifact, ProjectionEntities, ProjectionValidationState, Provenance,
+  SourceAvailability,
 } from "./projection";
 export type {
   OperationalCommitment, OperationalCommitmentId, OperationalCommitmentKind, OperationalCommitmentStatus,

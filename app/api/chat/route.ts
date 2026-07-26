@@ -3,6 +3,8 @@ import { getAgent } from "@/lib/agents";
 import { callClaude } from "@/lib/claude";
 import { buildOperationalState } from "@/lib/operational-state";
 import { buildContextBlock } from "@/lib/context-builder";
+import { executeAuditedChat } from "@/lib/agents/chat-execution";
+import { createExecutionAuditStore } from "@/lib/agents/execution-audit-store-factory";
 import type { ChatMessage } from "@/lib/agents/types";
 
 export const runtime = "nodejs";
@@ -55,26 +57,32 @@ export async function POST(req: NextRequest) {
   const agent = getAgent(agentId ?? "jarvis");
 
   try {
-    // Sprint 2.4: one OperationalState, built fresh per request, injected
-    // into every agent's system prompt scoped to its role. Agents reason
-    // from this — they never rediscover or infer priorities, projects,
-    // signals, or schedule themselves. This is what fixed DAWNWATCH
-    // reporting "no active projects" while the dashboard, reading the
-    // same underlying memory, showed real ones: DAWNWATCH previously got
-    // no operational data in its conversational context at all.
+    // Preserve the production dashboard's existing conversational and
+    // operational-context behaviour while routing the execution outcome
+    // through the same durable audit store used by /api/execute.
     const state = await buildOperationalState();
     const contextBlock = buildContextBlock(state, agent.contextScope);
     const systemPrompt = `${agent.systemPrompt}\n\n${contextBlock}`;
 
-    const reply = await callClaude(systemPrompt, messages);
+    const reply = await executeAuditedChat(
+      { agent, messages, systemPrompt },
+      {
+        callModel: callClaude,
+        auditStore: createExecutionAuditStore(),
+      }
+    );
+
     return NextResponse.json({ reply, agentId: agent.id });
   } catch (err) {
-    // Never leak internals (stack traces, key hints) to the client.
-    console.error("[/api/chat] Claude call failed:", err);
+    // Never leak internals (stack traces, key hints, provider or database
+    // details) to the client.
+    console.error("[/api/chat] Audited conversation execution failed:", err);
     const message =
       err instanceof Error && err.message.includes("ANTHROPIC_API_KEY")
         ? "Intelligence link not established. Set ANTHROPIC_API_KEY in .env.local to bring this console online."
-        : "Intelligence link interrupted. Try again.";
+        : err instanceof Error && err.message.includes("audit record")
+          ? "Execution record could not be secured. Try again."
+          : "Intelligence link interrupted. Try again.";
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }

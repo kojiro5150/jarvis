@@ -141,6 +141,58 @@ The application should depend on an internal model interface rather than spread 
 
 Sprint 3.9 preserves this runtime flow and the existing `assembleAgentSystemPrompt()` order. Constitution loading and validation do not alter prompt text, routing, execution gates, audit behaviour, APIs or model invocation.
 
+## Executive Operating System: situational awareness
+
+Sprint 3.11 begins a product-layer phase distinct from the Behavioural Operating System. Behavioural architecture defines how specialists are constituted, validated and related. The Situational Awareness Model defines the bounded operational facts currently represented about the user's world:
+
+```text
+Engineering Constitution
+        ↓
+North Star
+        ↓
+Behavioural Constitutions
+        ↓
+Compliance
+        ↓
+Capability Matrix
+        ↓
+Collaboration Graph
+        ↓
+Behavioural Diagnostics
+════════════════════════════════════════
+Executive Operating System
+════════════════════════════════════════
+Situational Awareness Model
+        ↓
+Future Situational Awareness Builder
+        ↓
+Future Decision Surface
+        ↓
+Future Attention Engine
+        ↓
+Future Behavioural Router
+        ↓
+Future Specialist Reasoning
+        ↓
+Future Execution
+        ↓
+Future Continuity
+```
+
+### Current Operational Truth, Not Remembered Conversation
+
+> Situational Awareness represents the bounded operational facts currently relevant to the user's work. It is not a transcript, memory store, embedding index or reconstruction of past conversation.
+
+The model is a projection, not an authoritative or independently editable source. Approved operational systems remain authoritative for their own facts. Bounded source states preserve availability and observation metadata without connector payloads, credentials, freshness calculations or claims. Raw email and document contents, sensitive records, conversation histories and general memories stay outside this data-minimised boundary.
+
+Identity, roles, projects, commitments, waiting items, explicit source- or user-assigned priorities, active work and current context are represented as readonly plain data. Explicit priority is a supplied operational fact, not future Attention Engine ranking. Dates and instants are supplied ISO 8601 / RFC 3339 strings; the model does not read time or calculate lateness, urgency, conflicts or staleness.
+
+`createSituationalAwareness` is a safe model-construction boundary: it validates already-supplied facts and references, applies known-empty collection and unknown-context defaults, preserves caller order, copies all accepted data and deeply freezes the projection. It neither gathers nor normalises sources. A future Situational Awareness Builder will own approved source gathering and canonical source ordering.
+
+> The Situational Awareness Model describes what is currently represented as true. It does not determine what matters, what should happen next, which specialist should contribute or whether any action should be executed.
+
+Consequently this phase introduces no recommendations, decisions, attention ranking, behavioural routing, specialist invocation, persistence, UI, connector integration or active runtime consumer. JSON compatibility and defensive deep immutability provide a deterministic boundary for later derivation without turning the projection into mutable state.
+
 ## Architectural boundaries
 
 ### JARVIS

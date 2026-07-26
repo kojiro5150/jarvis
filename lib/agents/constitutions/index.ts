@@ -10,6 +10,10 @@ export {
 export { SHARED_CONSTITUTION } from "./shared";
 export { validateBehaviouralConstitution } from "./constitution";
 export {
+  BEHAVIOURAL_CONSTITUTION_REGISTRY,
+  buildBehaviouralCapabilityMatrix,
+} from "./capability-matrix";
+export {
   compareConstitutionComplianceIssues,
   validateConstitutionCompliance,
   validateConstitutionComplianceRegistry,
@@ -33,3 +37,8 @@ export type {
   SharedPrincipleComplianceInput,
 } from "./compliance";
 export type { ConstitutionComplianceRegistryInput } from "./registry";
+export type {
+  BehaviouralCapability,
+  BehaviouralCapabilityMatrix,
+  ConstitutionRegistry,
+} from "./capability-matrix";

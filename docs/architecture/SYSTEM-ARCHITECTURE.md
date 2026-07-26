@@ -37,6 +37,22 @@ Specialists are defined under `lib/agents/` and registered through `lib/agents/i
 
 Permanent specialist behaviour is defined under `lib/agents/constitutions/`. The constitution registry composes a versioned shared constitutional layer with each role-specific constitution and validates that constitutional authority does not exceed the existing runtime contract. Behavioural Constitutions are the authoritative behavioural architecture, but Sprint 3.9 does not use them as a new runtime prompt source.
 
+Validated constitutions can be projected into the Behavioural Capability Matrix:
+
+```text
+Behavioural Constitutions
+        ↓
+Compliance Validation
+        ↓
+Behavioural Capability Matrix
+        ↓
+Future Compiler
+        ↓
+Future Runtime
+```
+
+The Behavioural Capability Matrix is descriptive, not operational. It is a deterministic, immutable view of constitutionally declared missions, responsibilities, authority boundaries, collaboration partners and outputs. Constitutions remain the only behavioural source of truth: consumers must rebuild the matrix after constitutional changes and must never edit it directly. This layer creates no prompts, routing, execution or orchestration, and the current runtime does not consume it.
+
 The architecture distinguishes:
 
 - **Executive agents:** JARVIS and DAWNWATCH. These maintain situational awareness and coordinate work.

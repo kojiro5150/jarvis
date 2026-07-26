@@ -22,6 +22,13 @@ Implementation:
 
 One deliberate exception, noted in the constitution: **STEVE** (Engineering and software) is allowed to discuss the actual stack (Next.js, Vercel, Supabase, etc.) because that's literally the job when Sam is in an engineering conversation with him — Principle 3 only restricts *unprompted* architecture talk from the other agents.
 
+## Architecture
+
+Before contributing to this repository, please read:
+
+- docs/ENGINEERING_CONSTITUTION.md
+- docs/ARCHITECTURE/NORTH_STAR.md
+
 ## What's in Phase 1
 
 - **v2 UI**: a persistent left agent rail, a top bar, a dashboard column that is always JARVIS's overall operational view (an enlarged central orb with quick actions, then a responsive card grid — DAWNWATCH Briefing, Calendar Snapshot, Communications Snapshot, Projects Overview, Agent Status, Live Intelligence Feed, Voice Interface, JARVIS Memory, Quick Commands), and a fixed-height conversation dock docked across the bottom of the screen (~30–35vh, independent scroll, persistent input, full markdown rendering with collapsible sections for long replies). Selecting a different agent in the rail changes who the dock is talking to — it never changes what the dashboard above it shows; that dashboard is always JARVIS's operational view. See `components/dashboard/DashboardShell.tsx`.

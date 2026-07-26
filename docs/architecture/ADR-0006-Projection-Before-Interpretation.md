@@ -12,9 +12,9 @@ The Executive Operating System requires a deterministic mechanism for transformi
 
 ## Decision
 
-Operational information shall first be projected into immutable `SituationalAwareness` before any reasoning layer evaluates its significance. Explicitly registered adapters produce validated, immutable Projection Artifacts. The Projection Engine processes adapters in stable identifier order, validates artifacts before merge, detects duplicate or conflicting identities, deterministically orders canonical entities, preserves bounded source provenance, and delegates final construction exclusively to `createSituationalAwareness()`.
+Operational information shall first be projected into immutable `SituationalAwareness` before any reasoning layer evaluates its significance. Explicitly registered adapters produce immutable Projection Artifacts. The Projection Engine processes adapters in stable identifier order; defensively copies and freezes each observation; validates artifact structure, vocabulary, timestamps and semantics without constructing a snapshot; validates cross-artifact ownership and identity; deterministically merges and validates canonical input; and only then delegates final construction to `createSituationalAwareness()` exactly once for each successful projection.
 
-Projection remains observational. It performs no prioritisation, recommendation, inference, behavioural routing or execution. Conflicting observations that cannot satisfy the PR1 model invariants fail explicitly rather than being silently reconciled. The package is not activated by the current application runtime.
+Projection remains observational. It performs no prioritisation, recommendation, inference, behavioural routing or execution. Projection Artifacts retain full artifact-level provenance. The PR1 snapshot retains bounded source-level provenance in `sources`, not per-entity provenance. Exact duplicate observations are deduplicated; conflicting same-ID observations that cannot satisfy the PR1 model invariants fail explicitly and deterministically rather than being silently reconciled. Because failure is the complete runtime policy, no speculative `MergeResult` or `MergeConflict` public contract is exposed. The package is not activated by the current application runtime.
 
 ## Consequences
 

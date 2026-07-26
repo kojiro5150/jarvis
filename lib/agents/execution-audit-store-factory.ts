@@ -4,6 +4,7 @@ import { SupabaseExecutionAuditStore } from "./supabase-execution-audit-store";
 import type { ExecutionAuditStore } from "./execution-audit-store";
 
 export interface ExecutionAuditStoreEnvironment {
+  [key: string]: string | undefined;
   NEXT_PUBLIC_SUPABASE_URL?: string;
   SUPABASE_SECRET_KEY?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;

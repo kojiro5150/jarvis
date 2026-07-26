@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { assembleAgentSystemPrompt } from "./boa-instructions";
+import { getBoaInstruction } from "./boa-instruction-registry";
 import { executeInstruction } from "./model-executor";
 import { herald } from "./herald";
 import { jarvis } from "./jarvis";
@@ -59,7 +61,10 @@ describe("provider-agnostic model execution", () => {
 
     expect(execute).toHaveBeenCalledWith({
       selectedAgentId: herald.id,
-      systemPrompt: herald.systemPrompt,
+      systemPrompt: assembleAgentSystemPrompt(
+        herald,
+        getBoaInstruction(herald.id)
+      ),
       task: "Draft the board update",
       constraints: ["Use confirmed facts"],
       obligations: ["Produce a complete draft"],

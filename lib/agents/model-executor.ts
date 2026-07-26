@@ -1,4 +1,6 @@
 import { AGENTS_BY_ID } from "./index";
+import { assembleAgentSystemPrompt } from "./boa-instructions";
+import { getBoaInstruction } from "./boa-instruction-registry";
 
 import type { ExecutableInstruction } from "./executor";
 
@@ -46,13 +48,7 @@ export type ModelExecutionResult =
       reason: string;
     };
 
-/**
- * Execute one previously gated instruction through an injected model adapter.
- *
- * This boundary performs a model call only. It cannot call tools, perform
- * external side effects, approve proposed actions, or synthesise multiple
- * specialist outputs.
- */
+/** Execute one previously gated instruction through an injected model adapter. */
 export async function executeInstruction(
   instruction: ExecutableInstruction,
   adapter: ModelAdapter,
@@ -94,7 +90,7 @@ export async function executeInstruction(
 
   const request: ModelExecutionRequest = {
     selectedAgentId: agent.id,
-    systemPrompt: agent.systemPrompt,
+    systemPrompt: assembleAgentSystemPrompt(agent, getBoaInstruction(agent.id)),
     task: instruction.task.trim(),
     constraints: [...instruction.constraints],
     obligations: [...instruction.obligations],

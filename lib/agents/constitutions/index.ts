@@ -13,6 +13,7 @@ export {
   BEHAVIOURAL_CONSTITUTION_REGISTRY,
   buildBehaviouralCapabilityMatrix,
 } from "./capability-matrix";
+export { buildBehaviouralCollaborationGraph } from "./collaboration-graph";
 export {
   compareConstitutionComplianceIssues,
   validateConstitutionCompliance,
@@ -42,3 +43,8 @@ export type {
   BehaviouralCapabilityMatrix,
   ConstitutionRegistry,
 } from "./capability-matrix";
+export type {
+  BehaviouralCollaborationEdge,
+  BehaviouralCollaborationGraph,
+  BehaviouralCollaborationNode,
+} from "./collaboration-graph";

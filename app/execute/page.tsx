@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 
+import ExecutionAuditHistory from "@/components/dashboard/ExecutionAuditHistory";
 import SpecialistExecutionPanel from "@/components/dashboard/SpecialistExecutionPanel";
 import { AGENTS, getAgent } from "@/lib/agents";
 import { accentClasses } from "@/lib/agents/accent";
@@ -50,6 +51,8 @@ export default function SpecialistExecutionPage() {
 
           <SpecialistExecutionPanel agent={agent} />
         </section>
+
+        <ExecutionAuditHistory />
       </div>
     </main>
   );

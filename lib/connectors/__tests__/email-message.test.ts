@@ -29,6 +29,7 @@ function baseState(overrides: Partial<OperationalState> = {}): OperationalState 
     gmailThreads: [],
     gmailStatus: "unavailable",
     driveFiles: [],
+    driveStatus: "unavailable",
     connectorStatuses: [
       { name: "calendar", source: "local", connected: false },
       { name: "gmail", source: "local", connected: false },

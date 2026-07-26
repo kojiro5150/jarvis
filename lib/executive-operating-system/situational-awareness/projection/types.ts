@@ -37,19 +37,3 @@ export interface ProjectionAdapter {
   readonly id: string;
   project(): ProjectionArtifact | Promise<ProjectionArtifact>;
 }
-
-export type MergeConflictClassification = "information" | "warning" | "error";
-
-export interface MergeConflict {
-  readonly entityType: keyof ProjectionEntities;
-  readonly entityId: string;
-  readonly sourceIds: readonly OperationalSourceId[];
-  readonly classification: MergeConflictClassification;
-  readonly diagnostic: string;
-}
-
-export interface MergeResult {
-  readonly conflicts: readonly MergeConflict[];
-  readonly validationState: ProjectionValidationState;
-  readonly constructionReady: boolean;
-}

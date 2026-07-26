@@ -11,6 +11,18 @@
 
 ---
 
+> **PR2.1 conformance note (2026-07-26):** The remediation recorded in
+> `Sprint-3.11-PR2.1-Projection-Validation-Completion-Report.md` is authoritative
+> where the original PR2 wording implies per-entity provenance, preservation of
+> incompatible same-ID entities, diagnostic merge result contracts, or validation
+> through snapshot construction. Artifacts retain full provenance; snapshots retain
+> bounded source-level provenance; irreconcilable conflicts reject deterministically;
+> validation constructs no snapshot; and successful projection invokes the canonical
+> constructor exactly once. Full reordering of this document to JESS v1.0 remains
+> recorded process debt rather than code-remediation scope.
+
+---
+
 > **This specification conforms to the JARVIS Engineering Specification Standard (JESS) v1.0.**
 
 This document defines the architectural requirements, constraints, implementation boundaries and engineering expectations for Sprint 3.11 Pull Request 2.
@@ -4326,4 +4338,3 @@ Maintaining this separation is a foundational architectural principle of JARVIS.
 I would actually promote **Appendix A (Glossary)** and **Appendix B (Repository Ontology)** out of this specification and into **JESS v1.1** as repository-wide standards.
 
 That means every future specification—PR3, PR4, PR5, and beyond—can simply reference them instead of redefining them. They become part of the architectural language of JARVIS, much like a ubiquitous language in Domain-Driven Design, ensuring every engineer (or AI coding agent) works from the same shared vocabulary. I think that's the natural next evolution of the engineering methodology you've established.
-

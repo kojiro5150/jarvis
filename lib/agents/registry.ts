@@ -1,5 +1,6 @@
 import { AGENTS, AGENTS_BY_ID } from "./index";
 import { jarvis } from "./jarvis";
+import { validateBehaviouralConstitutionRegistry } from "./constitutions/registry";
 
 import type {
   AgentCapability,
@@ -137,6 +138,8 @@ export function validateAgentRegistry(): string[] {
   if (!AGENTS_BY_ID[jarvis.id]) {
     errors.push("JARVIS is missing from AGENTS_BY_ID");
   }
+
+  errors.push(...validateBehaviouralConstitutionRegistry());
 
   return errors;
 }

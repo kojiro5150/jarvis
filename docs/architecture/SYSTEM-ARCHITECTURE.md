@@ -46,12 +46,26 @@ Compliance Validation
         ↓
 Behavioural Capability Matrix
         ↓
-Future Compiler
+Behavioural Collaboration Graph
+        ↓
+Future Behavioural Coverage & Diagnostics
+        ↓
+Future Constitutional Compiler
         ↓
 Future Runtime
 ```
 
 The Behavioural Capability Matrix is descriptive, not operational. It is a deterministic, immutable view of constitutionally declared missions, responsibilities, authority boundaries, collaboration partners and outputs. Constitutions remain the only behavioural source of truth: consumers must rebuild the matrix after constitutional changes and must never edit it directly. This layer creates no prompts, routing, execution or orchestration, and the current runtime does not consume it.
+
+The **Behavioural Collaboration Graph** consumes that matrix as its immediate architectural input. Every matrix capability becomes a lightweight node, including specialists with no incoming or outgoing relationship. Each declared collaboration partner becomes a directed edge from the declaring specialist to that partner. Direction is preserved: a declaration from A to B neither creates nor implies B to A. Reciprocity is derived only when both directed declarations exist, so asymmetric constitutional relationships remain asymmetric.
+
+Nodes retain matrix order, while edges use source node order followed by target node order. This canonical ordering makes the representation deterministic; it is not priority, precedence, workflow or execution order. The graph is deeply immutable so consumers cannot turn a derived view into an editable configuration surface.
+
+**Behavioural Collaboration Topology:** The Behavioural Collaboration Graph is a deterministic projection of constitutionally declared collaboration relationships. It describes collaboration topology but does not activate, route, schedule, delegate, sequence or execute work.
+
+A collaboration edge expresses a constitutionally declared relationship. It does not activate, route, schedule, sequence, delegate or execute work. In particular, collaboration is not authority, delegation, handoff, dependency, execution sequence, implied reciprocity or inferred similarity.
+
+The Behavioural Collaboration Graph is a projection. It is not an independent configuration surface and must not become a second source of behavioural truth. Behavioural Constitutions remain authoritative; topology changes must originate there, pass through compliance and the Capability Matrix, and then be reproduced by rebuilding the graph. The graph is descriptive only, and no runtime or orchestration component currently consumes it.
 
 The architecture distinguishes:
 

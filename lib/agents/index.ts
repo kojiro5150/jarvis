@@ -44,6 +44,12 @@ export type {
   ModelExecutionResult,
 } from "./model-executor";
 
+export {
+  buildClaudeExecutionPrompt,
+  ClaudeModelAdapter,
+} from "./claude-model-adapter";
+export type { ClaudeModelAdapterOptions } from "./claude-model-adapter";
+
 /**
  * Ordered list of every agent, JARVIS first — this drives the agent rail.
  *

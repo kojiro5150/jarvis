@@ -5,6 +5,8 @@ import {
   handleSpecialistExecution,
   parseSpecialistExecutionRequest,
 } from "@/lib/agents/execution-api";
+import { buildExecutionAuditRecord } from "@/lib/agents/execution-audit";
+import { JsonlExecutionAuditStore } from "@/lib/agents/execution-audit-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +35,17 @@ export async function POST(req: NextRequest) {
     request,
     new ClaudeModelAdapter()
   );
+
+  try {
+    const store = new JsonlExecutionAuditStore();
+    await store.append(buildExecutionAuditRecord(request, response));
+  } catch (error) {
+    console.error("[/api/execute] Failed to append execution audit record", error);
+    return NextResponse.json(
+      { status: "failed", reason: "Execution audit record could not be written" },
+      { status: 500 }
+    );
+  }
 
   if (response.status === 502) {
     console.error("[/api/execute] Specialist model execution failed");

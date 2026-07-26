@@ -24,6 +24,9 @@ export type {
   HandoffAuthority,
   CoordinationRequest,
   CoordinationDecision,
+  CollaborationPlanRequest,
+  CollaborationPlanStep,
+  CollaborationPlan,
   ChatMessage,
 } from "./types";
 

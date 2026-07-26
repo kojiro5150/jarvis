@@ -180,6 +180,31 @@ export interface CoordinationDecision {
   outputContract?: string;
 }
 
+/** Ordered inputs for a deterministic multi-agent collaboration plan. */
+export interface CollaborationPlanRequest {
+  steps: CoordinationRequest[];
+}
+
+/** One inspectable step in a collaboration plan. */
+export interface CollaborationPlanStep extends CoordinationDecision {
+  stepNumber: number;
+  requestedAuthority: HandoffAuthority;
+  requiresEscalationAssessment: boolean;
+}
+
+/**
+ * Deterministic collaboration plan. Planning does not execute any step or
+ * decide whether a declared escalation condition applies.
+ */
+export interface CollaborationPlan {
+  approved: boolean;
+  reason: string;
+  steps: CollaborationPlanStep[];
+  approvedSteps: CollaborationPlanStep[];
+  rejectedSteps: CollaborationPlanStep[];
+  requiresEscalationAssessment: boolean;
+}
+
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;

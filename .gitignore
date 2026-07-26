@@ -28,6 +28,9 @@ yarn-error.log*
 # don't commit your local working state
 /data/*.json
 
+# local append-only execution audit
+/.data/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

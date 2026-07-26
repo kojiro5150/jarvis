@@ -48,7 +48,9 @@ Behavioural Capability Matrix
         ↓
 Behavioural Collaboration Graph
         ↓
-Future Behavioural Coverage & Diagnostics
+Behavioural Architecture Diagnostics
+        ↓
+Future Constitutional Documentation Generation
         ↓
 Future Constitutional Compiler
         ↓
@@ -66,6 +68,14 @@ Nodes retain matrix order, while edges use source node order followed by target 
 A collaboration edge expresses a constitutionally declared relationship. It does not activate, route, schedule, sequence, delegate or execute work. In particular, collaboration is not authority, delegation, handoff, dependency, execution sequence, implied reciprocity or inferred similarity.
 
 The Behavioural Collaboration Graph is a projection. It is not an independent configuration surface and must not become a second source of behavioural truth. Behavioural Constitutions remain authoritative; topology changes must originate there, pass through compliance and the Capability Matrix, and then be reproduced by rebuilding the graph. The graph is descriptive only, and no runtime or orchestration component currently consumes it.
+
+The **Behavioural Architecture Diagnostics** layer consumes the Capability Matrix and Collaboration Graph rather than raw constitutional prose. This preserves the derivation boundary: constitutions remain the ultimate source of truth, while the matrix, graph and diagnostics report are deterministic projections that cannot be edited as alternative architecture.
+
+Diagnostics differ from compliance. Compliance evaluates mandatory constitutional source rules; diagnostics describe directly observable structure in valid projections. Isolation, asymmetry, reciprocal relationships, disconnected components and permitted empty collections can be deliberate. An `information` diagnostic is a neutral observation. An `attention` diagnostic merits human interpretation, but it is not a constitutional compliance failure and does not independently authorise a runtime response. Ordinary diagnostics therefore never block startup or runtime.
+
+Component analysis uses weak connectivity solely to group nodes for observation. It does not erase directed graph semantics or introduce reachability, centrality or operational analysis. Reports use controlled messages and canonical matrix-based ordering, and are deeply immutable at runtime. No health, maturity, quality, readiness or risk score exists because the architecture provides no normative basis for one.
+
+**Diagnostics Without Authority:** Behavioural Architecture Diagnostics identify deterministic structural characteristics of constitutional projections. They do not alter, repair, rank, approve, reject or enforce the behavioural architecture. The layer also does not optimise, infer relationships, recommend changes or produce runtime instructions.
 
 The architecture distinguishes:
 

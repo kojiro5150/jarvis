@@ -30,6 +30,13 @@ export type {
   ChatMessage,
 } from "./types";
 
+export type {
+  ExecutionRequest,
+  ExecutableInstruction,
+  ExecutionDecision,
+} from "./executor";
+export { prepareExecution } from "./executor";
+
 /**
  * Ordered list of every agent, JARVIS first — this drives the agent rail.
  *

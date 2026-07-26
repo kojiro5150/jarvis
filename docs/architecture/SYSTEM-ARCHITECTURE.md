@@ -35,6 +35,8 @@ API routes must remain thin. Domain behaviour should live in `lib/` modules rath
 
 Specialists are defined under `lib/agents/` and registered through `lib/agents/index.ts`.
 
+Permanent specialist behaviour is defined under `lib/agents/constitutions/`. The constitution registry composes a versioned shared constitutional layer with each role-specific constitution and validates that constitutional authority does not exceed the existing runtime contract. Behavioural Constitutions are the authoritative behavioural architecture, but Sprint 3.9 does not use them as a new runtime prompt source.
+
 The architecture distinguishes:
 
 - **Executive agents:** JARVIS and DAWNWATCH. These maintain situational awareness and coordinate work.
@@ -96,6 +98,8 @@ The application should depend on an internal model interface rather than spread 
 5. The model produces a response.
 6. The interface presents the response and relevant status information.
 7. Future governed hand-offs or actions must be represented explicitly rather than hidden inside prose.
+
+Sprint 3.9 preserves this runtime flow and the existing `assembleAgentSystemPrompt()` order. Constitution loading and validation do not alter prompt text, routing, execution gates, audit behaviour, APIs or model invocation.
 
 ## Architectural boundaries
 

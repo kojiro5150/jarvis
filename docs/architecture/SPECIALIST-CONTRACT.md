@@ -18,6 +18,14 @@ Each specialist must declare:
 
 Future iterations should add machine-readable capability and hand-off metadata rather than relying on prompt prose alone.
 
+## Behavioural Constitutions
+
+Behavioural Constitutions are the authoritative, versioned descriptions of permanent specialist behaviour. They define identity, mission, reasoning posture, prevention purpose, obligations, epistemic discipline, authority boundaries, collaboration and escalation rules, executive communication, failure modes and output contracts.
+
+The shared constitutional layer is inherited by each constitution and contains system-wide transparency, uncertainty, evidence, human-authority, communication, collaboration and ethical obligations. Specialist files contain only behaviour unique to their role.
+
+Sprint 3.9 provides constitutions for JARVIS, GECKO, MARCUS, ORACLE, STEVE, HERALD and DAWNWATCH. CO-WORK and PHDSS remain unchanged. Constitutions are architectural specifications during this sprint; `systemPrompt`, `BoaInstructionFile` and `BehaviouralContract` continue to drive the existing runtime and authority paths without behavioural change.
+
 ## Bounded responsibility
 
 | Agent | Tier | Primary responsibility |

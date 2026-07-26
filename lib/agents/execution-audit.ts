@@ -35,8 +35,11 @@ export function buildExecutionAuditRecord(
   response: SpecialistExecutionApiResponse,
   options: ExecutionAuditRecordOptions = {}
 ): ExecutionAuditRecord {
-  const completed = response.body.status === "completed";
-  const result = completed ? response.body.result : undefined;
+  const completedResult =
+    response.body.status === "completed" &&
+    response.body.result.status === "completed"
+      ? response.body.result
+      : undefined;
   const preparationRejected =
     response.status === 422 &&
     response.body.status === "rejected" &&
@@ -54,10 +57,10 @@ export function buildExecutionAuditRecord(
     expectedOutput: request.expectedOutput,
     humanApproved: request.humanApproved === true,
     preparationStatus: preparationRejected ? "rejected" : "prepared",
-    executionStatus: completed ? "completed" : response.body.status,
-    model: completed ? result.model : undefined,
-    inputTokens: completed ? result.inputTokens : undefined,
-    outputTokens: completed ? result.outputTokens : undefined,
-    reason: completed ? undefined : response.body.reason,
+    executionStatus: completedResult ? "completed" : response.body.status,
+    model: completedResult?.model,
+    inputTokens: completedResult?.inputTokens,
+    outputTokens: completedResult?.outputTokens,
+    reason: completedResult ? undefined : response.body.status === "completed" ? "Completed response contained no completed result" : response.body.reason,
   };
 }

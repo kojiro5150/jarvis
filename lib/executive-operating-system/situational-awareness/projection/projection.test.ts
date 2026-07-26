@@ -196,6 +196,7 @@ describe("package conformance", () => {
 
   it("has no production runtime consumer outside its package and re-export boundary", () => {
     const repository = process.cwd();
+    
     const files = (directory: string): string[] => readdirSync(directory).flatMap((name) => {
       if (["node_modules", ".git", ".next", "docs"].includes(name)) return [];
       const path = resolve(directory, name);

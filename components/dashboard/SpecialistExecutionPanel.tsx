@@ -13,6 +13,8 @@ import {
 import type { AgentDefinition, HandoffAuthority } from "@/lib/agents/types";
 import type { SpecialistExecutionUiResult } from "@/lib/agents/execution-client";
 
+const EXECUTION_AUDIT_UPDATED_EVENT = "jarvis:execution-audit-updated";
+
 export default function SpecialistExecutionPanel({ agent }: { agent: AgentDefinition }) {
   const contract = agent.behaviouralContract;
   const authorities = contract?.authority ?? [];
@@ -60,6 +62,7 @@ export default function SpecialistExecutionPanel({ agent }: { agent: AgentDefini
         body: JSON.stringify(request),
       });
       setResult(parseSpecialistExecutionResponse(await response.json()));
+      window.dispatchEvent(new Event(EXECUTION_AUDIT_UPDATED_EVENT));
     } catch {
       setResult({ status: "failed", reason: "Execution link interrupted" });
     } finally {

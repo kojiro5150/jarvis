@@ -6,7 +6,7 @@ import {
   parseSpecialistExecutionRequest,
 } from "@/lib/agents/execution-api";
 import { buildExecutionAuditRecord } from "@/lib/agents/execution-audit";
-import { JsonlExecutionAuditStore } from "@/lib/agents/execution-audit-store";
+import { createExecutionAuditStore } from "@/lib/agents/execution-audit-store-factory";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   );
 
   try {
-    const store = new JsonlExecutionAuditStore();
+    const store = createExecutionAuditStore();
     await store.append(buildExecutionAuditRecord(request, response));
   } catch (error) {
     console.error("[/api/execute] Failed to append execution audit record", error);

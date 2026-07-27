@@ -269,15 +269,19 @@ Immutable Candidate Plan Set
 Candidate Plan Constraint Evaluation
         ↓
 Immutable Evaluated Candidate Plan Set
-        ↓
-Future Candidate Plan Comparison
-        ↓
+↓
+Candidate Plan Comparative Analysis
+↓
+Immutable Candidate Plan Comparison Set
+↓
 Future Executive Reasoning and Selection
 ```
 
 Candidate Plan Construction instantiates only explicit, typed definitions admitted by registered deterministic policies. Calendar and email prose do not create plans. The resulting candidates are options: they are unranked, unevaluated, unapproved, inert, and non-executable. Constraint references record a configured relationship and are not compliance outcomes. An empty set is a valid deterministic result. Evaluation, comparison, selection, recommendations, action proposals, and execution remain downstream.
 
 Candidate Plan Constraint Evaluation consumes the coherent Context, Intent Set, Constraint Set, and Candidate Plan Set. It annotates every unchanged candidate with independently identifiable typed findings. Evaluated candidates are structurally assessed and finding-preserving, but remain unranked, unselected, unapproved, non-recommended, inert, and non-executable. Missing evidence remains unresolved, conflicting typed evidence may be indeterminate, and unrelated constraints emit no finding. Finding counts are structural statistics: neither a finding nor an all-satisfied collection is an overall plan verdict. Comparison and Executive Reasoning remain future downstream boundaries.
+
+Candidate Plan Comparative Analysis consumes that coherent planning and evaluation state only through public contracts. Explicit definitions and registered bounded policies produce one immutable profile per unchanged evaluated candidate and, only when enabled, one canonical record per unordered candidate pair. Observations and relations are descriptive, structural, explicit, deterministic, provenance-preserving, unweighted, unscored, unranked, unselected, unapproved, non-recommended, inert, and non-executable. Narrative prose is never interpreted. A difference is not a preference, and an equivalence is not a recommendation. Mixed dimensions remain mixed; future Executive Reasoning, proposals, approval, and execution remain separate downstream boundaries.
 
 ### JARVIS
 

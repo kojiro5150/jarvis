@@ -1,0 +1,4 @@
+import {describe,expect,it} from "vitest";
+import {readFileSync,readdirSync} from "node:fs";
+import {join} from "node:path";
+describe("comparison package conformance",()=>{it("keeps production imports within approved public boundaries",()=>{const root=__dirname;const source=readdirSync(root).filter(x=>x.endsWith(".ts")&&!x.endsWith(".test.ts")).map(x=>readFileSync(join(root,x),"utf8")).join("\n");for(const forbidden of ["connectors","projection/","snapshot","attention","situations","assessment/","specialist","anthropic","openai","app/"])expect(source).not.toContain(forbidden)});it("does not leak upstream",()=>{const planning=join(__dirname,"..");for(const folder of ["candidates","evaluation"]){const source=readdirSync(join(planning,folder)).filter(x=>x.endsWith(".ts")&&!x.endsWith(".test.ts")).map(x=>readFileSync(join(planning,folder,x),"utf8")).join("\n");expect(source).not.toContain("../comparison")}})});

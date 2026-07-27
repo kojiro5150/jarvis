@@ -253,6 +253,24 @@ Situation Formation is the next deterministic boundary. It groups Attention Reco
 
 ## Architectural boundaries
 
+## Candidate Plan Construction
+
+```text
+Executive Context
+        +
+Executive Intent Set
+        +
+Executive Constraint Set
+        ↓
+Candidate Plan Construction
+        ↓
+Immutable Candidate Plan Set
+        ↓
+Future Plan Constraint Evaluation
+```
+
+Candidate Plan Construction instantiates only explicit, typed definitions admitted by registered deterministic policies. Calendar and email prose do not create plans. The resulting candidates are options: they are unranked, unevaluated, unapproved, inert, and non-executable. Constraint references record a configured relationship and are not compliance outcomes. An empty set is a valid deterministic result. Evaluation, comparison, selection, recommendations, action proposals, and execution remain downstream.
+
 ### JARVIS
 
 Responsible for:

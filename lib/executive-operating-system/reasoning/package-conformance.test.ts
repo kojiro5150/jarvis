@@ -1,0 +1,4 @@
+import { readFileSync,readdirSync } from "node:fs";
+import { join } from "node:path";
+import { describe,expect,it } from "vitest";
+describe("reasoning package boundary",()=>{it("production imports only approved canonical packages",()=>{const root=__dirname;const source=readdirSync(root).filter(x=>x.endsWith(".ts")&&!x.endsWith(".test.ts")).map(x=>readFileSync(join(root,x),"utf8")).join("\n");for(const prohibited of ["connectors","anthropic","openai","runtime","specialist","app/","api/","persistence","notifications"])expect(source).not.toContain(`from \"${prohibited}`)});it("upstream production packages do not import reasoning",()=>{const root=join(__dirname,"..");for(const directory of ["context","intent","planning/candidates","planning/evaluation","planning/comparison"]){const dir=join(root,directory);for(const file of readdirSync(dir).filter(x=>x.endsWith(".ts")&&!x.endsWith(".test.ts")))expect(readFileSync(join(dir,file),"utf8")).not.toContain("reasoning")}})});

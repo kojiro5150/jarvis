@@ -266,10 +266,18 @@ Candidate Plan Construction
         ↓
 Immutable Candidate Plan Set
         ↓
-Future Plan Constraint Evaluation
+Candidate Plan Constraint Evaluation
+        ↓
+Immutable Evaluated Candidate Plan Set
+        ↓
+Future Candidate Plan Comparison
+        ↓
+Future Executive Reasoning and Selection
 ```
 
 Candidate Plan Construction instantiates only explicit, typed definitions admitted by registered deterministic policies. Calendar and email prose do not create plans. The resulting candidates are options: they are unranked, unevaluated, unapproved, inert, and non-executable. Constraint references record a configured relationship and are not compliance outcomes. An empty set is a valid deterministic result. Evaluation, comparison, selection, recommendations, action proposals, and execution remain downstream.
+
+Candidate Plan Constraint Evaluation consumes the coherent Context, Intent Set, Constraint Set, and Candidate Plan Set. It annotates every unchanged candidate with independently identifiable typed findings. Evaluated candidates are structurally assessed and finding-preserving, but remain unranked, unselected, unapproved, non-recommended, inert, and non-executable. Missing evidence remains unresolved, conflicting typed evidence may be indeterminate, and unrelated constraints emit no finding. Finding counts are structural statistics: neither a finding nor an all-satisfied collection is an overall plan verdict. Comparison and Executive Reasoning remain future downstream boundaries.
 
 ### JARVIS
 

@@ -238,10 +238,18 @@ Executive Attention Engine
     ↓
 Executive Attention Queue
     ↓
+Situation Formation Policies
+    ↓
+Executive Situation Engine
+    ↓
+Immutable Executive Situation Set
+    ↓
 Future Interpretation → Future Planning → Future Authorised Action
 ```
 
 Observation is not interpretation, and a change is not importance. The Executive Attention Layer consumes only canonical lifecycle changes and selects those matching explicit deterministic policies. Inclusion is a policy match, not a decision, recommendation, alert, or plan. Queue order is structural and must never be interpreted downstream as priority or severity. The immutable queue introduces no behavioural routing, specialist invocation, persistence, UI, runtime consumer, or action.
+
+Situation Formation is the next deterministic boundary. It groups Attention Records only when registered policies expose a shared canonical entity, explicit parent relationship, or explicit project/role reference; every unmatched record becomes a singleton. Every record belongs to exactly one immutable Executive Situation, and any competing claim aborts formation rather than selecting a winner. Situation and set ordering is structural, identities derive only from snapshot, policy, and sorted Attention Record identifiers, and membership retains the complete originating record plus its formation reason. The layer neither interprets a situation nor ranks, recommends, plans, routes, persists, or acts upon it.
 
 ## Architectural boundaries
 

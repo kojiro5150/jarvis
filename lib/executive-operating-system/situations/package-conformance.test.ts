@@ -1,0 +1,6 @@
+import { describe, expect, it } from "vitest";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
+const root = process.cwd(); const excluded = new Set([".git", ".next", "node_modules"]);
+function files(directory: string): string[] { return readdirSync(directory).flatMap(name => { if (excluded.has(name)) return []; const path = join(directory, name); return statSync(path).isDirectory() ? files(path) : /\.tsx?$/.test(name) ? [path] : []; }); }
+describe("Executive Situation package boundaries", () => { it("depends only on attention, canonical contracts, and local validation", () => { for (const file of files(root)) { const path = relative(root, file); const source = readFileSync(file, "utf8"); if (!path.endsWith(".test.ts") && /^lib\/executive-operating-system\/(attention|situational-awareness)\//.test(path)) expect(source, path).not.toMatch(/executive-operating-system\/situations/); if (/^lib\/executive-operating-system\/situations\//.test(path) && !path.endsWith(".test.ts")) expect(source, path).not.toMatch(/lib\/(agents|connectors)|app\/|components\/|runtime|planning|reasoning|execution|specialists|notifications|llm/i); } }); });

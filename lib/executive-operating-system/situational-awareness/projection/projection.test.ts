@@ -194,7 +194,7 @@ describe("package conformance", () => {
     expect(projection).not.toMatch(/Merge(Result|Conflict)/);
   });
 
-  it("has no production runtime consumer outside its package and re-export boundary", () => {
+  it("has no production runtime consumer outside its package, re-export, and downstream attention boundary", () => {
     const repository = process.cwd();
     
     const files = (directory: string): string[] => readdirSync(directory).flatMap((name) => {
@@ -204,6 +204,7 @@ describe("package conformance", () => {
     });
     const consumers = files(repository).filter((path) => /\.(ts|tsx)$/.test(path))
       .filter((path) => !path.includes("/situational-awareness/"))
+      .filter((path) => !path.includes("/executive-operating-system/attention/"))
       .filter((path) => !path.endsWith(".test.ts") && !path.endsWith(".test.tsx"))
       .filter((path) => /(?:from\s+|require\()["'][^"']*situational-awareness/.test(readFileSync(path, "utf8")));
     expect(consumers).toEqual([]);

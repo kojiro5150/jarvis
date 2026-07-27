@@ -232,10 +232,16 @@ Snapshot Lifecycle
     ↓
 Deterministic Change Set
     ↓
-Future Interpretation → Future Attention → Future Authorised Action
+Attention Policies
+    ↓
+Executive Attention Engine
+    ↓
+Executive Attention Queue
+    ↓
+Future Interpretation → Future Planning → Future Authorised Action
 ```
 
-Consequently this phase introduces no recommendations, decisions, attention ranking, behavioural routing, specialist invocation, persistence, UI, concrete connector integration or active runtime consumer. JSON compatibility and defensive deep immutability provide a deterministic boundary for later derivation without turning the projection into mutable state.
+Observation is not interpretation, and a change is not importance. The Executive Attention Layer consumes only canonical lifecycle changes and selects those matching explicit deterministic policies. Inclusion is a policy match, not a decision, recommendation, alert, or plan. Queue order is structural and must never be interpreted downstream as priority or severity. The immutable queue introduces no behavioural routing, specialist invocation, persistence, UI, runtime consumer, or action.
 
 ## Architectural boundaries
 

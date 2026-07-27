@@ -278,7 +278,9 @@ Bounded Executive Reasoning
 ↓
 Executive Reasoning Record
 ↓
-Future Governed Action Proposal
+Governed Action Proposal
+↓
+Governed Action Proposal Set
 ↓
 Future Human Approval
 ↓
@@ -292,6 +294,8 @@ Candidate Plan Constraint Evaluation consumes the coherent Context, Intent Set, 
 Candidate Plan Comparative Analysis consumes that coherent planning and evaluation state only through public contracts. Explicit definitions and registered bounded policies produce one immutable profile per unchanged evaluated candidate and, only when enabled, one canonical record per unordered candidate pair. Observations and relations are descriptive, structural, explicit, deterministic, provenance-preserving, unweighted, unscored, unranked, unselected, unapproved, non-recommended, inert, and non-executable. Narrative prose is never interpreted. A difference is not a preference, and an equivalence is not a recommendation. Mixed dimensions remain mixed; future Executive Reasoning, proposals, approval, and execution remain separate downstream boundaries.
 
 Bounded Executive Reasoning consumes the existing coherent canonical artefact graph without recreating it. It produces one compact, immutable, reference-based and provenance-preserving Executive Reasoning Record. The record is bounded, advisory, explicit, deterministic, unweighted, unscored, unranked, unselected, unapproved, non-recommended, inert, and non-executable. A supported observation is not a recommendation, and an unresolved boundary is not a rejection. Governed Action Proposal, human approval, and authorised execution remain three separate future boundaries.
+
+Governed Action Proposal consumes that immutable reasoning record and its coherent upstream graph. Explicit definitions and registered policies produce exactly one immutable, deterministic, reviewable and provenance-preserving proposal set. Proposals are conditional, authority-aware and evidence-aware where canonical inputs require it; they remain unweighted, unscored, unranked, unapproved, non-executable, inert until human review, and incapable of crossing the execution boundary. A proposal is not a recommendation, readiness for human review is not approval, blocked is not rejection, and candidate inclusion is not selection. Human approval and authorised execution remain separate future boundaries.
 
 ### JARVIS
 

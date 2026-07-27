@@ -1,0 +1,8 @@
+import { describe,expect,it } from "vitest";
+import { DeterministicGovernedActionProposalRegistry,preserveOptionsPolicy,singleCandidateConsiderationPolicy } from ".";
+
+describe("governed action proposal registry",()=>{
+ it("clones, deeply freezes, and structurally orders policy registrations",()=>{const registry=new DeterministicGovernedActionProposalRegistry();const source={...preserveOptionsPolicy,metadata:{...preserveOptionsPolicy.metadata}};registry.register(source);registry.register(singleCandidateConsiderationPolicy);source.metadata.displayName="changed";expect(registry.policies().map(x=>x.identifier)).toEqual(["proposal.preserve-options","proposal.single-candidate-consideration"]);expect(registry.policies()[0].metadata.displayName).toBe("Preserve Options");expect(Object.isFrozen(registry.policies()[0].metadata)).toBe(true);expect(Object.isFrozen(registry.policies()[0].metadata.supportedProposalKinds)).toBe(true)});
+ it("rejects duplicate identities without last-write-wins behaviour",()=>{const registry=new DeterministicGovernedActionProposalRegistry();registry.register(preserveOptionsPolicy);expect(()=>registry.register(preserveOptionsPolicy)).toThrow(/duplicate proposal policy identifier/)});
+ it("uses code-unit rather than locale ordering",()=>{const registry=new DeterministicGovernedActionProposalRegistry();const make=(identifier:string)=>({...singleCandidateConsiderationPolicy,identifier,metadata:{...singleCandidateConsiderationPolicy.metadata,identifier}});registry.register(make("policy.a"));registry.register(make("policy.Z"));expect(registry.policies().map(x=>x.identifier)).toEqual(["policy.Z","policy.a"])});
+});

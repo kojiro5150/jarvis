@@ -1,4 +1,9 @@
 export { createSituationalAwareness } from "./model";
+export { compareSituationalAwarenessSnapshots, createSituationalAwarenessSnapshot } from "./lifecycle";
+export type {
+  ChangeCounts, EntityChange, ScalarChange, SituationalAwarenessChangeSet, SituationalAwarenessChanges,
+  SituationalAwarenessSnapshot, SituationalAwarenessSnapshotInput,
+} from "./lifecycle";
 export {
   CalendarProjectionAdapter,
   CALENDAR_PROJECTION_ADAPTER_ID,

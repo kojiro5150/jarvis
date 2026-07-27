@@ -203,11 +203,37 @@ Deterministic merge
 createSituationalAwareness()
         ↓
 Immutable Situational Awareness snapshot
+        ↓
+Explicit snapshot envelope (identifier + observation boundary)
+        ↓
+Snapshot Lifecycle (canonical structural comparison)
+        ↓
+Immutable deterministic change set
 ```
 
 The Projection Engine is connector-neutral and runtime-neutral. Registration is explicit, adapter execution and merged collections have stable identifier ordering, and identical artifacts therefore yield identical JSON-compatible snapshots independently of registration order. Projection Artifacts retain full artifact-level provenance. Final snapshots retain bounded source-level provenance—source identifier, source kind, observation timestamp and availability—in the existing source-state collection; PR1 entities do not retain per-entity provenance. Exact duplicate observations are deduplicated, while same-ID observations that cannot jointly satisfy PR1 invariants fail deterministically. The deterministic-rejection architecture exposes no `MergeResult` or `MergeConflict` contract. No raw connector payload, credential or inferred operational significance enters the snapshot.
 
 > The Situational Awareness Model describes what is currently represented as true. It does not determine what matters, what should happen next, which specialist should contribute or whether any action should be executed.
+
+Successive canonical states enter the Snapshot Lifecycle only after projection. The lifecycle compares stable identifiers and canonical values, preserves previous/current records and source observation context, and reports additions, removals and modifications in deterministic order. It performs change detection, not reasoning: absence means only “present previously, absent currently,” never confirmed deletion. Interpretation, attention, action and runtime orchestration remain downstream and are not introduced by the lifecycle.
+
+```text
+Connectors
+    ↓
+Projection Adapters
+    ↓
+ProjectionArtifacts
+    ↓
+ProjectionEngine
+    ↓
+SituationalAwareness Snapshot
+    ↓
+Snapshot Lifecycle
+    ↓
+Deterministic Change Set
+    ↓
+Future Interpretation → Future Attention → Future Authorised Action
+```
 
 Consequently this phase introduces no recommendations, decisions, attention ranking, behavioural routing, specialist invocation, persistence, UI, concrete connector integration or active runtime consumer. JSON compatibility and defensive deep immutability provide a deterministic boundary for later derivation without turning the projection into mutable state.
 

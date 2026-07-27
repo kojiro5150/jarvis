@@ -274,7 +274,15 @@ Candidate Plan Comparative Analysis
 ↓
 Immutable Candidate Plan Comparison Set
 ↓
-Future Executive Reasoning and Selection
+Bounded Executive Reasoning
+↓
+Executive Reasoning Record
+↓
+Future Governed Action Proposal
+↓
+Future Human Approval
+↓
+Future Authorised Execution
 ```
 
 Candidate Plan Construction instantiates only explicit, typed definitions admitted by registered deterministic policies. Calendar and email prose do not create plans. The resulting candidates are options: they are unranked, unevaluated, unapproved, inert, and non-executable. Constraint references record a configured relationship and are not compliance outcomes. An empty set is a valid deterministic result. Evaluation, comparison, selection, recommendations, action proposals, and execution remain downstream.
@@ -282,6 +290,8 @@ Candidate Plan Construction instantiates only explicit, typed definitions admitt
 Candidate Plan Constraint Evaluation consumes the coherent Context, Intent Set, Constraint Set, and Candidate Plan Set. It annotates every unchanged candidate with independently identifiable typed findings. Evaluated candidates are structurally assessed and finding-preserving, but remain unranked, unselected, unapproved, non-recommended, inert, and non-executable. Missing evidence remains unresolved, conflicting typed evidence may be indeterminate, and unrelated constraints emit no finding. Finding counts are structural statistics: neither a finding nor an all-satisfied collection is an overall plan verdict. Comparison and Executive Reasoning remain future downstream boundaries.
 
 Candidate Plan Comparative Analysis consumes that coherent planning and evaluation state only through public contracts. Explicit definitions and registered bounded policies produce one immutable profile per unchanged evaluated candidate and, only when enabled, one canonical record per unordered candidate pair. Observations and relations are descriptive, structural, explicit, deterministic, provenance-preserving, unweighted, unscored, unranked, unselected, unapproved, non-recommended, inert, and non-executable. Narrative prose is never interpreted. A difference is not a preference, and an equivalence is not a recommendation. Mixed dimensions remain mixed; future Executive Reasoning, proposals, approval, and execution remain separate downstream boundaries.
+
+Bounded Executive Reasoning consumes the existing coherent canonical artefact graph without recreating it. It produces one compact, immutable, reference-based and provenance-preserving Executive Reasoning Record. The record is bounded, advisory, explicit, deterministic, unweighted, unscored, unranked, unselected, unapproved, non-recommended, inert, and non-executable. A supported observation is not a recommendation, and an unresolved boundary is not a rejection. Governed Action Proposal, human approval, and authorised execution remain three separate future boundaries.
 
 ### JARVIS
 

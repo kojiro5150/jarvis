@@ -1,0 +1,2 @@
+import { describe,expect,it } from "vitest";import { readFileSync,readdirSync } from "node:fs";import { join } from "node:path";
+describe("candidate package boundary",()=>{it("keeps production dependencies downstream-only",()=>{const root=__dirname;const source=readdirSync(root).filter(x=>x.endsWith(".ts")&&!x.endsWith(".test.ts")).map(x=>readFileSync(join(root,x),"utf8")).join("\n");for(const forbidden of ["connectors/","situational-awareness/","specialists/","app/","@anthropic-ai","openai"])expect(source).not.toContain(forbidden);});});

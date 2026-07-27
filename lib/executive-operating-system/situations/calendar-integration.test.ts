@@ -1,0 +1,12 @@
+import { describe, expect, it } from "vitest";
+import { normalizeGoogleEvent } from "../../connectors/calendar-event";
+import { AttentionPolicyRegistry, INITIAL_ATTENTION_POLICIES, constructExecutiveAttentionQueue } from "../attention";
+import { compareSituationalAwarenessSnapshots, createSituationalAwarenessSnapshot } from "../situational-awareness/lifecycle";
+import { CalendarProjectionAdapter, ProjectionEngine, ProjectionRegistry } from "../situational-awareness/projection";
+import { ExecutiveSituationEngine, INITIAL_SITUATION_FORMATION_POLICIES, SituationFormationRegistry } from ".";
+
+async function project(status: "confirmed" | "cancelled", start: string, observedAt: string) { const event = normalizeGoogleEvent({ id: "board", summary: "Board review", status, start: { dateTime: start }, end: { dateTime: "2026-07-28T12:00:00Z" } }, 0, { calendarId: "executive", calendarName: "Executive" }); const registry = new ProjectionRegistry(); registry.register(new CalendarProjectionAdapter({ identity: { userId: "u", displayName: "User" }, observedAt, connector: { source: "google", listUpcoming: async () => [event] } })); return new ProjectionEngine(registry).project(); }
+
+describe("Calendar to Executive Situation integration", () => {
+  it("deterministically groups two attention records for one projected Calendar entity", async () => { const previous = createSituationalAwarenessSnapshot({ snapshotId: "calendar-a", observedAt: "2026-07-27T08:00:00Z", state: await project("confirmed", "2026-07-28T09:00:00Z", "2026-07-27T08:00:00Z") }); const current = createSituationalAwarenessSnapshot({ snapshotId: "calendar-b", observedAt: "2026-07-27T09:00:00Z", state: await project("cancelled", "2026-07-28T10:00:00Z", "2026-07-27T09:00:00Z") }); const queue = constructExecutiveAttentionQueue(compareSituationalAwarenessSnapshots(previous, current), new AttentionPolicyRegistry(INITIAL_ATTENTION_POLICIES)); const engine = new ExecutiveSituationEngine(new SituationFormationRegistry(INITIAL_SITUATION_FORMATION_POLICIES)); const first = engine.form(queue); const replay = engine.form(queue); expect(queue.records).toHaveLength(2); expect(first).toEqual(replay); expect(first.situations).toHaveLength(1); expect(first.situations[0].memberships.map(m => m.attentionRecord.reason.code)).toEqual(["commitment.status.changed-to-cancelled", "commitment.start-time.changed"]); expect(first.situations[0].formationPolicy.id).toBe("situation.same-canonical-entity"); });
+});

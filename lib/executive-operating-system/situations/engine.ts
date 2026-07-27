@@ -1,0 +1,20 @@
+import type { ExecutiveAttentionQueue } from "../attention";
+import { SituationFormationRegistry } from "./registry";
+import type { ExecutiveSituation, ExecutiveSituationSet, SituationFormationEngine as EngineContract, SituationFormationGroup, SituationFormationPolicy } from "./types";
+import { clone, compareSituation, compareText, createExecutiveSituationSet, situationIdentity, validateGroup } from "./validation";
+
+const SINGLETON_ID = "situation.singleton";
+export class ExecutiveSituationEngine implements EngineContract {
+  constructor(private readonly registry: SituationFormationRegistry) { if (!(registry instanceof SituationFormationRegistry)) throw new Error("situation formation registry is required"); }
+  form(queue: ExecutiveAttentionQueue): ExecutiveSituationSet {
+    if (!queue || typeof queue !== "object" || !Array.isArray(queue.records)) throw new Error("executive attention queue is required");
+    const policies = this.registry.policies(); const singleton = policies.find(p => p.id === SINGLETON_ID); if (!singleton) throw new Error("singleton formation policy is required");
+    const claims = new Map<string, { policy: SituationFormationPolicy; group: SituationFormationGroup }>();
+    for (const policy of policies.filter(p => p.id !== SINGLETON_ID)) { const groups = policy.form(clone(queue.records), Object.freeze({ currentSnapshotId: queue.currentSnapshotId, queueId: queue.queueId })); if (!Array.isArray(groups)) throw new Error(`situation formation policy ${policy.id} returned invalid groups`); const groupKeys = new Set<string>(); for (const group of groups) { validateGroup(group, policy, queue); if (groupKeys.has(group.key)) throw new Error(`duplicate group key from situation formation policy ${policy.id}: ${group.key}`); groupKeys.add(group.key); if (group.records.length < 2) throw new Error(`non-singleton policy ${policy.id} returned a singleton group`); for (const record of group.records) { const existing = claims.get(record.attentionId); if (existing) throw new Error(`ambiguous situation membership for ${record.attentionId}: ${existing.policy.id} and ${policy.id}`); claims.set(record.attentionId, { policy, group }); } } }
+    const situations: ExecutiveSituation[] = []; const emitted = new Set<SituationFormationGroup>();
+    for (const record of queue.records) { const claim = claims.get(record.attentionId); if (claim) { if (emitted.has(claim.group)) continue; emitted.add(claim.group); situations.push(makeSituation(queue.currentSnapshotId, claim.policy, claim.group.records, claim.group.reasonCode, claim.group.evidence)); } else situations.push(makeSituation(queue.currentSnapshotId, singleton, [record], "situation.singleton.unmatched", { attentionId: record.attentionId })); }
+    situations.sort(compareSituation); const recordsByPolicy: Record<string, number> = {}; for (const s of situations) recordsByPolicy[s.formationPolicy.id] = (recordsByPolicy[s.formationPolicy.id] ?? 0) + s.memberships.length;
+    return createExecutiveSituationSet({ currentSnapshotId: queue.currentSnapshotId, queueId: queue.queueId, situations, summary: { attentionRecords: queue.records.length, executiveSituations: situations.length, singletonCount: situations.filter(s => s.memberships.length === 1).length, multiRecordCount: situations.filter(s => s.memberships.length > 1).length, recordsByPolicy: Object.fromEntries(Object.entries(recordsByPolicy).sort(([a], [b]) => compareText(a, b))) } });
+  }
+}
+function makeSituation(snapshotId: string, policy: SituationFormationPolicy, records: readonly ExecutiveAttentionQueue["records"][number][], code: string, evidence: Readonly<Record<string, string>>): ExecutiveSituation { const ordered = [...records].sort((a, b) => compareText(a.attentionId, b.attentionId)); return { situationId: situationIdentity(snapshotId, ordered.map(r => r.attentionId), policy.id), currentSnapshotId: snapshotId, formationPolicy: { id: policy.id, version: policy.version }, memberships: ordered.map(attentionRecord => ({ formationPolicyId: policy.id, formationPolicyVersion: policy.version, reason: { code, evidence: clone(evidence) }, attentionRecord: clone(attentionRecord) })) }; }

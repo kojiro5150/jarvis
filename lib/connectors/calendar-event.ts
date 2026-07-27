@@ -32,6 +32,8 @@ export interface CalendarEvent {
   calendarName: string;
   /** Google's calendarList backgroundColor (hex), if the calendar has one set. */
   calendarColor?: string;
+  /** Provider observation when available; consumers must not infer beyond it. */
+  status?: "confirmed" | "tentative" | "cancelled";
 }
 
 interface GoogleEventLike {
@@ -39,6 +41,7 @@ interface GoogleEventLike {
   summary?: string;
   start?: { dateTime?: string; date?: string };
   end?: { dateTime?: string; date?: string };
+  status?: "confirmed" | "tentative" | "cancelled";
 }
 
 /** Which calendar an event was fetched from — attached per-request, since a raw Google event object doesn't carry this itself. */
@@ -109,6 +112,7 @@ export function normalizeGoogleEvent(
     calendarId: meta.calendarId,
     calendarName: meta.calendarName,
     calendarColor: meta.calendarColor,
+    status: event.status,
   };
 }
 

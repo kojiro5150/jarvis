@@ -1,6 +1,13 @@
 export { createSituationalAwareness } from "./model";
-export { ProjectionEngine, ProjectionRegistry, createProjectionArtifact } from "./projection";
+export {
+  CalendarProjectionAdapter,
+  CALENDAR_PROJECTION_ADAPTER_ID,
+  ProjectionEngine,
+  ProjectionRegistry,
+  createProjectionArtifact,
+} from "./projection";
 export type {
+  CalendarProjectionConnector, CalendarProjectionEvent, CalendarProjectionOptions,
   ProjectionAdapter, ProjectionArtifact, ProjectionEntities, ProjectionValidationState, Provenance,
   SourceAvailability,
 } from "./projection";

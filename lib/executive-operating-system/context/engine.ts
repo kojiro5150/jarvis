@@ -1,0 +1,15 @@
+import type { SituationAssessmentSet } from "../assessment";
+import type { ContextEngine, ContextEvidence, ContextSection, ContextStatistics, ExecutiveContext } from "./types";
+import { ExecutiveContextRegistry } from "./registry";
+import { clone, compareText, contextIdentity, createExecutiveContext, jsonCompatible, validateAssessmentSet } from "./validation";
+
+export class ExecutiveContextEngine implements ContextEngine {
+  constructor(private readonly registry: ExecutiveContextRegistry) { if (!(registry instanceof ExecutiveContextRegistry)) throw new Error("context registry is required"); }
+  construct(assessmentSet: SituationAssessmentSet): ExecutiveContext {
+    validateAssessmentSet(assessmentSet); const policies = this.registry.policies(); const grouped = new Map<string, { entries: Readonly<Record<string, ContextEvidence>>[]; metadata: { policyId: string; policyVersion: string; description: string }[] }>(); const statistics: ContextStatistics[] = [];
+    for (const policy of policies) { const contribution = policy.construct(clone(assessmentSet)); if (!contribution || !Array.isArray(contribution.entries) || !Array.isArray(contribution.statistics)) throw new Error(`context policy ${policy.id} returned an invalid contribution`); jsonCompatible(contribution, `context policy ${policy.id} contribution`); const group = grouped.get(policy.sectionId) ?? { entries: [], metadata: [] }; group.entries.push(...clone(contribution.entries)); group.metadata.push({ policyId: policy.id, policyVersion: policy.version, description: policy.description }); grouped.set(policy.sectionId, group); statistics.push(...clone(contribution.statistics)); }
+    const sections: ContextSection[] = [...grouped].map(([sectionId, value]) => ({ sectionId, entries: value.entries.sort((a, b) => compareText(JSON.stringify(a), JSON.stringify(b))), metadata: value.metadata.sort((a, b) => compareText(a.policyId, b.policyId)) })).sort((a, b) => compareText(a.sectionId, b.sectionId)); statistics.sort((a, b) => compareText(`${a.statisticId}:${JSON.stringify(a.dimensions)}`, `${b.statisticId}:${JSON.stringify(b.dimensions)}`)); const attentionCount = sections.find(s => s.sectionId === "attention")?.entries.length ?? 0;
+    const context: ExecutiveContext = { contextId: contextIdentity(assessmentSet.currentSnapshotId, assessmentSet.situationSetId, sections.map(s => s.sectionId)), snapshotId: assessmentSet.currentSnapshotId, assessmentSetId: assessmentSet.situationSetId, sections, statistics, summary: { sectionCount: sections.length, statisticCount: statistics.length, situationCount: assessmentSet.summary.situations, assessmentCount: assessmentSet.summary.assessments, attentionRecordCount: attentionCount, observationCount: assessmentSet.summary.observationCount }, canonicalProvenance: { snapshotId: assessmentSet.currentSnapshotId, assessmentSetId: assessmentSet.situationSetId, situationSetId: assessmentSet.situationSetId, policies: policies.map(p => ({ id: p.id, version: p.version })) } };
+    return createExecutiveContext(context);
+  }
+}

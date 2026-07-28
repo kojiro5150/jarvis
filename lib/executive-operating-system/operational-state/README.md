@@ -23,6 +23,7 @@ the `ExecutiveRunRecord` identity, runtime version, and operational schema versi
 same run record therefore produces an identical state. A subsequent run record produces a new
 immutable state rather than modifying an earlier one.
 
-`composeExecutiveOperationalResult` exposes the boundary result containing the source
-`executiveRunRecord` and its `executiveOperationalState`. The constitutional runtime result and
-stage sequence remain unchanged.
+`composeExecutiveOperationalResult` exposes the foundation result containing the source
+`executiveRunRecord`, its `executiveOperationalState`, and the downstream `executiveSession`.
+Session composition consumes the completed state; the constitutional runtime result and stage
+sequence remain unchanged.

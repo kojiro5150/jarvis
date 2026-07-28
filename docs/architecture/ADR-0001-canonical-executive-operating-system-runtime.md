@@ -824,6 +824,70 @@ Implementation of this ADR is complete only when:
 16. A failed later stage retains every successful earlier publication and emits an immutable failure.
 17. Final successful publication is atomic for the selected run mode.
 
+## Executive Foundation
+
+The Constitutional Runtime is frozen and continues to terminate at `ExecutiveRunRecord`. The
+Operational Layer consumes that terminal record to publish `ExecutiveOperationalState`. The
+Executive Session Layer begins the Interaction Layer and consumes only that operational state to
+publish `ExecutiveSession`. Future conversational systems consume `ExecutiveSession`; they do not
+enter, extend, or acquire ownership from the runtime.
+
+```text
+Constitutional Runtime
+
+Projection
+      │
+State
+      │
+Context
+      │
+Attention
+      │
+Situation
+      │
+Assessment
+      │
+Deliberation
+      │
+Intent
+      │
+Constraint
+      │
+Planning
+      │
+Evaluation
+      │
+Comparison
+      │
+Reasoning
+      │
+Proposal
+      │
+Routing
+      │
+Invocation
+      │
+Execution
+      │
+ExecutiveRunRecord
+
+══════════════════════════════════════
+
+Operational Layer
+
+ExecutiveOperationalState
+
+══════════════════════════════════════
+
+Interaction Layer
+
+ExecutiveSession
+```
+
+No runtime sequencing or ownership changes. `OperationalState` consumes Runtime;
+`ExecutiveSession` consumes `OperationalState`; references flow forward and authority does not flow
+backward.
+
 ## Appendix A — Current Repository Diagnosis
 
 This appendix records the verified repository state at the date of this ADR. It is diagnostic and

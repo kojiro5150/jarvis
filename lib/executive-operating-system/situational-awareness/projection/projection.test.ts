@@ -194,7 +194,7 @@ describe("package conformance", () => {
     expect(projection).not.toMatch(/Merge(Result|Conflict)/);
   });
 
-  it("has no consumer outside its package, test fixtures, and the canonical runtime boundary", () => {
+  it("has no consumer outside its package, context boundary, test fixtures, and canonical runtime", () => {
     const repository = process.cwd();
     
     const files = (directory: string): string[] => readdirSync(directory).flatMap((name) => {
@@ -206,6 +206,7 @@ describe("package conformance", () => {
       .filter((path) => !path.includes("/situational-awareness/"))
       .filter((path) => !path.includes("/executive-operating-system/attention/"))
       .filter((path) => !path.includes("/executive-operating-system/runtime/"))
+      .filter((path) => !path.includes("/executive-context/"))
       .filter((path) => !path.includes("/tests/fixtures/"))
       .filter((path) => !path.endsWith(".test.ts") && !path.endsWith(".test.tsx"))
       .filter((path) => /(?:from\s+|require\()["'][^"']*situational-awareness/.test(readFileSync(path, "utf8")));

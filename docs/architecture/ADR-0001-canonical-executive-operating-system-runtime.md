@@ -43,15 +43,13 @@ authority boundaries, and publish their complete evidence lineage.
 The canonical lineage shall be:
 
 ```text
-Acquisition and connectors
-        ↓
-ProjectionArtifact set
+ProjectionArtifactSet
         ↓
 ExecutiveStateSnapshot
         ↓
 ExecutiveContextSnapshot
         ↓
-Lifecycle change set
+SnapshotChangeSet
         ↓
 ExecutiveAttentionQueue
         ↓
@@ -61,13 +59,15 @@ SituationAssessmentSet
         ↓
 ExecutiveDeliberationContext
         ↓
-IntentSet + ConstraintSet
+IntentSet
+        ↓
+ConstraintSet
         ↓
 CandidatePlanSet
         ↓
-Evaluated candidate plans
+PlanEvaluationSet
         ↓
-Candidate plan comparison
+PlanComparisonSet
         ↓
 ExecutiveReasoningRecord
         ↓
@@ -75,9 +75,13 @@ GovernedActionProposalSet
         ↓
 ExecutiveCapabilityRoutingPlan
         ↓
+ExecutiveCapabilityInvocationHandoff
+        ↓
 CapabilityInvocationEnvelope
         ↓
-CapabilityInvocationRecord + CapabilityExecutionResult
+CapabilityInvocationRecord
+        ↓
+CapabilityExecutionResult
         ↓
 ExecutiveRunRecord
 ```
@@ -183,73 +187,70 @@ those bounded contributions without replacing specialist expertise.
 ### Runtime diagram
 
 ```text
-                         OUTSIDE THE EOS RUNTIME
-┌─────────────────────────────────────────────────────────────────────┐
-│ Acquisition / connectors                                            │
-│ Source-specific observation; no executive interpretation            │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ Projection                                                           │
-│ Source records → ProjectionArtifact set                              │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               ▼
-                    CANONICAL DETERMINISTIC RUNTIME
-┌─────────────────────────────────────────────────────────────────────┐
-│ State assembly                                                       │
-│ ProjectionArtifact set → ExecutiveStateSnapshot                     │
-│ Single canonical runtime state boundary                             │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ Descriptive context                                                  │
-│ ExecutiveStateSnapshot → ExecutiveContextSnapshot                   │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ Lifecycle comparison → Attention → Situation formation              │
-│     → Situation assessment → ExecutiveDeliberationContext           │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               ├─────────────────┐
-                               ▼                 ▼
-                           IntentSet         ConstraintSet
-                               └────────┬────────┘
-                                        ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ Candidate planning → Evaluation → Comparison                        │
-│     → Bounded reasoning → Governed action proposals                 │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │ explicit human approval where required
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ Capability routing                                                   │
-│ ExecutiveCapabilityRoutingPlan                                      │
-│ Routing authority begins and ends here                              │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ Invocation handoff                                                   │
-│ One routed member → CapabilityInvocationEnvelope                    │
-│ Envelope issuance only; no routing or execution permission          │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ Capability invocation                                                │
-│ Policy validation → implementation resolution → bounded invocation  │
-│ → result validation → CapabilityInvocationRecord                    │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ CapabilityExecutionResult                                            │
-│ Delegated operation result; no expansion of delegated authority     │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ ExecutiveRunRecord                                                   │
-│ Immutable audit root containing publications and ordered trace      │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               ▼
-              Browser, briefing, specialist and audit views
+Observation
+      │
+      ▼
+Projection
+      │
+      ▼
+State
+      │
+      ▼
+Context
+      │
+      ▼
+Snapshot Lifecycle
+      │
+      ▼
+Attention
+      │
+      ▼
+Situations
+      │
+      ▼
+Assessment
+      │
+      ▼
+Deliberation
+      │
+      ▼
+Intent
+      │
+      ▼
+Constraints
+      │
+      ▼
+Candidate Plans
+      │
+      ▼
+Evaluation
+      │
+      ▼
+Comparison
+      │
+      ▼
+Reasoning
+      │
+      ▼
+Governed Proposal
+      │
+      ▼
+Capability Routing
+      │
+      ▼
+Invocation Handoff
+      │
+      ▼
+Invocation Envelope
+      │
+      ▼
+Invocation Record
+      │
+      ▼
+Execution Result
+      │
+      ▼
+Executive Run Record
 ```
 
 ### Stage contracts
@@ -492,6 +493,7 @@ ExecutiveRunRecord
     ExecutiveReasoningRecord
     GovernedActionProposalSet
     ExecutiveCapabilityRoutingPlan
+    ExecutiveCapabilityInvocationHandoff
     CapabilityInvocationEnvelope
     CapabilityInvocationRecord
     CapabilityExecutionResult

@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { goldenRuntimeInput } from "../../../../tests/fixtures/eos/golden-projection-artifact-set";
 import { POST } from "./route";
 
-const EXPECTED_SPRINT_3_35_STAGE_ORDER = [
+const EXPECTED_SPRINT_3_36_STAGE_ORDER = [
   "state_assembly",
   "executive_context_derivation",
   "snapshot_lifecycle",
@@ -22,11 +22,12 @@ const EXPECTED_SPRINT_3_35_STAGE_ORDER = [
   "capability_invocation_envelope",
   "capability_invocation",
   "capability_execution",
+  "executive_run_record",
 ] as const;
 const request=(body:unknown)=>new NextRequest("http://localhost/api/eos/run",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
 
 describe("POST /api/eos/run",()=>{
-  it("returns the deterministic canonical Sprint 3.35 runtime result",async()=>{
+  it("returns the deterministic canonical Sprint 3.36 runtime result",async()=>{
     const firstResponse=await POST(request(goldenRuntimeInput));
     const secondResponse=await POST(request(goldenRuntimeInput));
     expect(firstResponse.status).toBe(200);
@@ -36,13 +37,13 @@ describe("POST /api/eos/run",()=>{
 
     expect(result).toEqual(replay);
     expect(result.proposals.proposalSetId).toMatch(/^governed-action-proposal-set:/);
-    expect(stageIds).toEqual(EXPECTED_SPRINT_3_35_STAGE_ORDER);
-    expect(result.trace.stages).toHaveLength(EXPECTED_SPRINT_3_35_STAGE_ORDER.length);
-    expect(new Set(stageIds).size).toBe(EXPECTED_SPRINT_3_35_STAGE_ORDER.length);
-    expect(result.trace.stages.map(({sequence}:{sequence:number})=>sequence)).toEqual(EXPECTED_SPRINT_3_35_STAGE_ORDER.map((_,index)=>index+1));
-    expect(result.trace.stages.at(-1)).toMatchObject({stageId:"capability_execution",outputArtifactIds:[result.capabilityExecutionResult.executionResultId]});
-    expect(result).not.toHaveProperty("executiveRunRecord");
-    expect(stageIds.some((stageId:string)=>stageId.includes("run_record"))).toBe(false);
+    expect(stageIds).toEqual(EXPECTED_SPRINT_3_36_STAGE_ORDER);
+    expect(result.trace.stages).toHaveLength(EXPECTED_SPRINT_3_36_STAGE_ORDER.length);
+    expect(new Set(stageIds).size).toBe(EXPECTED_SPRINT_3_36_STAGE_ORDER.length);
+    expect(result.trace.stages.map(({sequence}:{sequence:number})=>sequence)).toEqual(EXPECTED_SPRINT_3_36_STAGE_ORDER.map((_,index)=>index+1));
+    expect(result.trace.stages.at(-1)).toMatchObject({stageId:"executive_run_record",outputArtifactIds:[result.executiveRunRecord.executiveRunRecordId]});
+    expect(result.executiveRunRecord.outcome).toBe("completed");
+    expect(stageIds.filter((stageId:string)=>stageId==="executive_run_record")).toHaveLength(1);
   });
 
   it("returns a typed validation error",async()=>{

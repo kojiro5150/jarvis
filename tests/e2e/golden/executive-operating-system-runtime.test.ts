@@ -2,7 +2,7 @@ import { describe,expect,it } from "vitest";
 import { DeterministicExecutiveOperatingSystemRuntime,EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER } from "../../../lib/executive-operating-system/runtime";
 import { goldenRuntimeInput } from "../../fixtures/eos/golden-projection-artifact-set";
 
-const EXPECTED_SPRINT_3_35_STAGE_ORDER = [
+const EXPECTED_SPRINT_3_36_STAGE_ORDER = [
   "state_assembly",
   "executive_context_derivation",
   "snapshot_lifecycle",
@@ -21,25 +21,26 @@ const EXPECTED_SPRINT_3_35_STAGE_ORDER = [
   "capability_invocation_envelope",
   "capability_invocation",
   "capability_execution",
+  "executive_run_record",
 ] as const;
 
 describe("golden EOS runtime",()=>{
-  it("replays the complete immutable Sprint 3.35 pipeline",()=>{
+  it("replays the complete immutable Sprint 3.36 pipeline",()=>{
     const before=JSON.stringify(goldenRuntimeInput),runtime=new DeterministicExecutiveOperatingSystemRuntime();
     const first=runtime.run(goldenRuntimeInput),second=runtime.run(goldenRuntimeInput);
     const firstStageIds=first.trace.stages.map(({stageId})=>stageId);
 
-    expect(EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER).toEqual(EXPECTED_SPRINT_3_35_STAGE_ORDER);
-    expect(firstStageIds).toEqual(EXPECTED_SPRINT_3_35_STAGE_ORDER);
-    expect(first.trace.stages).toHaveLength(EXPECTED_SPRINT_3_35_STAGE_ORDER.length);
-    expect(new Set(firstStageIds).size).toBe(EXPECTED_SPRINT_3_35_STAGE_ORDER.length);
-    expect(first.trace.stages.map(({sequence})=>sequence)).toEqual(EXPECTED_SPRINT_3_35_STAGE_ORDER.map((_,index)=>index+1));
+    expect(EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER).toEqual(EXPECTED_SPRINT_3_36_STAGE_ORDER);
+    expect(firstStageIds).toEqual(EXPECTED_SPRINT_3_36_STAGE_ORDER);
+    expect(first.trace.stages).toHaveLength(EXPECTED_SPRINT_3_36_STAGE_ORDER.length);
+    expect(new Set(firstStageIds).size).toBe(EXPECTED_SPRINT_3_36_STAGE_ORDER.length);
+    expect(first.trace.stages.map(({sequence})=>sequence)).toEqual(EXPECTED_SPRINT_3_36_STAGE_ORDER.map((_,index)=>index+1));
     expect(first).toEqual(second);
     expect(first.trace).toEqual(second.trace);
     expect(first.trace.stages.every(stage=>Object.isFrozen(stage)&&Object.isFrozen(stage.inputArtifactIds)&&Object.isFrozen(stage.outputArtifactIds))).toBe(true);
-    expect(first.trace.stages.at(-1)).toMatchObject({stageId:"capability_execution",outputArtifactIds:[first.capabilityExecutionResult.executionResultId]});
-    expect(first).not.toHaveProperty("executiveRunRecord");
-    expect(first.trace.stages.some(({stageId})=>String(stageId).includes("run_record"))).toBe(false);
+    expect(first.trace.stages.at(-1)).toMatchObject({stageId:"executive_run_record",outputArtifactIds:[first.executiveRunRecord.executiveRunRecordId]});
+    expect(first.executiveRunRecord.outcome).toBe("completed");
+    expect(first.trace.stages.filter(({stageId})=>String(stageId)==="executive_run_record")).toHaveLength(1);
     expect(first.situations.situations.length).toBeGreaterThan(0);
     expect(first.proposals.proposalSetId).toMatch(/^governed-action-proposal-set:/);
     expect(first.proposals.proposals).toEqual([]);

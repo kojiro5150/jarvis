@@ -13,6 +13,7 @@ import { DeterministicExecutiveReasoningEngine,DeterministicExecutiveReasoningRe
 import { DeterministicGovernedActionProposalEngine,DeterministicGovernedActionProposalRegistry,productionProposalPolicies } from "../proposal";
 import { clone,deepFreeze,validateRuntimeInput,validateTrace } from "./validation";
 import { stageTrace } from "./trace";
+import { publishExecutiveRunRecord,publishFailedExecutiveRunRecord } from "./run-record";
 import { ExecutiveOperatingSystemRuntimeError } from "./types";
 import { CapabilityInvocationEnvelopePublisher,ExecutiveCapabilityImplementationRegistry,ExecutiveCapabilityInvoker,ExecutiveCapabilityInvocationHandoffBuilder,ExecutiveCapabilityRegistry,ExecutiveCapabilityRouter } from "../executive-capabilities";
 import type { ExecutiveOperatingSystemInput,ExecutiveOperatingSystemResult,ExecutiveOperatingSystemStageId,ExecutiveOperatingSystemStageTrace } from "./types";
@@ -23,6 +24,7 @@ export class DeterministicExecutiveOperatingSystemRuntime {
   try{validateRuntimeInput(raw)}catch(error){throw new ExecutiveOperatingSystemRuntimeError("state_assembly","validation","invalid-runtime-input",[],error)}
   const input=deepFreeze(clone(raw)), ids=input.projectionArtifacts.artifacts.map(x=>x.provenance.sourceId), traces:ExecutiveOperatingSystemStageTrace[]=[];
   const step=<T>(stage:ExecutiveOperatingSystemStageId,ins:readonly string[],execute:()=>T,out:(x:T)=>readonly string[],empty=(x:T)=>false,policyId?:string):T=>{try{const value=execute();traces.push(stageTrace(stage,traces.length+1,ins,out(value),empty(value),policyId));return value}catch(error){throw new ExecutiveOperatingSystemRuntimeError(stage,"execution","stage-execution-failed",ins,error)}};
+  try {
   const assembled=step("state_assembly",ids,()=>this.stateAssemblyEngine.assemble(input.projectionArtifacts),x=>x.outcome==="success"?[x.snapshot.snapshotId]:[]);
   if(assembled.outcome==="failure") throw new ExecutiveOperatingSystemRuntimeError("state_assembly","execution",assembled.code,ids,assembled);
   const executiveState=assembled.snapshot;
@@ -58,7 +60,16 @@ export class DeterministicExecutiveOperatingSystemRuntime {
   traces.push(stageTrace("capability_invocation",traces.length+1,[capabilityInvocationEnvelope.envelopeId],[capabilityInvocationRecord.invocationRecordId],capabilityInvocationRecord.invocationDisposition==="not_invoked",invocationPolicy.policyId,{invocationPerformed:capabilityInvocationRecord.executionAttempted,executionPerformed:false,...(capabilityInvocationRecord.implementationId?{implementationId:capabilityInvocationRecord.implementationId}:{}),invocationDisposition:capabilityInvocationRecord.invocationDisposition,...(capabilityInvocationRecord.blockerClassification[0]?{failureStatus:capabilityInvocationRecord.blockerClassification[0]}:{})}));
   const capabilityExecutionResult=outcome.capabilityExecutionResult;
   traces.push(stageTrace("capability_execution",traces.length+1,[capabilityInvocationRecord.invocationRecordId],[capabilityExecutionResult.executionResultId],!capabilityExecutionResult.executionAttempted,invocationPolicy.policyId,{invocationPerformed:capabilityInvocationRecord.executionAttempted,executionPerformed:capabilityExecutionResult.executionAttempted,...(capabilityExecutionResult.implementationId?{implementationId:capabilityExecutionResult.implementationId}:{}),invocationDisposition:capabilityInvocationRecord.invocationDisposition,executionStatus:capabilityExecutionResult.executionStatus,...(capabilityExecutionResult.errorCode?{failureStatus:capabilityExecutionResult.errorCode}:{})}));
+  const orderedStageTrace=deepFreeze({stages:[...traces]});
+  const publications={executiveState,executiveContextSnapshot,situationalAwareness:awareness,snapshot,changes,attention,situations,assessment,executiveDeliberationContext,intent,constraints,candidatePlans,evaluation,comparison,reasoning,proposals,capabilityRoutingPlan,executiveCapabilityInvocationHandoff,capabilityInvocationEnvelope,capabilityInvocationRecord,capabilityExecutionResult};
+  const executiveRunRecord=publishExecutiveRunRecord(input,publications,orderedStageTrace);
+  traces.push(stageTrace("executive_run_record",traces.length+1,executiveRunRecord.publicationReferences.flatMap(x=>x.publicationIds),[executiveRunRecord.executiveRunRecordId],false,undefined));
   const trace=deepFreeze({stages:traces});validateTrace(trace);
-  return deepFreeze({executiveState,executiveContextSnapshot,situationalAwareness:awareness,snapshot,changes,attention,situations,assessment,executiveDeliberationContext,intent,constraints,candidatePlans,evaluation,comparison,reasoning,proposals,capabilityRoutingPlan,executiveCapabilityInvocationHandoff,capabilityInvocationEnvelope,capabilityInvocationRecord,capabilityExecutionResult,trace});
+  return deepFreeze({...publications,executiveRunRecord,trace});
+  } catch(error) {
+   const failure=error instanceof ExecutiveOperatingSystemRuntimeError?error:new ExecutiveOperatingSystemRuntimeError("executive_run_record","execution","run-publication-failed",[],error);
+   failure.executiveRunRecord=publishFailedExecutiveRunRecord(input,traces,failure);
+   Object.freeze(failure);throw failure;
+  }
  }
 }

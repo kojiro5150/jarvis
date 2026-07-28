@@ -42,11 +42,29 @@ export interface ExecutiveOperatingSystemConfiguration {
   readonly capabilityInvocationPolicy?: InvocationPolicy;
 }
 export interface ExecutiveOperatingSystemInput { readonly projectionArtifacts: ProjectionArtifactSet; readonly referenceTime: string; readonly configuration: ExecutiveOperatingSystemConfiguration }
-export const EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER = ["state_assembly","executive_context_derivation","snapshot_lifecycle","executive_attention","situation_formation","situation_assessment","executive_deliberation_context","intent_and_constraints","candidate_plan_construction","candidate_plan_evaluation","candidate_plan_comparison","executive_reasoning","governed_action_proposal","capability_routing","capability_invocation_handoff","capability_invocation_envelope","capability_invocation","capability_execution"] as const;
+export const EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER = ["state_assembly","executive_context_derivation","snapshot_lifecycle","executive_attention","situation_formation","situation_assessment","executive_deliberation_context","intent_and_constraints","candidate_plan_construction","candidate_plan_evaluation","candidate_plan_comparison","executive_reasoning","governed_action_proposal","capability_routing","capability_invocation_handoff","capability_invocation_envelope","capability_invocation","capability_execution","executive_run_record"] as const;
 export type ExecutiveOperatingSystemStageId = typeof EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER[number];
 export type ExecutiveOperatingSystemStageStatus = "completed" | "completed_empty";
 export interface ExecutiveOperatingSystemStageTrace { readonly stageId: ExecutiveOperatingSystemStageId; readonly sequence: number; readonly inputArtifactIds: readonly string[]; readonly outputArtifactIds: readonly string[]; readonly status: ExecutiveOperatingSystemStageStatus; readonly validationStatus: "valid";readonly policyId?:string;readonly invocationPerformed:boolean;readonly executionPerformed:boolean;readonly implementationId?:string;readonly invocationDisposition?:string;readonly executionStatus?:string;readonly failureStatus?:string }
 export interface ExecutiveOperatingSystemExecutionTrace { readonly stages: readonly ExecutiveOperatingSystemStageTrace[] }
+export const EXECUTIVE_RUN_RECORD_CONTRACT_VERSION = "executive-run-record-v1" as const;
+export interface ExecutiveRunPublicationReference { readonly publicationType:string; readonly publicationIds:readonly string[]; readonly status:"published"|"absent" }
+export interface ExecutiveRunRecord {
+  readonly executiveRunRecordId:string;
+  readonly contractVersion:typeof EXECUTIVE_RUN_RECORD_CONTRACT_VERSION;
+  readonly runMode:"governed_execution";
+  readonly outcome:"completed"|"failed";
+  readonly replayIdentity:Readonly<{projectionArtifactIds:readonly string[];previousLifecycleSnapshotId:string;observedAt:string;referenceTime:string;runtimeVersion:string;configurationIdentity:string}>;
+  readonly runtimeIdentity:Readonly<{coordinator:"DeterministicExecutiveOperatingSystemRuntime";runtimeVersion:string;traceIdentity:string}>;
+  readonly policyIdentities:readonly string[];
+  readonly publicationReferences:readonly ExecutiveRunPublicationReference[];
+  readonly authorityEvidence:Readonly<{approvalState:string;authorityValidationOutcome:string;authorityRequirementIds:readonly string[];grantsApproval:false}>;
+  readonly executionEvidence:Readonly<{invocationDisposition:string;executionStatus:string;executionAttempted:boolean;sideEffectAttempted:boolean;sideEffectConfirmed:boolean}>;
+  readonly validationEvidence:Readonly<{status:"valid";validatedStageIds:readonly ExecutiveOperatingSystemStageId[]} >;
+  readonly orderedStageTrace:ExecutiveOperatingSystemExecutionTrace;
+  readonly immutableFailures:readonly Readonly<{stage:ExecutiveOperatingSystemStageId;category:ExecutiveOperatingSystemFailureCategory;reasonCode:string;inputArtifactIds:readonly string[]}>[];
+  readonly auditMetadata:Readonly<{owner:"DeterministicExecutiveOperatingSystemRuntime";publishedAt:string}>;
+}
 export interface ExecutiveOperatingSystemResult {
   readonly executiveState: ExecutiveStateSnapshot;
   readonly executiveContextSnapshot: ExecutiveContextSnapshot;
@@ -69,11 +87,13 @@ export interface ExecutiveOperatingSystemResult {
   readonly capabilityInvocationEnvelope:CapabilityInvocationEnvelope;
   readonly capabilityInvocationRecord:CapabilityInvocationRecord;
   readonly capabilityExecutionResult:CapabilityExecutionResult;
+  readonly executiveRunRecord:ExecutiveRunRecord;
   readonly trace: ExecutiveOperatingSystemExecutionTrace;
 }
 export type ExecutiveOperatingSystemFailureCategory = "validation" | "execution";
 export class ExecutiveOperatingSystemRuntimeError extends Error {
+  executiveRunRecord?:ExecutiveRunRecord;
   constructor(readonly stage: ExecutiveOperatingSystemStageId, readonly category: ExecutiveOperatingSystemFailureCategory, readonly reasonCode: string, readonly inputArtifactIds: readonly string[], cause?: unknown) {
-    super(`EOS ${category} failure at ${stage}: ${reasonCode}`, { cause }); this.name = "ExecutiveOperatingSystemRuntimeError"; Object.freeze(this.inputArtifactIds); Object.freeze(this);
+    super(`EOS ${category} failure at ${stage}: ${reasonCode}`, { cause }); this.name = "ExecutiveOperatingSystemRuntimeError"; Object.freeze(this.inputArtifactIds);
   }
 }

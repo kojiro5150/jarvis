@@ -24,16 +24,17 @@ describe("canonical runtime state and descriptive context prefix", () => {
     expect(Object.isFrozen(first.executiveState)).toBe(true);
     expect(Object.isFrozen(first.executiveContextSnapshot)).toBe(true);
 
-    for (const stage of first.trace.stages.slice(3, -5)) {
+    for (const stage of first.trace.stages.slice(3, -6)) {
       expect(stage.inputArtifactIds).toContain(first.executiveState.snapshotId);
       expect(stage.inputArtifactIds).toContain(first.executiveContextSnapshot.contextId);
     }
-    expect(first.trace.stages.slice(-5)).toEqual([
+    expect(first.trace.stages.slice(-6)).toEqual([
       expect.objectContaining({ stageId: "capability_routing", inputArtifactIds: [first.proposals.proposalSetId], outputArtifactIds: [first.capabilityRoutingPlan.routingPlanId], invocationPerformed: false, executionPerformed: false }),
       expect.objectContaining({ stageId: "capability_invocation_handoff", inputArtifactIds: [first.capabilityRoutingPlan.routingPlanId], outputArtifactIds: [first.executiveCapabilityInvocationHandoff.handoffId], policyId: "canonical-handoff-lexical-first" }),
       expect.objectContaining({ stageId: "capability_invocation_envelope", inputArtifactIds: [first.executiveCapabilityInvocationHandoff.handoffId], outputArtifactIds: [first.capabilityInvocationEnvelope.envelopeId], policyId: "canonical-envelope-publication" }),
       expect.objectContaining({ stageId: "capability_invocation", inputArtifactIds: [first.capabilityInvocationEnvelope.envelopeId], outputArtifactIds: [first.capabilityInvocationRecord.invocationRecordId], invocationDisposition: "not_invoked", executionPerformed: false }),
       expect.objectContaining({ stageId: "capability_execution", inputArtifactIds: [first.capabilityInvocationRecord.invocationRecordId], outputArtifactIds: [first.capabilityExecutionResult.executionResultId], executionStatus: "not_attempted", executionPerformed: false }),
+      expect.objectContaining({ stageId: "executive_run_record", outputArtifactIds: [first.executiveRunRecord.executiveRunRecordId] }),
     ]);
     expect(first.capabilityRoutingPlan.proposalSetId).toBe(first.proposals.proposalSetId);
     expect(first.capabilityRoutingPlan.metadata).toMatchObject({ owner: "ExecutiveCapabilityRouter", invocationPerformed: false, executionPerformed: false });

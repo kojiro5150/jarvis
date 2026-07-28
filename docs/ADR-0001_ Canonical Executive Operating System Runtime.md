@@ -633,6 +633,40 @@ Every future architectural sprint shall include a Constitutional Validation conf
 * ✓ Preserves deterministic execution lineage  
 * ✓ Preserves human authority where constitutionally required
 
+Constitutional Implementation Governance
+
+Once this ADR is accepted, all future architectural implementation shall be governed by the constitutional architecture rather than by the current implementation.
+
+Before any architectural sprint begins, implementation shall review and remain consistent with:
+
+Engineering Constitution (JESS)
+North Star
+Design Constitution
+Accepted Architecture Decision Records (ADRs)
+Approved Sprint Specification
+
+These documents govern different aspects of the system:
+
+Engineering Constitution governs engineering principles, repository evolution, and architectural discipline.
+North Star governs enduring purpose, executive capability, and long-term direction.
+Design Constitution governs behavioural design and user interaction.
+Accepted ADRs govern specific architectural decisions made within those constitutional boundaries.
+Sprint Specifications define bounded implementation work and must not override the governing constitutional documents or accepted ADRs.
+
+Where ambiguity exists, implementation shall prefer the constitutional intent expressed by the governing documents over preservation of the current implementation.
+
+Every future architectural sprint shall include a Constitutional Validation confirming:
+
+✓ Consistent with Engineering Constitution
+✓ Consistent with North Star
+✓ Consistent with Design Constitution
+✓ Consistent with accepted ADRs
+✓ Does not introduce a second owner for a constitutional publication
+✓ Does not duplicate constitutional authority
+✓ Preserves deterministic execution lineage
+✓ Preserves human authority where constitutionally required
+
+
 \#\# Decision Durability
 
 Implementation technologies, package locations, models, storage systems and interfaces may change.  

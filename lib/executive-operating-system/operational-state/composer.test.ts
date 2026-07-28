@@ -20,6 +20,7 @@ describe("ExecutiveOperationalState", () => {
     expect(Object.keys(operationalResult)).toEqual([
       "executiveRunRecord",
       "executiveOperationalState",
+      "executiveSession",
     ]);
     expect(operationalResult.executiveOperationalState.latestRun.executiveRunRecordId).toBe(
       runtimeResult.executiveRunRecord.executiveRunRecordId,

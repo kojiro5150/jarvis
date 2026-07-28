@@ -1,4 +1,5 @@
 import type { ExecutiveRunRecord } from "../runtime";
+import type { ExecutiveSession } from "../executive-session/types";
 
 export const EXECUTIVE_OPERATIONAL_STATE_SCHEMA_VERSION = "executive-operational-state-v1" as const;
 
@@ -58,4 +59,5 @@ export interface ExecutiveOperationalState {
 export interface ExecutiveOperationalResult {
   readonly executiveRunRecord: ExecutiveRunRecord;
   readonly executiveOperationalState: ExecutiveOperationalState;
+  readonly executiveSession: ExecutiveSession;
 }

@@ -1,7 +1,7 @@
 import { CAPABILITY_INVOCATION_CONTRACT_VERSION } from "./types";
 import type { CapabilityInvocationContext,CapabilityInvocationFailure,CapabilityInvocationRecord,CapabilityInvocationRequest,CapabilityInvocationResult,ExecutiveCapabilityImplementation,ExecutionPolicy,InvocationFailureCategory,InvocationLifecycleState,InvocationStage } from "./types";
 import { ExecutiveCapabilityImplementationRegistry } from "./registry";
-import { isIssuedInvocationEnvelope } from "./handoff";
+import { isIssuedInvocationEnvelope } from "./envelope";
 import { canonical,clone,compareText,deepFreeze,validatePolicy,validateRecord,validateResult,validateRoutingPlan } from "./validation";
 
 class InvocationAbort extends Error { constructor(readonly category:InvocationFailureCategory,readonly stage:InvocationStage,readonly reasonCode:string,message:string,readonly implementationId?:string){super(message)} }

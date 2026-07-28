@@ -17,3 +17,4 @@ export type {
 export { ExecutiveCapabilityRoutingError } from "./router";
 export { ExecutiveCapabilityRegistryError } from "./registry";
 export * from "./invocation";
+export * from "./invocation-handoff";

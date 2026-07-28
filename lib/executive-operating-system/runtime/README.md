@@ -19,3 +19,13 @@ The router depends on the canonical proposal contract, capability registry/matri
 Typed routing failures distinguish missing or malformed proposal publications, duplicate proposals, missing or inconsistent lineage, invalid registries and matrices, and invalid registered routing policy. A structurally valid plan may contain no eligible capability; this is an eligibility outcome, not a malformed operation.
 
 The canonical runtime ends at routing-plan publication. It contains no caller-authored routing-plan input and performs no invocation, execution, approval processing, presentation integration, or `ExecutiveRunRecord` publication.
+
+## Sprint 3.34 stop boundary
+
+After capability routing, the runtime internally asks the sole
+`ExecutiveCapabilityInvocationHandoffBuilder` to publish one deterministic handoff and the sole
+`CapabilityInvocationEnvelopePublisher` to publish one immutable envelope. Its final stages are
+`capability_routing → capability_invocation_handoff → capability_invocation_envelope`. The caller
+cannot author either publication. Blocked and no-invocation outcomes remain explicit, approval and
+authority requirements are preserved, and all trace entries assert no invocation and no execution.
+The runtime stops at envelope publication and never calls the invoker or resolves an implementation.

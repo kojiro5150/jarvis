@@ -1,4 +1,5 @@
 import type { ExecutiveContextSnapshot } from "../../../executive-context";
+import type { ExecutiveCapabilityInvocationHandoffItem } from "../invocation-handoff";
 
 export const CAPABILITY_INVOCATION_CONTRACT_VERSION = "1.0";
 export type JsonValue = null | boolean | number | string | readonly JsonValue[] | { readonly [key: string]: JsonValue };
@@ -16,19 +17,23 @@ export interface CapabilityRoutingPlan {
  readonly dependencies:readonly Readonly<{dependencyId:string;status:"SATISFIED"|"UNSATISFIED"}>[];
 }
 export interface CapabilityInvocationEnvelope {
- readonly envelopeId:string; readonly routingPlanId:string; readonly routingContractVersion:string;
+ readonly envelopeId:string; readonly envelopeSchemaVersion:"capability-invocation-envelope-v2";readonly handoffId:string;readonly handoffContractVersion:string;readonly proposalSetId:string;readonly reasoningRecordId:string;readonly deliberationContextId:string;readonly policyId:string;readonly policyVersion:string;readonly requestClassification:"policy_enforcement_input";readonly requestItems:readonly ExecutiveCapabilityInvocationHandoffItem[];readonly unresolvedBlockers:readonly string[];readonly approvalGranted:false;readonly invocationPerformed:false;readonly executionPerformed:false;readonly metadata:Readonly<{owner:"CapabilityInvocationEnvelopePublisher";semantics:"immutable_request_only"}>;readonly routingPlanId:string; readonly routingContractVersion:string;
  readonly executiveContextId:string; readonly executiveStateSnapshotId:string; readonly executiveContextContractVersion:string;
  readonly scenarioId:string; readonly routingPolicyId:string; readonly capabilityId:string; readonly capabilityVersion:string;
  readonly routingRuleIds:readonly string[]; readonly supportingConditionIds:readonly string[]; readonly dependencyCapabilityIds:readonly string[];
  readonly executionPolicyId:string; readonly executionPolicyVersion:string; readonly implementationRegistryId:string;
 }
+export interface CapabilityInvocationEnvelopePolicy {readonly policyId:string;readonly policyVersion:string;readonly schemaVersion:"capability-invocation-envelope-v2"}
+export interface CapabilityInvocationEnvelopeInput {readonly handoff:import("../invocation-handoff").ExecutiveCapabilityInvocationHandoff;readonly policy:CapabilityInvocationEnvelopePolicy}
+export type CapabilityInvocationEnvelopeFailureCode="MISSING_HANDOFF"|"INVALID_HANDOFF_IDENTITY"|"INVALID_ENVELOPE_POLICY"|"ENVELOPE_HANDOFF_LINEAGE_MISMATCH"|"INVALID_ENVELOPE_IDENTITY";
+export class CapabilityInvocationEnvelopeError extends Error{constructor(readonly code:CapabilityInvocationEnvelopeFailureCode,message:string){super(message);this.name="CapabilityInvocationEnvelopeError"}}
 export interface ExecutionPolicy {
  readonly policyId:string; readonly policyVersion:string; readonly executionEnabled:boolean;
  readonly permittedExecutionClasses:readonly ExecutionClass[]; readonly permittedImplementationStatuses:readonly ImplementationStatus[];
  readonly preferredImplementationIds?:readonly string[]; readonly timeoutMilliseconds:number;
  readonly requiredInvocationContractVersion:string; readonly metadata:Readonly<Record<string,JsonValue>>;
 }
-export interface CapabilityInvocationProvenance extends Omit<CapabilityInvocationEnvelope,"envelopeId"|"executionPolicyVersion"|"implementationRegistryId"> { readonly invocationEnvelopeId:string; readonly executionPolicyId:string; readonly registryId:string; readonly implementationId:string; readonly implementationVersion:string; readonly invocationContractVersion:string }
+export interface CapabilityInvocationProvenance extends Pick<CapabilityInvocationEnvelope,"routingPlanId"|"routingContractVersion"|"executiveContextId"|"executiveStateSnapshotId"|"executiveContextContractVersion"|"scenarioId"|"routingPolicyId"|"capabilityId"|"capabilityVersion"|"routingRuleIds"|"supportingConditionIds"|"dependencyCapabilityIds"> { readonly invocationEnvelopeId:string; readonly executionPolicyId:string; readonly registryId:string; readonly implementationId:string; readonly implementationVersion:string; readonly invocationContractVersion:string }
 export interface CapabilityInvocationContext { readonly invocationId:string; readonly invocationEnvelope:CapabilityInvocationEnvelope; readonly executiveContext:ExecutiveContextSnapshot; readonly executionPolicy:ExecutionPolicy; readonly referenceTime:string; readonly provenance:CapabilityInvocationProvenance }
 export interface CapabilityExecutionResult { readonly resultId:string; readonly capabilityId:string; readonly implementationId:string; readonly contractVersion:string; readonly elapsedMilliseconds:number; readonly metadata:Readonly<Record<string,JsonValue>> }
 export interface ExecutiveCapabilityImplementationDescriptor { readonly implementationId:string; readonly capabilityId:string; readonly implementationVersion:string; readonly implementationStatus:ImplementationStatus; readonly executionClass:ExecutionClass; readonly supportedCapabilityVersions:readonly string[]; readonly supportedContractVersions:readonly string[]; readonly precedence:number; readonly provider:string }

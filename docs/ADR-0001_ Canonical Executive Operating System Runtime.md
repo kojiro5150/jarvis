@@ -666,6 +666,17 @@ Every future architectural sprint shall include a Constitutional Validation conf
 ✓ Preserves deterministic execution lineage
 ✓ Preserves human authority where constitutionally required
 
+Constitutional Dependency Audit
+
+Confirm that every package introduced or modified during this sprint:
+
+✓ imports only the immediately preceding constitutional publication;
+
+✓ does not import earlier-stage constitutional publications unless explicitly authorised by ADR-0001;
+
+✓ does not bypass constitutional publication boundaries;
+
+✓ preserves one authoritative input publication for each runtime stage.
 
 \#\# Decision Durability
 

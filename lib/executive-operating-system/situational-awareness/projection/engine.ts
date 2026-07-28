@@ -243,6 +243,16 @@ export class ProjectionEngine {
   }
 }
 
+/** Constructs Situational Awareness from an already collected artifact boundary. */
+export function projectArtifacts(input: readonly ProjectionArtifact[]): SituationalAwareness {
+  const artifacts = input.map(deepCopyAndFreeze);
+  for (const artifact of artifacts) validateArtifact(artifact, artifact?.provenance?.adapterId ?? "unknown");
+  validateCrossArtifactIdentityAndSources(artifacts);
+  const merged = merge(artifacts);
+  validateMergedInput(merged);
+  return createSituationalAwareness(merged);
+}
+
 /** Creates one defensively copied, deeply immutable, validated adapter exchange artifact. */
 export function createProjectionArtifact(input: ProjectionArtifact): ProjectionArtifact {
   const artifact = deepCopyAndFreeze(input);

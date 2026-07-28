@@ -1,9 +1,9 @@
-import type { ExecutiveContext } from "../context";
+import type { ExecutiveDeliberationContext } from "../deliberation";
 import type { ConstraintDefinition, ConstraintPolicy, ConstraintType, ExecutiveConstraint, ExecutiveIntent, IntentDefinition, IntentPolicy, IntentType } from "./types";
 import { clone, deepFreeze } from "./validation";
 
-const intentPolicy = (id: string, intentType: IntentType, description: string): IntentPolicy => deepFreeze({ id, version: "1.0.0", intentType, description, construct: (_context: ExecutiveContext, definitions: readonly IntentDefinition[]): readonly ExecutiveIntent[] => definitions.filter(d => d.type === intentType).map(definition => ({ ...clone(definition), metadata: { policyId: id, policyVersion: "1.0.0" } })) });
-const constraintPolicy = (id: string, constraintTypes: readonly ConstraintType[], description: string): ConstraintPolicy => deepFreeze({ id, version: "1.0.0", constraintTypes, description, construct: (_context: ExecutiveContext, definitions: readonly ConstraintDefinition[]): readonly ExecutiveConstraint[] => definitions.filter(d => constraintTypes.includes(d.type)).map(definition => ({ ...clone(definition), metadata: { policyId: id, policyVersion: "1.0.0" } })) });
+const intentPolicy = (id: string, intentType: IntentType, description: string): IntentPolicy => deepFreeze({ id, version: "1.0.0", intentType, description, construct: (_context: ExecutiveDeliberationContext, definitions: readonly IntentDefinition[]): readonly ExecutiveIntent[] => definitions.filter(d => d.type === intentType).map(definition => ({ ...clone(definition), metadata: { policyId: id, policyVersion: "1.0.0" } })) });
+const constraintPolicy = (id: string, constraintTypes: readonly ConstraintType[], description: string): ConstraintPolicy => deepFreeze({ id, version: "1.0.0", constraintTypes, description, construct: (_context: ExecutiveDeliberationContext, definitions: readonly ConstraintDefinition[]): readonly ExecutiveConstraint[] => definitions.filter(d => constraintTypes.includes(d.type)).map(definition => ({ ...clone(definition), metadata: { policyId: id, policyVersion: "1.0.0" } })) });
 
 export const operationalObjectivePolicy = intentPolicy("intent.operational-objective", "operational", "Constructs explicitly configured operational objectives.");
 export const standingObjectivePolicy = intentPolicy("intent.standing-objective", "standing", "Constructs explicitly configured standing objectives.");

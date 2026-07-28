@@ -1,4 +1,4 @@
-# Sprint 3.24.2 — Executive Scenario Framework
+# Sprint 3.24.2a — Executive Scenario Framework Constitutional Edition
 
 # JARVIS Engineering
 
@@ -6,7 +6,7 @@
 
 This specification is normative and JESS-compliant.
 
-Before implementation review the Engineering Constitution, North Star, JESS, Sprint Specifications through 3.24.1, and existing ADRs. This sprint extends the architecture and shall not redesign prior architectural decisions.
+Before conformance review, read the Engineering Constitution, North Star, JESS, Sprint 3.24.2, and ADR-0020. This constitutional edition verifies and, only where demonstrably necessary, corrects the completed Sprint 3.24.2. It does not authorise a redesign or new feature work.
 
 ---
 
@@ -62,7 +62,7 @@ Completed:
 
 The runtime is deterministic and replay safe.
 
-The remaining architectural gap is a permanent framework for canonical executive scenarios.
+Sprint 3.24.2 defines the permanent framework for canonical executive scenarios. This edition makes its enduring guarantees explicit and verifiable.
 
 ---
 
@@ -80,7 +80,7 @@ It does not introduce new reasoning.
 
 ## Sprint Objective
 
-Implement a deterministic Executive Scenario Framework that provides immutable, replay-safe executive scenarios capable of exercising the Executive Operating System end-to-end.
+Verify that the deterministic Executive Scenario Framework provides immutable, replay-safe executive scenarios capable of exercising the Executive Operating System end-to-end, correcting only genuine constitutional inconsistencies.
 
 The framework shall:
 
@@ -114,6 +114,8 @@ Scenarios may contain:
 - ProjectionArtifacts
 - deterministic metadata
 - expected assertions
+- provenance
+- replay identity
 
 Scenarios shall not contain:
 
@@ -123,6 +125,10 @@ Scenarios shall not contain:
 - LLM prompts
 - adaptive logic
 - connector implementations
+- runtime configuration
+- runtime stages
+- planning logic
+- API or persistence behaviour
 
 ---
 
@@ -160,6 +166,8 @@ The registry shall:
 - deep freeze registrations
 - provide deterministic ordering
 
+Canonical ordering uses stable code-unit comparison, never locale-sensitive comparison.
+
 ---
 
 ## Loader
@@ -170,6 +178,8 @@ The loader shall:
 - load
 - execute runtime
 - compare assertions
+
+Runtime configuration is supplied independently to the loader and is not part of `ExecutiveScenario`. Assertion comparison uses canonical structural equivalence and must not depend on object property serialisation order.
 
 The loader performs no reasoning.
 

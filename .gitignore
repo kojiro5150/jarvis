@@ -45,6 +45,7 @@ data/memory.json
 # Build and dependency artefacts
 node_modules/
 .next/
+/tmp/
 
 # macOS
 .DS_Store

@@ -60,6 +60,7 @@ function runEosDemo(options = {}) {
   const runtime = new DeterministicExecutiveOperatingSystemRuntime();
   const result = runtime.run({
     projectionArtifacts: goldenProjectionArtifactSet,
+    referenceTime: "2030-01-14T11:00:00Z",
     configuration: goldenRuntimeConfiguration,
   });
 

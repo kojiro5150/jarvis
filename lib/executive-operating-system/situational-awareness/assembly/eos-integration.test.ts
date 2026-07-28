@@ -4,11 +4,13 @@ import { goldenRuntimeInput } from "../../../../tests/fixtures/eos/golden-projec
 import { SituationalAwarenessEngine } from "./engine";
 
 describe("ExecutiveStateSnapshot EOS compatibility", () => {
-  it("represents exactly the canonical state consumed by the unchanged EOS runtime", () => {
+  it("is the exact canonical state publication consumed by the EOS runtime", () => {
     const assembled = new SituationalAwarenessEngine().assemble(goldenRuntimeInput.projectionArtifacts);
     const runtime = new DeterministicExecutiveOperatingSystemRuntime().run(goldenRuntimeInput);
     expect(assembled.outcome).toBe("success");
     if (assembled.outcome !== "success") return;
+    expect(runtime.executiveState).toEqual(assembled.snapshot);
+    expect(runtime.situationalAwareness).toBe(runtime.executiveState.state);
     expect(assembled.snapshot.state).toEqual(runtime.situationalAwareness);
     expect(assembled.snapshot.lifecycleSnapshotId).toBe(runtime.snapshot.snapshotId);
     expect(assembled.snapshot.observedAt).toBe(runtime.snapshot.observedAt);

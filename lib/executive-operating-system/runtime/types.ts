@@ -13,6 +13,7 @@ import type { ExecutiveReasoningDefinition, ExecutiveReasoningRecord } from "../
 import type { GovernedActionProposalDefinition, GovernedActionProposalSet } from "../proposal";
 import type { CapabilityInvocationResult, ExecutiveCapabilityRoutingPlan, ExecutionPolicy, ExecutiveCapabilityImplementationRegistry } from "../executive-capabilities";
 import type { ExecutiveContextSnapshot } from "../../executive-context";
+import type { ExecutiveStateSnapshot } from "../situational-awareness/assembly";
 
 export interface ProjectionArtifactSet {
   readonly artifacts: readonly ProjectionArtifact[];
@@ -29,13 +30,15 @@ export interface ExecutiveOperatingSystemConfiguration {
   readonly reasoningDefinitions: readonly ExecutiveReasoningDefinition[];
   readonly proposalDefinitions: readonly GovernedActionProposalDefinition[];
 }
-export interface ExecutiveOperatingSystemInput { readonly projectionArtifacts: ProjectionArtifactSet; readonly configuration: ExecutiveOperatingSystemConfiguration }
-export const EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER = ["situational_awareness","snapshot_lifecycle","executive_attention","situation_formation","situation_assessment","executive_context","intent_and_constraints","candidate_plan_construction","candidate_plan_evaluation","candidate_plan_comparison","executive_reasoning","governed_action_proposal"] as const;
+export interface ExecutiveOperatingSystemInput { readonly projectionArtifacts: ProjectionArtifactSet; readonly referenceTime: string; readonly configuration: ExecutiveOperatingSystemConfiguration }
+export const EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER = ["state_assembly","executive_context_derivation","snapshot_lifecycle","executive_attention","situation_formation","situation_assessment","executive_context","intent_and_constraints","candidate_plan_construction","candidate_plan_evaluation","candidate_plan_comparison","executive_reasoning","governed_action_proposal"] as const;
 export type ExecutiveOperatingSystemStageId = typeof EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER[number];
 export type ExecutiveOperatingSystemStageStatus = "completed" | "completed_empty";
 export interface ExecutiveOperatingSystemStageTrace { readonly stageId: ExecutiveOperatingSystemStageId; readonly sequence: number; readonly inputArtifactIds: readonly string[]; readonly outputArtifactIds: readonly string[]; readonly status: ExecutiveOperatingSystemStageStatus; readonly validationStatus: "valid" }
 export interface ExecutiveOperatingSystemExecutionTrace { readonly stages: readonly ExecutiveOperatingSystemStageTrace[] }
 export interface ExecutiveOperatingSystemResult {
+  readonly executiveState: ExecutiveStateSnapshot;
+  readonly executiveContextSnapshot: ExecutiveContextSnapshot;
   readonly situationalAwareness: SituationalAwareness;
   readonly snapshot: SituationalAwarenessSnapshot;
   readonly changes: SituationalAwarenessChangeSet;

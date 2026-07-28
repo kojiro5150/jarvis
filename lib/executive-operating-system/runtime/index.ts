@@ -2,3 +2,4 @@ export type { ProjectionArtifactSet,ExecutiveOperatingSystemConfiguration,Execut
 export { ExecutiveOperatingSystemRuntimeError,EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER } from "./types";
 export { validateRuntimeInput } from "./validation";
 export { DeterministicExecutiveOperatingSystemRuntime } from "./engine";
+export type { CapabilityRoutingInput, CapabilityRoutingPlan } from "../executive-capabilities";

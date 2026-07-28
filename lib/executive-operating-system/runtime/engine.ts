@@ -14,11 +14,14 @@ import { clone,deepFreeze,validateRuntimeInput,validateTrace } from "./validatio
 import { stageTrace } from "./trace";
 import { ExecutiveOperatingSystemRuntimeError } from "./types";
 import type { ExecutiveOperatingSystemInput,ExecutiveOperatingSystemResult,ExecutiveOperatingSystemStageId,ExecutiveOperatingSystemStageTrace } from "./types";
+import { ExecutiveCapabilityRouter } from "../executive-capabilities";
 
 export class DeterministicExecutiveOperatingSystemRuntime {
  run(raw:ExecutiveOperatingSystemInput):ExecutiveOperatingSystemResult {
   try{validateRuntimeInput(raw)}catch(error){throw new ExecutiveOperatingSystemRuntimeError("situational_awareness","validation","invalid-runtime-input",[],error)}
-  const input=deepFreeze(clone(raw)), ids=input.projectionArtifacts.artifacts.map(x=>x.provenance.sourceId), traces:ExecutiveOperatingSystemStageTrace[]=[];
+  const routed=raw.capabilityRouting?new ExecutiveCapabilityRouter().route(raw.capabilityRouting):undefined;
+  if(routed?.outcome==="failure")throw new ExecutiveOperatingSystemRuntimeError("executive_context","validation",routed.code,[routed.identities.contextSnapshotId??""],routed);
+  const input=deepFreeze(clone({projectionArtifacts:raw.projectionArtifacts,configuration:raw.configuration})), ids=input.projectionArtifacts.artifacts.map(x=>x.provenance.sourceId), traces:ExecutiveOperatingSystemStageTrace[]=[];
   const step=<T>(stage:ExecutiveOperatingSystemStageId,ins:readonly string[],execute:()=>T,out:(x:T)=>readonly string[],empty=(x:T)=>false):T=>{try{const value=execute();traces.push(stageTrace(stage,traces.length+1,ins,out(value),empty(value)));return value}catch(error){throw new ExecutiveOperatingSystemRuntimeError(stage,"execution","stage-execution-failed",ins,error)}};
   const awareness=step("situational_awareness",ids,()=>projectArtifacts(input.projectionArtifacts.artifacts),x=>x.sources.map(s=>s.id));
   const snapshot=step("snapshot_lifecycle",ids,()=>createSituationalAwarenessSnapshot({snapshotId:input.projectionArtifacts.snapshotId,observedAt:input.projectionArtifacts.observedAt,state:awareness}),x=>[x.snapshotId]);
@@ -35,6 +38,6 @@ export class DeterministicExecutiveOperatingSystemRuntime {
   const reasoning=step("executive_reasoning",[comparison.comparisonSetId],()=>new DeterministicExecutiveReasoningEngine((()=>{const r=new DeterministicExecutiveReasoningRegistry();productionReasoningPolicies.forEach(p=>r.register(p));return r})()).reason({context,intentSet:intent,constraintSet:constraints,candidatePlanSet:candidatePlans,evaluatedCandidatePlanSet:evaluation,candidatePlanComparisonSet:comparison,definitions:input.configuration.reasoningDefinitions}),x=>[x.reasoningRecordId],x=>x.observations.length===0);
   const proposals=step("governed_action_proposal",[reasoning.reasoningRecordId],()=>new DeterministicGovernedActionProposalEngine((()=>{const r=new DeterministicGovernedActionProposalRegistry();productionProposalPolicies.forEach(p=>r.register(p));return r})()).propose({context,intentSet:intent,constraintSet:constraints,candidatePlanSet:candidatePlans,evaluatedCandidatePlanSet:evaluation,candidatePlanComparisonSet:comparison,executiveReasoningRecord:reasoning,definitions:input.configuration.proposalDefinitions}),x=>[x.proposalSetId],x=>x.proposals.length===0);
   const trace=deepFreeze({stages:traces});validateTrace(trace);
-  return deepFreeze({situationalAwareness:awareness,snapshot,changes,attention,situations,assessment,context,intent,constraints,candidatePlans,evaluation,comparison,reasoning,proposals,trace});
+  return deepFreeze({situationalAwareness:awareness,snapshot,changes,attention,situations,assessment,context,intent,constraints,candidatePlans,evaluation,comparison,reasoning,proposals,...(routed?.outcome==="success"?{capabilityRoutingPlan:routed.plan}:{}),trace});
  }
 }

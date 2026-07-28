@@ -14,11 +14,11 @@ import { DeterministicGovernedActionProposalEngine,DeterministicGovernedActionPr
 import { clone,deepFreeze,validateRuntimeInput,validateTrace } from "./validation";
 import { stageTrace } from "./trace";
 import { ExecutiveOperatingSystemRuntimeError } from "./types";
-import { CapabilityInvocationEnvelopePublisher,ExecutiveCapabilityInvocationHandoffBuilder,ExecutiveCapabilityRegistry,ExecutiveCapabilityRouter } from "../executive-capabilities";
+import { CapabilityInvocationEnvelopePublisher,ExecutiveCapabilityImplementationRegistry,ExecutiveCapabilityInvoker,ExecutiveCapabilityInvocationHandoffBuilder,ExecutiveCapabilityRegistry,ExecutiveCapabilityRouter } from "../executive-capabilities";
 import type { ExecutiveOperatingSystemInput,ExecutiveOperatingSystemResult,ExecutiveOperatingSystemStageId,ExecutiveOperatingSystemStageTrace } from "./types";
 
 export class DeterministicExecutiveOperatingSystemRuntime {
- constructor(private readonly stateAssemblyEngine:Pick<SituationalAwarenessEngine,"assemble">=new SituationalAwarenessEngine(),private readonly descriptiveContextEngine:Pick<DescriptiveExecutiveContextEngine,"derive">=new DescriptiveExecutiveContextEngine()) {}
+ constructor(private readonly stateAssemblyEngine:Pick<SituationalAwarenessEngine,"assemble">=new SituationalAwarenessEngine(),private readonly descriptiveContextEngine:Pick<DescriptiveExecutiveContextEngine,"derive">=new DescriptiveExecutiveContextEngine(),private readonly capabilityInvoker:ExecutiveCapabilityInvoker=new ExecutiveCapabilityInvoker(new ExecutiveCapabilityImplementationRegistry([]))) {}
  run(raw:ExecutiveOperatingSystemInput):ExecutiveOperatingSystemResult {
   try{validateRuntimeInput(raw)}catch(error){throw new ExecutiveOperatingSystemRuntimeError("state_assembly","validation","invalid-runtime-input",[],error)}
   const input=deepFreeze(clone(raw)), ids=input.projectionArtifacts.artifacts.map(x=>x.provenance.sourceId), traces:ExecutiveOperatingSystemStageTrace[]=[];
@@ -52,7 +52,13 @@ export class DeterministicExecutiveOperatingSystemRuntime {
   const executiveCapabilityInvocationHandoff=step("capability_invocation_handoff",[capabilityRoutingPlan.routingPlanId],()=>new ExecutiveCapabilityInvocationHandoffBuilder().build({routingPlan:capabilityRoutingPlan,policy:handoffPolicy}),x=>[x.handoffId],x=>x.items.length===0,handoffPolicy.policyId);
   const envelopePolicy=input.configuration.capabilityInvocationEnvelopePolicy??{policyId:"canonical-envelope-publication",policyVersion:"1",schemaVersion:"capability-invocation-envelope-v2" as const};
   const capabilityInvocationEnvelope=step("capability_invocation_envelope",[executiveCapabilityInvocationHandoff.handoffId],()=>new CapabilityInvocationEnvelopePublisher().publish({handoff:executiveCapabilityInvocationHandoff,policy:envelopePolicy}),x=>[x.envelopeId],x=>x.requestItems.length===0,envelopePolicy.policyId);
+  const invocationPolicy=input.configuration.capabilityInvocationPolicy??{policyId:"canonical-blocked-invocation",policyVersion:"1",enabled:true,approvalState:"missing" as const,grantedAuthorityIds:[],autonomousExecutionPermitted:false,permittedExecutionClasses:["READ_ONLY" as const],permittedSideEffectClasses:["NONE" as const],permittedImplementationStatuses:["AVAILABLE" as const],metadata:{}};
+  const outcome=this.capabilityInvoker.invoke({invocationEnvelope:capabilityInvocationEnvelope,invocationPolicy,referenceTime:input.referenceTime});
+  const capabilityInvocationRecord=outcome.invocationRecord;
+  traces.push(stageTrace("capability_invocation",traces.length+1,[capabilityInvocationEnvelope.envelopeId],[capabilityInvocationRecord.invocationRecordId],capabilityInvocationRecord.invocationDisposition==="not_invoked",invocationPolicy.policyId,{invocationPerformed:capabilityInvocationRecord.executionAttempted,executionPerformed:false,...(capabilityInvocationRecord.implementationId?{implementationId:capabilityInvocationRecord.implementationId}:{}),invocationDisposition:capabilityInvocationRecord.invocationDisposition,...(capabilityInvocationRecord.blockerClassification[0]?{failureStatus:capabilityInvocationRecord.blockerClassification[0]}:{})}));
+  const capabilityExecutionResult=outcome.capabilityExecutionResult;
+  traces.push(stageTrace("capability_execution",traces.length+1,[capabilityInvocationRecord.invocationRecordId],[capabilityExecutionResult.executionResultId],!capabilityExecutionResult.executionAttempted,invocationPolicy.policyId,{invocationPerformed:capabilityInvocationRecord.executionAttempted,executionPerformed:capabilityExecutionResult.executionAttempted,...(capabilityExecutionResult.implementationId?{implementationId:capabilityExecutionResult.implementationId}:{}),invocationDisposition:capabilityInvocationRecord.invocationDisposition,executionStatus:capabilityExecutionResult.executionStatus,...(capabilityExecutionResult.errorCode?{failureStatus:capabilityExecutionResult.errorCode}:{})}));
   const trace=deepFreeze({stages:traces});validateTrace(trace);
-  return deepFreeze({executiveState,executiveContextSnapshot,situationalAwareness:awareness,snapshot,changes,attention,situations,assessment,executiveDeliberationContext,intent,constraints,candidatePlans,evaluation,comparison,reasoning,proposals,capabilityRoutingPlan,executiveCapabilityInvocationHandoff,capabilityInvocationEnvelope,trace});
+  return deepFreeze({executiveState,executiveContextSnapshot,situationalAwareness:awareness,snapshot,changes,attention,situations,assessment,executiveDeliberationContext,intent,constraints,candidatePlans,evaluation,comparison,reasoning,proposals,capabilityRoutingPlan,executiveCapabilityInvocationHandoff,capabilityInvocationEnvelope,capabilityInvocationRecord,capabilityExecutionResult,trace});
  }
 }

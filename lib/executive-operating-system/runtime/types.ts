@@ -12,7 +12,7 @@ import type { CandidatePlanComparisonDefinition, CandidatePlanComparisonSet } fr
 import type { ExecutiveReasoningDefinition, ExecutiveReasoningRecord } from "../reasoning";
 import type { GovernedActionProposalDefinition, GovernedActionProposalSet } from "../proposal";
 import type { ExecutiveCapabilityDefinition, ExecutiveCapabilityPolicy, ExecutiveCapabilityRoutingPlan, ExecutiveCapabilityRoutingRule, ExecutiveCapabilityScenario } from "../executive-capabilities";
-import type { CapabilityInvocationEnvelope,CapabilityInvocationEnvelopePolicy,ExecutiveCapabilityInvocationHandoff,ExecutiveCapabilityInvocationHandoffPolicy } from "../executive-capabilities";
+import type { CapabilityExecutionResult,CapabilityInvocationEnvelope,CapabilityInvocationEnvelopePolicy,CapabilityInvocationRecord,ExecutiveCapabilityInvocationHandoff,ExecutiveCapabilityInvocationHandoffPolicy,InvocationPolicy } from "../executive-capabilities";
 import type { ExecutiveContextSnapshot } from "../../executive-context";
 import type { ExecutiveStateSnapshot } from "../situational-awareness/assembly";
 
@@ -39,12 +39,13 @@ export interface ExecutiveOperatingSystemConfiguration {
   readonly capabilityPolicyId?: string;
   readonly capabilityInvocationHandoffPolicy?: ExecutiveCapabilityInvocationHandoffPolicy;
   readonly capabilityInvocationEnvelopePolicy?: CapabilityInvocationEnvelopePolicy;
+  readonly capabilityInvocationPolicy?: InvocationPolicy;
 }
 export interface ExecutiveOperatingSystemInput { readonly projectionArtifacts: ProjectionArtifactSet; readonly referenceTime: string; readonly configuration: ExecutiveOperatingSystemConfiguration }
-export const EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER = ["state_assembly","executive_context_derivation","snapshot_lifecycle","executive_attention","situation_formation","situation_assessment","executive_deliberation_context","intent_and_constraints","candidate_plan_construction","candidate_plan_evaluation","candidate_plan_comparison","executive_reasoning","governed_action_proposal","capability_routing","capability_invocation_handoff","capability_invocation_envelope"] as const;
+export const EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER = ["state_assembly","executive_context_derivation","snapshot_lifecycle","executive_attention","situation_formation","situation_assessment","executive_deliberation_context","intent_and_constraints","candidate_plan_construction","candidate_plan_evaluation","candidate_plan_comparison","executive_reasoning","governed_action_proposal","capability_routing","capability_invocation_handoff","capability_invocation_envelope","capability_invocation","capability_execution"] as const;
 export type ExecutiveOperatingSystemStageId = typeof EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER[number];
 export type ExecutiveOperatingSystemStageStatus = "completed" | "completed_empty";
-export interface ExecutiveOperatingSystemStageTrace { readonly stageId: ExecutiveOperatingSystemStageId; readonly sequence: number; readonly inputArtifactIds: readonly string[]; readonly outputArtifactIds: readonly string[]; readonly status: ExecutiveOperatingSystemStageStatus; readonly validationStatus: "valid";readonly policyId?:string;readonly invocationPerformed:false;readonly executionPerformed:false }
+export interface ExecutiveOperatingSystemStageTrace { readonly stageId: ExecutiveOperatingSystemStageId; readonly sequence: number; readonly inputArtifactIds: readonly string[]; readonly outputArtifactIds: readonly string[]; readonly status: ExecutiveOperatingSystemStageStatus; readonly validationStatus: "valid";readonly policyId?:string;readonly invocationPerformed:boolean;readonly executionPerformed:boolean;readonly implementationId?:string;readonly invocationDisposition?:string;readonly executionStatus?:string;readonly failureStatus?:string }
 export interface ExecutiveOperatingSystemExecutionTrace { readonly stages: readonly ExecutiveOperatingSystemStageTrace[] }
 export interface ExecutiveOperatingSystemResult {
   readonly executiveState: ExecutiveStateSnapshot;
@@ -66,6 +67,8 @@ export interface ExecutiveOperatingSystemResult {
   readonly capabilityRoutingPlan: ExecutiveCapabilityRoutingPlan;
   readonly executiveCapabilityInvocationHandoff:ExecutiveCapabilityInvocationHandoff;
   readonly capabilityInvocationEnvelope:CapabilityInvocationEnvelope;
+  readonly capabilityInvocationRecord:CapabilityInvocationRecord;
+  readonly capabilityExecutionResult:CapabilityExecutionResult;
   readonly trace: ExecutiveOperatingSystemExecutionTrace;
 }
 export type ExecutiveOperatingSystemFailureCategory = "validation" | "execution";

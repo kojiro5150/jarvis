@@ -1,49 +1,58 @@
-import { CAPABILITY_INVOCATION_CONTRACT_VERSION } from "./types";
-import type { CapabilityInvocationContext,CapabilityInvocationFailure,CapabilityInvocationRecord,CapabilityInvocationRequest,CapabilityInvocationResult,ExecutiveCapabilityImplementation,ExecutionPolicy,InvocationFailureCategory,InvocationLifecycleState,InvocationStage } from "./types";
-import { ExecutiveCapabilityImplementationRegistry } from "./registry";
 import { isIssuedInvocationEnvelope } from "./envelope";
-import { canonical,clone,compareText,deepFreeze,validatePolicy,validateRecord,validateResult,validateRoutingPlan } from "./validation";
+import { ExecutiveCapabilityImplementationRegistry } from "./registry";
+import { CAPABILITY_EXECUTION_RESULT_VERSION,CAPABILITY_INVOCATION_CONTRACT_VERSION,IMPLEMENTATION_RESOLUTION_POLICY_ID } from "./types";
+import type { ApprovalState,AuthorityValidationOutcome,CapabilityExecutionResult,CapabilityInvocationOutcome,CapabilityInvocationRecord,CapabilityInvocationRequest,ExecutiveCapabilityImplementation,ExecutionStatus,InvocationFailureCode,InvocationPolicy } from "./types";
+import { deepFreeze,identity,validateEnvelope,validateImplementationReturn,validatePolicy } from "./validation";
 
-class InvocationAbort extends Error { constructor(readonly category:InvocationFailureCategory,readonly stage:InvocationStage,readonly reasonCode:string,message:string,readonly implementationId?:string){super(message)} }
-const lifecycleStates:readonly InvocationLifecycleState[]=["PENDING","VALIDATING","RESOLVING_IMPLEMENTATION","VALIDATING_AUTHORITY","INVOKING","VALIDATING_RESULT","COMPLETED"];
-function resolve(registry:ExecutiveCapabilityImplementationRegistry,request:CapabilityInvocationRequest):ExecutiveCapabilityImplementation{
- const {invocationEnvelope:plan,executionPolicy:policy}=request,candidates=registry.forCapability(plan.capabilityId);
- if(candidates.length===0)throw new InvocationAbort("IMPLEMENTATION_RESOLUTION_FAILURE","RESOLVING_IMPLEMENTATION","no-registered-implementation","No registered implementation satisfies the routed capability.");
- const compatible=candidates.filter(x=>x.supportedCapabilityVersions.includes(plan.capabilityVersion)&&x.supportedContractVersions.includes(policy.requiredInvocationContractVersion));
- if(compatible.length===0)throw new InvocationAbort("COMPATIBILITY_FAILURE","RESOLVING_IMPLEMENTATION","no-compatible-implementation","No registered implementation declares the required compatibility.");
- const enabled=compatible.filter(x=>x.implementationStatus!=="DISABLED");
- if(enabled.length===0)throw new InvocationAbort("DISABLED_IMPLEMENTATION_FAILURE","VALIDATING_AUTHORITY","implementation-disabled","All compatible implementations are disabled.",compatible[0].implementationId);
- const permitted=enabled.filter(x=>policy.permittedExecutionClasses.includes(x.executionClass)&&policy.permittedImplementationStatuses.includes(x.implementationStatus));
- if(permitted.length===0)throw new InvocationAbort("EXECUTION_AUTHORITY_FAILURE","VALIDATING_AUTHORITY","implementation-not-permitted","Execution policy grants no compatible implementation authority.");
- const preference=(id:string)=>policy.preferredImplementationIds?.indexOf(id)??-1;
- return [...permitted].sort((a,b)=>{const ai=preference(a.implementationId),bi=preference(b.implementationId);if(ai>=0||bi>=0)return (ai<0?Number.MAX_SAFE_INTEGER:ai)-(bi<0?Number.MAX_SAFE_INTEGER:bi);return a.precedence-b.precedence||compareText(b.implementationVersion,a.implementationVersion)||compareText(a.implementationId,b.implementationId)})[0];
-}
-function invocationId(request:CapabilityInvocationRequest,implementation:ExecutiveCapabilityImplementation):string{return `capability-invocation:${canonical([request.invocationEnvelope.envelopeId,implementation.implementationId,implementation.implementationVersion,CAPABILITY_INVOCATION_CONTRACT_VERSION,request.referenceTime])}`}
-function failure(request:Partial<CapabilityInvocationRequest>,error:InvocationAbort):CapabilityInvocationResult{const plan=request.invocationEnvelope;return deepFreeze({ok:false as const,failure:{failureId:`capability-invocation-failure:${canonical([plan?.routingPlanId??"unknown",plan?.capabilityId??"unknown",request.executionPolicy?.policyId??"unknown",error.category,error.reasonCode,request.referenceTime??"unknown"])}`,category:error.category,capabilityId:plan?.capabilityId??"unknown",...(error.implementationId?{implementationId:error.implementationId}:{}),executionPolicyId:request.executionPolicy?.policyId??"unknown",stage:error.stage,message:error.message,evidence:{routingPlanId:plan?.routingPlanId??"unknown",referenceTime:request.referenceTime??"unknown",reasonCode:error.reasonCode}} satisfies CapabilityInvocationFailure})}
+const noExecutionStatus=(disposition:CapabilityInvocationRecord["invocationDisposition"]):ExecutionStatus=>disposition==="unsupported"?"unsupported":disposition==="implementation_unresolved"?"implementation_unavailable":"not_attempted";
 export class ExecutiveCapabilityInvoker {
- constructor(private readonly registry:ExecutiveCapabilityImplementationRegistry){if(!(registry instanceof ExecutiveCapabilityImplementationRegistry))throw new Error("implementation registry is required")}
- get registryId():string{return this.registry.registryId}
- rejectHandoff(input:{routingPlanId:string;capabilityId:string;executionPolicyId:string;referenceTime:string}):CapabilityInvocationResult{return failure({invocationEnvelope:{routingPlanId:input.routingPlanId,capabilityId:input.capabilityId} as never,executionPolicy:{policyId:input.executionPolicyId} as never,referenceTime:input.referenceTime},new InvocationAbort("ROUTING_PLAN_FAILURE","VALIDATING","canonical-handoff-rejected","Canonical routing publication did not authorize the requested capability."))}
- invoke(raw:CapabilityInvocationRequest):CapabilityInvocationResult{
-  if(!isIssuedInvocationEnvelope(raw?.invocationEnvelope))return failure(raw??{},new InvocationAbort("ROUTING_PLAN_FAILURE","VALIDATING","unaudited-routing-authority","Governed invocation requires an envelope issued by the canonical handoff."));
-  let request:CapabilityInvocationRequest;
-  try{request=deepFreeze(clone(raw));if(!request||typeof request!=="object")throw new Error("invocation request is required")}catch(error){const safe=(raw??{}) as CapabilityInvocationRequest;return failure(safe,new InvocationAbort("INVOCATION_VALIDATION_FAILURE","VALIDATING","invalid-invocation-input",error instanceof Error?error.message:"Invalid invocation input."))}
-  const plan=request.invocationEnvelope;
-  try{validateRoutingPlan(plan);validatePolicy(request.executionPolicy);if(!request.executiveContext||request.executiveContext.contextId!==plan.executiveContextId||request.executiveContext.sourceStateIdentity.snapshotId!==plan.executiveStateSnapshotId||request.executionPolicy.policyId!==plan.executionPolicyId||request.executionPolicy.policyVersion!==plan.executionPolicyVersion||this.registry.registryId!==plan.implementationRegistryId)throw new Error("invocation identities do not match handoff provenance");if(typeof request.referenceTime!=="string"||!Number.isFinite(Date.parse(request.referenceTime)))throw new Error("referenceTime must be an explicit ISO timestamp")}catch(error){return failure(request,new InvocationAbort("INVOCATION_VALIDATION_FAILURE","VALIDATING","invalid-invocation-input",error instanceof Error?error.message:"Invalid invocation input."))}
-  try{
-   if(!request.executionPolicy.executionEnabled)throw new InvocationAbort("EXECUTION_POLICY_FAILURE","VALIDATING_AUTHORITY","execution-disabled","Execution is disabled by policy.");
-   if(request.executionPolicy.requiredInvocationContractVersion!==CAPABILITY_INVOCATION_CONTRACT_VERSION)throw new InvocationAbort("COMPATIBILITY_FAILURE","RESOLVING_IMPLEMENTATION","unsupported-invocation-contract","Execution policy requires an unsupported invocation contract.");
-   const implementation=resolve(this.registry,request),id=invocationId(request,implementation);
-   const provenance={invocationEnvelopeId:plan.envelopeId,routingPlanId:plan.routingPlanId,executiveContextId:plan.executiveContextId,executiveStateSnapshotId:plan.executiveStateSnapshotId,executiveContextContractVersion:plan.executiveContextContractVersion,scenarioId:plan.scenarioId,routingPolicyId:plan.routingPolicyId,capabilityId:plan.capabilityId,capabilityVersion:plan.capabilityVersion,routingRuleIds:plan.routingRuleIds,supportingConditionIds:plan.supportingConditionIds,dependencyCapabilityIds:plan.dependencyCapabilityIds,executionPolicyId:request.executionPolicy.policyId,registryId:this.registry.registryId,implementationId:implementation.implementationId,implementationVersion:implementation.implementationVersion,routingContractVersion:plan.routingContractVersion,invocationContractVersion:CAPABILITY_INVOCATION_CONTRACT_VERSION};
-   const context:CapabilityInvocationContext=deepFreeze({invocationId:id,invocationEnvelope:plan,executiveContext:request.executiveContext,executionPolicy:request.executionPolicy,referenceTime:request.referenceTime,provenance});
-   let result;try{result=implementation.invoke(context)}catch{throw new InvocationAbort("RESULT_VALIDATION_FAILURE","INVOKING","implementation-invocation-failed","Implementation invocation failed without a publishable result.",implementation.implementationId)}
-   try{validateResult(result,plan.capabilityId,implementation.implementationId,CAPABILITY_INVOCATION_CONTRACT_VERSION)}catch(error){throw new InvocationAbort("RESULT_VALIDATION_FAILURE","VALIDATING_RESULT","invalid-implementation-result",error instanceof Error?error.message:"Implementation result is invalid.",implementation.implementationId)}
-   if(result.elapsedMilliseconds>request.executionPolicy.timeoutMilliseconds)throw new InvocationAbort("TIMEOUT_FAILURE","VALIDATING_RESULT","execution-timeout","Implementation exceeded the explicit deterministic timeout policy.",implementation.implementationId);
-   const lifecycle=lifecycleStates.map((state,sequence)=>deepFreeze({state,sequence:sequence+1,referenceTime:request.referenceTime}));
-   const record:CapabilityInvocationRecord={recordId:`capability-invocation-record:${canonical([id,result.resultId])}`,invocationId:id,capabilityId:plan.capabilityId,implementationId:implementation.implementationId,routingPlanId:plan.routingPlanId,executionPolicyId:request.executionPolicy.policyId,lifecycleState:"COMPLETED",executionOutcome:"SUCCESS",resultId:result.resultId,executionEvidence:{referenceTime:request.referenceTime,lifecycle},provenance,executionMetadata:{executionClass:implementation.executionClass,implementationStatus:implementation.implementationStatus,elapsedMilliseconds:result.elapsedMilliseconds},contractVersions:{invocation:CAPABILITY_INVOCATION_CONTRACT_VERSION,routing:plan.routingContractVersion,result:result.contractVersion}};
-   try{validateRecord(record)}catch(error){throw new InvocationAbort("INVOCATION_RECORD_FAILURE","CONSTRUCTING_RECORD","invalid-invocation-record",error instanceof Error?error.message:"Invocation record is invalid.",implementation.implementationId)}
-   return deepFreeze({ok:true as const,record:clone(record)});
-  }catch(error){return failure(request,error instanceof InvocationAbort?error:new InvocationAbort("INVOCATION_RECORD_FAILURE","CONSTRUCTING_RECORD","unexpected-invocation-failure","Invocation could not be deterministically published."))}
+ constructor(private readonly registry:ExecutiveCapabilityImplementationRegistry){if(!(registry instanceof ExecutiveCapabilityImplementationRegistry))throw new Error("INVALID_IMPLEMENTATION_REGISTRY")}
+ get registryId(){return this.registry.registryId}
+ invoke(request:CapabilityInvocationRequest):CapabilityInvocationOutcome {
+  const envelope=request?.invocationEnvelope,policy=request?.invocationPolicy;
+  if(!envelope)throw new Error("MISSING_INVOCATION_ENVELOPE");
+  if(!isIssuedInvocationEnvelope(envelope))throw new Error("INVALID_ENVELOPE_IDENTITY");
+  validateEnvelope(envelope);validatePolicy(policy);
+  if(!request.referenceTime||!Number.isFinite(Date.parse(request.referenceTime)))throw new Error("INVALID_INVOCATION_POLICY");
+  const item=envelope.requestItems.find(x=>x.disposition==="prepared");
+  const approvalRequired=item?.approvalRequired??false;
+  const authorityRequirements=(item?.authorityRequirements??[]).map(x=>x.authorityRequirementId).sort();
+  let implementation:ExecutiveCapabilityImplementation|undefined;
+  let disposition:CapabilityInvocationRecord["invocationDisposition"]="not_invoked";
+  const blockers:InvocationFailureCode[]=[];
+  let approvalState:ApprovalState=policy.approvalState;
+  let authorityOutcome:AuthorityValidationOutcome="not_evaluated";
+  if(!policy.enabled){disposition="refused";blockers.push("INVALID_INVOCATION_POLICY")}
+  else if(!item){disposition="not_invoked"}
+  else if(item.capabilityId!==envelope.capabilityId||item.proposalId.length===0){disposition="refused";blockers.push("INVALID_CAPABILITY_IDENTITY")}
+  else if(approvalRequired&&policy.approvalState!=="granted"){disposition="blocked";blockers.push("MISSING_APPROVAL_STATE")}
+  else if(!policy.autonomousExecutionPermitted){disposition="blocked";blockers.push("PROHIBITED_AUTONOMOUS_ACTION")}
+  else if(envelope.unresolvedBlockers.length||item.unresolvedConditions.length){disposition="blocked";blockers.push("UNRESOLVED_BLOCKER")}
+  else if(!authorityRequirements.every(x=>policy.grantedAuthorityIds.includes(x))){disposition="blocked";authorityOutcome="insufficient";blockers.push("INSUFFICIENT_AUTHORITY")}
+  else {
+   authorityOutcome="satisfied";
+   const registered=this.registry.forCapability(envelope.capabilityId);
+   const compatible=registered.filter(x=>x.actionClasses.includes(item.actionClass));
+   if(registered.length===0){disposition="implementation_unresolved";blockers.push("NO_IMPLEMENTATION")}
+   else if(compatible.length===0){disposition="unsupported";blockers.push("UNSUPPORTED_ACTION_CLASS")}
+   else {
+    const enabled=compatible.filter(x=>x.implementationStatus!=="DISABLED"&&policy.permittedImplementationStatuses.includes(x.implementationStatus)&&policy.permittedExecutionClasses.includes(x.executionClass)&&policy.permittedSideEffectClasses.includes(x.sideEffectClassification));
+    const selected=policy.explicitImplementationId?enabled.filter(x=>x.implementationId===policy.explicitImplementationId):enabled;
+    if(enabled.length===0){disposition="blocked";blockers.push(compatible.every(x=>x.implementationStatus==="DISABLED")?"IMPLEMENTATION_DISABLED":"UNSUPPORTED_ACTION_CLASS")}
+    else if(selected.length!==1){disposition="implementation_unresolved";blockers.push(selected.length===0?"NO_IMPLEMENTATION":"AMBIGUOUS_IMPLEMENTATION")}
+    else {implementation=selected[0];disposition="invoked"}
+   }
+  }
+  const recordBody={envelopeId:envelope.envelopeId,handoffId:envelope.handoffId,routingPlanId:envelope.routingPlanId,...(item?{proposalId:item.proposalId}:{}),proposalSetId:envelope.proposalSetId,capabilityId:envelope.capabilityId,...(implementation?{implementationId:implementation.implementationId}:{}),invocationPolicyId:policy.policyId,implementationResolutionPolicyId:IMPLEMENTATION_RESOLUTION_POLICY_ID,approvalRequired,approvalState,authorityRequirements,authorityValidationOutcome:authorityOutcome,blockerClassification:blockers,invocationDisposition:disposition,executionAttempted:!!implementation,lineage:{executiveStateSnapshotId:envelope.executiveStateSnapshotId,executiveContextId:envelope.executiveContextId,deliberationContextId:envelope.deliberationContextId,reasoningRecordId:envelope.reasoningRecordId},metadata:{owner:"ExecutiveCapabilityInvoker" as const,contractVersion:CAPABILITY_INVOCATION_CONTRACT_VERSION,referenceTime:request.referenceTime}};
+  let invocationRecord=deepFreeze({invocationRecordId:identity("capability-invocation-record",recordBody),...recordBody});
+  let execution:Omit<CapabilityExecutionResult,"executionResultId">;
+  if(!implementation||!item){execution={invocationRecordId:invocationRecord.invocationRecordId,envelopeId:envelope.envelopeId,...(item?{proposalId:item.proposalId}:{}),capabilityId:envelope.capabilityId,...(implementation?{implementationId:implementation.implementationId}:{}),executionStatus:noExecutionStatus(disposition),executionAttempted:false,sideEffectAttempted:false,sideEffectConfirmed:false,...(blockers[0]?{errorCode:blockers[0]}:{}),implementationMetadata:{},lineage:invocationRecord.lineage,completionMetadata:{owner:"ExecutiveCapabilityInvoker",contractVersion:CAPABILITY_EXECUTION_RESULT_VERSION,referenceTime:request.referenceTime},redactionMetadata:{redacted:false},grantsApproval:false};}
+  else {
+   try {const returned=implementation.invoke(deepFreeze({invocationId:invocationRecord.invocationRecordId,envelopeId:envelope.envelopeId,proposalId:item.proposalId,capabilityId:envelope.capabilityId,actionClass:item.actionClass,boundedRequest:item.boundedRequest as never,constraints:item.constraints,referenceTime:request.referenceTime}));validateImplementationReturn(returned);execution={invocationRecordId:invocationRecord.invocationRecordId,envelopeId:envelope.envelopeId,proposalId:item.proposalId,capabilityId:envelope.capabilityId,implementationId:implementation.implementationId,executionStatus:returned.status,executionAttempted:true,sideEffectAttempted:returned.sideEffectAttempted,sideEffectConfirmed:returned.sideEffectConfirmed,...(returned.output!==undefined?{boundedOutput:returned.output}:{}),...(returned.errorCode?{errorCode:returned.errorCode}:{}),implementationMetadata:returned.metadata,lineage:invocationRecord.lineage,completionMetadata:{owner:"ExecutiveCapabilityInvoker",contractVersion:CAPABILITY_EXECUTION_RESULT_VERSION,referenceTime:request.referenceTime},redactionMetadata:{redacted:false},grantsApproval:false};}
+   catch(error){execution={invocationRecordId:invocationRecord.invocationRecordId,envelopeId:envelope.envelopeId,proposalId:item.proposalId,capabilityId:envelope.capabilityId,implementationId:implementation.implementationId,executionStatus:"failed",executionAttempted:true,sideEffectAttempted:false,sideEffectConfirmed:false,errorCode:error instanceof Error&&error.message==="MALFORMED_IMPLEMENTATION_RESULT"?"MALFORMED_IMPLEMENTATION_RESULT":"IMPLEMENTATION_EXCEPTION",implementationMetadata:{},lineage:invocationRecord.lineage,completionMetadata:{owner:"ExecutiveCapabilityInvoker",contractVersion:CAPABILITY_EXECUTION_RESULT_VERSION,referenceTime:request.referenceTime},redactionMetadata:{redacted:false},grantsApproval:false};}
+  }
+  const capabilityExecutionResult=deepFreeze({executionResultId:identity("capability-execution-result",execution),...execution});
+  return deepFreeze({invocationRecord,capabilityExecutionResult});
  }
 }
-export function createExecutionPolicy(policy:ExecutionPolicy):ExecutionPolicy{validatePolicy(policy);return deepFreeze(clone(policy))}
+export function createInvocationPolicy(policy:InvocationPolicy){validatePolicy(policy);return deepFreeze({...policy,grantedAuthorityIds:[...policy.grantedAuthorityIds],permittedExecutionClasses:[...policy.permittedExecutionClasses],permittedSideEffectClasses:[...policy.permittedSideEffectClasses],permittedImplementationStatuses:[...policy.permittedImplementationStatuses]})}

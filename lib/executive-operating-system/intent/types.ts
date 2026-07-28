@@ -1,4 +1,4 @@
-import type { ExecutiveContext } from "../context";
+import type { ExecutiveDeliberationContext } from "../deliberation";
 
 export type IntentType = "operational" | "strategic" | "standing" | "session" | "mission";
 export type ConstraintType = "authority" | "temporal" | "resource" | "governance" | "behavioural" | "privacy" | "execution" | "approval";
@@ -17,13 +17,13 @@ export interface ConstraintDefinition { readonly identifier: string; readonly ty
 export interface IntentConfiguration { readonly objectives: readonly IntentDefinition[] }
 export interface ConstraintConfiguration { readonly constraints: readonly ConstraintDefinition[] }
 
-export interface IntentPolicy { readonly id: string; readonly version: string; readonly description: string; readonly intentType: IntentType; construct(context: ExecutiveContext, definitions: readonly IntentDefinition[]): readonly ExecutiveIntent[] }
-export interface ConstraintPolicy { readonly id: string; readonly version: string; readonly description: string; readonly constraintTypes: readonly ConstraintType[]; construct(context: ExecutiveContext, definitions: readonly ConstraintDefinition[]): readonly ExecutiveConstraint[] }
+export interface IntentPolicy { readonly id: string; readonly version: string; readonly description: string; readonly intentType: IntentType; construct(context: ExecutiveDeliberationContext, definitions: readonly IntentDefinition[]): readonly ExecutiveIntent[] }
+export interface ConstraintPolicy { readonly id: string; readonly version: string; readonly description: string; readonly constraintTypes: readonly ConstraintType[]; construct(context: ExecutiveDeliberationContext, definitions: readonly ConstraintDefinition[]): readonly ExecutiveConstraint[] }
 export interface IntentSummary { readonly objectiveCount: number; readonly activeCount: number; readonly inactiveCount: number; readonly byType: Readonly<Record<IntentType, number>> }
 export interface ConstraintSummary { readonly constraintCount: number; readonly bindingCount: number; readonly nonBindingCount: number; readonly byType: Readonly<Record<ConstraintType, number>> }
 export interface IntentSet { readonly intentSetId: string; readonly contextId: string; readonly objectives: readonly ExecutiveIntent[]; readonly summary: IntentSummary; readonly provenance: Readonly<{ contextId: string; policies: readonly IntentMetadata[] }> }
 export interface ConstraintSet { readonly constraintSetId: string; readonly contextId: string; readonly constraints: readonly ExecutiveConstraint[]; readonly summary: ConstraintSummary; readonly provenance: Readonly<{ contextId: string; policies: readonly ConstraintMetadata[] }> }
 export interface IntentRegistry { register(policy: IntentPolicy): void; policies(): readonly IntentPolicy[] }
 export interface ConstraintRegistry { register(policy: ConstraintPolicy): void; policies(): readonly ConstraintPolicy[] }
-export interface IntentEngine { construct(context: ExecutiveContext, configuration: IntentConfiguration): IntentSet }
-export interface ConstraintEngine { construct(context: ExecutiveContext, configuration: ConstraintConfiguration): ConstraintSet }
+export interface IntentEngine { construct(context: ExecutiveDeliberationContext, configuration: IntentConfiguration): IntentSet }
+export interface ConstraintEngine { construct(context: ExecutiveDeliberationContext, configuration: ConstraintConfiguration): ConstraintSet }

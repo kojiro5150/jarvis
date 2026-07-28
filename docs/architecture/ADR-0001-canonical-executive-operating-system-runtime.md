@@ -91,6 +91,29 @@ publication and audit composition. It must not acquire observations, reproduce s
 logic, assess evidence, recommend action, grant approval, determine capability eligibility, select
 an implementation outside invocation policy, or perform the delegated operation.
 
+## Runtime Consumption
+
+`ExecutiveRunRecord` is the terminal constitutional runtime publication. The runtime terminates
+after publishing it; no Operational Layer projection is inserted into the constitutional sequence.
+
+`ExecutiveOperationalState` begins the Operational Layer and consumes only the terminal run record.
+Future executive systems consume `ExecutiveOperationalState` rather than runtime publications
+directly. Runtime publications remain immutable, retain their existing ownership, and are neither
+reconstructed nor modified by operational consumers.
+
+```text
+Constitutional Runtime
+
+ExecutiveRunRecord
+──────────────────────── Runtime Boundary
+ExecutiveOperationalState
+
+Operational Layer
+```
+
+This boundary documents consumption only. It changes no constitutional publication, ownership,
+sequencing, or runtime responsibility.
+
 ## Architectural invariants
 
 ### Authority Invariant

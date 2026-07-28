@@ -26,3 +26,19 @@ or copy those publications, and it never grants approval or performs execution.
 constitutional run publication that references that result and the publications preceding it.
 Blocked invocation remains an execution publication with explicit authority and blocker evidence;
 it is not approval and does not weaken the Authority Invariant.
+
+## Runtime boundary
+
+`ExecutiveRunRecord` is the terminal constitutional runtime publication. The runtime stage order
+ends there and remains unchanged. After the runtime has completed, the Operational Layer may
+consume that record:
+
+```text
+ExecutiveRunRecord
+──────────────────────── Runtime Boundary
+ExecutiveOperationalState
+```
+
+`ExecutiveOperationalState` is an operational projection, not a runtime publication. It consumes
+only the run record, references constitutional publication identities, and cannot invoke runtime
+engines. See `../operational-state/README.md`.

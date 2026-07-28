@@ -11,7 +11,8 @@ import type { CandidatePlanEvaluationDefinition, EvaluatedCandidatePlanSet } fro
 import type { CandidatePlanComparisonDefinition, CandidatePlanComparisonSet } from "../planning/comparison";
 import type { ExecutiveReasoningDefinition, ExecutiveReasoningRecord } from "../reasoning";
 import type { GovernedActionProposalDefinition, GovernedActionProposalSet } from "../proposal";
-import type { CapabilityInvocationResult, CapabilityRoutingPlan, ExecutionPolicy, ExecutiveCapabilityImplementationRegistry } from "../executive-capabilities";
+import type { CapabilityInvocationResult, ExecutiveCapabilityRoutingPlan, ExecutionPolicy, ExecutiveCapabilityImplementationRegistry } from "../executive-capabilities";
+import type { ExecutiveContextSnapshot } from "../../executive-context";
 
 export interface ProjectionArtifactSet {
   readonly artifacts: readonly ProjectionArtifact[];
@@ -51,7 +52,7 @@ export interface ExecutiveOperatingSystemResult {
   readonly proposals: GovernedActionProposalSet;
   readonly trace: ExecutiveOperatingSystemExecutionTrace;
 }
-export interface ExecutiveOperatingSystemCapabilityInvocationInput { readonly routingPlan: CapabilityRoutingPlan; readonly executionPolicy: ExecutionPolicy; readonly implementationRegistry: ExecutiveCapabilityImplementationRegistry; readonly referenceTime: string }
+export interface ExecutiveOperatingSystemCapabilityInvocationInput { readonly routingPlan: ExecutiveCapabilityRoutingPlan; readonly executiveContext:ExecutiveContextSnapshot; readonly capabilityId:string; readonly executionPolicy: ExecutionPolicy; readonly implementationRegistry: ExecutiveCapabilityImplementationRegistry; readonly referenceTime: string }
 export interface ExecutiveOperatingSystemResultWithInvocation extends ExecutiveOperatingSystemResult { readonly capabilityInvocation: CapabilityInvocationResult }
 export type ExecutiveOperatingSystemFailureCategory = "validation" | "execution";
 export class ExecutiveOperatingSystemRuntimeError extends Error {

@@ -13,13 +13,14 @@ import { DeterministicGovernedActionProposalEngine,DeterministicGovernedActionPr
 import { clone,deepFreeze,validateRuntimeInput,validateTrace } from "./validation";
 import { stageTrace } from "./trace";
 import { ExecutiveOperatingSystemRuntimeError } from "./types";
-import { ExecutiveCapabilityInvoker } from "../executive-capabilities";
+import { ExecutiveCapabilityInvocationHandoff,ExecutiveCapabilityInvoker } from "../executive-capabilities";
 import type { ExecutiveOperatingSystemCapabilityInvocationInput,ExecutiveOperatingSystemInput,ExecutiveOperatingSystemResult,ExecutiveOperatingSystemResultWithInvocation,ExecutiveOperatingSystemStageId,ExecutiveOperatingSystemStageTrace } from "./types";
 
 export class DeterministicExecutiveOperatingSystemRuntime {
  runWithCapabilityInvocation(raw:ExecutiveOperatingSystemInput,execution:ExecutiveOperatingSystemCapabilityInvocationInput):ExecutiveOperatingSystemResultWithInvocation {
   const result=this.run(raw);
-  const capabilityInvocation=new ExecutiveCapabilityInvoker(execution.implementationRegistry).invoke({routingPlan:execution.routingPlan,executiveContext:result.context,executionPolicy:execution.executionPolicy,referenceTime:execution.referenceTime});
+  const invoker=new ExecutiveCapabilityInvoker(execution.implementationRegistry);
+  const capabilityInvocation=new ExecutiveCapabilityInvocationHandoff(invoker).invoke({routingPlan:execution.routingPlan,executiveContext:execution.executiveContext,capabilityId:execution.capabilityId,executionPolicy:execution.executionPolicy,referenceTime:execution.referenceTime});
   return deepFreeze({...result,capabilityInvocation});
  }
  run(raw:ExecutiveOperatingSystemInput):ExecutiveOperatingSystemResult {

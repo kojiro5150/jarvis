@@ -1,63 +1,15 @@
-import { describe, expect, it } from "vitest";
-import type { ExecutiveContextSnapshot } from "../../executive-context";
-import { ExecutiveCapabilityRegistry, ExecutiveCapabilityRouter } from ".";
-
-const context = (conditions: ExecutiveContextSnapshot["deterministicConditions"]): ExecutiveContextSnapshot => ({
-  contextId: "context:1",
-  sourceStateIdentity: { snapshotId: "snapshot:1", contractVersion: "projection-artifact-v1", observedAt: "2026-01-01T00:00:00.000Z", lifecycleSnapshotId: "lifecycle:1", previousLifecycleSnapshotId: "lifecycle:0", assemblyVersion: "1.0.0" },
-  observedAt: "2026-01-01T00:00:00.000Z", referenceTime: "2026-01-01T00:00:00.000Z",
-  lifecycle: { lifecycleSnapshotId: "lifecycle:1", previousLifecycleSnapshotId: "lifecycle:0" },
-  entitySummary: { totalEntityCount: 0, roleCount: 0, projectCount: 0, commitmentCount: 0, waitingItemCount: 0, explicitPriorityCount: 0, activeWorkCount: 0 },
-  relationshipContext: { totalRelationshipCount: 0, byRole: [], byProject: [] },
-  sourceContext: { sourceCount: 0, sourceIds: [], artifactsBySource: {}, adapterIds: [], completeProvenanceCount: 0, provenanceCoverage: 0, oldestObservationAgeMilliseconds: null, newestObservationAgeMilliseconds: null },
-  conflictContext: { totalCount: 0, recordIds: [], byType: {} }, gapContext: { totalCount: 0, recordIds: [], byType: {} },
-  deterministicConditions: conditions, calculationEvidence: [],
-  derivationMetadata: { contractVersion: "executive-context-v1", engineVersion: "1.0.0", ruleVersion: "1.0.0" },
-});
-
-const condition = (conditionId: string): ExecutiveContextSnapshot["deterministicConditions"][number] => ({
-  conditionId, type: "HAS_CONFLICTS", rule: "test", supportingCanonicalIdentities: [], supportingValues: {}, sourceSnapshotId: "snapshot:1", observedAt: "2026-01-01T00:00:00.000Z",
-});
-
-describe("ExecutiveCapabilityRouter", () => {
-  it("matches stable condition types and retains condition ids as evidence", () => {
-    const capability = { capabilityId: "conflict.review", capabilityVersion: "1", status: "active" as const, dependencyCapabilityIds: [] };
-    const scenario = { scenarioId: "daily", capabilityIds: [capability.capabilityId] };
-    const policy = { policyId: "governed", eligibleCapabilityIds: [capability.capabilityId] };
-    const registry = new ExecutiveCapabilityRegistry([capability], [scenario], [policy], [{ routingRuleId: "on-conflict", capabilityId: capability.capabilityId, conditionTypes: ["HAS_CONFLICTS"] }]);
-    const first = new ExecutiveCapabilityRouter(registry).route({ executiveContext: context([condition("condition:a")]), scenario, policy });
-    const second = new ExecutiveCapabilityRouter(registry).route({ executiveContext: context([condition("condition:b")]), scenario, policy });
-    expect(first.executiveStateSnapshotId).toBe("snapshot:1");
-    expect(first.executiveContextContractVersion).toBe("executive-context-v1");
-    expect(first.routedCapabilities[0]?.supportingConditionIds).toEqual(["condition:a"]);
-    expect(second.routedCapabilities[0]?.supportingConditionIds).toEqual(["condition:b"]);
-  });
-
-  it("reports inactive, denied, and unmatched requested capabilities as unresolved", () => {
-    const capabilities = [
-      { capabilityId: "inactive", capabilityVersion: "1", status: "inactive" as const, dependencyCapabilityIds: [] },
-      { capabilityId: "denied", capabilityVersion: "1", status: "active" as const, dependencyCapabilityIds: [] },
-      { capabilityId: "unmatched", capabilityVersion: "1", status: "active" as const, dependencyCapabilityIds: [] },
-    ];
-    const scenario = { scenarioId: "all", capabilityIds: capabilities.map((value) => value.capabilityId) };
-    const policy = { policyId: "limited", eligibleCapabilityIds: ["inactive", "unmatched"] };
-    const rules = capabilities.map((value) => ({ routingRuleId: `rule:${value.capabilityId}`, capabilityId: value.capabilityId, conditionTypes: ["HAS_CONFLICTS" as const] }));
-    const result = new ExecutiveCapabilityRouter(new ExecutiveCapabilityRegistry(capabilities, [scenario], [policy], rules)).route({ executiveContext: context([]), scenario, policy });
-    expect(result.unresolvedCapabilities).toEqual([
-      { capabilityId: "denied", reason: "not_permitted" },
-      { capabilityId: "inactive", reason: "inactive" },
-      { capabilityId: "unmatched", reason: "conditions_not_met" },
-    ]);
-  });
-
-  it("rejects every unknown reference and dependency cycles at publication", () => {
-    const capability = { capabilityId: "known", capabilityVersion: "1", status: "active" as const, dependencyCapabilityIds: [] };
-    expect(() => new ExecutiveCapabilityRegistry([capability], [{ scenarioId: "bad", capabilityIds: ["unknown"] }], [], [])).toThrow("unknown capability id");
-    expect(() => new ExecutiveCapabilityRegistry([capability], [], [{ policyId: "bad", eligibleCapabilityIds: ["unknown"] }], [])).toThrow("unknown capability id");
-    expect(() => new ExecutiveCapabilityRegistry([capability], [], [], [{ routingRuleId: "bad", capabilityId: "unknown", conditionTypes: ["HAS_CONFLICTS"] }])).toThrow("unknown capability id");
-    expect(() => new ExecutiveCapabilityRegistry([
-      { ...capability, dependencyCapabilityIds: ["other"] },
-      { ...capability, capabilityId: "other", dependencyCapabilityIds: ["known"] },
-    ], [], [], [])).toThrow("dependency cycle");
-  });
+import { describe,expect,it } from "vitest";
+import type { GovernedActionProposal,GovernedActionProposalSet } from "../proposal";
+import { ExecutiveCapabilityRegistry,ExecutiveCapabilityRouter,ExecutiveCapabilityRoutingError } from ".";
+const proposal=(overrides:Partial<GovernedActionProposal>={}):GovernedActionProposal=>({proposalId:"proposal:1",definitionIdentifier:"definition",definitionVersion:"1",policyIdentifier:"proposal-policy",policyVersion:"1",proposalKind:"consider_candidate",proposalScope:"single_candidate",proposalStatus:"ready_for_human_review",reasonCode:"proposal-ready-for-human-review",candidatePlanIds:["candidate:1"],reasoningObservationIds:[],reasoningQuestionIds:[],reasoningBoundaryIds:[],conditions:[],authorityRequirements:[],evidenceRequirements:[],unresolvedQuestions:[],boundaries:[],payload:{description:"bounded recommendation"},provenance:{contextId:"context:legacy",intentSetId:"intent:1",constraintSetId:"constraints:1",candidatePlanSetId:"plans:1",evaluatedCandidatePlanSetId:"evaluations:1",comparisonSetId:"comparison:1",reasoningRecordId:"reasoning:1",definitionIdentifier:"definition",definitionVersion:"1",policyIdentifier:"proposal-policy",policyVersion:"1",origin:"test",candidatePlanIds:["candidate:1"],evaluationIds:[],comparisonIds:[],observationIds:[],reasoningQuestionIds:[],reasoningBoundaryIds:[],evidenceReferences:[],governanceReferences:[],status:"ready_for_human_review",reasonCode:"proposal-ready-for-human-review"},...overrides});
+const set=(proposals:readonly GovernedActionProposal[]=[proposal()]):GovernedActionProposalSet=>({proposalSetId:"governed-action-proposal-set:test",executiveStateSnapshotId:"state:1",executiveContextId:"executive-context:1",deliberationContextId:"deliberation:1",contextId:"context:legacy",intentSetId:"intent:1",constraintSetId:"constraints:1",candidatePlanSetId:"plans:1",evaluatedCandidatePlanSetId:"evaluations:1",comparisonSetId:"comparison:1",reasoningRecordId:"reasoning:1",proposals,summary:{} as never,activePolicies:[],definitions:[],provenance:{proposalIds:proposals.map(x=>x.proposalId)}});
+const capability={capabilityId:"review",capabilityVersion:"1",status:"active" as const,dependencyCapabilityIds:[],supportedActionClasses:["consider_candidate" as const]};
+const scenario={scenarioId:"canonical",capabilityIds:["review"]},policy={policyId:"constitutional",policyVersion:"1",eligibleCapabilityIds:["review"]},rule={routingRuleId:"consider-review",capabilityId:"review",actionClasses:["consider_candidate" as const]};
+const router=()=>new ExecutiveCapabilityRouter(new ExecutiveCapabilityRegistry([capability],[scenario],[policy],[rule]));
+describe("ExecutiveCapabilityRouter governed proposal eligibility",()=>{
+ it("publishes one replay-stable deeply immutable eligibility plan with complete lineage",()=>{const first=router().route({proposalSet:set(),scenario,policy}),replay=router().route({proposalSet:set(),scenario,policy});expect(replay).toEqual(first);expect(first).toMatchObject({proposalSetId:"governed-action-proposal-set:test",executiveStateSnapshotId:"state:1",executiveContextId:"executive-context:1",deliberationContextId:"deliberation:1",reasoningRecordId:"reasoning:1",metadata:{owner:"ExecutiveCapabilityRouter",semantics:"eligibility_only",approvalGranted:false,invocationPerformed:false,executionPerformed:false}});expect(first.routedCapabilities).toEqual([expect.objectContaining({proposalId:"proposal:1",capabilityId:"review"})]);expect(Object.isFrozen(first)).toBe(true);expect(Object.isFrozen(first.proposalRoutings[0]?.authorityRequirements)).toBe(true)});
+ it("preserves approval and authority requirements without granting approval",()=>{const p=proposal({conditions:[{conditionId:"approval:1",conditionType:"approval_required",conditionStatus:"unresolved",sourceCanonicalReference:"governance:1",candidatePlanIds:[],requiredEvidenceReferences:[],requiredAuthorityReferences:["human"],reasonCode:"approval-required-before-execution",policyIdentifier:"proposal-policy",policyVersion:"1",provenance:proposal().provenance}],authorityRequirements:[{authorityRequirementId:"authority:1",authorityType:"human_executive",sourceGovernanceReference:"human",proposalId:"proposal:1",candidatePlanIds:[],requirementStatus:"unresolved",reasonCode:"authority-confirmation-required",provenance:proposal().provenance}]});const result=router().route({proposalSet:set([p]),scenario,policy});expect(result.proposalRoutings[0]).toMatchObject({approvalRequired:true,authorityRequirements:[{authorityType:"human_executive",requirementStatus:"unresolved"}]});expect(result.metadata.approvalGranted).toBe(false)});
+ it("classifies inactive, prohibited, unsupported and constitutionally blocked capabilities deterministically",()=>{const capabilities=[capability,{...capability,capabilityId:"inactive",status:"inactive" as const},{...capability,capabilityId:"denied"},{...capability,capabilityId:"unsupported",supportedActionClasses:["defer_pending_evidence" as const]}],s={scenarioId:"all",capabilityIds:capabilities.map(x=>x.capabilityId)},p={policyId:"limited",policyVersion:"1",eligibleCapabilityIds:["review","inactive","unsupported"]},rules=capabilities.map(x=>({...rule,routingRuleId:`rule:${x.capabilityId}`,capabilityId:x.capabilityId}));const result=new ExecutiveCapabilityRouter(new ExecutiveCapabilityRegistry(capabilities,[s],[p],rules)).route({proposalSet:set(),scenario:s,policy:p});expect(result.ineligibleCapabilities.map(x=>[x.capabilityId,x.reason])).toEqual([["denied","not_permitted"],["inactive","inactive"],["unsupported","unsupported_action"]])});
+ it("rejects missing, duplicate and discontinuous proposal publications with typed failures",()=>{expect(()=>router().route({proposalSet:undefined as never,scenario,policy})).toThrowError(expect.objectContaining({code:"MISSING_PROPOSAL_SET"}));expect(()=>router().route({proposalSet:set([proposal(),proposal()]),scenario,policy})).toThrowError(expect.objectContaining({code:"DUPLICATE_PROPOSAL_ID"}));const bad=set();(bad as {reasoningRecordId:string}).reasoningRecordId="other";expect(()=>router().route({proposalSet:bad,scenario,policy})).toThrow(ExecutiveCapabilityRoutingError)});
+ it("rejects duplicate capability identity and malformed matrix entries",()=>{expect(()=>new ExecutiveCapabilityRegistry([capability,capability],[],[],[])).toThrowError(expect.objectContaining({code:"DUPLICATE_CAPABILITY_ID"}));expect(()=>new ExecutiveCapabilityRegistry([capability],[],[],[{...rule,capabilityId:"unknown"}])).toThrowError(expect.objectContaining({code:"INVALID_CAPABILITY_MATRIX_ENTRY"}))});
 });

@@ -14,17 +14,11 @@ import { DeterministicGovernedActionProposalEngine,DeterministicGovernedActionPr
 import { clone,deepFreeze,validateRuntimeInput,validateTrace } from "./validation";
 import { stageTrace } from "./trace";
 import { ExecutiveOperatingSystemRuntimeError } from "./types";
-import { ExecutiveCapabilityInvocationHandoff,ExecutiveCapabilityInvoker } from "../executive-capabilities";
-import type { ExecutiveOperatingSystemCapabilityInvocationInput,ExecutiveOperatingSystemInput,ExecutiveOperatingSystemResult,ExecutiveOperatingSystemResultWithInvocation,ExecutiveOperatingSystemStageId,ExecutiveOperatingSystemStageTrace } from "./types";
+import { ExecutiveCapabilityRegistry,ExecutiveCapabilityRouter } from "../executive-capabilities";
+import type { ExecutiveOperatingSystemInput,ExecutiveOperatingSystemResult,ExecutiveOperatingSystemStageId,ExecutiveOperatingSystemStageTrace } from "./types";
 
 export class DeterministicExecutiveOperatingSystemRuntime {
  constructor(private readonly stateAssemblyEngine:Pick<SituationalAwarenessEngine,"assemble">=new SituationalAwarenessEngine(),private readonly descriptiveContextEngine:Pick<DescriptiveExecutiveContextEngine,"derive">=new DescriptiveExecutiveContextEngine()) {}
- runWithCapabilityInvocation(raw:ExecutiveOperatingSystemInput,execution:ExecutiveOperatingSystemCapabilityInvocationInput):ExecutiveOperatingSystemResultWithInvocation {
-  const result=this.run(raw);
-  const invoker=new ExecutiveCapabilityInvoker(execution.implementationRegistry);
-  const capabilityInvocation=new ExecutiveCapabilityInvocationHandoff(invoker).invoke({routingPlan:execution.routingPlan,executiveContext:execution.executiveContext,capabilityId:execution.capabilityId,executionPolicy:execution.executionPolicy,referenceTime:execution.referenceTime});
-  return deepFreeze({...result,capabilityInvocation});
- }
  run(raw:ExecutiveOperatingSystemInput):ExecutiveOperatingSystemResult {
   try{validateRuntimeInput(raw)}catch(error){throw new ExecutiveOperatingSystemRuntimeError("state_assembly","validation","invalid-runtime-input",[],error)}
   const input=deepFreeze(clone(raw)), ids=input.projectionArtifacts.artifacts.map(x=>x.provenance.sourceId), traces:ExecutiveOperatingSystemStageTrace[]=[];
@@ -53,7 +47,8 @@ export class DeterministicExecutiveOperatingSystemRuntime {
   const comparison=step("candidate_plan_comparison",[...canonicalIds,evaluation.evaluatedCandidatePlanSetId],()=>new DeterministicCandidatePlanComparisonEngine(new DeterministicCandidatePlanComparisonRegistry(productionCandidatePlanComparisonPolicies)).compare({context,intentSet:intent,constraintSet:constraints,candidatePlanSet:candidatePlans,evaluatedCandidatePlanSet:evaluation,definitions:input.configuration.comparisonDefinitions}),x=>[x.comparisonSetId],x=>x.profiles.length===0);
   const reasoning=step("executive_reasoning",[...canonicalIds,comparison.comparisonSetId],()=>new DeterministicExecutiveReasoningEngine((()=>{const r=new DeterministicExecutiveReasoningRegistry();productionReasoningPolicies.forEach(p=>r.register(p));return r})()).reason({context,intentSet:intent,constraintSet:constraints,candidatePlanSet:candidatePlans,evaluatedCandidatePlanSet:evaluation,candidatePlanComparisonSet:comparison,definitions:input.configuration.reasoningDefinitions}),x=>[x.reasoningRecordId],x=>x.observations.length===0);
   const proposals=step("governed_action_proposal",[...canonicalIds,reasoning.reasoningRecordId],()=>new DeterministicGovernedActionProposalEngine((()=>{const r=new DeterministicGovernedActionProposalRegistry();productionProposalPolicies.forEach(p=>r.register(p));return r})()).propose({context,intentSet:intent,constraintSet:constraints,candidatePlanSet:candidatePlans,evaluatedCandidatePlanSet:evaluation,candidatePlanComparisonSet:comparison,executiveReasoningRecord:reasoning,definitions:input.configuration.proposalDefinitions}),x=>[x.proposalSetId],x=>x.proposals.length===0);
+  const capabilityRoutingPlan=step("capability_routing",[proposals.proposalSetId],()=>{const scenarios=input.configuration.capabilityScenarios??[{scenarioId:"canonical-empty",capabilityIds:[]}],policies=input.configuration.capabilityPolicies??[{policyId:"canonical-empty",policyVersion:"1",eligibleCapabilityIds:[]}],registry=new ExecutiveCapabilityRegistry(input.configuration.capabilities??[],scenarios,policies,input.configuration.capabilityRoutingRules??[]),scenario=registry.scenarios.find(x=>x.scenarioId===(input.configuration.capabilityScenarioId??"canonical-empty")),policy=registry.policies.find(x=>x.policyId===(input.configuration.capabilityPolicyId??"canonical-empty"));if(!scenario||!policy)throw new Error("invalid routing policy identity");return new ExecutiveCapabilityRouter(registry).route({proposalSet:proposals,scenario,policy})},x=>[x.routingPlanId],x=>x.proposalRoutings.length===0);
   const trace=deepFreeze({stages:traces});validateTrace(trace);
-  return deepFreeze({executiveState,executiveContextSnapshot,situationalAwareness:awareness,snapshot,changes,attention,situations,assessment,executiveDeliberationContext,intent,constraints,candidatePlans,evaluation,comparison,reasoning,proposals,trace});
+  return deepFreeze({executiveState,executiveContextSnapshot,situationalAwareness:awareness,snapshot,changes,attention,situations,assessment,executiveDeliberationContext,intent,constraints,candidatePlans,evaluation,comparison,reasoning,proposals,capabilityRoutingPlan,trace});
  }
 }

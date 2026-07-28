@@ -1,17 +1,21 @@
-# Executive Operating System Runtime
+# Canonical Executive Operating System runtime
 
-The deterministic runtime begins at a validated `ProjectionArtifactSet`. It delegates canonical
-state ownership to `SituationalAwarenessEngine`, derives one descriptive
-`ExecutiveContextSnapshot` from that exact `ExecutiveStateSnapshot` and the caller's explicit
-`referenceTime`, and only then performs lifecycle comparison and the existing interpretation
-sequence. After situation assessment it publishes exactly one immutable
-`ExecutiveDeliberationContext` from the canonical context snapshot, assessment set, lifecycle
-comparison, and explicit deterministic configuration. Planning consumes this deliberative
-publication rather than descriptive context.
+The deterministic runtime owns sequence and trace composition only. Its constitutional tail is:
 
-The result retains both canonical publications. Every later trace entry carries their identities;
-the coordinator rejects failed assembly, failed context derivation, state/context identity mismatch,
-and lifecycle identity discontinuity before attention can execute. The runtime does not acquire
-observations, interpret them during assembly/context derivation, route capabilities, grant approval,
-or create an `ExecutiveRunRecord`. The deliberation context is not a presentation model and owns
-no descriptive state, routing, invocation, or execution authority.
+```text
+ExecutiveReasoningRecord
+        ↓
+GovernedActionProposalSet
+        ↓
+ExecutiveCapabilityRoutingPlan
+```
+
+The proposal engine is the sole owner of bounded recommendations. After it publishes and validates exactly one immutable `GovernedActionProposalSet`, the runtime supplies that publication and the closed deterministic capability registry, scenario, and routing policy to `ExecutiveCapabilityRouter`. The router is the sole owner of the resulting immutable routing plan. The `capability_routing` trace stage records only the proposal-set input identity and routing-plan output identity.
+
+Routing evaluates capability eligibility; it does not reinterpret proposals, approve actions, issue invocation envelopes, select implementations, or execute work. Approval and authority requirements are copied unchanged into each proposal routing while `approvalGranted` remains `false`. The plan also states that invocation and execution have not occurred.
+
+The router depends on the canonical proposal contract, capability registry/matrix contracts, its validation, and deterministic hashing utilities. It cannot inspect state assembly, descriptive context, assessment, deliberation, planning, or reasoning packages. State, context, deliberation, and reasoning lineage is carried through the proposal publication rather than reconstructed.
+
+Typed routing failures distinguish missing or malformed proposal publications, duplicate proposals, missing or inconsistent lineage, invalid registries and matrices, and invalid registered routing policy. A structurally valid plan may contain no eligible capability; this is an eligibility outcome, not a malformed operation.
+
+The canonical runtime ends at routing-plan publication. It contains no caller-authored routing-plan input and performs no invocation, execution, approval processing, presentation integration, or `ExecutiveRunRecord` publication.

@@ -1,78 +1,19 @@
 import { createHash } from "node:crypto";
-import { EXECUTIVE_CONTEXT_CONTRACT_VERSION } from "../../executive-context";
+import type { GovernedActionProposal,GovernedActionProposalSet } from "../proposal";
 import { ExecutiveCapabilityRegistry } from "./registry";
-import {
-  EXECUTIVE_CAPABILITY_ROUTING_CONTRACT_VERSION,
-  type ExecutiveCapabilityRoutingInput,
-  type ExecutiveCapabilityRoutingPlan,
-  type RoutedExecutiveCapability,
-  type UnresolvedExecutiveCapability,
-} from "./types";
-
-const freeze = <T>(value: T): T => {
-  if (value && typeof value === "object" && !Object.isFrozen(value)) {
-    Object.values(value).forEach(freeze); Object.freeze(value);
-  }
-  return value;
-};
-const identity = (parts: readonly unknown[]): string => createHash("sha256").update(JSON.stringify(parts)).digest("hex");
-
+import { EXECUTIVE_CAPABILITY_ROUTING_CONTRACT_VERSION,type ExecutiveCapabilityRoutingInput,type ExecutiveCapabilityRoutingPlan,type IneligibleExecutiveCapability,type RoutedExecutiveCapability,type UnresolvedExecutiveCapability } from "./types";
+const compare=(a:string,b:string)=>a<b?-1:a>b?1:0;
+const canonical=(v:unknown):string=>Array.isArray(v)?`[${v.map(canonical)}]`:v&&typeof v==="object"?`{${Object.keys(v).sort(compare).map(k=>`${JSON.stringify(k)}:${canonical((v as Record<string,unknown>)[k])}`)}}`:JSON.stringify(v);
+const freeze=<T>(v:T):T=>{if(v&&typeof v==="object"&&!Object.isFrozen(v)){Object.values(v).forEach(freeze);Object.freeze(v)}return v};
+const id=(v:unknown)=>`executive-capability-routing:${createHash("sha256").update(canonical(v)).digest("hex")}`;
+export class ExecutiveCapabilityRoutingError extends Error { constructor(readonly code:"MISSING_PROPOSAL_SET"|"INVALID_PROPOSAL_SET_IDENTITY"|"DUPLICATE_PROPOSAL_ID"|"MISSING_PROPOSAL_LINEAGE"|"INCONSISTENT_PROPOSAL_LINEAGE"|"INVALID_ROUTING_POLICY"|"ROUTING_IDENTITY_MISMATCH",message:string){super(message);this.name="ExecutiveCapabilityRoutingError"} }
+function validate(set:GovernedActionProposalSet|undefined):asserts set is GovernedActionProposalSet {if(!set)throw new ExecutiveCapabilityRoutingError("MISSING_PROPOSAL_SET","GovernedActionProposalSet is required");if(!set.proposalSetId?.startsWith("governed-action-proposal-set:"))throw new ExecutiveCapabilityRoutingError("INVALID_PROPOSAL_SET_IDENTITY","invalid proposal-set identity");const ids=set.proposals?.map(x=>x.proposalId);if(!Array.isArray(ids)||new Set(ids).size!==ids.length)throw new ExecutiveCapabilityRoutingError("DUPLICATE_PROPOSAL_ID","duplicate proposal identity");for(const p of set.proposals){if(!p.provenance?.reasoningRecordId||!set.reasoningRecordId||!set.deliberationContextId||!set.executiveContextId||!set.executiveStateSnapshotId)throw new ExecutiveCapabilityRoutingError("MISSING_PROPOSAL_LINEAGE","missing proposal lineage");if(p.provenance.reasoningRecordId!==set.reasoningRecordId||p.provenance.contextId!==set.contextId)throw new ExecutiveCapabilityRoutingError("INCONSISTENT_PROPOSAL_LINEAGE","inconsistent proposal lineage")}}
 export class ExecutiveCapabilityRouter {
-  constructor(private readonly registry: ExecutiveCapabilityRegistry) {}
-
-  route(input: ExecutiveCapabilityRoutingInput): ExecutiveCapabilityRoutingPlan {
-    const { executiveContext: context, scenario, policy } = input;
-    if (context.derivationMetadata.contractVersion !== EXECUTIVE_CONTEXT_CONTRACT_VERSION) {
-      throw new Error(`unsupported executive context contract version: ${context.derivationMetadata.contractVersion}`);
-    }
-    const registeredScenario = this.registry.scenarios.find((value) => value.scenarioId === scenario.scenarioId);
-    const registeredPolicy = this.registry.policies.find((value) => value.policyId === policy.policyId);
-    if (registeredScenario !== scenario) throw new Error(`scenario is not the registered definition: ${scenario.scenarioId}`);
-    if (registeredPolicy !== policy) throw new Error(`policy is not the registered definition: ${policy.policyId}`);
-
-    const presentTypes = new Set(context.deterministicConditions.map((condition) => condition.type));
-    const permitted = new Set(policy.eligibleCapabilityIds);
-    const routed = new Map<string, RoutedExecutiveCapability>();
-    const unresolved: UnresolvedExecutiveCapability[] = [];
-
-    for (const capabilityId of scenario.capabilityIds) {
-      const capability = this.registry.capability(capabilityId)!;
-      const rules = this.registry.routingRules.filter((rule) => rule.capabilityId === capabilityId && rule.conditionTypes.every((type) => presentTypes.has(type)));
-      if (capability.status !== "active") unresolved.push({ capabilityId, reason: "inactive" });
-      else if (!permitted.has(capabilityId)) unresolved.push({ capabilityId, reason: "not_permitted" });
-      else if (rules.length === 0) unresolved.push({ capabilityId, reason: "conditions_not_met" });
-      else {
-        const types = new Set(rules.flatMap((rule) => rule.conditionTypes));
-        routed.set(capabilityId, {
-          capabilityId,
-          capabilityVersion: capability.capabilityVersion,
-          routingRuleIds: rules.map((rule) => rule.routingRuleId).sort(),
-          supportingConditionIds: context.deterministicConditions.filter((condition) => types.has(condition.type)).map((condition) => condition.conditionId).sort(),
-          dependencyCapabilityIds: [...capability.dependencyCapabilityIds].sort(),
-        });
-      }
-    }
-
-    // Dependencies must themselves be in the routed scenario; no recursive execution
-    // is attempted here, which also guards callers if an unvalidated registry is forged.
-    for (const capability of [...routed.values()]) {
-      if (capability.dependencyCapabilityIds.some((id) => !routed.has(id))) {
-        routed.delete(capability.capabilityId);
-        unresolved.push({ capabilityId: capability.capabilityId, reason: "conditions_not_met" });
-      }
-    }
-    const routedCapabilities = [...routed.values()].sort((a, b) => a.capabilityId.localeCompare(b.capabilityId));
-    const unresolvedCapabilities = unresolved.sort((a, b) => a.capabilityId.localeCompare(b.capabilityId));
-    return freeze({
-      routingPlanId: `executive-capability-routing:${identity([context.contextId, scenario.scenarioId, policy.policyId, routedCapabilities, unresolvedCapabilities])}`,
-      routingContractVersion: EXECUTIVE_CAPABILITY_ROUTING_CONTRACT_VERSION,
-      executiveContextId: context.contextId,
-      executiveStateSnapshotId: context.sourceStateIdentity.snapshotId,
-      executiveContextContractVersion: context.derivationMetadata.contractVersion,
-      scenarioId: scenario.scenarioId,
-      policyId: policy.policyId,
-      routedCapabilities,
-      unresolvedCapabilities,
-    });
-  }
+ constructor(private readonly registry:ExecutiveCapabilityRegistry){}
+ route(input:ExecutiveCapabilityRoutingInput):ExecutiveCapabilityRoutingPlan {validate(input?.proposalSet);const {proposalSet:set}=input,scenario=this.registry.scenarios.find(x=>x.scenarioId===input.scenario?.scenarioId),policy=this.registry.policies.find(x=>x.policyId===input.policy?.policyId);if(scenario!==input.scenario||policy!==input.policy)throw new ExecutiveCapabilityRoutingError("INVALID_ROUTING_POLICY","routing scenario and policy must be registered definitions");
+  const routed:RoutedExecutiveCapability[]=[],ineligible:IneligibleExecutiveCapability[]=[],unresolved:UnresolvedExecutiveCapability[]=[];
+  const proposalRoutings=[...set.proposals].sort((a,b)=>compare(a.proposalId,b.proposalId)).map((proposal:GovernedActionProposal)=>{const localIneligible:IneligibleExecutiveCapability[]=[],eligible:string[]=[];const constraintIds=proposal.conditions.filter(x=>["blocked","unresolved"].includes(x.conditionStatus)).map(x=>x.conditionId).sort(compare);for(const capabilityId of [...scenario.capabilityIds].sort(compare)){const capability=this.registry.capability(capabilityId)!;const rules=this.registry.routingRules.filter(x=>x.capabilityId===capabilityId&&x.actionClasses.includes(proposal.proposalKind)).sort((a,b)=>compare(a.routingRuleId,b.routingRuleId));let reason:IneligibleExecutiveCapability["reason"]|undefined;if(capability.status!=="active")reason="inactive";else if(!policy.eligibleCapabilityIds.includes(capabilityId))reason="not_permitted";else if(!capability.supportedActionClasses.includes(proposal.proposalKind))reason="unsupported_action";else if(!rules.length)reason="conditions_not_met";else if(rules.some(r=>r.blockedConditionTypes?.some(t=>proposal.conditions.some(c=>c.conditionType===t))))reason="constitutional_constraint";if(reason){const item={proposalId:proposal.proposalId,capabilityId,reason,routingRuleIds:rules.map(x=>x.routingRuleId)};localIneligible.push(item);ineligible.push(item)}else{eligible.push(capabilityId);routed.push({proposalId:proposal.proposalId,capabilityId,capabilityVersion:capability.capabilityVersion,routingRuleIds:rules.map(x=>x.routingRuleId),supportingConditionIds:proposal.conditions.map(x=>x.conditionId).sort(compare),dependencyCapabilityIds:[...capability.dependencyCapabilityIds].sort(compare)})}}
+   if(!eligible.length)unresolved.push({proposalId:proposal.proposalId,reason:scenario.capabilityIds.length?localIneligible.some(x=>x.reason==="constitutional_constraint")?"blocked_by_constitutional_constraint":localIneligible.every(x=>x.reason==="unsupported_action"||x.reason==="conditions_not_met")?"unsupported_action":"no_matching_capability":"no_matching_capability"});return {proposalId:proposal.proposalId,actionClass:proposal.proposalKind,eligibleCapabilityIds:eligible,ineligibleCapabilities:localIneligible,status:eligible.length?"eligible":localIneligible.length?"ineligible":"unresolved",approvalRequired:proposal.conditions.some(x=>x.conditionType==="approval_required")||proposal.authorityRequirements.length>0,authorityRequirements:proposal.authorityRequirements.map(x=>structuredClone(x)),constitutionalConstraintsApplied:constraintIds} as const});
+  routed.sort((a,b)=>compare(`${a.proposalId}|${a.capabilityId}`,`${b.proposalId}|${b.capabilityId}`));ineligible.sort((a,b)=>compare(`${a.proposalId}|${a.capabilityId}`,`${b.proposalId}|${b.capabilityId}`));unresolved.sort((a,b)=>compare(a.proposalId,b.proposalId));const body={routingContractVersion:EXECUTIVE_CAPABILITY_ROUTING_CONTRACT_VERSION,proposalSetId:set.proposalSetId,executiveStateSnapshotId:set.executiveStateSnapshotId,executiveContextId:set.executiveContextId,executiveContextContractVersion:"executive-context-v1" as const,deliberationContextId:set.deliberationContextId,reasoningRecordId:set.reasoningRecordId,scenarioId:scenario.scenarioId,policyId:policy.policyId,policyVersion:policy.policyVersion,proposalRoutings,routedCapabilities:routed,ineligibleCapabilities:ineligible,unresolvedCapabilities:unresolved,metadata:{owner:"ExecutiveCapabilityRouter",semantics:"eligibility_only",approvalGranted:false,invocationPerformed:false,executionPerformed:false} as const};return freeze({routingPlanId:id(body),...body});
+ }
 }

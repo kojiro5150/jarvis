@@ -1,4 +1,4 @@
-export type { ProjectionArtifactSet,ExecutiveOperatingSystemConfiguration,ExecutiveOperatingSystemInput,ExecutiveOperatingSystemResult,ExecutiveOperatingSystemCapabilityInvocationInput,ExecutiveOperatingSystemResultWithInvocation,ExecutiveOperatingSystemExecutionTrace,ExecutiveOperatingSystemStageTrace,ExecutiveOperatingSystemStageId,ExecutiveOperatingSystemStageStatus,ExecutiveOperatingSystemFailureCategory } from "./types";
+export type { ProjectionArtifactSet,ExecutiveOperatingSystemConfiguration,ExecutiveOperatingSystemInput,ExecutiveOperatingSystemResult,ExecutiveOperatingSystemExecutionTrace,ExecutiveOperatingSystemStageTrace,ExecutiveOperatingSystemStageId,ExecutiveOperatingSystemStageStatus,ExecutiveOperatingSystemFailureCategory } from "./types";
 export { ExecutiveOperatingSystemRuntimeError,EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER } from "./types";
 export { validateRuntimeInput } from "./validation";
 export { DeterministicExecutiveOperatingSystemRuntime } from "./engine";

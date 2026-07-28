@@ -24,10 +24,14 @@ describe("canonical runtime state and descriptive context prefix", () => {
     expect(Object.isFrozen(first.executiveState)).toBe(true);
     expect(Object.isFrozen(first.executiveContextSnapshot)).toBe(true);
 
-    for (const stage of first.trace.stages.slice(3)) {
+    for (const stage of first.trace.stages.slice(3, -1)) {
       expect(stage.inputArtifactIds).toContain(first.executiveState.snapshotId);
       expect(stage.inputArtifactIds).toContain(first.executiveContextSnapshot.contextId);
     }
+    expect(first.trace.stages.at(-1)).toMatchObject({ stageId: "capability_routing", inputArtifactIds: [first.proposals.proposalSetId], outputArtifactIds: [first.capabilityRoutingPlan.routingPlanId] });
+    expect(first.capabilityRoutingPlan.proposalSetId).toBe(first.proposals.proposalSetId);
+    expect(first.capabilityRoutingPlan.metadata).toMatchObject({ owner: "ExecutiveCapabilityRouter", invocationPerformed: false, executionPerformed: false });
+    expect(Object.isFrozen(first.capabilityRoutingPlan)).toBe(true);
     expect(first.trace.stages.slice(0, 3).map(({ stageId }) => stageId)).toEqual([
       "state_assembly", "executive_context_derivation", "snapshot_lifecycle",
     ]);

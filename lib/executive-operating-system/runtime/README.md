@@ -1,31 +1,43 @@
 # Canonical Executive Operating System runtime
 
-The deterministic runtime owns sequence and trace composition only. Its constitutional tail is:
+The deterministic runtime owns sequence and trace composition only. Its Sprint 3.35 tail is:
 
 ```text
-ExecutiveReasoningRecord
-        ↓
-GovernedActionProposalSet
-        ↓
 ExecutiveCapabilityRoutingPlan
+        ↓
+ExecutiveCapabilityInvocationHandoff
+        ↓
+CapabilityInvocationEnvelope
+        ↓
+ExecutiveCapabilityInvoker
+        ↓
+CapabilityInvocationRecord
+        ↓
+CapabilityExecutionResult
 ```
 
-The proposal engine is the sole owner of bounded recommendations. After it publishes and validates exactly one immutable `GovernedActionProposalSet`, the runtime supplies that publication and the closed deterministic capability registry, scenario, and routing policy to `ExecutiveCapabilityRouter`. The router is the sole owner of the resulting immutable routing plan. The `capability_routing` trace stage records only the proposal-set input identity and routing-plan output identity.
+The runtime presents the publisher-owned envelope directly to the invoker. The invoker—not the
+coordinator—is the sole owner of invocation policy, approval and authority enforcement,
+closed-registry resolution, controlled dispatch, the immutable invocation record, and assembly of
+the immutable execution result. Implementations receive only the bounded request contract and
+return implementation-local data; they cannot grant approval or author constitutional records.
 
-Routing evaluates capability eligibility; it does not reinterpret proposals, approve actions, issue invocation envelopes, select implementations, or execute work. Approval and authority requirements are copied unchanged into each proposal routing while `approvalGranted` remains `false`. The plan also states that invocation and execution have not occurred.
+Resolution uses `strict-single-eligible-v1`: an explicit authorised implementation identity may
+select one eligible registration, otherwise exactly one eligible registration is required. Missing,
+disabled, unsupported, or ambiguous registrations produce typed no-execution publications.
+Registry order, ambient state, and model judgement never select an implementation.
 
-The router depends on the canonical proposal contract, capability registry/matrix contracts, its validation, and deterministic hashing utilities. It cannot inspect state assembly, descriptive context, assessment, deliberation, planning, or reasoning packages. State, context, deliberation, and reasoning lineage is carried through the proposal publication rather than reconstructed.
+A blocked invocation still publishes exactly one invocation record and one `not_attempted`
+execution result. Execution attempt and side-effect attempt are independent, and a side effect is
+confirmed only when a valid implementation return explicitly confirms it. The forward-only invoker
+boundary consumes envelope fields plus local policy, registry, and bounded adapter contracts; it
+does not reconstruct state, context, deliberation, reasoning, proposals, routing, or handoff.
 
-Typed routing failures distinguish missing or malformed proposal publications, duplicate proposals, missing or inconsistent lineage, invalid registries and matrices, and invalid registered routing policy. A structurally valid plan may contain no eligible capability; this is an eligibility outcome, not a malformed operation.
+The runtime stops after `capability_execution`. There is no retry, background work, connector
+expansion, browser/chat integration, approval workflow, or `ExecutiveRunRecord`.
 
-The canonical runtime ends at routing-plan publication. It contains no caller-authored routing-plan input and performs no invocation, execution, approval processing, presentation integration, or `ExecutiveRunRecord` publication.
-
-## Sprint 3.34 stop boundary
-
-After capability routing, the runtime internally asks the sole
-`ExecutiveCapabilityInvocationHandoffBuilder` to publish one deterministic handoff and the sole
-`CapabilityInvocationEnvelopePublisher` to publish one immutable envelope. Its final stages are
-`capability_routing → capability_invocation_handoff → capability_invocation_envelope`. The caller
-cannot author either publication. Blocked and no-invocation outcomes remain explicit, approval and
-authority requirements are preserved, and all trace entries assert no invocation and no execution.
-The runtime stops at envelope publication and never calls the invoker or resolves an implementation.
+- Eligibility ≠ approval.
+- Handoff ≠ invocation.
+- Envelope ≠ invocation.
+- Invocation ≠ successful execution.
+- Execution attempt ≠ confirmed side effect.

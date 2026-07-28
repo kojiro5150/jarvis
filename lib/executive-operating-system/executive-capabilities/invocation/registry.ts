@@ -1,9 +1,16 @@
 import type { ExecutiveCapabilityImplementation } from "./types";
-import { canonical,clone,compareText,deepFreeze,validateImplementation } from "./validation";
+import { canonical,compareText,deepFreeze,validateImplementation } from "./validation";
+
 export class ExecutiveCapabilityImplementationRegistry {
- readonly registryId:string; private readonly published:readonly ExecutiveCapabilityImplementation[];
- constructor(implementations:readonly ExecutiveCapabilityImplementation[]){if(!Array.isArray(implementations))throw new Error("implementations must be an array");const copies=implementations.map(x=>{validateImplementation(x);return {...clone(x),invoke:x.invoke} as ExecutiveCapabilityImplementation});const keys=copies.map(x=>`${x.implementationId}@${x.implementationVersion}`);if(new Set(keys).size!==keys.length)throw new Error("duplicate implementation identity and version");copies.sort((a,b)=>compareText(a.implementationId,b.implementationId)||compareText(a.implementationVersion,b.implementationVersion));this.registryId=`implementation-registry:${canonical(keys.sort(compareText))}`;this.published=deepFreeze(copies);Object.freeze(this)}
- implementations():readonly ExecutiveCapabilityImplementation[]{return this.published}
- forCapability(capabilityId:string):readonly ExecutiveCapabilityImplementation[]{return this.published.filter(x=>x.capabilityId===capabilityId)}
- get(implementationId:string,implementationVersion:string):ExecutiveCapabilityImplementation|undefined{return this.published.find(x=>x.implementationId===implementationId&&x.implementationVersion===implementationVersion)}
+ readonly registryId:string;
+ private readonly entries:readonly ExecutiveCapabilityImplementation[];
+ constructor(implementations:readonly ExecutiveCapabilityImplementation[]){
+  if(!Array.isArray(implementations))throw new Error("INVALID_IMPLEMENTATION_REGISTRY");
+  const ids=new Set<string>();
+  for(const implementation of implementations){validateImplementation(implementation);if(ids.has(implementation.implementationId))throw new Error("DUPLICATE_IMPLEMENTATION_IDENTITY");ids.add(implementation.implementationId)}
+  this.entries=deepFreeze([...implementations].sort((a,b)=>compareText(a.implementationId,b.implementationId)).map(x=>deepFreeze({...x,capabilityIds:[...x.capabilityIds],actionClasses:[...x.actionClasses],authorityRequirements:[...x.authorityRequirements]})));
+  this.registryId=`implementation-registry:${canonical(this.entries.map(x=>[x.implementationId,x.implementationVersion,...x.capabilityIds].join("|")))}`;Object.freeze(this);
+ }
+ implementations(){return this.entries}
+ forCapability(capabilityId:string){return this.entries.filter(x=>x.capabilityIds.includes(capabilityId))}
 }

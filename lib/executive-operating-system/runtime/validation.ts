@@ -9,6 +9,7 @@ export function validateRuntimeInput(input:unknown): asserts input is ExecutiveO
   if(!set||!Array.isArray(set.artifacts)||set.artifacts.length===0) throw new Error("projectionArtifacts.artifacts must be a non-empty array");
   set.artifacts.forEach(createProjectionArtifact);
   if(typeof set.snapshotId!=="string"||!set.snapshotId||typeof set.observedAt!=="string"||!set.observedAt) throw new Error("snapshot boundary is required");
+  if(typeof candidate.referenceTime!=="string"||!candidate.referenceTime) throw new Error("explicit referenceTime is required");
   if(!set.previousSnapshot||!candidate.configuration) throw new Error("previous snapshot and deterministic configuration are required");
   for(const key of ["candidatePlanDefinitions","evaluationDefinitions","comparisonDefinitions","reasoningDefinitions","proposalDefinitions"] as const) if(!Array.isArray(candidate.configuration[key])) throw new Error(`configuration.${key} must be an array`);
   if(!Array.isArray(candidate.configuration.intent?.objectives)||!Array.isArray(candidate.configuration.constraints?.constraints)) throw new Error("intent and constraint configuration are required");

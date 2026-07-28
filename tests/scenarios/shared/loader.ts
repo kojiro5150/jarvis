@@ -12,6 +12,7 @@ export class DeterministicExecutiveScenarioLoader implements ExecutiveScenarioLo
     validateExecutiveScenario(scenario);
     const runtimeResult = new DeterministicExecutiveOperatingSystemRuntime().run({
       projectionArtifacts: scenario.projectionArtifacts,
+      referenceTime: scenario.projectionArtifacts.observedAt,
       configuration,
     });
     const assertions = scenario.assertions.map((assertion) => {

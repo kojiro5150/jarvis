@@ -1,7 +1,10 @@
 import type {
+  GovernedActionProposal,
+  GovernedActionProposalBoundary,
   GovernedActionProposalAuthorityRequirement,
   GovernedActionProposalCondition,
   GovernedActionProposalKind,
+  GovernedActionProposalStatus,
   GovernedActionProposalSet,
 } from "../proposal";
 
@@ -35,6 +38,12 @@ export interface UnresolvedExecutiveCapability { readonly proposalId:string; rea
 export interface ProposalCapabilityRouting {
   readonly proposalId:string;
   readonly actionClass:GovernedActionProposalKind;
+  readonly proposalStatus:GovernedActionProposalStatus;
+  readonly routingReason:string;
+  readonly boundedRequest:GovernedActionProposal["payload"];
+  readonly conditions:readonly GovernedActionProposalCondition[];
+  readonly boundaries:readonly GovernedActionProposalBoundary[];
+  readonly evidenceRequirements:readonly string[];
   readonly eligibleCapabilityIds:readonly string[];
   readonly ineligibleCapabilities:readonly IneligibleExecutiveCapability[];
   readonly status:"eligible"|"ineligible"|"unresolved";

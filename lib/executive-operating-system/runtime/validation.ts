@@ -13,6 +13,8 @@ export function validateRuntimeInput(input:unknown): asserts input is ExecutiveO
   if(!set.previousSnapshot||!candidate.configuration) throw new Error("previous snapshot and deterministic configuration are required");
   for(const key of ["candidatePlanDefinitions","evaluationDefinitions","comparisonDefinitions","reasoningDefinitions","proposalDefinitions"] as const) if(!Array.isArray(candidate.configuration[key])) throw new Error(`configuration.${key} must be an array`);
   for(const key of ["capabilities","capabilityScenarios","capabilityPolicies","capabilityRoutingRules"] as const) if(candidate.configuration[key]!==undefined&&!Array.isArray(candidate.configuration[key])) throw new Error(`configuration.${key} must be an array`);
+  if(candidate.configuration.capabilityInvocationHandoffPolicy!==undefined&&typeof candidate.configuration.capabilityInvocationHandoffPolicy!=="object")throw new Error("configuration.capabilityInvocationHandoffPolicy must be an object");
+  if(candidate.configuration.capabilityInvocationEnvelopePolicy!==undefined&&typeof candidate.configuration.capabilityInvocationEnvelopePolicy!=="object")throw new Error("configuration.capabilityInvocationEnvelopePolicy must be an object");
   if(!Array.isArray(candidate.configuration.intent?.objectives)||!Array.isArray(candidate.configuration.constraints?.constraints)) throw new Error("intent and constraint configuration are required");
 }
 export function validateTrace(trace:ExecutiveOperatingSystemExecutionTrace):void { if(trace.stages.length!==EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER.length||trace.stages.some((x,i)=>x.stageId!==EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER[i]||x.sequence!==i+1)) throw new Error("runtime trace does not match canonical stage order") }

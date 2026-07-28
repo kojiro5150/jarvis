@@ -1,4 +1,10 @@
 export { createSituationalAwareness } from "./model";
+export { SituationalAwarenessEngine } from "./assembly";
+export type {
+  ArtifactObservation, AssemblyFailure, AssemblyFailureCode, AssemblyFailureStage, AssemblySuccess,
+  CanonicalEntityKind, ExecutiveStateSnapshot, ExecutiveStateSnapshotMetadata, ExplicitRelationship,
+  InformationGap, SituationalAwarenessAssemblyInput, SituationalAwarenessAssemblyResult, StructuralConflict,
+} from "./assembly";
 export { compareSituationalAwarenessSnapshots, createSituationalAwarenessSnapshot } from "./lifecycle";
 export type {
   ChangeCounts, EntityChange, ScalarChange, SituationalAwarenessChangeSet, SituationalAwarenessChanges,

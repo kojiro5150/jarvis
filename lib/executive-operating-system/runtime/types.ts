@@ -11,7 +11,7 @@ import type { CandidatePlanEvaluationDefinition, EvaluatedCandidatePlanSet } fro
 import type { CandidatePlanComparisonDefinition, CandidatePlanComparisonSet } from "../planning/comparison";
 import type { ExecutiveReasoningDefinition, ExecutiveReasoningRecord } from "../reasoning";
 import type { GovernedActionProposalDefinition, GovernedActionProposalSet } from "../proposal";
-import type { CapabilityInvocationResult, ExecutiveCapabilityRoutingPlan, ExecutionPolicy, ExecutiveCapabilityImplementationRegistry } from "../executive-capabilities";
+import type { ExecutiveCapabilityDefinition, ExecutiveCapabilityPolicy, ExecutiveCapabilityRoutingPlan, ExecutiveCapabilityRoutingRule, ExecutiveCapabilityScenario } from "../executive-capabilities";
 import type { ExecutiveContextSnapshot } from "../../executive-context";
 import type { ExecutiveStateSnapshot } from "../situational-awareness/assembly";
 
@@ -30,9 +30,15 @@ export interface ExecutiveOperatingSystemConfiguration {
   readonly comparisonDefinitions: readonly CandidatePlanComparisonDefinition[];
   readonly reasoningDefinitions: readonly ExecutiveReasoningDefinition[];
   readonly proposalDefinitions: readonly GovernedActionProposalDefinition[];
+  readonly capabilities?: readonly ExecutiveCapabilityDefinition[];
+  readonly capabilityScenarios?: readonly ExecutiveCapabilityScenario[];
+  readonly capabilityPolicies?: readonly ExecutiveCapabilityPolicy[];
+  readonly capabilityRoutingRules?: readonly ExecutiveCapabilityRoutingRule[];
+  readonly capabilityScenarioId?: string;
+  readonly capabilityPolicyId?: string;
 }
 export interface ExecutiveOperatingSystemInput { readonly projectionArtifacts: ProjectionArtifactSet; readonly referenceTime: string; readonly configuration: ExecutiveOperatingSystemConfiguration }
-export const EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER = ["state_assembly","executive_context_derivation","snapshot_lifecycle","executive_attention","situation_formation","situation_assessment","executive_deliberation_context","intent_and_constraints","candidate_plan_construction","candidate_plan_evaluation","candidate_plan_comparison","executive_reasoning","governed_action_proposal"] as const;
+export const EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER = ["state_assembly","executive_context_derivation","snapshot_lifecycle","executive_attention","situation_formation","situation_assessment","executive_deliberation_context","intent_and_constraints","candidate_plan_construction","candidate_plan_evaluation","candidate_plan_comparison","executive_reasoning","governed_action_proposal","capability_routing"] as const;
 export type ExecutiveOperatingSystemStageId = typeof EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER[number];
 export type ExecutiveOperatingSystemStageStatus = "completed" | "completed_empty";
 export interface ExecutiveOperatingSystemStageTrace { readonly stageId: ExecutiveOperatingSystemStageId; readonly sequence: number; readonly inputArtifactIds: readonly string[]; readonly outputArtifactIds: readonly string[]; readonly status: ExecutiveOperatingSystemStageStatus; readonly validationStatus: "valid" }
@@ -54,10 +60,9 @@ export interface ExecutiveOperatingSystemResult {
   readonly comparison: CandidatePlanComparisonSet;
   readonly reasoning: ExecutiveReasoningRecord;
   readonly proposals: GovernedActionProposalSet;
+  readonly capabilityRoutingPlan: ExecutiveCapabilityRoutingPlan;
   readonly trace: ExecutiveOperatingSystemExecutionTrace;
 }
-export interface ExecutiveOperatingSystemCapabilityInvocationInput { readonly routingPlan: ExecutiveCapabilityRoutingPlan; readonly executiveContext:ExecutiveContextSnapshot; readonly capabilityId:string; readonly executionPolicy: ExecutionPolicy; readonly implementationRegistry: ExecutiveCapabilityImplementationRegistry; readonly referenceTime: string }
-export interface ExecutiveOperatingSystemResultWithInvocation extends ExecutiveOperatingSystemResult { readonly capabilityInvocation: CapabilityInvocationResult }
 export type ExecutiveOperatingSystemFailureCategory = "validation" | "execution";
 export class ExecutiveOperatingSystemRuntimeError extends Error {
   constructor(readonly stage: ExecutiveOperatingSystemStageId, readonly category: ExecutiveOperatingSystemFailureCategory, readonly reasonCode: string, readonly inputArtifactIds: readonly string[], cause?: unknown) {

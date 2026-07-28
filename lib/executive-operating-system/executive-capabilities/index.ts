@@ -11,5 +11,9 @@ export type {
   ExecutiveCapabilityScenario,
   RoutedExecutiveCapability,
   UnresolvedExecutiveCapability,
+  IneligibleExecutiveCapability,
+  ProposalCapabilityRouting,
 } from "./types";
+export { ExecutiveCapabilityRoutingError } from "./router";
+export { ExecutiveCapabilityRegistryError } from "./registry";
 export * from "./invocation";

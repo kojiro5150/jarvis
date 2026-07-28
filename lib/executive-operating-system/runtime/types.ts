@@ -4,7 +4,7 @@ import type { SituationalAwarenessSnapshot, SituationalAwarenessChangeSet } from
 import type { ExecutiveAttentionQueue } from "../attention";
 import type { ExecutiveSituationSet } from "../situations";
 import type { SituationAssessmentSet } from "../assessment";
-import type { ExecutiveContext } from "../context";
+import type { DeliberationConfiguration, ExecutiveDeliberationContext } from "../deliberation";
 import type { ConstraintConfiguration, ConstraintSet, IntentConfiguration, IntentSet } from "../intent";
 import type { CandidatePlanDefinition, CandidatePlanSet } from "../planning/candidates";
 import type { CandidatePlanEvaluationDefinition, EvaluatedCandidatePlanSet } from "../planning/evaluation";
@@ -22,6 +22,7 @@ export interface ProjectionArtifactSet {
   readonly observedAt: string;
 }
 export interface ExecutiveOperatingSystemConfiguration {
+  readonly deliberation?: DeliberationConfiguration;
   readonly intent: IntentConfiguration;
   readonly constraints: ConstraintConfiguration;
   readonly candidatePlanDefinitions: readonly CandidatePlanDefinition[];
@@ -31,7 +32,7 @@ export interface ExecutiveOperatingSystemConfiguration {
   readonly proposalDefinitions: readonly GovernedActionProposalDefinition[];
 }
 export interface ExecutiveOperatingSystemInput { readonly projectionArtifacts: ProjectionArtifactSet; readonly referenceTime: string; readonly configuration: ExecutiveOperatingSystemConfiguration }
-export const EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER = ["state_assembly","executive_context_derivation","snapshot_lifecycle","executive_attention","situation_formation","situation_assessment","executive_context","intent_and_constraints","candidate_plan_construction","candidate_plan_evaluation","candidate_plan_comparison","executive_reasoning","governed_action_proposal"] as const;
+export const EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER = ["state_assembly","executive_context_derivation","snapshot_lifecycle","executive_attention","situation_formation","situation_assessment","executive_deliberation_context","intent_and_constraints","candidate_plan_construction","candidate_plan_evaluation","candidate_plan_comparison","executive_reasoning","governed_action_proposal"] as const;
 export type ExecutiveOperatingSystemStageId = typeof EXECUTIVE_OPERATING_SYSTEM_STAGE_ORDER[number];
 export type ExecutiveOperatingSystemStageStatus = "completed" | "completed_empty";
 export interface ExecutiveOperatingSystemStageTrace { readonly stageId: ExecutiveOperatingSystemStageId; readonly sequence: number; readonly inputArtifactIds: readonly string[]; readonly outputArtifactIds: readonly string[]; readonly status: ExecutiveOperatingSystemStageStatus; readonly validationStatus: "valid" }
@@ -45,7 +46,7 @@ export interface ExecutiveOperatingSystemResult {
   readonly attention: ExecutiveAttentionQueue;
   readonly situations: ExecutiveSituationSet;
   readonly assessment: SituationAssessmentSet;
-  readonly context: ExecutiveContext;
+  readonly executiveDeliberationContext: ExecutiveDeliberationContext;
   readonly intent: IntentSet;
   readonly constraints: ConstraintSet;
   readonly candidatePlans: CandidatePlanSet;

@@ -3,7 +3,7 @@ import type { SituationalAwareness, SituationalAwarenessInput } from "../model";
 import { ProjectionRegistry } from "./registry";
 import type { ProjectionArtifact, ProjectionEntities } from "./types";
 
-const collections = ["roles", "projects", "commitments", "waitingItems", "priorities", "activeWork"] as const;
+const collections = ["roles", "projects", "commitments", "communications", "waitingItems", "priorities", "activeWork"] as const;
 const availability = new Set(["available", "unavailable", "stale", "not_configured"]);
 const sourceKinds = new Set(["configuration", "calendar", "email", "github", "drive", "vercel", "phdss", "other"]);
 const vocabularies: Readonly<Record<string, ReadonlySet<string>>> = {
@@ -19,7 +19,7 @@ const vocabularies: Readonly<Record<string, ReadonlySet<string>>> = {
   "context.locationKind": new Set(["home", "work", "commuting", "other", "unknown"]),
 };
 const timestampFields: Readonly<Record<string, readonly string[]>> = {
-  projects: ["targetDate"], commitments: ["startsAt", "dueAt"],
+  projects: ["targetDate"], commitments: ["startsAt", "dueAt"], communications: ["sentAt", "receivedAt"],
   waitingItems: ["since", "expectedBy"], activeWork: ["startedAt", "lastUpdatedAt"],
 };
 const rfc3339 = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-]([01]\d|2[0-3]):[0-5]\d)$/;
@@ -123,11 +123,17 @@ function validateEntitySemantics(artifact: ProjectionArtifact, adapterId: string
     for (const [index, entity] of (artifact.entities[key] ?? []).entries()) {
       record(entity, `adapter ${adapterId} ${key}[${index}]`);
       required(entity.id, `adapter ${adapterId} ${key}[${index}].id`);
-      if (key !== "roles") required(entity.title ?? entity.name, `adapter ${adapterId} ${key}[${index}].title`);
-      else required(entity.name, `adapter ${adapterId} roles[${index}].name`);
+      if (key === "roles") required(entity.name, `adapter ${adapterId} roles[${index}].name`);
+      else if (key !== "communications") required(entity.title ?? entity.name, `adapter ${adapterId} ${key}[${index}].title`);
       if ("roleIds" in entity) array(entity.roleIds, `adapter ${adapterId} ${key}[${index}].roleIds`);
       if ("projectIds" in entity) array(entity.projectIds, `adapter ${adapterId} ${key}[${index}].projectIds`);
       if (key === "waitingItems") required(entity.waitingOn, `adapter ${adapterId} waitingItems[${index}].waitingOn`);
+      if (key === "communications") {
+        required(entity.sender, `adapter ${adapterId} communications[${index}].sender`);
+        required(entity.sentAt, `adapter ${adapterId} communications[${index}].sentAt`);
+        array(entity.recipients, `adapter ${adapterId} communications[${index}].recipients`);
+        array(entity.references, `adapter ${adapterId} communications[${index}].references`);
+      }
     }
   }
 }

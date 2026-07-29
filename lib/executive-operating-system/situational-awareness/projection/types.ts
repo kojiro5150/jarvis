@@ -1,5 +1,5 @@
 import type {
-  OperationalCommitment, OperationalContext, OperationalIdentity, OperationalPriority,
+  OperationalCommitment, OperationalCommunication, OperationalContext, OperationalIdentity, OperationalPriority,
   OperationalProject, OperationalRole, OperationalSourceId, OperationalSourceKind,
   OperationalSourceStatus, OperationalTimestamp, OperationalWaitingItem, OperationalWorkItem,
 } from "../model";
@@ -20,6 +20,7 @@ export interface ProjectionEntities {
   readonly roles?: readonly OperationalRole[];
   readonly projects?: readonly OperationalProject[];
   readonly commitments?: readonly OperationalCommitment[];
+  readonly communications?: readonly OperationalCommunication[];
   readonly waitingItems?: readonly OperationalWaitingItem[];
   readonly priorities?: readonly OperationalPriority[];
   readonly activeWork?: readonly OperationalWorkItem[];

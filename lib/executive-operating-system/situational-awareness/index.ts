@@ -13,17 +13,21 @@ export type {
 export {
   CalendarProjectionAdapter,
   CALENDAR_PROJECTION_ADAPTER_ID,
+  OperationalCommunicationProjectionAdapter,
+  OPERATIONAL_COMMUNICATION_PROJECTION_ADAPTER_ID,
   ProjectionEngine,
   ProjectionRegistry,
   createProjectionArtifact,
 } from "./projection";
 export type {
   CalendarProjectionConnector, CalendarProjectionEvent, CalendarProjectionOptions,
+  OperationalCommunicationObservation, OperationalCommunicationProjectionOptions,
   ProjectionAdapter, ProjectionArtifact, ProjectionEntities, ProjectionValidationState, Provenance,
   SourceAvailability,
 } from "./projection";
 export type {
   OperationalCommitment, OperationalCommitmentId, OperationalCommitmentKind, OperationalCommitmentStatus,
+  OperationalCommunication, OperationalCommunicationId,
   OperationalContext, OperationalIdentity, OperationalLocationKind, OperationalPriority, OperationalPriorityId,
   OperationalPriorityLevel, OperationalPrioritySource, OperationalProject, OperationalProjectId, OperationalProjectStatus,
   OperationalRole, OperationalRoleId, OperationalRoleStatus, OperationalSourceId, OperationalSourceKind,

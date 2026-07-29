@@ -4,6 +4,7 @@ export type OperationalTimestamp = string;
 export type OperationalRoleId = string;
 export type OperationalProjectId = string;
 export type OperationalCommitmentId = string;
+export type OperationalCommunicationId = string;
 export type OperationalWaitingItemId = string;
 export type OperationalPriorityId = string;
 export type OperationalWorkItemId = string;
@@ -47,6 +48,18 @@ export interface OperationalCommitment {
   readonly projectIds: readonly OperationalProjectId[];
   readonly startsAt?: OperationalTimestamp;
   readonly dueAt?: OperationalTimestamp;
+}
+
+/** A bounded record of communication facts asserted by an authoritative protocol source. */
+export interface OperationalCommunication {
+  readonly id: OperationalCommunicationId;
+  readonly sender: string;
+  readonly recipients: readonly string[];
+  readonly sentAt: OperationalTimestamp;
+  readonly receivedAt?: OperationalTimestamp;
+  readonly subject?: string;
+  readonly inReplyTo?: string;
+  readonly references: readonly string[];
 }
 
 export type OperationalWaitingItemStatus = "waiting" | "resolved" | "cancelled";
@@ -108,6 +121,7 @@ export interface SituationalAwareness {
   readonly roles: readonly OperationalRole[];
   readonly projects: readonly OperationalProject[];
   readonly commitments: readonly OperationalCommitment[];
+  readonly communications: readonly OperationalCommunication[];
   readonly waitingItems: readonly OperationalWaitingItem[];
   readonly priorities: readonly OperationalPriority[];
   readonly activeWork: readonly OperationalWorkItem[];
@@ -120,6 +134,7 @@ export interface SituationalAwarenessInput {
   readonly roles?: readonly OperationalRole[];
   readonly projects?: readonly OperationalProject[];
   readonly commitments?: readonly OperationalCommitment[];
+  readonly communications?: readonly OperationalCommunication[];
   readonly waitingItems?: readonly OperationalWaitingItem[];
   readonly priorities?: readonly OperationalPriority[];
   readonly activeWork?: readonly OperationalWorkItem[];
@@ -170,11 +185,12 @@ export function createSituationalAwareness(input: SituationalAwarenessInput): Si
   const roles = collection(input.roles, "roles");
   const projects = collection(input.projects, "projects");
   const commitments = collection(input.commitments, "commitments");
+  const communications = collection(input.communications, "communications");
   const waitingItems = collection(input.waitingItems, "waitingItems");
   const priorities = collection(input.priorities, "priorities");
   const activeWork = collection(input.activeWork, "activeWork");
   const sources = collection(input.sources, "sources");
-  unique(roles, "roles"); unique(projects, "projects"); unique(commitments, "commitments");
+  unique(roles, "roles"); unique(projects, "projects"); unique(commitments, "commitments"); unique(communications, "communications");
   unique(waitingItems, "waitingItems"); unique(priorities, "priorities"); unique(activeWork, "activeWork"); unique(sources, "sources");
 
   const roleIds = new Set(roles.map(({ id }) => id));
@@ -188,6 +204,15 @@ export function createSituationalAwareness(input: SituationalAwarenessInput): Si
     refs(item.projectIds, projectIds, `${["commitments", "waitingItems", "priorities", "activeWork"][group]}[${i}].projectIds`, "project");
   }));
   waitingItems.forEach((item, i) => required(item.waitingOn, `waitingItems[${i}].waitingOn`));
+  communications.forEach((item, i) => {
+    required(item.sender, `communications[${i}].sender`);
+    required(item.sentAt, `communications[${i}].sentAt`);
+    if (!Array.isArray(item.recipients)) throw new Error(`communications[${i}].recipients must be an array`);
+    item.recipients.forEach((recipient) => required(recipient, `communications[${i}].recipients recipient`));
+    if (!Array.isArray(item.references)) throw new Error(`communications[${i}].references must be an array`);
+    item.references.forEach((reference) => required(reference, `communications[${i}].references reference`));
+    if (item.inReplyTo !== undefined) required(item.inReplyTo, `communications[${i}].inReplyTo`);
+  });
 
   const context = input.context ?? { workMode: "unknown", locationKind: "unknown" };
   if (context.activeRoleId !== undefined && !roleIds.has(context.activeRoleId)) throw new Error(`context.activeRoleId references unknown role: ${context.activeRoleId}`);
@@ -200,6 +225,9 @@ export function createSituationalAwareness(input: SituationalAwarenessInput): Si
     roles: Object.freeze(roles.map(freezeEntity)),
     projects: Object.freeze(projects.map((item) => Object.freeze({ ...item, roleIds: freezeRefs(item.roleIds) }))),
     commitments: Object.freeze(commitments.map(freezeLinked)),
+    communications: Object.freeze(communications.map((item) => Object.freeze({
+      ...item, recipients: freezeRefs(item.recipients), references: freezeRefs(item.references),
+    }))),
     waitingItems: Object.freeze(waitingItems.map(freezeLinked)),
     priorities: Object.freeze(priorities.map(freezeLinked)),
     activeWork: Object.freeze(activeWork.map(freezeLinked)),

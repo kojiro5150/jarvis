@@ -8,6 +8,9 @@ import { createExecutionAuditStore } from "@/lib/agents/execution-audit-store-fa
 import { assembleAgentSystemPrompt } from "@/lib/agents/boa-instructions";
 import { getBoaInstruction } from "@/lib/agents/boa-instruction-registry";
 import type { ChatMessage } from "@/lib/agents/types";
+import { parseChatCapabilityRequest, routeChatCapability } from "@/lib/chat-capabilities";
+import { GoogleGmailContentConnector } from "@/lib/chat-capabilities/google-gmail-content";
+import { loadContentRetrievalPolicy } from "@/lib/content-retrieval-policy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +18,7 @@ export const dynamic = "force-dynamic";
 interface ChatRequestBody {
   agentId?: string;
   messages?: ChatMessage[];
+  capability?: unknown;
 }
 
 function isValidMessages(messages: unknown): messages is ChatMessage[] {
@@ -38,6 +42,20 @@ export async function POST(req: NextRequest) {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  if (body.capability !== undefined) {
+    try {
+      const capability = parseChatCapabilityRequest(body.capability);
+      if (!capability) return NextResponse.json({ error: "Unknown capability operation." }, { status: 400 });
+      const response = await routeChatCapability(capability, {
+        gmailConnector: new GoogleGmailContentConnector(),
+        loadPolicy: () => loadContentRetrievalPolicy(process.env.CONTENT_RETRIEVAL_POLICY_PATH),
+      });
+      return NextResponse.json({ capability: response });
+    } catch (error) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : "Malformed capability request." }, { status: 400 });
+    }
   }
 
   const { agentId, messages } = body;

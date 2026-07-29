@@ -210,6 +210,9 @@ describe("package conformance", () => {
       .filter((path) => !path.includes("/executive-operating-system/attention/"))
       .filter((path) => !path.includes("/executive-operating-system/runtime/"))
       .filter((path) => !path.includes("/executive-context/"))
+      // The deployment-only operational validator is an explicit canonical-pipeline
+      // boundary; it cannot be reached by the application runtime or conversation path.
+      .filter((path) => !path.includes("/operational-validation/runner.ts"))
       .filter((path) => !path.includes("/tests/fixtures/"))
       .filter((path) => !path.endsWith(".test.ts") && !path.endsWith(".test.tsx"))
       .filter((path) => /(?:from\s+|require\()["'][^"']*situational-awareness/.test(readFileSync(path, "utf8")));

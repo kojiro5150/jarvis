@@ -22,6 +22,7 @@ describe("ExecutiveOperationalState", () => {
       "executiveOperationalState",
       "executiveSession",
       "executiveInteractionContract",
+      "executiveInteractionResult",
     ]);
     expect(operationalResult.executiveOperationalState.latestRun.executiveRunRecordId).toBe(
       runtimeResult.executiveRunRecord.executiveRunRecordId,

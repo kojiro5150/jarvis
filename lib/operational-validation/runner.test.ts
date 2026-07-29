@@ -1,0 +1,13 @@
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { describe,expect,it,vi } from "vitest";
+import { runAuthenticatedOperationalValidation } from "./runner";
+import type { CalendarEvent } from "../connectors/calendar-event";
+const now=new Date("2026-07-29T12:00:00.000Z");
+const event:CalendarEvent={id:"event-1",title:"Private board session",start:"2026-07-29T13:00:00Z",end:"2026-07-29T14:00:00Z",day:"WED",time:"13:00",source:"google",calendarId:"private",calendarName:"Private",status:"confirmed"};
+describe("authenticated operational runner",()=>{
+ it("fails closed before acquisition when authentication is unavailable",async()=>{const listBetween=vi.fn();const result=await runAuthenticatedOperationalValidation({connector:{verifySession:async()=>{throw new Error("expired")},listBetween},now:()=>now});expect(result).toEqual({status:"AUTHENTICATED_VALIDATION_NOT_EXECUTED",recommendation:"NOT_ASSESSED"});expect(listBetween).not.toHaveBeenCalled();});
+ it("uses a bounded live observation, canonical engines, and generated evidence challenge",async()=>{const root=await mkdtemp(path.join(tmpdir(),"runner-"));const listBetween=vi.fn(async()=>[event]);let shown:Readonly<Record<string,string|number>>|undefined;const result=await runAuthenticatedOperationalValidation({repositoryRoot:root,now:()=>now,connector:{verifySession:async()=>{},listBetween},confirmChallenge:async evidence=>{shown=evidence;return {operator:"local-operator",answer:String(evidence.challenge).replace("Enter ","")};}});expect(listBetween).toHaveBeenCalledWith("2026-07-29T00:00:00.000Z","2026-08-01T00:00:00.000Z",100);expect(result.status).toBe("OPERATIONAL_VALIDATION_COMPLETE");if(result.status==="AUTHENTICATED_VALIDATION_NOT_EXECUTED") throw new Error();expect(result.summary.operatorConfirmation).toBe("confirmed");expect(result.summary.migrationRecommendation).toBe("REFINE");expect(JSON.stringify(result.summary)).not.toContain(event.title);expect(shown?.reportHash).toMatch(/^[a-f0-9]{64}$/);expect(shown?.challengeId).toMatch(/^[a-f0-9]{16}$/);});
+ it("leaves confirmation and recommendation pending after a wrong challenge",async()=>{const root=await mkdtemp(path.join(tmpdir(),"runner-"));const result=await runAuthenticatedOperationalValidation({repositoryRoot:root,now:()=>now,connector:{verifySession:async()=>{},listBetween:async()=>[]},confirmChallenge:async()=>({operator:"operator",answer:"wrong"})});if(result.status==="AUTHENTICATED_VALIDATION_NOT_EXECUTED") throw new Error();expect(result.summary.operatorConfirmation).toBe("pending");expect(result.summary.migrationRecommendation).toBe("NOT_ASSESSED");});
+});

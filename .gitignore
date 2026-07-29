@@ -42,6 +42,10 @@ next-env.d.ts
 data/google-tokens.json
 data/memory.json
 
+# Deployment-owned content retrieval policy (the tracked example is safe)
+/config/content-retrieval-policy.local.json
+/config/content-retrieval-policy.*.local.json
+
 # Build and dependency artefacts
 node_modules/
 .next/

@@ -1,0 +1,11 @@
+{
+  "policyVersion": "example-1",
+  "rules": [
+    {
+      "id": "example-partner-email",
+      "match": { "connectorType": "email", "senderDomains": ["example.org"] },
+      "processing": "external_processing_permitted",
+      "admissibleFields": ["subject", "plain_text_body", "attachment_filenames"]
+    }
+  ]
+}

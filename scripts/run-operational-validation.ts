@@ -40,6 +40,10 @@ async function main(): Promise<void> {
           operatorConfirmation: result.summary.operatorConfirmation,
           migrationRecommendation:
             result.summary.migrationRecommendation,
+          scenarioCoverage:
+            result.summary.migrationRecommendation.evidence.scenarioCoverage,
+          legacyComparisonExecuted:
+            result.summary.migrationRecommendation.evidence.legacyComparisonExecuted,
         },
         null,
         2,

@@ -34,6 +34,10 @@ export interface CalendarEvent {
   calendarColor?: string;
   /** Provider observation when available; consumers must not infer beyond it. */
   status?: "confirmed" | "tentative" | "cancelled";
+  /** Provider-supplied recurrence identity; presence means this is an observed recurring instance. */
+  recurringEventId?: string;
+  /** Authenticated user's provider-supplied attendee response, when Google identifies it. */
+  selfAttendeeResponse?: "needsAction" | "declined" | "tentative" | "accepted";
 }
 
 interface GoogleEventLike {
@@ -42,6 +46,8 @@ interface GoogleEventLike {
   start?: { dateTime?: string; date?: string };
   end?: { dateTime?: string; date?: string };
   status?: "confirmed" | "tentative" | "cancelled";
+  recurringEventId?: string;
+  attendees?: Array<{ self?: boolean; responseStatus?: "needsAction" | "declined" | "tentative" | "accepted" }>;
 }
 
 /** Which calendar an event was fetched from — attached per-request, since a raw Google event object doesn't carry this itself. */
@@ -113,6 +119,8 @@ export function normalizeGoogleEvent(
     calendarName: meta.calendarName,
     calendarColor: meta.calendarColor,
     status: event.status,
+    recurringEventId: event.recurringEventId,
+    selfAttendeeResponse: event.attendees?.find((attendee) => attendee.self)?.responseStatus,
   };
 }
 

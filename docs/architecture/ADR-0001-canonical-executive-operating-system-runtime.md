@@ -888,6 +888,55 @@ No runtime sequencing or ownership changes. `OperationalState` consumes Runtime;
 `ExecutiveSession` consumes `OperationalState`; references flow forward and authority does not flow
 backward.
 
+## Executive Interface Layer
+
+The completed Executive Foundation projects one canonical `ExecutiveInteractionContract` from each
+`ExecutiveSession`. The contract is the sole boundary for executive interfaces:
+
+```text
+Executive Foundation
+        ↓
+ExecutiveInteractionContract
+        ↓
+Executive Interfaces
+```
+
+`ExecutiveInteractionContract` is the canonical interface boundary. Interfaces consume the
+contract; they never consume runtime publications directly and never redefine `ExecutiveSession`.
+The contract introduces no ownership change: the Constitutional Runtime, Operational Layer, and
+Executive Session Layer retain their existing authority and ownership, and references continue to
+flow only forward.
+
+The canonical Executive Architecture is:
+
+```text
+Constitutional Runtime
+        ↓
+ExecutiveRunRecord
+══════════════════════
+Operational Layer
+        ↓
+ExecutiveOperationalState
+══════════════════════
+Executive Session Layer
+        ↓
+ExecutiveSession
+══════════════════════
+Executive Interface Layer
+        ↓
+ExecutiveInteractionContract
+══════════════════════
+Applications
+
+DAWNWATCH
+MARCUS
+Chat
+Voice
+Dashboard
+Automation
+API
+```
+
 ## Appendix A — Current Repository Diagnosis
 
 This appendix records the verified repository state at the date of this ADR. It is diagnostic and

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { ExecutiveRunRecord, ExecutiveRunPublicationReference } from "../runtime";
 import { composeExecutiveSession } from "../executive-session/composer";
+import { composeExecutiveInteractionContract } from "../executive-interaction/composer";
 import {
   EXECUTIVE_OPERATIONAL_STATE_SCHEMA_VERSION,
   type ExecutiveOperationalResult,
@@ -108,9 +109,11 @@ export function composeExecutiveOperationalResult(
   executiveRunRecord: ExecutiveRunRecord,
 ): ExecutiveOperationalResult {
   const executiveOperationalState = composeExecutiveOperationalState(executiveRunRecord);
+  const executiveSession = composeExecutiveSession(executiveOperationalState);
   return deepFreeze({
     executiveRunRecord,
     executiveOperationalState,
-    executiveSession: composeExecutiveSession(executiveOperationalState),
+    executiveSession,
+    executiveInteractionContract: composeExecutiveInteractionContract(executiveSession),
   });
 }

@@ -1,64 +1,63 @@
-export const OPERATIONAL_VALIDATION_VERSION = "operational-validation-v1" as const;
+export const OPERATIONAL_VALIDATION_VERSION = "operational-validation-v2" as const;
 
-export const SCENARIO_CATEGORIES = [
-  "CURRENT_WORKING_DAY", "TOMORROW", "OVERLAPPING_COMMITMENTS", "NO_COMMITMENTS",
-  "BUSY_AFTERNOON", "RECURRING_COMMITMENT", "CANCELLED_COMMITMENT",
-  "DECLINED_VISIBLE_INVITATION", "ALL_DAY_COMMITMENT", "MIXED_MEETING_DURATIONS",
-] as const;
+export const VALIDATION_EXECUTION_SOURCES = ["synthetic", "manual_observation", "recorded_replay", "authenticated_deployment", "mixed"] as const;
+export const VALIDATION_CONNECTOR_SOURCES = ["fixture", "manual_ui_observation", "recorded_connector_output", "live_google_calendar", "mixed"] as const;
+export const VALIDATION_LEVELS = ["framework", "exploratory", "replay", "operational"] as const;
+export const OAUTH_SESSION_STATES = ["present", "absent", "not_applicable"] as const;
+export const OPERATOR_CONFIRMATIONS = ["pending", "confirmed", "rejected"] as const;
+export type ValidationExecutionSource = typeof VALIDATION_EXECUTION_SOURCES[number];
+export type ValidationConnectorSource = typeof VALIDATION_CONNECTOR_SOURCES[number];
+export type ValidationLevel = typeof VALIDATION_LEVELS[number];
+export type OAuthSessionState = typeof OAUTH_SESSION_STATES[number];
+export type OperatorConfirmation = typeof OPERATOR_CONFIRMATIONS[number];
+
+export interface ValidationProvenance {
+  readonly executionSource: ValidationExecutionSource;
+  readonly connectorSource: ValidationConnectorSource;
+  readonly validationLevel: ValidationLevel;
+  readonly oauthSession: OAuthSessionState;
+  readonly generatedBy: string;
+  readonly generatedAt: string;
+  readonly runnerVersion: string;
+}
+
+export interface EvidenceAttestation {
+  readonly reportWritten: true;
+  readonly challengeCompleted: true;
+  readonly attestedAt: string;
+  readonly confirmedAt: string;
+  readonly confirmingOperator: string;
+  readonly challengeId: string;
+  readonly reportHash: string;
+  readonly runnerVersion: string;
+}
+
+export const SCENARIO_CATEGORIES = ["CURRENT_WORKING_DAY", "TOMORROW", "OVERLAPPING_COMMITMENTS", "NO_COMMITMENTS", "BUSY_AFTERNOON", "RECURRING_COMMITMENT", "CANCELLED_COMMITMENT", "DECLINED_VISIBLE_INVITATION", "ALL_DAY_COMMITMENT", "MIXED_MEETING_DURATIONS"] as const;
 export type ScenarioCategory = typeof SCENARIO_CATEGORIES[number];
-
-export const COMPARISON_CLASSIFICATIONS = [
-  "Equivalent", "Intentional Improvement", "Action Required", "Not Comparable",
-] as const;
+export const COMPARISON_CLASSIFICATIONS = ["Equivalent", "Intentional Improvement", "Action Required", "Not Comparable", "Scenario Not Present"] as const;
 export type ComparisonClassification = typeof COMPARISON_CLASSIFICATIONS[number];
-
-export const OUTCOME_REASONS = [
-  "EXPECTED_MATCH", "INTENTIONAL_IMPROVEMENT", "KNOWN_LIMITATION",
-  "EXTRACTION_NOT_COMPARABLE", "REQUIRES_INVESTIGATION",
-] as const;
+export const OUTCOME_REASONS = ["EXPECTED_MATCH", "INTENTIONAL_IMPROVEMENT", "KNOWN_LIMITATION", "EXTRACTION_NOT_COMPARABLE", "REQUIRES_INVESTIGATION", "SCENARIO_NOT_PRESENT", "AUTHENTICATION_UNAVAILABLE", "EXECUTION_NOT_OPERATIONAL", "PROVENANCE_INSUFFICIENT", "MANUAL_OBSERVATION_ONLY", "REPLAY_ONLY", "MIXED_PROVENANCE", "OPERATOR_CONFIRMATION_PENDING"] as const;
 export type OutcomeReason = typeof OUTCOME_REASONS[number];
-
-export const MIGRATION_RECOMMENDATIONS = ["Proceed", "Refine", "Defer"] as const;
+export const MIGRATION_RECOMMENDATIONS = ["PROCEED", "REFINE", "DEFER", "NOT_ASSESSED"] as const;
 export type MigrationRecommendation = typeof MIGRATION_RECOMMENDATIONS[number];
 
-/** Deployment-owned record. It must only be persisted under the gitignored report directory. */
-export interface OperationalScenarioRecord {
-  readonly scenarioId: string;
-  readonly scenarioCategory: ScenarioCategory;
-  readonly validationDate: string;
-  readonly executiveContextOutput: unknown;
-  readonly availabilityEngineOutput: unknown;
-  readonly calendarObservations: unknown;
-  readonly legacyConversationalResponse: string;
-  readonly extractedLegacyClaim: unknown;
-  readonly eosClaim: unknown;
-  readonly comparisonClassification: ComparisonClassification;
-  readonly outcomeReason: OutcomeReason;
-  readonly engineeringObservations: string;
-  readonly migrationRecommendation: MigrationRecommendation;
-  readonly matchedClaims: number;
-  readonly comparedClaims: number;
+export interface ValidationResult { readonly comparisonClassification: ComparisonClassification; readonly outcomeReason: OutcomeReason; }
+export interface OperationalScenarioRecord extends ValidationResult {
+  readonly scenarioId: string; readonly scenarioCategory: ScenarioCategory; readonly validationDate: string;
+  readonly connectorEvidence: unknown; readonly canonicalProjection: unknown; readonly situationalAwareness: unknown;
+  readonly availabilityComputation: unknown; readonly executiveRepresentation: unknown;
+  readonly legacyClaim?: unknown; readonly extractionResult?: unknown; readonly comparisonResult?: unknown;
+  readonly matchedClaims: number; readonly comparedClaims: number;
 }
-
 export interface OperationalValidationInput {
-  readonly runId: string;
-  readonly scenarios: readonly OperationalScenarioRecord[];
+  readonly runId: string; readonly provenance: ValidationProvenance;
+  readonly operatorConfirmation: OperatorConfirmation; readonly attestation?: EvidenceAttestation;
+  readonly scenarios: readonly OperationalScenarioRecord[]; readonly retrievalWindow?: unknown;
 }
-
-export interface AnonymisedScenarioSummary {
-  readonly scenarioId: string;
-  readonly scenarioCategory: ScenarioCategory;
-  readonly comparisonClassification: ComparisonClassification;
-  readonly outcomeReason: OutcomeReason;
-  readonly matchStatistics: Readonly<{ matched: number; compared: number }>;
-  readonly migrationRecommendation: MigrationRecommendation;
-}
-
+export interface AnonymisedScenarioSummary extends ValidationResult { readonly scenarioId: string; readonly scenarioCategory: ScenarioCategory; readonly matchStatistics: Readonly<{matched:number; compared:number}>; }
 export interface AnonymisedValidationSummary {
-  readonly version: typeof OPERATIONAL_VALIDATION_VERSION;
-  readonly validationDate: string;
-  readonly scenarioCount: number;
-  readonly scenarios: readonly AnonymisedScenarioSummary[];
-  readonly matchStatistics: Readonly<{ matched: number; compared: number }>;
-  readonly migrationRecommendation: MigrationRecommendation;
+  readonly version: typeof OPERATIONAL_VALIDATION_VERSION; readonly runId: string; readonly generatedDate: string;
+  readonly runnerVersion: string; readonly provenance: ValidationProvenance; readonly operatorConfirmation: OperatorConfirmation;
+  readonly scenarioCount: number; readonly scenarios: readonly AnonymisedScenarioSummary[];
+  readonly matchStatistics: Readonly<{matched:number; compared:number}>; readonly migrationRecommendation: MigrationRecommendation;
 }

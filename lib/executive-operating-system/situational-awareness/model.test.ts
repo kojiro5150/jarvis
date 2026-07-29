@@ -23,8 +23,8 @@ describe("situational awareness model", () => {
     expect(Object.keys(snapshot)).not.toEqual(expect.arrayContaining(["messages", "memories", "embeddings", "decisionCandidates", "attentionQueue", "recommendedActions", "routing", "executionPlan"]));
   });
 
-  it.each(["roles", "projects", "commitments", "waitingItems", "priorities", "activeWork", "sources"] as const)("rejects duplicate identifiers in %s", (key) => {
-    const records = { roles: { id: "x", name: "Role", status: "active" }, projects: { id: "x", name: "Project", status: "active", roleIds: [] }, commitments: { id: "x", title: "Item", kind: "other", status: "scheduled", roleIds: [], projectIds: [] }, waitingItems: { id: "x", title: "Item", status: "waiting", waitingOn: "someone", roleIds: [], projectIds: [] }, priorities: { id: "x", title: "Item", level: "high", source: "user", roleIds: [], projectIds: [] }, activeWork: { id: "x", title: "Item", status: "active", roleIds: [], projectIds: [] }, sources: { id: "x", kind: "other", status: "available" } } as const;
+  it.each(["roles", "projects", "commitments", "communications", "waitingItems", "priorities", "activeWork", "sources"] as const)("rejects duplicate identifiers in %s", (key) => {
+    const records = { roles: { id: "x", name: "Role", status: "active" }, projects: { id: "x", name: "Project", status: "active", roleIds: [] }, commitments: { id: "x", title: "Item", kind: "other", status: "scheduled", roleIds: [], projectIds: [] }, communications: { id: "x", sender: "sender@example.com", recipients: [], sentAt: "2026-07-26T08:45:00Z", references: [] }, waitingItems: { id: "x", title: "Item", status: "waiting", waitingOn: "someone", roleIds: [], projectIds: [] }, priorities: { id: "x", title: "Item", level: "high", source: "user", roleIds: [], projectIds: [] }, activeWork: { id: "x", title: "Item", status: "active", roleIds: [], projectIds: [] }, sources: { id: "x", kind: "other", status: "available" } } as const;
     expect(() => createSituationalAwareness({ identity: { userId: "u", displayName: "User" }, [key]: [records[key], records[key]] } as never)).toThrow(`duplicate ${key} identifier: x`);
   });
 

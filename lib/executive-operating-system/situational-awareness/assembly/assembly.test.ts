@@ -68,4 +68,22 @@ describe("SituationalAwarenessEngine", () => {
     expect(Object.isFrozen(result.snapshot.artifacts[0].artifact.entities.identity)).toBe(true);
     expect(result.snapshot.artifacts[0].artifact).not.toBe(source);
   });
+
+  it("publishes communications independently without relationships, inference, or conflict semantics", () => {
+    const communication = { id: "message-b", sender: "director@example.com", recipients: ["team@example.com"], sentAt: "2035-04-01T08:30:00Z", subject: "Status", references: [] };
+    const earlier = { ...communication, id: "message-a", sentAt: "2035-04-01T08:00:00Z" };
+    const result = new SituationalAwarenessEngine().assemble({ artifacts: [artifact("mail", { identity, communications: [communication, earlier] })], ...lifecycle });
+    expect(result.outcome).toBe("success");
+    if (result.outcome !== "success") return;
+    expect(result.snapshot.state.communications.map(({ id }) => id)).toEqual(["message-a", "message-b"]);
+    expect(result.snapshot.state.commitments).toEqual([]);
+    expect(result.snapshot.state.waitingItems).toEqual([]);
+    expect(result.snapshot.state.priorities).toEqual([]);
+    expect(result.snapshot.state.projects).toEqual([]);
+    expect(result.snapshot.state.activeWork).toEqual([]);
+    expect(result.snapshot.relationships).toEqual([]);
+    expect(result.snapshot.conflicts).toEqual([]);
+    expect(Object.isFrozen(result.snapshot.state.communications)).toBe(true);
+    expect(Object.isFrozen(result.snapshot.state.communications[0].recipients)).toBe(true);
+  });
 });

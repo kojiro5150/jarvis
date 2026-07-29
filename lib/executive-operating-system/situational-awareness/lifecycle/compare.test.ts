@@ -9,6 +9,7 @@ const base: SituationalAwarenessInput = {
   roles: [{ id: "role-z", name: "Founder", status: "active" }, { id: "role-a", name: "Engineer", status: "active" }],
   projects: [{ id: "project-1", name: "JARVIS", status: "active", roleIds: ["role-a"] }],
   commitments: [{ id: "commitment-1", title: "Review", kind: "review", status: "scheduled", roleIds: ["role-a"], projectIds: ["project-1"] }],
+  communications: [{ id: "communication-z", sender: "ada@example.com", recipients: ["team@example.com"], sentAt: "2026-07-27T07:00:00Z", subject: "Review", references: [] }],
   waitingItems: [{ id: "waiting-1", title: "Feedback", status: "waiting", roleIds: [], projectIds: [], waitingOn: "Alex" }],
   priorities: [{ id: "priority-1", title: "Ship", level: "high", roleIds: ["role-a"], projectIds: ["project-1"], source: "user" }],
   activeWork: [{ id: "work-1", title: "Tests", status: "active", roleIds: ["role-a"], projectIds: ["project-1"] }],
@@ -27,7 +28,7 @@ describe("compareSituationalAwarenessSnapshots", () => {
       identity: { userId: "user-1", displayName: "Ada Lovelace" },
       roles: [{ id: "role-b", name: "Writer", status: "active" }, { id: "role-a", name: "Engineer", status: "inactive" }],
       projects: [{ id: "project-1", name: "JARVIS 2", status: "active", roleIds: ["role-a"] }, { id: "project-2", name: "Book", status: "planned", roleIds: ["role-b"] }],
-      commitments: [], waitingItems: [],
+      commitments: [], communications: [{ ...base.communications![0], subject: "Updated review" }, { id: "communication-a", sender: "team@example.com", recipients: ["ada@example.com"], sentAt: "2026-07-27T08:30:00Z", references: [] }], waitingItems: [],
       priorities: [{ ...base.priorities![0], level: "medium" }],
       activeWork: [{ ...base.activeWork![0] }, { id: "work-2", title: "Draft", status: "active", roleIds: ["role-b"], projectIds: ["project-2"] }],
       context: { activeProjectId: "project-2", workMode: "writing", locationKind: "home" },
@@ -40,11 +41,12 @@ describe("compareSituationalAwarenessSnapshots", () => {
     expect(diff.changes.roles.map(({ id, type }) => [id, type])).toEqual([["role-a", "modified"], ["role-b", "added"], ["role-z", "removed"]]);
     expect(diff.changes.projects.map(({ id, type }) => [id, type])).toEqual([["project-1", "modified"], ["project-2", "added"]]);
     expect(diff.changes.commitments[0]).toMatchObject({ id: "commitment-1", type: "removed" });
+    expect(diff.changes.communications.map(({ id, type }) => [id, type])).toEqual([["communication-a", "added"], ["communication-z", "modified"]]);
     expect(diff.changes.waitingItems[0]).toMatchObject({ id: "waiting-1", type: "removed" });
     expect(diff.changes.priorities[0]).toMatchObject({ id: "priority-1", type: "modified" });
     expect(diff.changes.activeWork[0]).toMatchObject({ id: "work-2", type: "added" });
     expect(diff.changes.sources.map(({ id, type }) => [id, type])).toEqual([["source-1", "modified"], ["source-2", "added"]]);
-    expect(diff.summary).toEqual({ added: 4, removed: 3, modified: 6, unchanged: 1, totalChanged: 13 });
+    expect(diff.summary).toEqual({ added: 5, removed: 3, modified: 7, unchanged: 1, totalChanged: 15 });
     expect(Object.isFrozen(diff)).toBe(true);
     expect(Object.isFrozen(diff.changes.roles)).toBe(true);
     expect(Object.isFrozen(diff.summary)).toBe(true);
@@ -57,7 +59,7 @@ describe("compareSituationalAwarenessSnapshots", () => {
     const first = compareSituationalAwarenessSnapshots(left, right);
     const second = compareSituationalAwarenessSnapshots(left, right);
     expect(first.changes).toEqual({ identity: null, context: null, roles: [], projects: [], commitments: [], communications: [], waitingItems: [], priorities: [], activeWork: [], sources: [] });
-    expect(first.summary).toEqual({ added: 0, removed: 0, modified: 0, unchanged: 10, totalChanged: 0 });
+    expect(first.summary).toEqual({ added: 0, removed: 0, modified: 0, unchanged: 11, totalChanged: 0 });
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
     expect(JSON.parse(JSON.stringify(first))).toEqual(first);
   });

@@ -29,12 +29,20 @@ interface GmailListResponse {
   messages?: { id: string }[];
 }
 
+interface GoogleGmailPart {
+  mimeType?: string;
+  filename?: string;
+  headers?: readonly { name: string; value: string }[];
+  parts?: readonly GoogleGmailPart[];
+}
+
 interface GoogleGmailMessageDetail {
   id: string;
+  threadId?: string;
   labelIds?: string[];
   snippet?: string;
   internalDate?: string;
-  payload?: { headers?: { name: string; value: string }[] };
+  payload?: GoogleGmailPart;
 }
 
 interface QueryResult {
@@ -53,7 +61,7 @@ interface QueryResult {
  * Still gmail.readonly only — no send, label, or modify access.
  */
 export class GoogleGmailConnector implements GmailConnector {
-  readonly source: ConnectorSource = "google";
+  readonly source = "google" as const satisfies ConnectorSource;
 
   /**
    * Message IDs matching a Gmail search query. A 401 means the whole
@@ -98,7 +106,8 @@ export class GoogleGmailConnector implements GmailConnector {
     id: string
   ): Promise<GoogleGmailMessageDetail | null> {
     const params = new URLSearchParams({ format: "metadata" });
-    ["From", "Subject", "Date"].forEach((h) => params.append("metadataHeaders", h));
+    ["Message-ID", "From", "To", "Cc", "Bcc", "Date", "In-Reply-To", "References", "Subject"]
+      .forEach((h) => params.append("metadataHeaders", h));
 
     const res = await fetch(`${GMAIL_MESSAGE_GET_URL(id)}?${params.toString()}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -158,5 +167,17 @@ export class GoogleGmailConnector implements GmailConnector {
       .map((detail) => normalizeGmailMessage(detail, governanceIds.has(detail.id)));
 
     return sortAndPrioritizeEmails(messages).slice(0, limit);
+  }
+
+  /** Metadata-only production observation path used by the constitutional projection adapter. */
+  async listOperationalObservations(limit = 50): Promise<readonly GoogleGmailMessageDetail[]> {
+    const accessToken = await getValidGoogleAccessToken();
+    const result = await this.listMessageIds(accessToken, MAIN_INBOX_QUERY, limit);
+    if (result.insufficientScope) {
+      throw new GoogleServiceAuthError("not_connected", "Gmail scope not granted yet — reconnect to include Gmail access.");
+    }
+    const details = await Promise.all(result.ids.map((id) => this.getMessageDetail(accessToken, id)));
+    return Object.freeze(details.filter((detail): detail is GoogleGmailMessageDetail => detail !== null)
+      .map((detail) => Object.freeze({ ...detail })));
   }
 }

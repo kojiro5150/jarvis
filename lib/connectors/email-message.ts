@@ -34,7 +34,7 @@ interface GoogleGmailMessageLike {
   labelIds?: string[];
   snippet?: string;
   internalDate?: string;
-  payload?: { headers?: { name: string; value: string }[] };
+  payload?: { headers?: readonly { name: string; value: string }[] };
 }
 
 function header(message: GoogleGmailMessageLike, name: string): string | undefined {

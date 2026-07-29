@@ -209,6 +209,183 @@ this ADR; it is not, by itself, approval to introduce a communication publicatio
 These trade-offs are intentional. Deliberate analysis is preferred to premature authority,
 semantic ambiguity, and long-lived canonical debt.
 
+## Appendix A — Evidence-Driven Constitutional Design Methodology
+
+This appendix is **non-normative** and **informational**. It records the engineering methodology
+that produced the architectural evidence supporting ADR-0023. It does not introduce new
+constitutional rules, create additional constitutional authority, or alter the decision recorded
+above.
+
+### Purpose
+
+This appendix preserves the reasoning methodology used during constitutional evolution of the
+Executive Operating System. It documents how architectural decisions were reached; it does not
+create new architectural decisions.
+
+### Background
+
+Sprint 3.42 attempted exhaustive mapping of deterministic communication observations onto the
+existing canonical publications. The mapping failed. That failure was documented as architectural
+evidence, and the evidence led directly to ADR-0023.
+
+Sprint 3.43 subsequently demonstrated the same methodology repeatedly during constitutional
+publication design. This appendix retains that historical engineering method without giving it
+independent normative force.
+
+### Methodological Sequence
+
+#### Stage 1 — Falsification before Expansion
+
+Attempt exhaustive mapping onto the existing canonical publications and document the failure of
+every inadmissible mapping. Do not implement around an architectural failure. A failed mapping is
+valuable evidence because it tests the sufficiency of the architecture before the architecture is
+expanded.
+
+#### Stage 2 — Constitutional Consequence
+
+Ontology evolution is justified by architectural evidence, not implementation convenience. The
+constitutional consequence follows only when documented observations demonstrate that the
+existing ontology is insufficient without responsibility expansion or semantic inference.
+
+#### Stage 3 — Responsibility before Schema
+
+Define the constitutional responsibility of a proposed publication before designing any schema.
+Fields express an already established responsibility; assembling fields first and deriving a
+responsibility from them reverses the architectural order.
+
+#### Stage 4 — Constitutional Admissibility
+
+Admissibility was evaluated through reusable architectural decision techniques rather than by
+collecting convenient fields or listing conclusions.
+
+##### Technique 1 — Primary Designed Purpose
+
+Ask: **“What is the primary designed purpose of this field?”** Designed purpose—not data type or
+current value—determines constitutional classification. For example, read state and starred state
+might both be represented as booleans, but read state primarily records an observation about
+consumption while starred state primarily represents a user's client-managed organisation. Their
+shared data type does not give them the same constitutional classification.
+
+##### Technique 2 — Export Test
+
+Ask: **“Does this property remain true if the communication is moved between compliant clients?”**
+Properties that survive export are likely intrinsic. Properties recreated independently by
+connectors are connector representations rather than properties of the communication. Thread
+identifiers illustrate the distinction: independently assigned identifiers may help a connector
+represent a conversation, but their values do not necessarily travel with the communication as an
+intrinsic fact.
+
+##### Technique 3 — Constitutional Responsibility
+
+If a property is intrinsic, ask whether the publication constitutionally owns the concept.
+Intrinsic observations still require constitutional ownership before canonical publication.
+Intrinsic status establishes neither an automatic destination nor permission to widen an existing
+publication.
+
+##### Technique 4 — Faithful Recording
+
+Once an observation is admitted, projection records it exactly as asserted by the authoritative
+source. Projection performs no interpretation, reconstruction, or normalisation. Admission
+determines whether an observation belongs; faithful recording preserves what the source actually
+asserted.
+
+#### Stage 5 — Non-Reconstruction
+
+Projection preserves uncertainty. Missing protocol-defined relationships remain missing, and
+projection does not reconstruct conversations from subject similarity, timestamps, participant
+overlap, connector conversation identifiers, or heuristics. Sparse protocol relationships are
+expected constitutional outcomes rather than implementation defects: absence of an authoritative
+relationship is preserved as absence.
+
+#### Stage 6 — Evidence Preservation
+
+Canonical representation and evidence preservation are independent architectural
+responsibilities. The final architectural decision reached during the Sprint 3.43 discussions was
+that evidence preservation **SHALL NOT** become part of the Projection Engine, **SHALL NOT** become
+`ProjectionArtifact` metadata, and **SHALL NOT** flow into Situational Awareness. Evidence
+preservation exists independently of canonical state formation. Only authorised future consumers
+may retrieve preserved evidence directly.
+
+Only canonical publications participate in Executive Operating System state formation. Preserved
+evidence participates only through explicit authorised retrieval. These statements record the
+historical design conclusion supporting ADR-0023; within this non-normative appendix they establish
+no additional constitutional rule.
+
+#### Stage 7 — Minimal Implementation
+
+Runtime capability follows demonstrated need. Architectural subsystems are not built before
+justified consumers exist. The Sprint 3.43 evidence-preservation decision illustrates the method:
+preserve evidence, but do not build a Source Evidence Store subsystem until future evidence
+constitutionally justifies it.
+
+### Engineering Pattern
+
+The methodology followed this pattern:
+
+```text
+Observation
+  ↓
+Evidence
+  ↓
+Constraint
+  ↓
+Smaller Architecture
+  ↓
+Validation
+```
+
+It contrasts with speculative expansion:
+
+```text
+Idea
+  ↓
+Capability
+  ↓
+Implementation
+  ↓
+Hope
+```
+
+The first pattern characterises constitutional engineering because externally grounded
+observations produce evidence, evidence imposes constraints, and constraints reduce the design to
+the smallest architecture that can be validated. The second begins with an imagined capability
+and asks implementation to prove its value after authority and complexity have already expanded.
+
+### Methodological Characteristics
+
+- **Falsification before Expansion:** Test every existing canonical destination and document why
+  it fails before proposing an addition.
+- **Responsibility before Schema:** Establish constitutional ownership and boundaries before
+  selecting fields or representations.
+- **Evidence before Ontology:** Let deterministic, documented observations demonstrate an
+  ontological gap rather than allowing anticipated use cases to create one.
+- **Narrowest Sufficient Solution:** Choose only the smallest boundary and capability sufficient
+  for the demonstrated evidence.
+- **Observation before Interpretation:** Preserve authoritative assertions without adding inferred
+  meaning, reconstructed relationships, or semantic enrichment.
+- **Preservation without Canonicalisation:** Retain source evidence independently when warranted;
+  preservation alone does not confer canonical meaning or authority.
+- **State Formation from Canonical Publications Only:** Form Executive Operating System state from
+  authorised canonical publications, not from preserved source evidence or connector artefacts.
+- **Deferred Capability:** Delay runtime subsystems and consumption paths until an authorised,
+  evidence-supported consumer demonstrates their need.
+- **Reversible Evolution:** Prefer bounded, minimal steps that avoid speculative authority and can
+  be revisited as further evidence emerges.
+
+### Relationship to ADR-0023
+
+This appendix explains the engineering methodology that produced ADR-0023. It does not modify
+ADR-0023. It introduces no new constitutional authority and no new document class. It is
+explanatory only.
+
+### Closing Observation
+
+Sprint 3.42 began as a projection validation exercise. It concluded by demonstrating a repeatable,
+evidence-driven constitutional engineering methodology. Across that work and Sprint 3.43, the
+architecture consistently improved through falsification, constraint, and reduction rather than
+capability expansion. The preferred solution repeatedly became the narrowest constitutionally
+justified solution supported by documented evidence.
+
 ## Implementation impact
 
 This ADR introduces no implementation changes. It makes no runtime behaviour changes, schema

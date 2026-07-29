@@ -3,7 +3,7 @@ export type { RecordOperationalValidationOptions } from "./recorder";
 export { createAnonymisedValidationSummary, deriveEngineeringSummary, evaluateMigrationGate, renderValidationDashboard } from "./summary";
 export { assembleMigrationRecommendationEvidence, determineMigrationRecommendation, validateProvenance } from "./summary";
 export {
-  COMPARISON_CLASSIFICATIONS, MIGRATION_RECOMMENDATIONS, OPERATIONAL_VALIDATION_VERSION, OPERATOR_CONFIRMATIONS,
+  COMPARISON_CLASSIFICATIONS, LEGACY_COMPARISON_STATUSES, MIGRATION_RECOMMENDATIONS, OPERATIONAL_VALIDATION_VERSION, OPERATOR_CONFIRMATIONS,
   OUTCOME_REASONS, SCENARIO_CATEGORIES, VALIDATION_CONNECTOR_SOURCES, VALIDATION_EXECUTION_SOURCES, VALIDATION_LEVELS, OAUTH_SESSION_STATES,
 } from "./types";
 export type {

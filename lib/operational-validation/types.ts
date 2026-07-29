@@ -40,6 +40,8 @@ export const OUTCOME_REASONS = ["EXPECTED_MATCH", "INTENTIONAL_IMPROVEMENT", "KN
 export type OutcomeReason = typeof OUTCOME_REASONS[number];
 export const MIGRATION_RECOMMENDATIONS = ["PROCEED", "REFINE", "DEFER", "NOT_ASSESSED"] as const;
 export type MigrationRecommendation = typeof MIGRATION_RECOMMENDATIONS[number];
+export const LEGACY_COMPARISON_STATUSES = ["NOT_ENABLED", "NOT_ATTEMPTED_NO_PRESENT_SCENARIOS", "EXECUTED", "INCOMPLETE", "FAILED"] as const;
+export type LegacyComparisonStatus = typeof LEGACY_COMPARISON_STATUSES[number];
 export const MIGRATION_RECOMMENDATION_BASES = ["SUFFICIENT_OPERATIONAL_EVIDENCE", "INSUFFICIENT_OPERATIONAL_COVERAGE", "LEGACY_COMPARISON_REQUIRED", "MATERIAL_IMPLEMENTATION_DEFECTS", "AUTHENTICATED_VALIDATION_INCOMPLETE"] as const;
 export type MigrationRecommendationBasis = typeof MIGRATION_RECOMMENDATION_BASES[number];
 
@@ -55,7 +57,10 @@ export interface MigrationRecommendationEvidence {
   readonly validatedScenarioCount: number;
   readonly requiredScenarioCount: number;
   readonly scenarioCoverage: ScenarioCoverage;
+  readonly legacyComparisonStatus: LegacyComparisonStatus;
+  /** Derived compatibility fact. Prefer legacyComparisonStatus. */
   readonly legacyComparisonEnabled: boolean;
+  /** Derived compatibility fact. Prefer legacyComparisonStatus. */
   readonly legacyComparisonExecuted: boolean;
   readonly implementationDefectsDetected: number;
 }
@@ -74,10 +79,16 @@ export interface OperationalScenarioRecord extends ValidationResult {
   readonly matchedClaims: number; readonly comparedClaims: number;
 }
 export interface OperationalValidationInput {
-  readonly runId: string; readonly provenance: ValidationProvenance;
-  readonly operatorConfirmation: OperatorConfirmation; readonly attestation?: EvidenceAttestation;
-  readonly scenarios: readonly OperationalScenarioRecord[]; readonly retrievalWindow?: unknown;
-  readonly deterministicValidationCompleted?: boolean; readonly legacyComparisonEnabled?: boolean; readonly legacyComparisonExecuted?: boolean;
+  readonly runId: string;
+  readonly provenance: ValidationProvenance;
+  readonly operatorConfirmation: OperatorConfirmation;
+  readonly attestation?: EvidenceAttestation;
+  readonly scenarios: readonly OperationalScenarioRecord[];
+  readonly retrievalWindow?: unknown;
+
+  readonly deterministicValidationCompleted?: boolean;
+
+  readonly legacyComparisonStatus: LegacyComparisonStatus;
 }
 export interface AnonymisedScenarioSummary extends ValidationResult { readonly scenarioId: string; readonly scenarioCategory: ScenarioCategory; readonly matchStatistics: Readonly<{matched:number; compared:number}>; }
 export interface AnonymisedValidationSummary {

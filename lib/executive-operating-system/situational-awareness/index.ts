@@ -13,14 +13,18 @@ export type {
 export {
   CalendarProjectionAdapter,
   CALENDAR_PROJECTION_ADAPTER_ID,
+  GmailProjectionAdapter,
+  GMAIL_PROJECTION_ADAPTER_ID,
   OperationalCommunicationProjectionAdapter,
   OPERATIONAL_COMMUNICATION_PROJECTION_ADAPTER_ID,
   ProjectionEngine,
   ProjectionRegistry,
   createProjectionArtifact,
+  normalizeGmailObservation,
 } from "./projection";
 export type {
   CalendarProjectionConnector, CalendarProjectionEvent, CalendarProjectionOptions,
+  GmailMessageObservation, GmailProjectionConnector, GmailProjectionOptions, NormalizedGmailObservation,
   OperationalCommunicationObservation, OperationalCommunicationProjectionOptions,
   ProjectionAdapter, ProjectionArtifact, ProjectionEntities, ProjectionValidationState, Provenance,
   SourceAvailability,

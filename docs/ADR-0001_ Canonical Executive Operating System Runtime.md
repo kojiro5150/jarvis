@@ -87,6 +87,9 @@ publication and audit composition. It must not acquire observations, reproduce s
 logic, assess evidence, recommend action, grant approval, determine capability eligibility, select  
 an implementation outside invocation policy, or perform the delegated operation.
 
+Downstream of the constitutional lineage, `ExecutiveInteractionProcessor` consumes the Executive
+Interface Layer publication; it does not extend or participate in the Constitutional Runtime.
+
 \#\# Architectural invariants
 
 \#\#\# Authority Invariant

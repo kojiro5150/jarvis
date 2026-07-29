@@ -26,8 +26,10 @@ One deliberate exception, noted in the constitution: **STEVE** (Engineering and 
 
 Before contributing to this repository, please read:
 
-- docs/ENGINEERING_CONSTITUTION.md
-- docs/ARCHITECTURE/NORTH_STAR.md
+- [Engineering Constitution](./docs/ENGINEERING_CONSTITUTION.md)
+- [North Star](./docs/architecture/NORTH_STAR.md)
+- [Constitutional Publication Principles](./docs/CONSTITUTIONAL-PUBLICATION-PRINCIPLES.md) for the
+  permanent rules governing immutable Executive Operating System publications
 
 ## What's in Phase 1
 

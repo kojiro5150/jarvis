@@ -58,6 +58,7 @@ export type TransformationStatus = "not_required" | "required_not_applied" | "ap
 export type RetrievalOutcome = "permitted" | "denied" | "failed";
 
 export type RetrievalAuditRecord = Readonly<{
+  retrievalId: string;
   request: RetrievalRequest;
   policyDecision: ProcessingDecision;
   policyVersion: string | null;

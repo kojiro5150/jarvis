@@ -76,10 +76,10 @@ describe("content retrieval policy boundary", () => {
     const evaluation = evaluateContentRetrievalPolicy(resource, policy);
     const request = { resource, requestedFields: ["subject", "html_body"], requestingRuntime: "future-conversation-runtime" };
     expect(createRetrievalAuditRecord({
-      request, evaluation, releasedFields: ["subject"], transformationStatus: "not_required",
+      retrievalId: "retrieval-1", request, evaluation, releasedFields: ["subject"], transformationStatus: "not_required",
       timestamp: "2026-07-29T12:00:00.000Z", outcome: "permitted",
     })).toEqual({
-      request, policyDecision: "external_processing_permitted", policyVersion: "2026-07-29.1",
+      retrievalId: "retrieval-1", request, policyDecision: "external_processing_permitted", policyVersion: "2026-07-29.1",
       requestedFields: ["subject", "html_body"], releasedFields: ["subject"],
       transformationStatus: "not_required", requestingRuntime: "future-conversation-runtime",
       timestamp: "2026-07-29T12:00:00.000Z", outcome: "permitted",

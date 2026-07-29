@@ -1,6 +1,7 @@
 import type { PolicyEvaluation, RetrievalAuditRecord, RetrievalOutcome, RetrievalRequest, TransformationStatus } from "./types";
 
 export function createRetrievalAuditRecord(input: {
+  retrievalId: string;
   request: RetrievalRequest;
   evaluation: PolicyEvaluation;
   releasedFields: readonly string[];
@@ -9,6 +10,7 @@ export function createRetrievalAuditRecord(input: {
   outcome: RetrievalOutcome;
 }): RetrievalAuditRecord {
   return {
+    retrievalId: input.retrievalId,
     request: input.request,
     policyDecision: input.evaluation.decision,
     policyVersion: input.evaluation.policyVersion,

@@ -1,0 +1,17 @@
+{
+  "version": "operational-validation-v1",
+  "validationDate": "2026-07-29",
+  "scenarioCount": 8,
+  "scenarios": [
+    { "scenarioId": "OV-001", "scenarioCategory": "CURRENT_WORKING_DAY", "comparisonClassification": "Equivalent", "outcomeReason": "EXPECTED_MATCH", "matchStatistics": { "matched": 1, "compared": 1 }, "migrationRecommendation": "Proceed" },
+    { "scenarioId": "OV-002", "scenarioCategory": "TOMORROW", "comparisonClassification": "Equivalent", "outcomeReason": "EXPECTED_MATCH", "matchStatistics": { "matched": 1, "compared": 1 }, "migrationRecommendation": "Proceed" },
+    { "scenarioId": "OV-003", "scenarioCategory": "OVERLAPPING_COMMITMENTS", "comparisonClassification": "Action Required", "outcomeReason": "REQUIRES_INVESTIGATION", "matchStatistics": { "matched": 0, "compared": 1 }, "migrationRecommendation": "Defer" },
+    { "scenarioId": "OV-004", "scenarioCategory": "NO_COMMITMENTS", "comparisonClassification": "Equivalent", "outcomeReason": "EXPECTED_MATCH", "matchStatistics": { "matched": 1, "compared": 1 }, "migrationRecommendation": "Proceed" },
+    { "scenarioId": "OV-005", "scenarioCategory": "BUSY_AFTERNOON", "comparisonClassification": "Equivalent", "outcomeReason": "EXPECTED_MATCH", "matchStatistics": { "matched": 1, "compared": 1 }, "migrationRecommendation": "Proceed" },
+    { "scenarioId": "OV-006", "scenarioCategory": "RECURRING_COMMITMENT", "comparisonClassification": "Intentional Improvement", "outcomeReason": "INTENTIONAL_IMPROVEMENT", "matchStatistics": { "matched": 0, "compared": 1 }, "migrationRecommendation": "Refine" },
+    { "scenarioId": "OV-007", "scenarioCategory": "CANCELLED_COMMITMENT", "comparisonClassification": "Equivalent", "outcomeReason": "EXPECTED_MATCH", "matchStatistics": { "matched": 1, "compared": 1 }, "migrationRecommendation": "Proceed" },
+    { "scenarioId": "OV-008", "scenarioCategory": "ALL_DAY_COMMITMENT", "comparisonClassification": "Not Comparable", "outcomeReason": "EXTRACTION_NOT_COMPARABLE", "matchStatistics": { "matched": 0, "compared": 0 }, "migrationRecommendation": "Defer" }
+  ],
+  "matchStatistics": { "matched": 5, "compared": 7 },
+  "migrationRecommendation": "Defer"
+}

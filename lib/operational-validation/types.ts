@@ -1,4 +1,4 @@
-export const OPERATIONAL_VALIDATION_VERSION = "operational-validation-v2" as const;
+export const OPERATIONAL_VALIDATION_VERSION = "operational-validation-v3" as const;
 
 export const VALIDATION_EXECUTION_SOURCES = ["synthetic", "manual_observation", "recorded_replay", "authenticated_deployment", "mixed"] as const;
 export const VALIDATION_CONNECTOR_SOURCES = ["fixture", "manual_ui_observation", "recorded_connector_output", "live_google_calendar", "mixed"] as const;
@@ -40,6 +40,33 @@ export const OUTCOME_REASONS = ["EXPECTED_MATCH", "INTENTIONAL_IMPROVEMENT", "KN
 export type OutcomeReason = typeof OUTCOME_REASONS[number];
 export const MIGRATION_RECOMMENDATIONS = ["PROCEED", "REFINE", "DEFER", "NOT_ASSESSED"] as const;
 export type MigrationRecommendation = typeof MIGRATION_RECOMMENDATIONS[number];
+export const MIGRATION_RECOMMENDATION_BASES = ["SUFFICIENT_OPERATIONAL_EVIDENCE", "INSUFFICIENT_OPERATIONAL_COVERAGE", "LEGACY_COMPARISON_REQUIRED", "MATERIAL_IMPLEMENTATION_DEFECTS", "AUTHENTICATED_VALIDATION_INCOMPLETE"] as const;
+export type MigrationRecommendationBasis = typeof MIGRATION_RECOMMENDATION_BASES[number];
+
+export interface ScenarioCoverage {
+  readonly present: number;
+  readonly absent: number;
+  readonly notComparable: number;
+}
+export const LEGACY_COMPARISON_STATUSES = ["NOT_ENABLED", "NOT_ATTEMPTED_NO_PRESENT_SCENARIOS", "EXECUTED", "INCOMPLETE", "FAILED"] as const;
+export type LegacyComparisonStatus = typeof LEGACY_COMPARISON_STATUSES[number];
+export interface MigrationRecommendationEvidence {
+  readonly authenticatedExecution: boolean;
+  readonly operatorAttested: boolean;
+  readonly deterministicValidationCompleted: boolean;
+  readonly validatedScenarioCount: number;
+  readonly requiredScenarioCount: number;
+  readonly scenarioCoverage: ScenarioCoverage;
+  readonly legacyComparisonEnabled: boolean;
+  readonly legacyComparisonExecuted: boolean;
+  readonly legacyComparisonStatus: LegacyComparisonStatus;
+  readonly implementationDefectsDetected: number;
+}
+export interface AuthoritativeMigrationRecommendation {
+  readonly value: MigrationRecommendation;
+  readonly basis: MigrationRecommendationBasis;
+  readonly evidence: MigrationRecommendationEvidence;
+}
 
 export interface ValidationResult { readonly comparisonClassification: ComparisonClassification; readonly outcomeReason: OutcomeReason; }
 export interface OperationalScenarioRecord extends ValidationResult {
@@ -53,11 +80,14 @@ export interface OperationalValidationInput {
   readonly runId: string; readonly provenance: ValidationProvenance;
   readonly operatorConfirmation: OperatorConfirmation; readonly attestation?: EvidenceAttestation;
   readonly scenarios: readonly OperationalScenarioRecord[]; readonly retrievalWindow?: unknown;
+  readonly deterministicValidationCompleted?: boolean; readonly legacyComparisonStatus?: LegacyComparisonStatus;
 }
 export interface AnonymisedScenarioSummary extends ValidationResult { readonly scenarioId: string; readonly scenarioCategory: ScenarioCategory; readonly matchStatistics: Readonly<{matched:number; compared:number}>; }
 export interface AnonymisedValidationSummary {
   readonly version: typeof OPERATIONAL_VALIDATION_VERSION; readonly runId: string; readonly generatedDate: string;
   readonly runnerVersion: string; readonly provenance: ValidationProvenance; readonly operatorConfirmation: OperatorConfirmation;
   readonly scenarioCount: number; readonly scenarios: readonly AnonymisedScenarioSummary[];
-  readonly matchStatistics: Readonly<{matched:number; compared:number}>; readonly migrationRecommendation: MigrationRecommendation;
+  readonly matchStatistics: Readonly<{matched:number; compared:number}>; readonly migrationRecommendation: AuthoritativeMigrationRecommendation;
 }
+
+export interface EngineeringSummary { readonly implementationQuality:"PASS"|"FAIL"|"NOT ASSESSED"; readonly evidenceSufficiency:"SUFFICIENT"|"LIMITED"|"NOT ASSESSED"; readonly migrationEvidence:"MIGRATION EVIDENCE SUFFICIENT"|"MORE OPERATIONAL COVERAGE REQUIRED"|"IMPLEMENTATION REMEDIATION REQUIRED"|"AUTHENTICATED VALIDATION REQUIRED"; }

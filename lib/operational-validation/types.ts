@@ -48,8 +48,6 @@ export interface ScenarioCoverage {
   readonly absent: number;
   readonly notComparable: number;
 }
-export const LEGACY_COMPARISON_STATUSES = ["NOT_ENABLED", "NOT_ATTEMPTED_NO_PRESENT_SCENARIOS", "EXECUTED", "INCOMPLETE", "FAILED"] as const;
-export type LegacyComparisonStatus = typeof LEGACY_COMPARISON_STATUSES[number];
 export interface MigrationRecommendationEvidence {
   readonly authenticatedExecution: boolean;
   readonly operatorAttested: boolean;
@@ -59,7 +57,6 @@ export interface MigrationRecommendationEvidence {
   readonly scenarioCoverage: ScenarioCoverage;
   readonly legacyComparisonEnabled: boolean;
   readonly legacyComparisonExecuted: boolean;
-  readonly legacyComparisonStatus: LegacyComparisonStatus;
   readonly implementationDefectsDetected: number;
 }
 export interface AuthoritativeMigrationRecommendation {
@@ -80,7 +77,7 @@ export interface OperationalValidationInput {
   readonly runId: string; readonly provenance: ValidationProvenance;
   readonly operatorConfirmation: OperatorConfirmation; readonly attestation?: EvidenceAttestation;
   readonly scenarios: readonly OperationalScenarioRecord[]; readonly retrievalWindow?: unknown;
-  readonly deterministicValidationCompleted?: boolean; readonly legacyComparisonStatus?: LegacyComparisonStatus;
+  readonly deterministicValidationCompleted?: boolean; readonly legacyComparisonEnabled?: boolean; readonly legacyComparisonExecuted?: boolean;
 }
 export interface AnonymisedScenarioSummary extends ValidationResult { readonly scenarioId: string; readonly scenarioCategory: ScenarioCategory; readonly matchStatistics: Readonly<{matched:number; compared:number}>; }
 export interface AnonymisedValidationSummary {

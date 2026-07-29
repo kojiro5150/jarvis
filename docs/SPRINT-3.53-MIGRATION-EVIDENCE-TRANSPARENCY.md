@@ -16,7 +16,7 @@ These rules deliberately do not infer recurrence or attendee response. The Googl
 
 ## Optional legacy comparison
 
-The runner does not invoke conversational behavior by default. A caller must supply an enabled `LegacyComparisonAdapter`. The adapter receives the authenticated connector evidence, deterministic ExecutiveContext representation, scenario identity, and validation provenance. It may return a real extracted comparison or `undefined`; no fallback response or claim is synthesized. The fixed `legacyComparisonStatus` vocabulary distinguishes `NOT_ENABLED`, `NOT_ATTEMPTED_NO_PRESENT_SCENARIOS`, `EXECUTED`, `INCOMPLETE`, and `FAILED` without publishing provider error details. `legacyComparisonExecuted` remains the directly derived compatibility fact `status === EXECUTED`.
+The runner does not invoke conversational behavior by default. A caller must supply an enabled `LegacyComparisonAdapter`. The adapter receives the authenticated connector evidence, deterministic ExecutiveContext representation, scenario identity, and validation provenance. It may return a real extracted comparison or `undefined`; an incomplete attempt is recorded as `legacyComparisonExecuted: false`, and no fallback response or claim is synthesized.
 
 ## Derived reviewer views
 

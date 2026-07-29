@@ -8,7 +8,7 @@ export {
 } from "./types";
 export type {
   AnonymisedScenarioSummary, AnonymisedValidationSummary, ComparisonClassification,
-  MigrationRecommendation, MigrationRecommendationBasis, MigrationRecommendationEvidence, AuthoritativeMigrationRecommendation, EngineeringSummary, LegacyComparisonStatus, ScenarioCoverage, OperationalScenarioRecord, OperationalValidationInput, ValidationProvenance,
+  MigrationRecommendation, MigrationRecommendationBasis, MigrationRecommendationEvidence, AuthoritativeMigrationRecommendation, EngineeringSummary, ScenarioCoverage, OperationalScenarioRecord, OperationalValidationInput, ValidationProvenance,
   ValidationExecutionSource, ValidationConnectorSource, ValidationLevel, OAuthSessionState, OperatorConfirmation, EvidenceAttestation,
   OutcomeReason, ScenarioCategory, ValidationResult,
 } from "./types";

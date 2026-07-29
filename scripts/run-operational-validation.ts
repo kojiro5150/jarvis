@@ -42,8 +42,8 @@ async function main(): Promise<void> {
             result.summary.migrationRecommendation,
           scenarioCoverage:
             result.summary.migrationRecommendation.evidence.scenarioCoverage,
-          legacyComparisonExecuted:
-            result.summary.migrationRecommendation.evidence.legacyComparisonExecuted,
+          legacyComparisonStatus:
+            result.summary.migrationRecommendation.evidence.legacyComparisonStatus,
         },
         null,
         2,

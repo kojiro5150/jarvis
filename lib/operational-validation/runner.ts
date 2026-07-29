@@ -7,7 +7,7 @@ import { SituationalAwarenessEngine } from "../executive-operating-system/situat
 import { AvailabilityEngine } from "../executive-operating-system/computation/availability";
 import { ExecutiveContextEngine } from "../executive-context";
 import { recordOperationalValidation } from "./recorder";
-import type { AnonymisedValidationSummary, EvidenceAttestation, OperationalScenarioRecord, OperationalValidationInput, ScenarioCategory, ValidationProvenance } from "./types";
+import type { AnonymisedValidationSummary, EvidenceAttestation, LegacyComparisonStatus, OperationalScenarioRecord, OperationalValidationInput, ScenarioCategory, ValidationProvenance } from "./types";
 
 export interface BoundedCalendarConnector { verifySession():Promise<void>; listBetween(start:string,end:string,limit:number):Promise<readonly CalendarEvent[]>; }
 export interface LegacyComparisonAdapter { readonly enabled:true; compare(input:Readonly<{scenarioId:string;scenarioCategory:ScenarioCategory;provenance:ValidationProvenance;connectorEvidence:unknown;executiveRepresentation:unknown}>):Promise<Pick<OperationalScenarioRecord,"comparisonClassification"|"outcomeReason"|"matchedClaims"|"comparedClaims"|"legacyClaim"|"extractionResult"|"comparisonResult">|undefined>; }
@@ -42,12 +42,20 @@ export async function runAuthenticatedOperationalValidation(deps:OperationalRunn
   const derived=deriveScenarios(events,assembled.snapshot.state.commitments,availability,now);
   const provenance={executionSource:"authenticated_deployment" as const,connectorSource:"live_google_calendar" as const,validationLevel:"operational" as const,oauthSession:"present" as const,generatedBy:"authenticated-operational-validation-runner",generatedAt:observedAt,runnerVersion};
   const scenarios:OperationalScenarioRecord[]=derived.map((item,index)=>({scenarioId:`OV-LIVE-${String(index+1).padStart(3,"0")}`,scenarioCategory:item.category,validationDate:day(observedAt),connectorEvidence:events,canonicalProjection:artifact,situationalAwareness:assembled.snapshot,availabilityComputation:availability,executiveRepresentation:executive.snapshot,comparisonClassification:item.present?"Not Comparable":"Scenario Not Present",outcomeReason:item.present?"EXTRACTION_NOT_COMPARABLE":"SCENARIO_NOT_PRESENT",matchedClaims:0,comparedClaims:0}));
-  let legacyComparisonExecuted=false;
+  let legacyComparisonStatus:LegacyComparisonStatus="NOT_ENABLED";
   if(deps.legacyComparison?.enabled){
     const present=scenarios.filter(s=>s.comparisonClassification!=="Scenario Not Present");
-    const compared=await Promise.all(present.map(s=>deps.legacyComparison!.compare({scenarioId:s.scenarioId,scenarioCategory:s.scenarioCategory,provenance,connectorEvidence:s.connectorEvidence,executiveRepresentation:s.executiveRepresentation})));
-    legacyComparisonExecuted=present.length>0&&compared.every(Boolean);
-    if(legacyComparisonExecuted) for(let i=0;i<present.length;i++) Object.assign(present[i],compared[i]);
+    if(present.length===0) legacyComparisonStatus="NOT_ATTEMPTED_NO_PRESENT_SCENARIOS";
+    else {
+      try {
+        const compared=await Promise.all(present.map(s=>deps.legacyComparison!.compare({scenarioId:s.scenarioId,scenarioCategory:s.scenarioCategory,provenance,connectorEvidence:s.connectorEvidence,executiveRepresentation:s.executiveRepresentation})));
+        legacyComparisonStatus=compared.every(result=>result!==undefined)?"EXECUTED":"INCOMPLETE";
+        for(let i=0;i<present.length;i++) if(compared[i]!==undefined) Object.assign(present[i],compared[i]);
+      } catch {
+        // Provider details are deliberately discarded; the anonymised lifecycle records only FAILED.
+        legacyComparisonStatus="FAILED";
+      }
+    }
   }
   const runId=`ov-${observedAt.replace(/[^0-9]/g,"")}-${randomBytes(4).toString("hex")}`;
   const reportHash=createHash("sha256").update(JSON.stringify({runId,provenance,scenarios,retrievalWindow:{start,end}})).digest("hex");
@@ -56,7 +64,7 @@ export async function runAuthenticatedOperationalValidation(deps:OperationalRunn
   const response=await deps.confirmChallenge?.(display);
   let attestation:EvidenceAttestation|undefined;
   if(response?.answer===expected&&response.operator.trim()) attestation={reportWritten:true,challengeCompleted:true,attestedAt:new Date().toISOString(),confirmedAt:new Date().toISOString(),confirmingOperator:response.operator.trim(),challengeId,reportHash,runnerVersion};
-  const input:OperationalValidationInput={runId,provenance,operatorConfirmation:attestation?"confirmed":"pending",...(attestation?{attestation}:{}),scenarios,retrievalWindow:{start,end,category:"THREE_DAY_BOUNDED"},deterministicValidationCompleted:true,legacyComparisonEnabled:deps.legacyComparison?.enabled===true,legacyComparisonExecuted};
+  const input:OperationalValidationInput={runId,provenance,operatorConfirmation:attestation?"confirmed":"pending",...(attestation?{attestation}:{}),scenarios,retrievalWindow:{start,end,category:"THREE_DAY_BOUNDED"},deterministicValidationCompleted:true,legacyComparisonStatus};
   const recorded=await recordOperationalValidation(input,{repositoryRoot:deps.repositoryRoot});
   return {status:attestation?"OPERATIONAL_VALIDATION_COMPLETE":"AUTHENTICATED_EXECUTION_CLAIMED",...recorded,attestation:display};
 }

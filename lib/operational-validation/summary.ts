@@ -1,4 +1,5 @@
-import { COMPARISON_CLASSIFICATIONS, OAUTH_SESSION_STATES, OPERATIONAL_VALIDATION_VERSION, OPERATOR_CONFIRMATIONS, OUTCOME_REASONS, SCENARIO_CATEGORIES, VALIDATION_CONNECTOR_SOURCES, VALIDATION_EXECUTION_SOURCES, VALIDATION_LEVELS, type AnonymisedValidationSummary, type AuthoritativeMigrationRecommendation, type EngineeringSummary, type MigrationRecommendationBasis, type MigrationRecommendationEvidence, type MigrationRecommendation, type OperationalValidationInput, type ValidationProvenance } from "./types";
+import { deepFreeze } from "../executive-operating-system/runtime/validation";
+import { COMPARISON_CLASSIFICATIONS, LEGACY_COMPARISON_STATUSES, OAUTH_SESSION_STATES, OPERATIONAL_VALIDATION_VERSION, OPERATOR_CONFIRMATIONS, OUTCOME_REASONS, SCENARIO_CATEGORIES, VALIDATION_CONNECTOR_SOURCES, VALIDATION_EXECUTION_SOURCES, VALIDATION_LEVELS, type AnonymisedValidationSummary, type AuthoritativeMigrationRecommendation, type EngineeringSummary, type MigrationRecommendationBasis, type MigrationRecommendationEvidence, type MigrationRecommendation, type OperationalValidationInput, type ValidationProvenance } from "./types";
 
 const combinations = {
   synthetic: ["fixture", "framework", "not_applicable"],
@@ -19,7 +20,7 @@ export function validateProvenance(value: ValidationProvenance): void {
   if (!iso(value.generatedAt)) throw new Error("generatedAt must be an ISO timestamp");
 }
 
-type RecommendationInput = Pick<OperationalValidationInput,"provenance"|"operatorConfirmation"|"attestation"|"scenarios"|"deterministicValidationCompleted"|"legacyComparisonEnabled"|"legacyComparisonExecuted">;
+type RecommendationInput = Pick<OperationalValidationInput,"provenance"|"operatorConfirmation"|"attestation"|"scenarios"|"deterministicValidationCompleted"|"legacyComparisonStatus">;
 type MigrationGateClassification = Readonly<{value:MigrationRecommendation;basis:MigrationRecommendationBasis}>;
 
 /** Measures facts only. This function does not classify or recommend migration. */
@@ -31,16 +32,18 @@ export function assembleMigrationRecommendationEvidence(input:RecommendationInpu
   const absent=input.scenarios.filter(r=>r.comparisonClassification==="Scenario Not Present").length;
   const notComparable=input.scenarios.filter(r=>r.comparisonClassification==="Not Comparable").length;
   const present=input.scenarios.length-absent;
-  const legacyComparisonEnabled=input.legacyComparisonEnabled===true;
-  return Object.freeze({
+  if (!LEGACY_COMPARISON_STATUSES.includes(input.legacyComparisonStatus)) throw new Error("invalid legacy comparison status");
+  const legacyComparisonStatus=input.legacyComparisonStatus;
+  return deepFreeze({
     authenticatedExecution,
     operatorAttested,
     deterministicValidationCompleted:input.deterministicValidationCompleted===true,
     validatedScenarioCount:present,
     requiredScenarioCount:SCENARIO_CATEGORIES.length,
-    scenarioCoverage:Object.freeze({present,absent,notComparable}),
-    legacyComparisonEnabled,
-    legacyComparisonExecuted:legacyComparisonEnabled&&input.legacyComparisonExecuted===true,
+    scenarioCoverage:{present,absent,notComparable},
+    legacyComparisonStatus,
+    legacyComparisonEnabled:legacyComparisonStatus!=="NOT_ENABLED",
+    legacyComparisonExecuted:legacyComparisonStatus==="EXECUTED",
     implementationDefectsDetected:input.scenarios.filter(r=>r.comparisonClassification==="Action Required").length,
   });
 }
@@ -50,14 +53,14 @@ function applyMigrationRecommendationGate(evidence:MigrationRecommendationEviden
   if(!evidence.authenticatedExecution||!evidence.operatorAttested||!evidence.deterministicValidationCompleted) return {value:"NOT_ASSESSED",basis:"AUTHENTICATED_VALIDATION_INCOMPLETE"};
   if(evidence.implementationDefectsDetected>0) return {value:"DEFER",basis:"MATERIAL_IMPLEMENTATION_DEFECTS"};
   if(evidence.validatedScenarioCount<evidence.requiredScenarioCount||evidence.scenarioCoverage.notComparable>0) return {value:"REFINE",basis:"INSUFFICIENT_OPERATIONAL_COVERAGE"};
-  if(evidence.legacyComparisonEnabled&&!evidence.legacyComparisonExecuted) return {value:"REFINE",basis:"LEGACY_COMPARISON_REQUIRED"};
+  if(evidence.legacyComparisonStatus!=="EXECUTED") return {value:"REFINE",basis:"LEGACY_COMPARISON_REQUIRED"};
   return {value:"PROCEED",basis:"SUFFICIENT_OPERATIONAL_EVIDENCE"};
 }
 
 export function determineMigrationRecommendation(input:RecommendationInput):AuthoritativeMigrationRecommendation {
   const evidence=assembleMigrationRecommendationEvidence(input);
   const classification=applyMigrationRecommendationGate(evidence);
-  return Object.freeze({value:classification.value,basis:classification.basis,evidence});
+  return deepFreeze({value:classification.value,basis:classification.basis,evidence});
 }
 
 export function deriveEngineeringSummary(recommendation:AuthoritativeMigrationRecommendation):EngineeringSummary {
@@ -69,7 +72,7 @@ export function deriveEngineeringSummary(recommendation:AuthoritativeMigrationRe
 export function evaluateMigrationGate(recommendation:AuthoritativeMigrationRecommendation):Readonly<{mayProceed:boolean;unmetConditions:readonly string[]}> {
   const e=recommendation.evidence, unmet:string[]=[];
   if(!e.authenticatedExecution) unmet.push("AUTHENTICATED_EXECUTION"); if(!e.operatorAttested) unmet.push("OPERATOR_ATTESTATION"); if(!e.deterministicValidationCompleted) unmet.push("DETERMINISTIC_VALIDATION");
-  if(e.validatedScenarioCount<e.requiredScenarioCount||e.scenarioCoverage.notComparable>0) unmet.push("SUFFICIENT_OPERATIONAL_COVERAGE"); if(e.legacyComparisonEnabled&&!e.legacyComparisonExecuted) unmet.push("LEGACY_COMPARISON"); if(e.implementationDefectsDetected>0) unmet.push("NO_MATERIAL_IMPLEMENTATION_DEFECTS");
+  if(e.validatedScenarioCount<e.requiredScenarioCount||e.scenarioCoverage.notComparable>0) unmet.push("SUFFICIENT_OPERATIONAL_COVERAGE"); if(e.legacyComparisonStatus!=="EXECUTED") unmet.push("LEGACY_COMPARISON"); if(e.implementationDefectsDetected>0) unmet.push("NO_MATERIAL_IMPLEMENTATION_DEFECTS");
   return {mayProceed:recommendation.value==="PROCEED"&&unmet.length===0,unmetConditions:unmet};
 }
 
@@ -82,7 +85,7 @@ export function renderValidationDashboard(summary:AnonymisedValidationSummary):s
   const byCategory=new Map(summary.scenarios.map(s=>[s.scenarioCategory,s]));
   const coverage=SCENARIO_CATEGORIES.map(category=>`${byCategory.get(category)?.comparisonClassification==="Scenario Not Present"?"✗":"✓"} ${labels[category]}`).join("\n");
   const percentage=Math.round(100*evidence.validatedScenarioCount/evidence.requiredScenarioCount);
-  return `Authenticated Operational Validation\n\nProjection\n${evidence.deterministicValidationCompleted?"PASS":"NOT COMPLETE"}\n\nExecutiveContext\n${evidence.deterministicValidationCompleted?"PASS":"NOT COMPLETE"}\n\nAvailability\n${evidence.deterministicValidationCompleted?"PASS":"NOT COMPLETE"}\n\nScenario Coverage\n\n${coverage}\n\nCoverage Summary\n\nPresent: ${evidence.scenarioCoverage.present}\nAbsent: ${evidence.scenarioCoverage.absent}\nNot Comparable: ${evidence.scenarioCoverage.notComparable}\n\nOperational Coverage\n${percentage}%\n\nLegacy Comparison\n${evidence.legacyComparisonExecuted?"Executed":"Not Executed"}\n\nMigration Recommendation\n${recommendation.value}\n\nRecommendation Basis\n${words(recommendation.basis)}\n\nImplementation Quality\n${engineering.implementationQuality}\n\nEvidence Sufficiency\n${engineering.evidenceSufficiency}\n\nMigration Evidence\n${engineering.migrationEvidence}`;
+  return `Authenticated Operational Validation\n\nProjection\n${evidence.deterministicValidationCompleted?"PASS":"NOT COMPLETE"}\n\nExecutiveContext\n${evidence.deterministicValidationCompleted?"PASS":"NOT COMPLETE"}\n\nAvailability\n${evidence.deterministicValidationCompleted?"PASS":"NOT COMPLETE"}\n\nScenario Coverage\n\n${coverage}\n\nCoverage Summary\n\nPresent: ${evidence.scenarioCoverage.present}\nAbsent: ${evidence.scenarioCoverage.absent}\nNot Comparable: ${evidence.scenarioCoverage.notComparable}\n\nOperational Coverage\n${percentage}%\n\nLegacy Comparison Status\n${evidence.legacyComparisonStatus}\n\nMigration Recommendation\n${recommendation.value}\n\nRecommendation Basis\n${words(recommendation.basis)}\n\nImplementation Quality\n${engineering.implementationQuality}\n\nEvidence Sufficiency\n${engineering.evidenceSufficiency}\n\nMigration Evidence\n${engineering.migrationEvidence}`;
 }
 
 export function createAnonymisedValidationSummary(input: OperationalValidationInput): AnonymisedValidationSummary {

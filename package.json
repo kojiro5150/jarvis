@@ -9,7 +9,7 @@
     "lint": "next lint",
     "test": "vitest run",
     "eos:demo": "node scripts/eos-demo.cjs",
-    "validate:operations": "npx --yes tsx scripts/run-operational-validation.ts"
+    "validate:operations": "node --env-file=.env.local --import tsx scripts/run-operational-validation.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",

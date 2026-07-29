@@ -2,6 +2,7 @@ import type { ExecutiveRunRecord } from "../runtime";
 import type { ExecutiveSession } from "../executive-session/types";
 import type { ExecutiveInteractionContract } from "../executive-interaction/types";
 import type { ExecutiveInteractionResult } from "../executive-interaction-processing/types";
+import type { ExecutiveApplicationContext } from "../executive-application-context/types";
 
 export const EXECUTIVE_OPERATIONAL_STATE_SCHEMA_VERSION = "executive-operational-state-v1" as const;
 
@@ -64,4 +65,5 @@ export interface ExecutiveOperationalResult {
   readonly executiveSession: ExecutiveSession;
   readonly executiveInteractionContract: ExecutiveInteractionContract;
   readonly executiveInteractionResult: ExecutiveInteractionResult;
+  readonly executiveApplicationContext: ExecutiveApplicationContext;
 }

@@ -3,6 +3,7 @@ import type { ExecutiveRunRecord, ExecutiveRunPublicationReference } from "../ru
 import { composeExecutiveSession } from "../executive-session/composer";
 import { composeExecutiveInteractionContract } from "../executive-interaction/composer";
 import { processExecutiveInteraction } from "../executive-interaction-processing/processor";
+import { projectExecutiveApplicationContext } from "../executive-application-context/projector";
 import {
   EXECUTIVE_OPERATIONAL_STATE_SCHEMA_VERSION,
   type ExecutiveOperationalResult,
@@ -112,11 +113,13 @@ export function composeExecutiveOperationalResult(
   const executiveOperationalState = composeExecutiveOperationalState(executiveRunRecord);
   const executiveSession = composeExecutiveSession(executiveOperationalState);
   const executiveInteractionContract = composeExecutiveInteractionContract(executiveSession);
+  const executiveInteractionResult = processExecutiveInteraction(executiveInteractionContract);
   return deepFreeze({
     executiveRunRecord,
     executiveOperationalState,
     executiveSession,
     executiveInteractionContract,
-    executiveInteractionResult: processExecutiveInteraction(executiveInteractionContract),
+    executiveInteractionResult,
+    executiveApplicationContext: projectExecutiveApplicationContext(executiveInteractionResult),
   });
 }

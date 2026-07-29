@@ -30,6 +30,8 @@ Before contributing to this repository, please read:
 - [North Star](./docs/architecture/NORTH_STAR.md)
 - [Constitutional Publication Principles](./docs/CONSTITUTIONAL-PUBLICATION-PRINCIPLES.md) for the
   permanent rules governing immutable Executive Operating System publications
+- [ADR-0023 — Evidence-Driven Canonical Evolution](./docs/architecture/ADR-0023-Evidence-Driven-Canonical-Evolution.md)
+  for the evidentiary standard governing when new canonical publications may be introduced
 
 ## What's in Phase 1
 

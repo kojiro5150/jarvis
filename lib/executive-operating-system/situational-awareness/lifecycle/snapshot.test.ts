@@ -22,6 +22,8 @@ describe("createSituationalAwarenessSnapshot", () => {
     expect(Object.isFrozen(snapshot.state)).toBe(true);
     expect(Object.isFrozen(snapshot.state.roles)).toBe(true);
     expect(Object.isFrozen(snapshot.state.roles[0])).toBe(true);
+    expect(snapshot.state.communications).toEqual([]);
+    expect(Object.isFrozen(snapshot.state.communications)).toBe(true);
     expect(snapshot.state).not.toBe(candidate.state);
   });
 

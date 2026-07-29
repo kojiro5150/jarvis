@@ -8,7 +8,14 @@ describe("Situational Awareness offline replay", () => {
     const engine = new SituationalAwarenessEngine();
     const first = engine.assemble(goldenProjectionArtifactSet);
     const second = engine.assemble(replay);
-    expect(second).toEqual(first);
-    expect(first.outcome === "success" && second.outcome === "success" && second.snapshot.snapshotId).toBe(first.outcome === "success" ? first.snapshot.snapshotId : false);
+    expect(first.outcome).toBe("success");
+    expect(second.outcome).toBe("success");
+    if (first.outcome !== "success" || second.outcome !== "success") return;
+    expect(second.snapshot.snapshotId).toBe(first.snapshot.snapshotId);
+    expect(JSON.stringify(second.snapshot.state)).toBe(JSON.stringify(first.snapshot.state));
+    expect(second.snapshot.state.communications).toEqual([]);
+    expect(second.snapshot.metadata.sourceIds).toEqual([...second.snapshot.metadata.sourceIds].sort());
+    expect(Object.isFrozen(second.snapshot)).toBe(true);
+    expect(Object.isFrozen(second.snapshot.state.communications)).toBe(true);
   });
 });

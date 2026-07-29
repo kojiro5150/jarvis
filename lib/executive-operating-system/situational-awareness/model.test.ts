@@ -10,8 +10,8 @@ const base = () => ({
 describe("situational awareness model", () => {
   it("creates a minimal deeply immutable snapshot with structural defaults", () => {
     const snapshot = createSituationalAwareness({ identity: { userId: "sam", displayName: "Sam" } });
-    expect(snapshot).toEqual({ identity: { userId: "sam", displayName: "Sam" }, roles: [], projects: [], commitments: [], waitingItems: [], priorities: [], activeWork: [], context: { workMode: "unknown", locationKind: "unknown" }, sources: [] });
-    for (const value of [snapshot, snapshot.identity, snapshot.roles, snapshot.projects, snapshot.commitments, snapshot.waitingItems, snapshot.priorities, snapshot.activeWork, snapshot.context, snapshot.sources]) expect(Object.isFrozen(value)).toBe(true);
+    expect(snapshot).toEqual({ identity: { userId: "sam", displayName: "Sam" }, roles: [], projects: [], commitments: [], communications: [], waitingItems: [], priorities: [], activeWork: [], context: { workMode: "unknown", locationKind: "unknown" }, sources: [] });
+    for (const value of [snapshot, snapshot.identity, snapshot.roles, snapshot.projects, snapshot.commitments, snapshot.communications, snapshot.waitingItems, snapshot.priorities, snapshot.activeWork, snapshot.context, snapshot.sources]) expect(Object.isFrozen(value)).toBe(true);
   });
 
   it("preserves a representative ordered, JSON-compatible operational snapshot", () => {

@@ -5,7 +5,7 @@ import type {
 } from "./types";
 
 type JsonRecord = Readonly<Record<string, unknown>>;
-const collectionKeys = ["roles", "projects", "commitments", "waitingItems", "priorities", "activeWork", "sources"] as const;
+const collectionKeys = ["roles", "projects", "commitments", "communications", "waitingItems", "priorities", "activeWork", "sources"] as const;
 
 function compareText(left: string, right: string): number { return left < right ? -1 : left > right ? 1 : 0; }
 
@@ -88,6 +88,7 @@ export function compareSituationalAwarenessSnapshots(
     roles: entities(previous.state.roles, current.state.roles),
     projects: entities(previous.state.projects, current.state.projects),
     commitments: entities(previous.state.commitments, current.state.commitments),
+    communications: entities(previous.state.communications, current.state.communications),
     waitingItems: entities(previous.state.waitingItems, current.state.waitingItems),
     priorities: entities(previous.state.priorities, current.state.priorities),
     activeWork: entities(previous.state.activeWork, current.state.activeWork),
@@ -96,7 +97,7 @@ export function compareSituationalAwarenessSnapshots(
   const changes: SituationalAwarenessChanges = {
     identity: identity.change, context: context.change,
     roles: results.roles.changes, projects: results.projects.changes,
-    commitments: results.commitments.changes, waitingItems: results.waitingItems.changes,
+    commitments: results.commitments.changes, communications: results.communications.changes, waitingItems: results.waitingItems.changes,
     priorities: results.priorities.changes, activeWork: results.activeWork.changes, sources: results.sources.changes,
   };
   const countParts = [

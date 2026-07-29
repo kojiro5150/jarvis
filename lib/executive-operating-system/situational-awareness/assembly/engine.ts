@@ -11,9 +11,9 @@ import type {
 
 const ASSEMBLY_VERSION = "1.0.0" as const;
 const CONTRACT_VERSION = "projection-artifact-v1" as const;
-const collections = ["roles", "projects", "commitments", "waitingItems", "priorities", "activeWork"] as const;
+const collections = ["roles", "projects", "commitments", "communications", "waitingItems", "priorities", "activeWork"] as const;
 const kindByCollection: Record<typeof collections[number], CanonicalEntityKind> = {
-  roles: "role", projects: "project", commitments: "commitment", waitingItems: "waiting_item",
+  roles: "role", projects: "project", commitments: "commitment", communications: "communication", waitingItems: "waiting_item",
   priorities: "priority", activeWork: "active_work",
 };
 const rfc3339 = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-]([01]\d|2[0-3]):[0-5]\d)$/;
@@ -82,7 +82,7 @@ function orderState(state: ReturnType<typeof createSituationalAwareness>): Retur
   const byId = <T extends { readonly id: string }>(items: readonly T[]) => [...items].sort((left, right) => compareText(left.id, right.id));
   return createSituationalAwareness({
     identity: state.identity, context: state.context,
-    roles: byId(state.roles), projects: byId(state.projects), commitments: byId(state.commitments),
+    roles: byId(state.roles), projects: byId(state.projects), commitments: byId(state.commitments), communications: byId(state.communications),
     waitingItems: byId(state.waitingItems), priorities: byId(state.priorities), activeWork: byId(state.activeWork),
     sources: byId(state.sources),
   });

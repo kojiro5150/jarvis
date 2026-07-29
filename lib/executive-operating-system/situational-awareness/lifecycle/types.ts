@@ -1,5 +1,6 @@
 import type {
   OperationalCommitment,
+  OperationalCommunication,
   OperationalContext,
   OperationalIdentity,
   OperationalPriority,
@@ -48,6 +49,7 @@ export interface SituationalAwarenessChanges {
   readonly roles: readonly EntityChange<OperationalRole>[];
   readonly projects: readonly EntityChange<OperationalProject>[];
   readonly commitments: readonly EntityChange<OperationalCommitment>[];
+  readonly communications: readonly EntityChange<OperationalCommunication>[];
   readonly waitingItems: readonly EntityChange<OperationalWaitingItem>[];
   readonly priorities: readonly EntityChange<OperationalPriority>[];
   readonly activeWork: readonly EntityChange<OperationalWorkItem>[];

@@ -56,7 +56,7 @@ describe("compareSituationalAwarenessSnapshots", () => {
     const right = snapshot("same-b", "2026-07-27T08:00:00Z", reordered);
     const first = compareSituationalAwarenessSnapshots(left, right);
     const second = compareSituationalAwarenessSnapshots(left, right);
-    expect(first.changes).toEqual({ identity: null, context: null, roles: [], projects: [], commitments: [], waitingItems: [], priorities: [], activeWork: [], sources: [] });
+    expect(first.changes).toEqual({ identity: null, context: null, roles: [], projects: [], commitments: [], communications: [], waitingItems: [], priorities: [], activeWork: [], sources: [] });
     expect(first.summary).toEqual({ added: 0, removed: 0, modified: 0, unchanged: 10, totalChanged: 0 });
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
     expect(JSON.parse(JSON.stringify(first))).toEqual(first);

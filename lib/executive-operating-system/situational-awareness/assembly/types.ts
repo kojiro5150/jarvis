@@ -11,7 +11,7 @@ export interface SituationalAwarenessAssemblyInput {
 }
 
 export type CanonicalEntityKind =
-  | "role" | "project" | "commitment" | "waiting_item" | "priority" | "active_work";
+  | "role" | "project" | "commitment" | "communication" | "waiting_item" | "priority" | "active_work";
 
 export interface ExplicitRelationship {
   readonly relationshipId: string;

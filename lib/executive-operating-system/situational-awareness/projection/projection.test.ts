@@ -204,6 +204,9 @@ describe("package conformance", () => {
     });
     const consumers = files(repository).filter((path) => /\.(ts|tsx)$/.test(path))
       .filter((path) => !path.includes("/situational-awareness/"))
+      // Deterministic Executive Computation is a constitutional snapshot consumer,
+      // not a projection consumer or deliberation/runtime stage.
+      .filter((path) => !path.includes("/executive-operating-system/computation/"))
       .filter((path) => !path.includes("/executive-operating-system/attention/"))
       .filter((path) => !path.includes("/executive-operating-system/runtime/"))
       .filter((path) => !path.includes("/executive-context/"))

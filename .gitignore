@@ -46,6 +46,10 @@ data/memory.json
 /config/content-retrieval-policy.local.json
 /config/content-retrieval-policy.*.local.json
 
+# Deployment-owned operational validation evidence. These reports may contain
+# calendar content and engineering observations; only anonymised summaries are tracked.
+/data/validation-reports/
+
 # Build and dependency artefacts
 node_modules/
 .next/

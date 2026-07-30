@@ -198,6 +198,8 @@ export async function buildOperationalState(): Promise<OperationalState> {
       driveConnected: driveStatus === "online",
       driveSource: hasStoredGoogleTokens() ? "google" : "local",
     }),
-    updatedAt: memory.updatedAt,
+    // This describes this assembled picture, not the independently persisted
+    // memory document. Capture it after all inputs have finished loading.
+    updatedAt: new Date().toISOString(),
   };
 }

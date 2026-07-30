@@ -7,7 +7,7 @@ under the current canonical contracts.
 ## Review basis
 
 The review followed the required hierarchy and examined the Engineering Constitution, North Star,
-Design Constitution, Constitutional Publication Principles, canonical runtime ADR-0001,
+Design Constitution, Constitutional Publication Principles, canonical runtime ADR-0024,
 ADR-0021, ADR-0022, the available Sprint 3.31–3.41 package documentation, the Projection Engine,
 `ProjectionArtifact`, Situational Awareness model and assembly, Calendar adapter and connector
 contracts, and existing projection, replay, provenance, identity, immutability, integration, and

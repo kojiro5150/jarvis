@@ -1,4 +1,4 @@
-# ADR-0001: Canonical Executive Operating System Runtime
+# ADR-0024: Canonical Executive Operating System Runtime
 
 - **Status:** Accepted
 - **Date:** 2026-07-28

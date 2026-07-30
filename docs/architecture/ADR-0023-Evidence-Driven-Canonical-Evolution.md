@@ -17,7 +17,7 @@ documented for explicit constitutional review.
 
 In particular:
 
-- ADR-0001 establishes a single constitutional execution lineage, one owner and one authority per
+- ADR-0024 establishes a single constitutional execution lineage, one owner and one authority per
   publication, stable identity, deterministic replay, and non-reconstruction.
 - ADR-0021 preserves the bounded responsibility of interaction processing and prevents application
   pressure from transferring conversation, reasoning, execution, or foundation authority into its

@@ -1,4 +1,6 @@
 export { recordOperationalValidation } from "./recorder";
+export { OperationalValidationReportBrowser } from "./browser";
+export type { BrowseValidationReportsOptions, OperationalValidationReportSummary, ValidationReportDocument, ValidationReportListing } from "./browser";
 export type { RecordOperationalValidationOptions } from "./recorder";
 export { createAnonymisedValidationSummary, deriveEngineeringSummary, evaluateMigrationGate, renderValidationDashboard } from "./summary";
 export { assembleMigrationRecommendationEvidence, determineMigrationRecommendation, validateProvenance } from "./summary";

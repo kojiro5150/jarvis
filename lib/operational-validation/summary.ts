@@ -1,5 +1,5 @@
-import { deepFreeze } from "../executive-operating-system/runtime/validation";
-import { COMPARISON_CLASSIFICATIONS, LEGACY_COMPARISON_STATUSES, OAUTH_SESSION_STATES, OPERATIONAL_VALIDATION_VERSION, OPERATOR_CONFIRMATIONS, OUTCOME_REASONS, SCENARIO_CATEGORIES, VALIDATION_CONNECTOR_SOURCES, VALIDATION_EXECUTION_SOURCES, VALIDATION_LEVELS, type AnonymisedValidationSummary, type AuthoritativeMigrationRecommendation, type EngineeringSummary, type MigrationRecommendationBasis, type MigrationRecommendationEvidence, type MigrationRecommendation, type OperationalValidationInput, type ValidationProvenance } from "./types";
+import { deepFreeze } from "./freeze.ts";
+import { COMPARISON_CLASSIFICATIONS, LEGACY_COMPARISON_STATUSES, OAUTH_SESSION_STATES, OPERATIONAL_VALIDATION_VERSION, OPERATOR_CONFIRMATIONS, OUTCOME_REASONS, SCENARIO_CATEGORIES, VALIDATION_CONNECTOR_SOURCES, VALIDATION_EXECUTION_SOURCES, VALIDATION_LEVELS, type AnonymisedValidationSummary, type AuthoritativeMigrationRecommendation, type EngineeringSummary, type MigrationRecommendationBasis, type MigrationRecommendationEvidence, type MigrationRecommendation, type OperationalValidationInput, type ValidationProvenance } from "./types.ts";
 
 const combinations = {
   synthetic: ["fixture", "framework", "not_applicable"],

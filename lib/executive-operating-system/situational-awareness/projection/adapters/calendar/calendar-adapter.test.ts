@@ -100,6 +100,19 @@ describe("CalendarProjectionAdapter", () => {
     await expect(adapter([event(overrides)]).project()).rejects.toThrow(message);
   });
 
+  it("rejects the whole projection when one observation in a window is unsupported", async () => {
+    const valid = event({ id: "valid-instance" });
+    const unsupportedAllDay = event({
+      id: "all-day-instance",
+      start: "2026-07-28",
+      end: "2026-07-29",
+    });
+
+    await expect(adapter([valid, unsupportedAllDay]).project()).rejects.toThrow(
+      "events[1].start must be an RFC 3339 timestamp",
+    );
+  });
+
   it("rejects duplicate source identities instead of silently resolving ambiguity", async () => {
     await expect(adapter([event(), event()]).project()).rejects.toThrow(
       "duplicate calendar event identifier"

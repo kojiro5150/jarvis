@@ -20,6 +20,16 @@ PR1 has no `endsAt` field. The observed event end is therefore carried in the co
 
 Bare all-day dates have no offset and cannot satisfy the existing canonical RFC 3339 timestamp contract without inventing a timezone. They are rejected explicitly. Missing identifiers or titles, malformed or reversed timestamp ranges, unsupported statuses, non-Google sources, and duplicate qualified identifiers are also rejected rather than repaired or silently discarded.
 
+Rejection is atomic at the projection-window boundary, not per observation. The adapter maps the
+retrieved array as one projection input; therefore any unsupported observation throws before a
+`ProjectionArtifact` is created. Valid neighbours are not emitted as a partial artifact, and an
+authenticated runner using this adapter aborts rather than continuing with an incomplete view.
+This fail-closed boundary is deliberate: silently omitting an observed commitment would make the
+result look complete and could make downstream availability incorrect. Operators should treat the
+run as unsuccessful, retain the protected report boundary, and publish no authentication summary
+for that run. Supporting the observation requires an explicit canonical-model decision, not
+filtering or semantic repair in the adapter.
+
 Artifact provenance records the Google Calendar connector, calendar adapter, source identifier, supplied observation timestamp, and supplied availability. The qualified commitment identifier preserves the event-level source identifier under the existing immutable canonical model.
 
 ## Consequences
@@ -29,3 +39,6 @@ Artifact provenance records the Google Calendar connector, calendar adapter, sou
 - Replays of identical observations and supplied projection context are identical.
 - Future adapters can reuse ProjectionAdapter, ProjectionArtifact, ProjectionRegistry and ProjectionEngine without modifying them.
 - Supporting all-day events or a distinct canonical end timestamp requires a separately governed canonical-model change; this adapter does not silently anticipate one.
+- A single unsupported observation prevents publication of the entire Calendar artifact; callers
+  receive the validation error and must not interpret valid sibling observations as a successful
+  partial projection.

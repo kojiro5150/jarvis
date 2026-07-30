@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jarvis.invalid/schemas/authentication-evidence-summary-v1.json",
+  "title": "Repository-visible authentication evidence summary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "reportIdentifier",
+    "executionSource",
+    "connectorSource",
+    "adapterIdentifier",
+    "operatorConfirmation",
+    "scenarioIdentifiers",
+    "completionStatus"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "authentication-evidence-summary-v1" },
+    "reportIdentifier": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$" },
+    "executionSource": { "const": "authenticated_deployment" },
+    "connectorSource": { "const": "live_google_calendar" },
+    "adapterIdentifier": { "const": "google-calendar" },
+    "operatorConfirmation": { "const": "confirmed" },
+    "scenarioIdentifiers": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9_-]{0,127}$" }
+    },
+    "completionStatus": { "const": "OPERATIONAL_VALIDATION_COMPLETE" }
+  }
+}

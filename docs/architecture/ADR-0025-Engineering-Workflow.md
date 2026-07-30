@@ -1,4 +1,4 @@
-# ADR 0001 — Engineering Workflow
+# ADR-0025 — Engineering Workflow
 
 - **Status:** Accepted
 - **Date:** 2026-07-25
@@ -15,7 +15,7 @@ JARVIS will use the following workflow:
 2. Consequential work occurs on a named branch.
 3. Changes are integrated through pull requests.
 4. Pull requests should explain purpose, scope, risk and verification.
-5. Architecture decisions with durable consequences are recorded under `docs/adr/`.
+5. Architecture decisions with durable consequences are recorded under `docs/architecture/`.
 6. Automated lint, test and build checks will be required before merge once CI is established.
 7. Secrets, OAuth tokens, local memory and generated build artefacts are never committed.
 

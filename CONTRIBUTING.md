@@ -57,7 +57,7 @@ A pull request should state:
 
 ## Architecture decisions
 
-Create an ADR under `docs/adr/` when a change:
+Create an ADR under `docs/architecture/` when a change:
 
 - changes a major system boundary;
 - introduces a new external dependency or provider;

@@ -74,3 +74,18 @@ Copy this section when no equivalent canonical observation already exists.
 - **Recommended Practice:** Treat the repository snapshot as authoritative for repository-state audits. Report missing remotes or similar constraints as execution-environment limitations unless repository evidence establishes otherwise, and explicitly distinguish environment limitations from repository state in audit and validation results.
 - **Promotion Status:** Not promoted. One occurrence is insufficient to establish recurrence.
 - **Status:** Active
+
+### EN-002 — Branch-local commit hashes may not be externally resolvable after squash/rebase merge
+
+- **Observation ID:** EN-002
+- **Title:** Branch-local commit hashes may not be externally resolvable after squash/rebase merge
+- **First Observed:** 2026-07-30
+- **Occurrences:** 2
+  1. **2026-07-30 — Sprint 3.57 completion verification:** Completion report referenced a branch-local commit SHA that could not be resolved on GitHub. Runtime implementation was independently verified on main.
+  2. **2026-07-30 — Sprint 3.57.1 documentation verification:** Completion report referenced a branch-local commit SHA that could not be resolved on GitHub. Documentation changes were independently verified on main.
+- **Observation:** Completion reports generated before or during merge may record branch-local commit hashes that are not externally resolvable after squash or rebase merge. This appears to affect audit traceability only. Current evidence does not suggest any impact on repository integrity, implementation correctness, merge correctness, or production behaviour.
+- **Evidence:** Two completion reports referenced branch-local commit SHAs that could not be resolved on GitHub after merge. The Sprint 3.57 runtime implementation and Sprint 3.57.1 documentation changes were independently verified on main.
+- **Engineering Impact:** **Classification: Low Impact.** Engineering correctness is unaffected; repository state is unaffected; implementation was independently verified; audit traceability is reduced because locally reported commit hashes may not correspond to the final merged commit after squash or rebase. This observation is not an engineering defect.
+- **Recommended Practice:** If this observation reaches three independent occurrences, investigate whether the completion workflow should instead record a post-merge commit hash, squash-merge commit hash, merged pull request reference, or another externally resolvable repository reference. Do not modify the workflow based on the current evidence alone.
+- **Promotion Status:** Not promoted. Two occurrences are below the three-occurrence investigation trigger.
+- **Status:** Active

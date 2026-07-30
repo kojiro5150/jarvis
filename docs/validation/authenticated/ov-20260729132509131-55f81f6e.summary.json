@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "authentication-evidence-summary-v1",
+  "reportIdentifier": "ov-20260729132509131-55f81f6e",
+  "executionSource": "authenticated_deployment",
+  "connectorSource": "live_google_calendar",
+  "adapterIdentifier": "google-calendar",
+  "operatorConfirmation": "confirmed",
+  "scenarioIdentifiers": [
+    "OV-LIVE-001"
+  ],
+  "completionStatus": "OPERATIONAL_VALIDATION_COMPLETE"
+}

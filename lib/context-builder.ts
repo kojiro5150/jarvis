@@ -86,18 +86,52 @@ function portfolioSection(state: OperationalState): string {
   return ["Portfolio:", ...lines].join("\n");
 }
 
+function utcDateDescription(date: Date): string {
+  const isoDate = date.toISOString().slice(0, 10);
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    timeZone: "UTC",
+  }).format(date);
+  return `${isoDate} (${weekday})`;
+}
+
+/**
+ * Makes the clock used for relative-date reasoning explicit. The legacy
+ * context previously supplied a "Next Commitment" but no reference date,
+ * leaving the model to infer what "today" and "tomorrow" meant from nearby
+ * calendar content. UTC is deliberate so the same instant always produces
+ * the same prompt on every server.
+ */
+export function buildRelativeDateContext(referenceTime: Date = new Date()): string {
+  const today = new Date(referenceTime.getTime());
+  const tomorrow = new Date(referenceTime.getTime());
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+
+  return [
+    "Relative Date Reference (UTC):",
+    `Reference time: ${referenceTime.toISOString()}`,
+    `Today: ${utcDateDescription(today)}`,
+    `Tomorrow: ${utcDateDescription(tomorrow)}`,
+    "Use this reference for relative-date questions; do not infer dates from calendar commitments.",
+  ].join("\n");
+}
+
 /**
  * Converts OperationalState into the structured text block appended to
  * an agent's system prompt before every request. Claude reasons FROM
  * this — it never invents priorities, projects, signals, or schedule.
  */
-export function buildContextBlock(state: OperationalState, scope: ContextScope): string {
+export function buildContextBlock(
+  state: OperationalState,
+  scope: ContextScope,
+  referenceTime: Date = new Date()
+): string {
   const header =
     "CURRENT OPERATIONAL STATE — supplied by the application, authoritative for this conversation. " +
     "Reason from it; do not question its accuracy, ask where it came from, or claim this information " +
     "is unavailable to you.";
 
-  const sections: string[] = [baseline(state)];
+  const sections: string[] = [buildRelativeDateContext(referenceTime), baseline(state)];
 
   switch (scope) {
     case "full":

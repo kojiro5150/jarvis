@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   DASHBOARD_EVALUATION_CONFIGURATION, DASHBOARD_EVALUATION_SCENARIOS,
-  dashboardEvaluationFixture, evaluateDashboardScenario,
+  compareDashboardRuntime, dashboardEvaluationFixture, evaluateDashboardScenario,
 } from "./dashboard-parallel-evaluation";
+
+type Mutable<T> = T extends readonly (infer Item)[] ? Mutable<Item>[]
+  : T extends object ? { -readonly [Key in keyof T]: Mutable<T[Key]> } : T;
+type MutableGoverned = Mutable<ReturnType<typeof evaluateDashboardScenario>["governed"]>;
 
 describe("Sprint 3.60 Dashboard parallel evaluation", () => {
   it("replays every synthetic scenario deterministically from one recorded OperationalState", () => {
@@ -60,5 +64,43 @@ describe("Sprint 3.60 Dashboard parallel evaluation", () => {
     expect(calendar.calendar).toHaveLength(1); // deterministic availability for a future consumer
     const consistent = evaluateDashboardScenario("multiple-commitments").governed;
     expect([consistent.nextCommitment, ...consistent.followingCommitments].filter(Boolean)).toEqual(consistent.calendar);
+  });
+
+  it.each([
+    ["multiple-commitments", "Governed commitment ordering", (value: MutableGoverned) => {
+      value.calendar.reverse();
+    }],
+    ["mixed-connectors", "Connector availability summary", (value: MutableGoverned) => {
+      value.connectorSummary.live = 1;
+    }],
+    ["operational-content", "Communication metadata and provenance", (value: MutableGoverned) => {
+      value.communications[0].source = null;
+    }],
+    ["timed-commitment", "Calendar temporal rendering", (value: MutableGoverned) => {
+      value.nextCommitment!.time = "11:30";
+    }],
+    ["cancelled-commitment", "Governed next-event eligibility", (value: MutableGoverned) => {
+      value.nextCommitment = value.calendar.find(item => item.status === "cancelled") ?? null;
+    }],
+  ] as const)("classifies a %s runtime divergence as Defect", (scenario, capability, diverge) => {
+    const baseline = evaluateDashboardScenario(scenario);
+    expect(baseline.comparison.find(row => row.capability === capability)?.classification).toBe("Equivalent");
+
+    // The mutation assertion independently proves the observed output changed before invoking the evaluator.
+    const divergent = structuredClone(baseline.governed) as unknown as MutableGoverned;
+    diverge(divergent);
+    expect(divergent).not.toEqual(baseline.governed);
+
+    const rows = compareDashboardRuntime(scenario, baseline.identicalInputEvidence.operationalState, baseline.legacy, divergent as unknown as typeof baseline.governed);
+    expect(rows.find(row => row.capability === capability)?.classification).toBe("Defect");
+  });
+
+  it("keeps governance classifications static when runtime behaviour diverges", () => {
+    const baseline = evaluateDashboardScenario("multiple-commitments");
+    const divergent = structuredClone(baseline.governed) as unknown as MutableGoverned;
+    divergent.calendar.reverse();
+    const rows = compareDashboardRuntime("multiple-commitments", baseline.identicalInputEvidence.operationalState, baseline.legacy, divergent as unknown as typeof baseline.governed);
+    expect(rows.find(row => row.capability === "Commitment ordering")?.classification).toBe("Intentional Improvement");
+    expect(rows.find(row => row.capability === "Deferred and rejected fields")?.classification).toBe("Intentional Improvement");
   });
 });

@@ -15,7 +15,7 @@ export type DashboardEvaluationScenario =
 
 export type DashboardDifferenceClassification = "Equivalent" | "Intentional Improvement" | "Defect" | "Unsupported Boundary" | "Undocumented Failure Mode";
 
-interface LegacyDashboardConstruction {
+export interface LegacyDashboardConstruction {
   readonly nextCommitment: OperationalState["calendar"][number] | null;
   readonly followingCommitments: OperationalState["calendar"];
   readonly topProject: OperationalState["projects"][number] | null;
@@ -33,7 +33,7 @@ export interface DashboardEvaluationRow {
 }
 
 export interface DashboardParallelEvaluationResult {
-  readonly evaluationVersion: "sprint-3.60-v1";
+  readonly evaluationVersion: "sprint-3.60.1-v1";
   readonly scenario: DashboardEvaluationScenario;
   readonly fixtureNotice: "SYNTHETIC_EVALUATION_ARTEFACT_NOT_AUTHENTICATED_OPERATIONAL_EVIDENCE";
   readonly identicalInputEvidence: { readonly operationalState: OperationalState };
@@ -116,27 +116,88 @@ function canonicalSource(state: OperationalState): DashboardCanonicalSource {
 const row = (capability: string, observedBehaviour: string, governedBehaviour: string, classification: DashboardDifferenceClassification, supportingEvidence: string, governingArtefact?: string): DashboardEvaluationRow =>
   ({ capability, observedBehaviour, governedBehaviour, classification, supportingEvidence, ...(governingArtefact ? { governingArtefact } : {}) });
 
+/** Behavioural classifications are evidence: they are never supplied by a scenario. */
+const behaviouralRow = (capability: string, observedBehaviour: string, governedBehaviour: string, equivalent: boolean, supportingEvidence: string): DashboardEvaluationRow =>
+  row(capability, observedBehaviour, governedBehaviour, equivalent ? "Equivalent" : "Defect", supportingEvidence);
+
+const serialise = (value: unknown): string => JSON.stringify(value);
+
+/**
+ * Compare independently supplied runtime results. Exported so evaluator tests can introduce a
+ * divergent observation without changing either Dashboard implementation.
+ */
+export function compareDashboardRuntime(
+  scenario: DashboardEvaluationScenario,
+  operationalState: OperationalState,
+  legacy: LegacyDashboardConstruction,
+  governed: DashboardPresentation,
+): readonly DashboardEvaluationRow[] {
+  const comparison: DashboardEvaluationRow[] = [];
+  const legacyEligible = operationalState.calendar.filter(item => item.status !== "cancelled")
+    .map(item => ({ id: item.id, title: item.title, startsAt: item.start })).sort((a, b) => a.id.localeCompare(b.id));
+  const governedEligible = governed.calendar.filter(item => item.status !== "cancelled")
+    .map(item => ({ id: item.id, title: item.title, startsAt: item.startsAt })).sort((a, b) => a.id.localeCompare(b.id));
+  comparison.push(behaviouralRow("Canonical commitment content", serialise(legacyEligible), serialise(governedEligible),
+    serialise(legacyEligible) === serialise(governedEligible), "Runtime comparison of eligible commitment identity, title, and start."));
+
+  if (scenario === "multiple-commitments") {
+    const expectedOrder = [...legacyEligible].sort((a, b) => a.startsAt.localeCompare(b.startsAt) || a.id.localeCompare(b.id)).map(item => item.id);
+    const governedOrder = governed.calendar.map(item => item.id);
+    comparison.push(behaviouralRow("Governed commitment ordering", expectedOrder.join(","), governedOrder.join(","),
+      serialise(expectedOrder) === serialise(governedOrder), "Runtime output must implement startsAt ASC, id ASC."));
+    comparison.push(row("Commitment ordering", "Connector array order", "startsAt ASC, id ASC", "Intentional Improvement", "Stable ordering is a governed decision.", "Dashboard Presentation Contract — Calendar commitments"));
+  }
+  if (scenario === "cancelled-commitment") {
+    const expectedNext = [...legacyEligible].sort((a, b) => a.startsAt.localeCompare(b.startsAt) || a.id.localeCompare(b.id))[0]?.id ?? "none";
+    const governedNext = governed.nextCommitment?.id ?? "none";
+    comparison.push(behaviouralRow("Governed next-event eligibility", expectedNext, governedNext, expectedNext === governedNext,
+      "Runtime comparison verifies that cancellation exclusion selects the expected commitment."));
+    comparison.push(row("Next-event eligibility", "Cancelled item selected at index zero", "Cancelled item retained but excluded", "Intentional Improvement", "Cancellation exclusion is a governed decision.", "Dashboard Presentation Contract — Calendar commitments"));
+  }
+  if (scenario === "bare-date-commitment" || scenario === "timed-commitment") {
+    const observed = serialise({ day: legacy.nextCommitment?.day, time: legacy.nextCommitment?.time });
+    const presented = serialise({ day: governed.nextCommitment?.day, time: governed.nextCommitment?.time });
+    comparison.push(behaviouralRow("Calendar temporal rendering", observed, presented, observed === presented,
+      "Runtime comparison uses the fixture-rendered legacy day and time."));
+  }
+  if (scenario === "mixed-connectors") {
+    const observed = { live: legacy.connectors.filter(item => item.connected).length, total: legacy.connectors.length };
+    const presented = { live: governed.connectorSummary.live, total: governed.connectorSummary.total };
+    comparison.push(behaviouralRow("Connector availability summary", serialise(observed), serialise(presented),
+      serialise(observed) === serialise(presented), "Runtime comparison maps connector availability over the explicit source scope."));
+  }
+  if (scenario === "relative-duration") {
+    const observedAt = operationalState.gmailThreads[0]?.receivedAt;
+    const elapsedHours = observedAt ? Math.floor((Date.parse(DASHBOARD_EVALUATION_REFERENCE_TIME) - Date.parse(observedAt)) / 3_600_000) : NaN;
+    const expected = Number.isFinite(elapsedHours) ? `${elapsedHours} hour${elapsedHours === 1 ? "" : "s"} ago` : "omitted";
+    const presented = governed.communications[0]?.relativeObservedAt ?? "omitted";
+    comparison.push(behaviouralRow("Deterministic relative duration", expected, presented, expected === presented,
+      "Runtime output is compared with the fixture observation and explicit reference instant."));
+    comparison.push(row("Relative duration clock", "Hidden current clock", "Explicit replayable reference instant", "Intentional Improvement", "Explicit time is a governed decision.", "Dashboard Presentation Contract — Communications"));
+  }
+  if (scenario === "operational-content") {
+    const expectedContent = { priorities: operationalState.priorities.map(item => item.title), projects: operationalState.projects.map(item => item.name) };
+    const presentedContent = { priorities: governed.priorities.map(item => item.title), projects: governed.projects.map(item => item.name) };
+    comparison.push(behaviouralRow("Priority and project content", serialise(expectedContent), serialise(presentedContent),
+      serialise(expectedContent) === serialise(presentedContent), "Runtime comparison preserves canonical labels and ordering."));
+    const message = operationalState.gmailThreads[0];
+    const expectedCommunication = message && { subject: message.subject, sender: message.from, source: message.source };
+    const actualCommunication = governed.communications[0] && { subject: governed.communications[0].subject, sender: governed.communications[0].sender, source: governed.communications[0].source };
+    comparison.push(behaviouralRow("Communication metadata and provenance", serialise(expectedCommunication), serialise(actualCommunication),
+      serialise(expectedCommunication) === serialise(actualCommunication), "Runtime comparison covers subject, sender, and governed provider provenance."));
+    comparison.push(row("Dashboard View State separation", "View state coexists with operational data", "View state absent", "Intentional Improvement", "Separation is a governed architecture decision.", "Dashboard Presentation Contract — Dashboard compositions and editing state"));
+  }
+  comparison.push(row("Deferred and rejected fields", "Legacy shape contains presentation/deferred fields", "Governed output omits them", "Intentional Improvement", "Publication exclusions are governed decisions.", "Governed Dashboard Presentation Contract"));
+  return comparison;
+}
+
 export function evaluateDashboardScenario(scenario: DashboardEvaluationScenario): DashboardParallelEvaluationResult {
   const operationalState = dashboardEvaluationFixture(scenario);
   const legacy = legacyConstruction(operationalState);
   const governed = buildDashboardPresentation(canonicalSource(operationalState), DASHBOARD_EVALUATION_CONFIGURATION);
-  const comparison: DashboardEvaluationRow[] = [];
-  const legacyEligibleIds = operationalState.calendar.filter(item => item.status !== "cancelled").map(item => item.id).sort();
-  const governedEligibleIds = [governed.nextCommitment, ...governed.followingCommitments].filter(Boolean).map(item => item!.id).sort();
-  comparison.push(row("Canonical commitment content", legacyEligibleIds.join(",") || "empty", governedEligibleIds.join(",") || "empty", "Equivalent", "Eligible commitment identity is preserved from the one fixture."));
-  if (scenario === "multiple-commitments") comparison.push(row("Commitment ordering", "Connector array order", "startsAt ASC, id ASC", "Intentional Improvement", "Governed output is a stable a,b,later sequence.", "Dashboard Presentation Contract — Calendar commitments"));
-  if (scenario === "cancelled-commitment") comparison.push(row("Next-event eligibility", "Cancelled item selected at index zero", "Cancelled item retained but excluded; Active selected", "Intentional Improvement", "The governed nextCommitment is active.", "Dashboard Presentation Contract — Calendar commitments"));
-  if (scenario === "bare-date-commitment" || scenario === "timed-commitment") comparison.push(row("Calendar temporal rendering", legacy.nextCommitment?.time ?? "none", governed.nextCommitment?.time ?? "none", "Equivalent", `Explicit ${governed.configuration.locale}, ${governed.configuration.viewerTimeZone}, and reference instant were propagated.`));
-  if (scenario === "mixed-connectors") comparison.push(row("Connector availability summary", "2 of 3 connector rows connected", `${governed.connectorSummary.live} of ${governed.connectorSummary.total} live`, "Equivalent", "Availability maps connected to available over the explicit three-source scope."));
-  if (scenario === "relative-duration") comparison.push(row("Relative duration", "Legacy duration uses a hidden current clock", governed.communications[0]?.relativeObservedAt ?? "omitted", "Intentional Improvement", "Governed result is replayable as 2 hours ago from the propagated reference instant.", "Dashboard Presentation Contract — Communications"));
-  if (scenario === "operational-content") {
-    comparison.push(row("Priority and project content", "Ship evidence; Dashboard", `${governed.priorities[0]?.title}; ${governed.projects[0]?.name}`, "Equivalent", "Canonical identity and labels are preserved."));
-    comparison.push(row("Communication metadata and provenance", "Review from Reviewer; Google source", `${governed.communications[0]?.subject} from ${governed.communications[0]?.sender}; ${governed.communications[0]?.source} source`, "Equivalent", "Subject, sender, observation time, and provenance predicate are preserved."));
-    comparison.push(row("Dashboard View State separation", "Legacy project styling and interaction state coexist with operational data", "No styling, disclosure, animation, draft, or feedback state emitted", "Intentional Improvement", "Presentation constructor output has no Dashboard View State.", "Dashboard Presentation Contract — Dashboard compositions and editing state"));
-  }
-  comparison.push(row("Deferred and rejected fields", "Legacy shape contains presentation/deferred fields", "Governed output omits them and keeps conditional lists empty", "Intentional Improvement", "No updatedAt, snippet, recurrence, attendee response, progress, attribution, unread, important, or Drive activity is published.", "Governed Dashboard Presentation Contract"));
+  const comparison = [...compareDashboardRuntime(scenario, operationalState, legacy, governed)];
   return {
-    evaluationVersion: "sprint-3.60-v1", scenario,
+    evaluationVersion: "sprint-3.60.1-v1", scenario,
     fixtureNotice: "SYNTHETIC_EVALUATION_ARTEFACT_NOT_AUTHENTICATED_OPERATIONAL_EVIDENCE",
     identicalInputEvidence: { operationalState }, legacy, governed, comparison,
     recommendation: comparison.some(item => ["Defect", "Unsupported Boundary", "Undocumented Failure Mode"].includes(item.classification)) ? "Promotion Blocked" : "Ready for Promotion",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AgentRail from "@/components/AgentRail";
 import TopBar from "@/components/TopBar";
 import MemoryEditor from "@/components/MemoryEditor";
@@ -13,6 +13,7 @@ import { getAgent } from "@/lib/agents";
 import { useOperationalState } from "@/lib/useOperationalState";
 import { useAgentConversation } from "@/lib/useAgentConversation";
 import { useMicCapture } from "@/lib/useMicCapture";
+import { buildProductionDashboardPresentation, type DashboardPresentationMode } from "@/lib/dashboard-presentation-selection";
 
 /**
  * v27 (Sprint 9): a genuine product-shape change, not a visual pass. The
@@ -41,7 +42,7 @@ import { useMicCapture } from "@/lib/useMicCapture";
  * shows a ROUTING stance for ~700ms before settling into the newly
  * selected specialist's idle state.
  */
-export default function DashboardShell() {
+export default function DashboardShell({ presentationMode }: { presentationMode: DashboardPresentationMode }) {
   const [selectedId, setSelectedId] = useState("jarvis");
   const [presetText, setPresetText] = useState("");
   const [presetNonce, setPresetNonce] = useState(0);
@@ -57,6 +58,10 @@ export default function DashboardShell() {
   const [transition, setTransition] = useState<"routing" | "delegating" | null>(null);
   const [speaking, setSpeaking] = useState(false);
   const { data: operationalState, loading: syncing, refresh } = useOperationalState();
+  const governedPresentation = useMemo(
+    () => presentationMode === "GOVERNED" ? buildProductionDashboardPresentation(operationalState) : undefined,
+    [operationalState, presentationMode],
+  );
   // v33 (Sprint 15, Section 3): the app's one real mic-capture pipeline —
   // see lib/useMicCapture.ts for why this is the sole place audio
   // permission/capture lives (no other voice/STT pipeline exists
@@ -274,7 +279,9 @@ export default function DashboardShell() {
           that amount — no manual repositioning of the dock anywhere.
         */}
         <div className="shrink-0 px-5 pb-3 pt-3">
-          <StatusStrip operationalState={operationalState} />
+          {governedPresentation
+            ? <StatusStrip mode="GOVERNED" presentation={governedPresentation} />
+            : <StatusStrip mode="LEGACY" operationalState={operationalState} />}
         </div>
 
         <ConversationDock

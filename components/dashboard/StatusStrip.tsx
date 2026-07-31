@@ -2,13 +2,17 @@
 
 import { useState } from "react";
 import { Calendar, TrendingUp, Mail } from "lucide-react";
-import { dateOfMonth } from "@/lib/connectors/calendar-event";
 import { relativeTime } from "@/lib/connectors/email-message";
 import type { OperationalState } from "@/lib/operational-state";
+import type { DashboardPresentation } from "@/lib/dashboard-presentation";
 
-interface StatusStripProps {
-  operationalState: OperationalState;
-}
+type StatusStripProps =
+  | { mode: "LEGACY"; operationalState: OperationalState }
+  | { mode: "GOVERNED"; presentation: DashboardPresentation };
+
+type CalendarItem = { readonly id: string; readonly title: string; readonly day?: string; readonly time?: string };
+type ProjectItem = { readonly id: string; readonly name: string; readonly progress?: number };
+type CommunicationItem = { readonly id: string; readonly sender: string; readonly subject?: string; readonly relativeObservedAt?: string };
 
 type SegmentId = "calendar" | "project" | "comms";
 
@@ -38,17 +42,21 @@ const DETAIL_HEIGHT = 56; // px — spec: "fixed at roughly 48-60px"
  * than that (e.g. several comms needing reply) scrolls internally rather
  * than being clipped or growing the row past its budget.
  */
-export default function StatusStrip({ operationalState }: StatusStripProps) {
+export default function StatusStrip(props: StatusStripProps) {
   const [open, setOpen] = useState<SegmentId | null>(null);
 
-  const next = operationalState.calendar[0];
-  const thenEvents = operationalState.calendar.slice(1, 3);
-
-  const activeProjects = operationalState.projects.filter((p) => p.progress > 0 && p.progress < 100);
-  const topProject = [...activeProjects].sort((a, b) => b.progress - a.progress)[0];
-  const allActiveSorted = [...activeProjects].sort((a, b) => b.progress - a.progress);
-
-  const needsReply = operationalState.gmailThreads.filter((m) => m.needsReply);
+  const governed = props.mode === "GOVERNED" ? props.presentation : undefined;
+  const legacy = props.mode === "LEGACY" ? props.operationalState : undefined;
+  const next: CalendarItem | undefined = governed?.nextCommitment ?? legacy?.calendar[0];
+  const thenEvents: readonly CalendarItem[] = governed?.followingCommitments ?? legacy?.calendar.slice(1, 3) ?? [];
+  const activeProjects: readonly ProjectItem[] = governed?.projects ?? legacy?.projects
+    .filter(project => project.progress > 0 && project.progress < 100)
+    .map((project, index) => ({ id: `legacy-project-${index}`, ...project })) ?? [];
+  const allActiveSorted = governed ? activeProjects : [...activeProjects].sort((a, b) => (b.progress ?? 0) - (a.progress ?? 0));
+  const topProject = allActiveSorted[0];
+  const communications: readonly CommunicationItem[] = governed?.communications ?? legacy?.gmailThreads
+    .filter(message => message.needsReply)
+    .map(message => ({ id: message.id, sender: message.from, subject: message.subject, relativeObservedAt: relativeTime(message.receivedAt) })) ?? [];
 
   function toggle(id: SegmentId) {
     setOpen((cur) => (cur === id ? null : id));
@@ -86,7 +94,7 @@ export default function StatusStrip({ operationalState }: StatusStripProps) {
             topProject ? (
               <>
                 <span className="text-white/85">{topProject.name}</span>
-                <span className="text-white/40"> {topProject.progress}%</span>
+                {topProject.progress !== undefined && <span className="text-white/40"> {topProject.progress}%</span>}
               </>
             ) : (
               <span className="text-white/40">No active projects</span>
@@ -101,10 +109,10 @@ export default function StatusStrip({ operationalState }: StatusStripProps) {
           active={open === "comms"}
           onClick={() => toggle("comms")}
           label={
-            needsReply.length > 0 ? (
+            communications.length > 0 ? (
               <>
-                <span className="text-white/85">{needsReply.length}</span>
-                <span className="text-white/40"> comm{needsReply.length === 1 ? "" : "s"} need reply</span>
+                <span className="text-white/85">{communications.length}</span>
+                <span className="text-white/40"> {governed ? `recent comm${communications.length === 1 ? "" : "s"}` : `comm${communications.length === 1 ? "" : "s"} need reply`}</span>
               </>
             ) : (
               <span className="text-white/40">Inbox clear</span>
@@ -133,7 +141,7 @@ export default function StatusStrip({ operationalState }: StatusStripProps) {
         <div className="py-2.5 h-[56px] overflow-y-auto">
           {open === "calendar" && <CalendarDetail next={next} thenEvents={thenEvents} />}
           {open === "project" && <ProjectDetail projects={allActiveSorted} />}
-          {open === "comms" && <CommsDetail messages={needsReply} />}
+          {open === "comms" && <CommsDetail messages={communications} />}
         </div>
       </div>
     </div>
@@ -144,8 +152,8 @@ function CalendarDetail({
   next,
   thenEvents,
 }: {
-  next: OperationalState["calendar"][number] | undefined;
-  thenEvents: OperationalState["calendar"];
+  next: CalendarItem | undefined;
+  thenEvents: readonly CalendarItem[];
 }) {
   if (!next) {
     return <p className="text-[12px] text-white/40">No scheduled commitments in view.</p>;
@@ -169,23 +177,23 @@ function CalendarDetail({
   );
 }
 
-function ProjectDetail({ projects }: { projects: OperationalState["projects"] }) {
+function ProjectDetail({ projects }: { projects: readonly ProjectItem[] }) {
   if (projects.length === 0) {
     return <p className="text-[12px] text-white/40">No active projects in progress.</p>;
   }
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-1">
       {projects.map((p) => (
-        <div key={p.name} className="flex items-center gap-1.5 text-[12px]">
+        <div key={p.id} className="flex items-center gap-1.5 text-[12px]">
           <span className="text-white/80 truncate max-w-[180px]">{p.name}</span>
-          <span className="text-white/40">{p.progress}%</span>
+          {p.progress !== undefined && <span className="text-white/40">{p.progress}%</span>}
         </div>
       ))}
     </div>
   );
 }
 
-function CommsDetail({ messages }: { messages: OperationalState["gmailThreads"] }) {
+function CommsDetail({ messages }: { messages: readonly CommunicationItem[] }) {
   if (messages.length === 0) {
     return <p className="text-[12px] text-white/40">Nothing waiting on a reply.</p>;
   }
@@ -193,9 +201,9 @@ function CommsDetail({ messages }: { messages: OperationalState["gmailThreads"] 
     <div className="space-y-1.5">
       {messages.map((m) => (
         <div key={m.id} className="flex items-baseline gap-2 min-w-0">
-          <span className="shrink-0 text-[11px] text-white/40">{relativeTime(m.receivedAt)}</span>
+          {m.relativeObservedAt && <span className="shrink-0 text-[11px] text-white/40">{m.relativeObservedAt}</span>}
           <span className="min-w-0 truncate text-[12px] text-white/85">
-            {m.from} <span className="text-white/40">— {m.subject}</span>
+            {m.sender} <span className="text-white/40">— {m.subject}</span>
           </span>
         </div>
       ))}

@@ -45,7 +45,7 @@ This fix was committed through PR #130, which was merged with a commit range inc
 
 Every source now uses `state.updatedAt` for `observedAt` and the deterministic placeholder ``snapshot-${source.name}-${state.updatedAt}`` for `snapshotId`. Commitment provenance uses the literal source ID `"calendar"`, and communication provenance uses the literal source ID `"gmail"`, aligning both with the sources-list vocabulary.
 
-The repository owner committed the source-ID and observation-evidence fix directly to `main` as `9b7a217a38eed5c328ec5cdc64f25c9f39a34bce`.
+The repository owner committed the source-ID and observation-evidence fix directly to `main` as `7d2ebe24cf8a467328ab671c6d2a185f69fc679f`.
 
 ### Gap 3 fix
 

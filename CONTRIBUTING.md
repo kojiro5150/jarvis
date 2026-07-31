@@ -55,6 +55,14 @@ A pull request should state:
 - how it was verified;
 - any security, privacy or governance implications.
 
+## Sprint document locations
+
+Sprint specification documents are created at `docs/SPRINT-<number>-<title>.md`.
+
+Sprint completion, audit or evidence documents produced in response to a specification are created at the same path unless the specification explicitly directs otherwise. If a distinct location for audit-type outputs is intentional, it must be named explicitly in the governing sprint specification's **Return Format** section, not chosen ad hoc by the implementing session.
+
+Any sprint specification that expects a differently located output, such as an Evaluation Design Note or a document in the `audits/` subdirectory, must state the exact intended path explicitly in its own text.
+
 ## Architecture decisions
 
 Create an ADR under `docs/architecture/` when a change:

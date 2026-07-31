@@ -12,5 +12,5 @@ export async function GET(request: Request) {
   }
   const scenarios = requested ? [requested as DashboardEvaluationScenario] : DASHBOARD_EVALUATION_SCENARIOS;
   const evaluations = scenarios.map(evaluateDashboardScenario);
-  return NextResponse.json({ evaluationVersion: "sprint-3.60-v1", productionAuthorityChanged: false, evaluations });
+  return NextResponse.json({ evaluationVersion: "sprint-3.60.1-v1", productionAuthorityChanged: false, evaluations });
 }

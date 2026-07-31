@@ -76,7 +76,7 @@ Copy this section when no equivalent canonical observation already exists.
 - **Engineering Impact:** Treating absent environment metadata as a repository defect can produce an inaccurate audit finding. The repository snapshot remains authoritative for claims about the state of the files available to the engineering session, while conclusions about external repository configuration remain bounded by what the environment exposes.
 - **Recommended Practice:** Treat the repository snapshot as authoritative for repository-state audits. Report missing remotes or similar constraints as execution-environment limitations unless repository evidence establishes otherwise, and explicitly distinguish environment limitations from repository state in audit and validation results.
 - **Recommended Investigation:** A Codex task environment for this repository should be configured with a working Git remote pointing at `github.com/kojiro5150/jarvis` by default at session start, so that repository-state verification and evidence extraction do not require per-task manual intervention.
-- **Promotion Status:** Promoted for investigation. Three independent occurrences across three separate sessions cross this file's recurrence threshold and warrant investigation of the underlying environment configuration rather than continued per-task workarounds.
+- **Promotion Status:** Promoted for investigation. Four independent occurrences across three separate sessions cross this file's recurrence threshold and warrant investigation of the underlying environment configuration rather than continued per-task workarounds.
 - **Status:** Active
 
 ### EN-002 — Branch-local commit hashes may not be externally resolvable after squash/rebase merge

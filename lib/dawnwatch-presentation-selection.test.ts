@@ -108,7 +108,7 @@ describe("production DAWNWATCH opening-brief integration", () => {
     expect(bridged.priorities[0]?.provenance.assertionId).toBe("priority-0");
     expect(bridged.commitments[0]?.provenance.assertionId).toBe("commitment-1");
     expect(bridged.communications[0]?.provenance.assertionId).toBe("communication-1");
-    expect(bridged.sources.map(source => source.provenance.assertionId)).toEqual(["calendar", "gmail", "drive"]);
+    expect(bridged.sources.map(source => source.provenance.assertionId)).toEqual(["memory", "calendar", "gmail", "drive"]);
 
     // Satisfy the bridge's other deliberately unavailable evidence inputs independently so this
     // test isolates whether assertion identity still forces insufficient_coverage.
@@ -162,14 +162,21 @@ describe("production DAWNWATCH opening-brief integration", () => {
     const input = buildProductionDawnwatchInput(state);
     expect(input.commitments[0]?.provenance.sourceId).toBe("calendar");
     expect(input.communications[0]?.provenance.sourceId).toBe("gmail");
-    expect(input.sources).toEqual(state.connectorStatuses.map(source => ({
+    expect(input.sources).toEqual([{
+      id: "memory",
+      kind: "memory",
+      availability: "available",
+      observedAt: state.updatedAt,
+      snapshotId: `snapshot-memory-${state.updatedAt}`,
+      provenance: { sourceId: "memory", assertionId: "memory" },
+    }, ...state.connectorStatuses.map(source => ({
       id: source.name,
       kind: source.name,
       availability: "available",
       observedAt: state.updatedAt,
       snapshotId: `snapshot-${source.name}-${state.updatedAt}`,
       provenance: { sourceId: source.name, assertionId: source.name },
-    })));
+    }))]);
 
     const presentation = buildDawnwatchPresentation(input, {
       ...DEFAULT_DAWNWATCH_PRESENTATION_CONFIGURATION,
@@ -182,5 +189,27 @@ describe("production DAWNWATCH opening-brief integration", () => {
     // OperationalState carries no communication recipients, so that independent semantic-field
     // requirement remains honestly insufficient rather than being fabricated by this bridge.
     expect(presentation.communications.status).toBe("insufficient_coverage");
+  });
+
+  it("makes real memory-backed priority evidence available end-to-end", () => {
+    const state = dawnwatchEvaluationFixture("shared-priority-observation");
+    const input = buildProductionDawnwatchInput(state);
+    const presentation = buildDawnwatchPresentation(input, {
+      ...DEFAULT_DAWNWATCH_PRESENTATION_CONFIGURATION,
+      referenceTime: state.updatedAt,
+      sourceScope: input.sources.map(source => source.id),
+      identityTieBreakRule: "canonical_identity_ascending",
+    });
+
+    expect(input.priorities[0]?.provenance.sourceId).toBe("memory");
+    expect(input.sources[0]).toEqual({
+      id: "memory",
+      kind: "memory",
+      availability: "available",
+      observedAt: state.updatedAt,
+      snapshotId: `snapshot-memory-${state.updatedAt}`,
+      provenance: { sourceId: "memory", assertionId: "memory" },
+    });
+    expect(presentation.priorities.status).toBe("available");
   });
 });

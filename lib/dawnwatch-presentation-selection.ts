@@ -28,7 +28,7 @@ export function buildProductionDawnwatchInput(state: OperationalState): Dawnwatc
     priorities: state.priorities.map((priority, index) => ({
       id: `priority-${index}`,
       title: priority.title,
-      provenance: { sourceId: "", assertionId: `priority-${index}` },
+      provenance: { sourceId: "memory", assertionId: `priority-${index}` },
     })),
     commitments: state.calendar.map(commitment => ({
       id: commitment.id,
@@ -47,19 +47,28 @@ export function buildProductionDawnwatchInput(state: OperationalState): Dawnwatc
       subject: communication.subject,
       provenance: { sourceId: "gmail", assertionId: communication.id },
     })),
-    sources: state.connectorStatuses.map(source => {
+    sources: [{
+      id: "memory",
+      kind: "memory",
+      // Memory is local application state and is consistently reported ONLINE; unlike external
+      // connectors, OperationalState exposes no disconnected or unavailable memory condition.
+      availability: "available",
+      observedAt: state.updatedAt,
+      snapshotId: `snapshot-memory-${state.updatedAt}`,
+      provenance: { sourceId: "memory", assertionId: "memory" },
+    }, ...state.connectorStatuses.map(source => {
       // OperationalState has no canonical snapshot identity. Use a deterministic presentation-
       // boundary placeholder until an ExecutiveStateSnapshot-backed source supplies the real one.
       const snapshotId = `snapshot-${source.name}-${state.updatedAt}`;
       return {
         id: source.name,
         kind: source.name,
-        availability: source.connected ? "available" : "unavailable",
+        availability: source.connected ? "available" as const : "unavailable" as const,
         observedAt: state.updatedAt,
         snapshotId,
         provenance: { sourceId: source.name, assertionId: source.name },
       };
-    }),
+    })],
   };
 }
 

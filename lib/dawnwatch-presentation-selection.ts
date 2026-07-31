@@ -17,8 +17,8 @@ export function selectDawnwatchPresentationMode(value: string | undefined): Dawn
 }
 
 /**
- * Presentation-only bridge. Existing identifiers and source labels are retained, while absent
- * snapshot provenance stays absent so the governed evidence rules report insufficiency honestly.
+ * Presentation-only bridge. Existing identifiers and source labels are retained without creating
+ * a canonical publication or reconstructing legacy-only presentation claims.
  */
 export function buildProductionDawnwatchInput(state: OperationalState): DawnwatchPresentationInput {
   // Legacy connector data has no assertion identity distinct from its stable entity identity, so
@@ -36,7 +36,7 @@ export function buildProductionDawnwatchInput(state: OperationalState): Dawnwatc
       start: commitment.start,
       end: commitment.end,
       status: commitment.status === "cancelled" ? "cancelled" : "scheduled",
-      provenance: { sourceId: commitment.source, assertionId: commitment.id },
+      provenance: { sourceId: "calendar", assertionId: commitment.id },
     })),
     communications: state.gmailThreads.map(communication => ({
       id: communication.id,
@@ -45,16 +45,21 @@ export function buildProductionDawnwatchInput(state: OperationalState): Dawnwatc
       sentAt: communication.receivedAt,
       receivedAt: communication.receivedAt,
       subject: communication.subject,
-      provenance: { sourceId: communication.source, assertionId: communication.id },
+      provenance: { sourceId: "gmail", assertionId: communication.id },
     })),
-    sources: state.connectorStatuses.map(source => ({
-      id: source.name,
-      kind: source.name,
-      availability: source.connected ? "available" : "unavailable",
-      observedAt: "",
-      snapshotId: "",
-      provenance: { sourceId: source.name, assertionId: source.name },
-    })),
+    sources: state.connectorStatuses.map(source => {
+      // OperationalState has no canonical snapshot identity. Use a deterministic presentation-
+      // boundary placeholder until an ExecutiveStateSnapshot-backed source supplies the real one.
+      const snapshotId = `snapshot-${source.name}-${state.updatedAt}`;
+      return {
+        id: source.name,
+        kind: source.name,
+        availability: source.connected ? "available" : "unavailable",
+        observedAt: state.updatedAt,
+        snapshotId,
+        provenance: { sourceId: source.name, assertionId: source.name },
+      };
+    }),
   };
 }
 

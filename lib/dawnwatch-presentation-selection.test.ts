@@ -150,4 +150,37 @@ describe("production DAWNWATCH opening-brief integration", () => {
       presentation.communications.status,
     ]).toEqual(["available", "available", "available"]);
   });
+
+  it("aligns connector provenance and supplies deterministic source observations end-to-end", () => {
+    const state = dawnwatchEvaluationFixture("tomorrow-afternoon");
+    state.gmailThreads = [{
+      id: "communication-1", subject: "Review evidence", from: "operator@example.com",
+      snippet: "Please review", receivedAt: "2026-07-31T11:00:00Z", unread: true,
+      needsReply: true, important: false, source: "google", sourceLabel: "Main Gmail",
+    }];
+
+    const input = buildProductionDawnwatchInput(state);
+    expect(input.commitments[0]?.provenance.sourceId).toBe("calendar");
+    expect(input.communications[0]?.provenance.sourceId).toBe("gmail");
+    expect(input.sources).toEqual(state.connectorStatuses.map(source => ({
+      id: source.name,
+      kind: source.name,
+      availability: "available",
+      observedAt: state.updatedAt,
+      snapshotId: `snapshot-${source.name}-${state.updatedAt}`,
+      provenance: { sourceId: source.name, assertionId: source.name },
+    })));
+
+    const presentation = buildDawnwatchPresentation(input, {
+      ...DEFAULT_DAWNWATCH_PRESENTATION_CONFIGURATION,
+      referenceTime: state.updatedAt,
+      sourceScope: input.sources.map(source => source.id),
+      identityTieBreakRule: "canonical_identity_ascending",
+    });
+
+    expect(presentation.commitments.status).toBe("available");
+    // OperationalState carries no communication recipients, so that independent semantic-field
+    // requirement remains honestly insufficient rather than being fabricated by this bridge.
+    expect(presentation.communications.status).toBe("insufficient_coverage");
+  });
 });

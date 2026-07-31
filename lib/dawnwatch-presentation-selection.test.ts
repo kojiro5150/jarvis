@@ -108,6 +108,7 @@ describe("production DAWNWATCH opening-brief integration", () => {
     expect(bridged.priorities[0]?.provenance.assertionId).toBe("priority-0");
     expect(bridged.commitments[0]?.provenance.assertionId).toBe("commitment-1");
     expect(bridged.communications[0]?.provenance.assertionId).toBe("communication-1");
+    expect(bridged.sources.map(source => source.provenance.assertionId)).toEqual(["calendar", "gmail", "drive"]);
 
     // Satisfy the bridge's other deliberately unavailable evidence inputs independently so this
     // test isolates whether assertion identity still forces insufficient_coverage.

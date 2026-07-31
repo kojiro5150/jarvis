@@ -53,7 +53,7 @@ export function buildProductionDawnwatchInput(state: OperationalState): Dawnwatc
       availability: source.connected ? "available" : "unavailable",
       observedAt: "",
       snapshotId: "",
-      provenance: { sourceId: source.name, assertionId: "" },
+      provenance: { sourceId: source.name, assertionId: source.name },
     })),
   };
 }

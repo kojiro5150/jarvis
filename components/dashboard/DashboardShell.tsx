@@ -14,6 +14,7 @@ import { useOperationalState } from "@/lib/useOperationalState";
 import { useAgentConversation } from "@/lib/useAgentConversation";
 import { useMicCapture } from "@/lib/useMicCapture";
 import { buildProductionDashboardPresentation, type DashboardPresentationMode } from "@/lib/dashboard-presentation-selection";
+import type { DawnwatchPresentationMode } from "@/lib/dawnwatch-presentation-selection";
 
 /**
  * v27 (Sprint 9): a genuine product-shape change, not a visual pass. The
@@ -42,7 +43,13 @@ import { buildProductionDashboardPresentation, type DashboardPresentationMode } 
  * shows a ROUTING stance for ~700ms before settling into the newly
  * selected specialist's idle state.
  */
-export default function DashboardShell({ presentationMode }: { presentationMode: DashboardPresentationMode }) {
+export default function DashboardShell({
+  presentationMode,
+  dawnwatchPresentationMode,
+}: {
+  presentationMode: DashboardPresentationMode;
+  dawnwatchPresentationMode: DawnwatchPresentationMode;
+}) {
   const [selectedId, setSelectedId] = useState("jarvis");
   const [presetText, setPresetText] = useState("");
   const [presetNonce, setPresetNonce] = useState(0);
@@ -287,6 +294,7 @@ export default function DashboardShell({ presentationMode }: { presentationMode:
         <ConversationDock
           agent={agent}
           operationalState={operationalState}
+          dawnwatchPresentationMode={dawnwatchPresentationMode}
           messages={messages}
           loading={loading}
           error={error}

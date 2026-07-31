@@ -357,14 +357,14 @@ verification, and an operator promotion record. This Sprint adds none of that ma
 
 The final committed validation record is completed after authoring this document:
 
-\* \`npm test\` — complete suite; \*\*106 test files passed, 505 tests passed, 1 test skipped\*\*.  
-\* Targeted DAWNWATCH and governing-boundary tests — \*\*6 test files, 38 passed, 0 skipped\*\* across the commands/files below:  
+\* \`npm test\` — complete suite; \*\*110 test files passed, 533 tests passed, 1 test skipped\*\*.
+\* Targeted DAWNWATCH and governing-boundary tests — \*\*7 test files, 44 passed, 0 skipped\*\* across the commands/files below:
   \* \`lib/connectors/\_\_tests\_\_/calendar-event.test.ts\`: \`getOpeningBrief\`, DAWNWATCH branch,  
     \`describeCommitment\`, empty calendar, populated calendar.  
   \* \`lib/connectors/\_\_tests\_\_/email-message.test.ts\`: \`urgentCommunications\`, empty and populated  
     communication briefing.  
   \* \`lib/operational-state.test.ts\`: legacy operational-state construction and availability.  
-  \* \`lib/executive-operating-system/situational-awareness/assembly/engine.test.ts\` and  
+  \* \`lib/executive-operating-system/situational-awareness/assembly/assembly.test.ts\` and
     \`eos-integration.test.ts\`: canonical snapshot construction.  
   \* \`lib/executive-operating-system/situational-awareness/projection/adapters/operational-communication/operational-communication-adapter.test.ts\`:  
     communication publication invariants.  
@@ -397,4 +397,3 @@ The final committed validation record is completed after authoring this document
 \#\# Recommendation
 
 Audit Complete — Governance Review Required
-

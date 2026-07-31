@@ -1,7 +1,7 @@
 # JARVIS Engineering Notes
 
 **Status:** Active
-**Last Updated:** 30 July 2026
+**Last Updated:** 31 July 2026
 
 ## Purpose and Scope
 
@@ -68,11 +68,14 @@ Copy this section when no equivalent canonical observation already exists.
 - **First Observed:** 2026-07-30
 - **Occurrences:**
   1. **2026-07-30 — Sprint 3.56 engineering session:** Running `git remote -v` in the Codex execution environment at the JARVIS repository root returned no configured remotes, while the checked-out repository snapshot remained available for inspection and modification.
-- **Observation:** A Codex execution environment may provide a usable repository snapshot without exposing a repository remote. This occurrence establishes that the condition can happen in the observed environment; it does not establish how frequently it occurs or why the remote was unavailable.
-- **Evidence:** In the repository root, `git remote -v` produced no output. The working tree and Git metadata were present and accessible. No evidence from this session establishes that the upstream repository itself lacks a remote.
+  2. **2026-07-31 — Sprint 3.62 (Governed Dashboard Promotion Readiness):** The execution environment had no configured Git remote and was checked out on a branch named `work`, not `main`. The task's own specification anticipated this and verified repository state via merge-commit parentage instead of a live remote comparison, avoiding a block.
+  3. **2026-07-31 — Sprint 3.63 (DAWNWATCH Capability Audit & Evaluation Proposal):** Two consecutive Codex sessions returned Audit Incomplete because the required specification document, though genuinely present on the repository's default branch, was not visible from the checked-out sandbox snapshot. No configured remote meant the environment could not fetch the update. Resolution required extracting completed work from the blocked session's local commit and manually pushing it via an externally-configured Git client, since the sandbox itself had no way to publish its own commits.
+- **Observation:** A Codex execution environment may provide a usable repository snapshot without exposing a repository remote. Three independent occurrences across three separate sessions establish recurrence, while the evidence does not establish why the remote was unavailable.
+- **Evidence:** Across three separate sessions, the repository snapshot and Git metadata were accessible but no working remote was configured. The resulting constraints were directly observed in repository-state verification, access to an updated default-branch document, and publication of locally committed work. No evidence from these sessions establishes that the upstream repository itself lacks a remote.
 - **Engineering Impact:** Treating absent environment metadata as a repository defect can produce an inaccurate audit finding. The repository snapshot remains authoritative for claims about the state of the files available to the engineering session, while conclusions about external repository configuration remain bounded by what the environment exposes.
 - **Recommended Practice:** Treat the repository snapshot as authoritative for repository-state audits. Report missing remotes or similar constraints as execution-environment limitations unless repository evidence establishes otherwise, and explicitly distinguish environment limitations from repository state in audit and validation results.
-- **Promotion Status:** Not promoted. One occurrence is insufficient to establish recurrence.
+- **Recommended Investigation:** A Codex task environment for this repository should be configured with a working Git remote pointing at `github.com/kojiro5150/jarvis` by default at session start, so that repository-state verification and evidence extraction do not require per-task manual intervention.
+- **Promotion Status:** Promoted for investigation. Three independent occurrences across three separate sessions cross this file's recurrence threshold and warrant investigation of the underlying environment configuration rather than continued per-task workarounds.
 - **Status:** Active
 
 ### EN-002 — Branch-local commit hashes may not be externally resolvable after squash/rebase merge

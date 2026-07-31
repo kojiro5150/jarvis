@@ -31,6 +31,7 @@ and provider provenance is copied only where the existing operational publicatio
 
 ## Promotion gate
 
-This integration does not promote the governed Dashboard. `LEGACY` remains the default and both
-paths remain executable. Promotion is limited to the later default change described by Sprint 3.62;
-no additional component wiring or adapter work should be necessary.
+This integration does not promote the governed Dashboard. `LEGACY` remains the code-level fallback
+and both paths remain executable. Promotion is limited to the operator explicitly setting
+`DASHBOARD_PRESENTATION_MODE=GOVERNED` on the actual runtime; no default change, component rewiring,
+or adapter work is required.

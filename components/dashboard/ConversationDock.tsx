@@ -7,10 +7,16 @@ import { getOpeningBrief } from "@/lib/briefing";
 import MarkdownMessage from "../markdown/MarkdownMessage";
 import type { AgentDefinition, ChatMessage } from "@/lib/agents/types";
 import type { OperationalState } from "@/lib/operational-state";
+import {
+  buildDawnwatchOpeningPresentation,
+  type DawnwatchPresentationMode,
+} from "@/lib/dawnwatch-presentation-selection";
+import type { DawnwatchOpeningPresentation } from "@/lib/dawnwatch-presentation-adapter";
 
 interface ConversationDockProps {
   agent: AgentDefinition;
   operationalState: OperationalState;
+  dawnwatchPresentationMode: DawnwatchPresentationMode;
   messages: ChatMessage[];
   loading: boolean;
   error: string | null;
@@ -98,6 +104,18 @@ function AgentDocument({ agent, content }: { agent: AgentDefinition; content: st
   );
 }
 
+function openingBriefContent(
+  agentId: string,
+  operationalState: OperationalState,
+  dawnwatchPresentation: DawnwatchOpeningPresentation | undefined,
+): string {
+  if (agentId !== "dawnwatch") return getOpeningBrief(agentId, operationalState);
+  if (!dawnwatchPresentation) throw new Error("DAWNWATCH presentation input is required");
+  return dawnwatchPresentation.mode === "LEGACY"
+    ? dawnwatchPresentation.prose
+    : dawnwatchPresentation.presentation.voice;
+}
+
 /**
  * The conversation is a first-class, command-console-style dock — not a
  * shrinking afterthought bolted under the dashboard. Its own independent
@@ -130,6 +148,7 @@ function AgentDocument({ agent, content }: { agent: AgentDefinition; content: st
 export default function ConversationDock({
   agent,
   operationalState,
+  dawnwatchPresentationMode,
   messages,
   loading,
   error,
@@ -154,7 +173,12 @@ export default function ConversationDock({
     });
   }, [messages, loading]);
 
-  const brief = getOpeningBrief(agent.id, operationalState);
+  const dawnwatchPresentation = buildDawnwatchOpeningPresentation(
+    dawnwatchPresentationMode,
+    agent.id,
+    operationalState,
+  );
+  const brief = openingBriefContent(agent.id, operationalState, dawnwatchPresentation);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

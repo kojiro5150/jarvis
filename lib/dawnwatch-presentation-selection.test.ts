@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import { dawnwatchEvaluationFixture } from "./dawnwatch-parallel-evaluation";
 import { getOpeningBrief } from "./briefing";
 import {
+  buildDawnwatchPresentation,
+  DEFAULT_DAWNWATCH_PRESENTATION_CONFIGURATION,
+  type DawnwatchPresentationInput,
+} from "./dawnwatch-presentation";
+import {
   buildDawnwatchOpeningPresentation,
   buildProductionDawnwatchInput,
   selectDawnwatchPresentationMode,
@@ -84,5 +89,65 @@ describe("production DAWNWATCH opening-brief integration", () => {
     expect(input.priorities[0]).not.toHaveProperty("due");
     expect(input.communications.every(item => !("unread" in item) && !("important" in item))).toBe(true);
     expect(input.commitments.every(item => !("calendarName" in item))).toBe(true);
+  });
+
+  it("uses stable entity ids as assertions so complete evidence can become available", () => {
+    const state = dawnwatchEvaluationFixture("shared-priority-observation");
+    state.calendar = [{
+      id: "commitment-1", title: "Operator review", start: "2026-08-01T00:00:00Z",
+      end: "2026-08-01T01:00:00Z", day: "SAT", time: "10:00", source: "google",
+      calendarId: "primary", calendarName: "Operations", status: "confirmed",
+    }];
+    state.gmailThreads = [{
+      id: "communication-1", subject: "Review evidence", from: "operator@example.com",
+      snippet: "Please review", receivedAt: "2026-07-31T11:00:00Z", unread: true,
+      needsReply: true, important: false, source: "google", sourceLabel: "Main Gmail",
+    }];
+
+    const bridged = buildProductionDawnwatchInput(state);
+    expect(bridged.priorities[0]?.provenance.assertionId).toBe("priority-0");
+    expect(bridged.commitments[0]?.provenance.assertionId).toBe("commitment-1");
+    expect(bridged.communications[0]?.provenance.assertionId).toBe("communication-1");
+    expect(bridged.sources.map(source => source.provenance.assertionId)).toEqual(["calendar", "gmail", "drive"]);
+
+    // Satisfy the bridge's other deliberately unavailable evidence inputs independently so this
+    // test isolates whether assertion identity still forces insufficient_coverage.
+    const provenance = (assertionId: string) => ({ sourceId: "operational", assertionId });
+    const evidenceReadyInput = {
+      priorities: bridged.priorities.map(item => ({ ...item, provenance: provenance(item.provenance.assertionId) })),
+      commitments: bridged.commitments.map(item => ({ ...item, provenance: provenance(item.provenance.assertionId) })),
+      communications: bridged.communications.map(item => ({
+        ...item, recipients: ["operator@example.com"], provenance: provenance(item.provenance.assertionId),
+      })),
+      sources: [{
+        id: "operational", kind: "operational", availability: "available",
+        observedAt: "2026-07-31T11:00:00Z", snapshotId: "snapshot-1",
+        provenance: provenance("source-assertion-1"),
+      }],
+    } satisfies DawnwatchPresentationInput;
+    const configuration = {
+      ...DEFAULT_DAWNWATCH_PRESENTATION_CONFIGURATION,
+      referenceTime: state.updatedAt,
+      sourceScope: ["operational"],
+      identityTieBreakRule: "canonical_identity_ascending",
+    } as const;
+    const assertionless = buildDawnwatchPresentation({
+      ...evidenceReadyInput,
+      priorities: evidenceReadyInput.priorities.map(item => ({ ...item, provenance: provenance("") })),
+      commitments: evidenceReadyInput.commitments.map(item => ({ ...item, provenance: provenance("") })),
+      communications: evidenceReadyInput.communications.map(item => ({ ...item, provenance: provenance("") })),
+    }, configuration);
+    const presentation = buildDawnwatchPresentation(evidenceReadyInput, configuration);
+
+    expect([
+      assertionless.priorities.status,
+      assertionless.commitments.status,
+      assertionless.communications.status,
+    ]).toEqual(["insufficient_coverage", "insufficient_coverage", "insufficient_coverage"]);
+    expect([
+      presentation.priorities.status,
+      presentation.commitments.status,
+      presentation.communications.status,
+    ]).toEqual(["available", "available", "available"]);
   });
 });

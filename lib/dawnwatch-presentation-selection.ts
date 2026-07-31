@@ -18,14 +18,17 @@ export function selectDawnwatchPresentationMode(value: string | undefined): Dawn
 
 /**
  * Presentation-only bridge. Existing identifiers and source labels are retained, while absent
- * assertion/snapshot provenance stays absent so the governed evidence rules report insufficiency.
+ * snapshot provenance stays absent so the governed evidence rules report insufficiency honestly.
  */
 export function buildProductionDawnwatchInput(state: OperationalState): DawnwatchPresentationInput {
+  // Legacy connector data has no assertion identity distinct from its stable entity identity, so
+  // reuse each entity id. Revisit this when a canonical ExecutiveStateSnapshot-backed source can
+  // supply genuine per-assertion identities.
   return {
     priorities: state.priorities.map((priority, index) => ({
       id: `priority-${index}`,
       title: priority.title,
-      provenance: { sourceId: "", assertionId: "" },
+      provenance: { sourceId: "", assertionId: `priority-${index}` },
     })),
     commitments: state.calendar.map(commitment => ({
       id: commitment.id,
@@ -33,7 +36,7 @@ export function buildProductionDawnwatchInput(state: OperationalState): Dawnwatc
       start: commitment.start,
       end: commitment.end,
       status: commitment.status === "cancelled" ? "cancelled" : "scheduled",
-      provenance: { sourceId: commitment.source, assertionId: "" },
+      provenance: { sourceId: commitment.source, assertionId: commitment.id },
     })),
     communications: state.gmailThreads.map(communication => ({
       id: communication.id,
@@ -42,7 +45,7 @@ export function buildProductionDawnwatchInput(state: OperationalState): Dawnwatc
       sentAt: communication.receivedAt,
       receivedAt: communication.receivedAt,
       subject: communication.subject,
-      provenance: { sourceId: communication.source, assertionId: "" },
+      provenance: { sourceId: communication.source, assertionId: communication.id },
     })),
     sources: state.connectorStatuses.map(source => ({
       id: source.name,
@@ -50,7 +53,7 @@ export function buildProductionDawnwatchInput(state: OperationalState): Dawnwatc
       availability: source.connected ? "available" : "unavailable",
       observedAt: "",
       snapshotId: "",
-      provenance: { sourceId: source.name, assertionId: "" },
+      provenance: { sourceId: source.name, assertionId: source.name },
     })),
   };
 }

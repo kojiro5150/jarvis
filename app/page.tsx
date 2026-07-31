@@ -1,7 +1,10 @@
-"use client";
-
 import DashboardShell from "@/components/dashboard/DashboardShell";
+import { selectDashboardPresentationMode } from "@/lib/dashboard-presentation-selection";
+
+// Presentation mode is a runtime rollback control, not a build-time substitution.
+export const dynamic = "force-dynamic";
 
 export default function Home() {
-  return <DashboardShell />;
+  const presentationMode = selectDashboardPresentationMode(process.env.DASHBOARD_PRESENTATION_MODE);
+  return <DashboardShell presentationMode={presentationMode} />;
 }

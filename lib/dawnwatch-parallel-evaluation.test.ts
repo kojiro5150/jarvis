@@ -14,6 +14,40 @@ describe("DAWNWATCH parallel evaluation", () => {
       && result.context.locale === "en-AU" && result.context.viewerTimeZone === "Australia/Melbourne")).toBe(true);
   });
 
+  it("registers the original and Sprint 3.71 recipient scenarios", () => {
+    expect(DAWNWATCH_EVALUATION_SCENARIOS).toEqual([
+      "shared-priority-observation", "empty-evidence", "unavailable-evidence", "tomorrow-afternoon",
+      "recipient-evidence-available", "recipient-evidence-unknown", "recipient-evidence-not-fetched", "recipient-evidence-not-authorised",
+    ]);
+    expect(DAWNWATCH_EVALUATION_SCENARIOS.map(evaluateDawnwatchScenario)
+      .every(result => result.evaluationVersion === "sprint-3.71-v1")).toBe(true);
+  });
+
+  it("runs authoritative recipient evidence through the production bridge to available", () => {
+    const result = evaluateDawnwatchScenario("recipient-evidence-available");
+    expect(result.evidence.governedRuntimeOutput).toMatchObject({ communications: { status: "available" } });
+    expect(result.evidence.comparison.governed).toMatchObject({
+      recipientEvidence: "available", sourceAvailability: "available",
+      evidenceStatuses: ["available"],
+    });
+    expect(result.evidence.comparison.equal).toBe(false);
+    // This is the unchanged comparator's computed result, including its existing broad Sprint 3.64 rule.
+    expect(result.evidence.classification).toBe("Intentional Improvement");
+  });
+
+  it.each([
+    ["recipient-evidence-unknown", "unknown"],
+    ["recipient-evidence-not-fetched", "not_fetched"],
+    ["recipient-evidence-not-authorised", "not_authorised"],
+  ] as const)("keeps %s visible and insufficient", (scenario, recipientEvidence) => {
+    const result = evaluateDawnwatchScenario(scenario);
+    expect(result.evidence.governedRuntimeOutput).toMatchObject({ communications: { status: "insufficient_coverage" } });
+    expect(result.evidence.comparison.governed).toMatchObject({
+      recipientEvidence, sourceAvailability: "available", evidenceStatuses: ["insufficient_coverage"],
+    });
+    expect(result.evidence.classification).toBe("Intentional Improvement");
+  });
+
   it("computes authorised improvements from actual negative claims and evidence statuses", () => {
     for (const scenario of ["empty-evidence", "unavailable-evidence"] as const) {
       const result = evaluateDawnwatchScenario(scenario);
@@ -35,6 +69,14 @@ describe("DAWNWATCH parallel evaluation", () => {
     const { input: _input, ...before } = runDawnwatchScenario("shared-priority-observation");
     expect(compareDawnwatchRuntime(before).classification).toBe("Equivalent");
     const mutated = { ...before, governedComparable: ["Mutated governed observation"] };
+    expect(compareDawnwatchRuntime(mutated).classification).toBe("Defect");
+  });
+
+  it("detects a recipient-surface mutation with the unchanged comparator", () => {
+    const { input: _input, ...baseline } = runDawnwatchScenario("recipient-evidence-unknown");
+    expect(compareDawnwatchRuntime(baseline).classification).toBe("Intentional Improvement");
+    const comparable = baseline.governedComparable as { observations: readonly unknown[] };
+    const mutated = { ...baseline, governedComparable: { observations: comparable.observations.slice(1) } };
     expect(compareDawnwatchRuntime(mutated).classification).toBe("Defect");
   });
 

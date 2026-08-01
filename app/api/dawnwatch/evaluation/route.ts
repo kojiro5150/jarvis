@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   }
   const scenarios = requested ? [requested as DawnwatchEvaluationScenario] : DAWNWATCH_EVALUATION_SCENARIOS;
   return NextResponse.json({
-    evaluationVersion: "sprint-3.66-v1",
+    evaluationVersion: "sprint-3.71-v1",
     productionAuthorityChanged: false,
     evaluations: scenarios.map(evaluateDawnwatchScenario),
   });

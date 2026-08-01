@@ -1,1798 +1,588 @@
 # Sprint 3.89 — Governed Conversational Claims Boundary Contract
 
-**Status:** Specification
+**Status:** Complete
 **Sprint Type:** Governance Decision / Claims Boundary Contract
 **Implementation Authority:** None
-**Output Path:** `docs/SPRINT-3.89-GOVERNED-CONVERSATIONAL-CLAIMS-BOUNDARY-CONTRACT.md`
+**Repository:** `/workspace/jarvis`
+**Branch reviewed:** `work`
+**Review commit:** `710f8fef227192a91b7608ae70e46817a8ebcc13`
 
----
+## Repository Precondition
 
-## 1. Purpose
+The review began by confirming `/workspace/jarvis`, branch `work`, commit
+`710f8fef227192a91b7608ae70e46817a8ebcc13`, and a clean working tree. All
+required artefacts and implementation files existed. The repository had no
+configured `main` ref; the reviewed commit is the merge commit containing the
+Sprint 3.89 specification and is therefore the recorded review baseline.
 
-Sprint 3.89 establishes the binding deterministic boundary for claims in the governed conversational runtime.
+The following implementation evidence was inspected: `types.ts`,
+`projection-composer.ts`, `evidence-status.ts`, `input.ts`, `model-request.ts`,
+`validator.ts`, `fixtures.ts`, `lineage-test-fixtures.ts`,
+`parallel-evaluation.ts`, `cassie-fixture.test.ts`, all Cassie fixtures, and all
+tests constructing compound claims. Inspection confirmed
+`GovernedClaimInput`, the closed `CommunicationClaimType`, materiality,
+ownership, source references, bounded completeness, claim-local conflicts,
+`claimClassificationRulesetId`, `computeCommunicationClaimStatus`, and
+`aggregateEvidenceStatus`.
 
-Sprint 3.88 found that production ordinary chat accepts arbitrary free-form language, but no production owner currently transforms that language into:
+Repository search confirmed that no production route, registry, parser, or
+adapter constructs `GovernedClaimInput[]` from ordinary free-form chat. Typed
+capability payloads are the only deterministic production request parsing
+mechanism found. Only this document changes.
 
-```text
-GovernedClaimInput[]
-```
+## Governing Artefacts Reviewed
 
-The existing governed runtime can:
+The following were read completely before decisions were drafted:
 
-* compute evidence status after a claim exists;
-* validate claim-local evidence and conflicts;
-* preserve unsupported and unavailable states;
-* constrain model output;
-* prevent model-owned status upgrades.
-
-It cannot yet determine, before model invocation:
-
-* what claims an operator's question contains;
-* how compound questions are divided;
-* what closed claim type applies;
-* which evidence categories are required;
-* whether the claim is material;
-* what constitutes sufficient coverage;
-* whether unsupported language should be rejected, clarified, or represented through another bounded mechanism.
-
-Sprint 3.88 classified this as a **design-shaped governance gap**, not a missing adapter.
-
-Sprint 3.89 shall answer the nine bounded claims questions identified by Sprint 3.88.
-
-It shall not add new questions, broaden the governed claim vocabulary by implication, or implement the selected architecture.
-
-The central objective is:
-
-> **Define a deterministic, pre-model mechanism by which an operator request becomes a bounded set of governed claims—or is explicitly classified as unsupported—without allowing the answering model to define the claims by which its own output will later be judged.**
-
----
-
-## 2. Sprint Character
-
-This is a governance-decision sprint.
-
-It is not:
-
-* an implementation sprint;
-* a parser sprint;
-* a route-integration sprint;
-* an interface-design sprint;
-* a claim-classifier implementation;
-* a conflicts implementation;
-* a source-evidence implementation;
-* an operator-verification sprint;
-* a promotion sprint.
-
-No code changes are authorised.
-
-The sole deliverable is:
-
-```text
-docs/SPRINT-3.89-GOVERNED-CONVERSATIONAL-CLAIMS-BOUNDARY-CONTRACT.md
-```
-
-A future isolated implementation sprint may execute only the decisions made by the completed contract.
-
----
-
-## 3. Governing Hierarchy
-
-The review shall apply the repository's established governing hierarchy, including:
-
-1. JARVIS Engineering Constitution
-2. JARVIS North Star
-3. JARVIS Engineering Specification Standard
-4. Constitutional Publication Principles
+1. `docs/ENGINEERING_CONSTITUTION.md`
+2. `docs/architecture/NORTH_STAR.md`
+3. `docs/architecture/JARVIS-Engineering-Specification-Standard.md`
+4. `docs/CONSTITUTIONAL-PUBLICATION-PRINCIPLES.md`
 5. `docs/architecture/ROADMAP.md`
-6. Sprint 3.82 — Governed Conversational Lineage Identity Contract
-7. Sprint 3.76 — Governed Conversational Runtime Contract
-8. Sprint 3.85 — Governed Conversational Identity Correction Contract
-9. Sprint 3.88 — Governed Conversational Production Evidence Audit
-10. accepted responsibility statements and ADRs
-11. current governed-conversation types, fixtures, evaluation code, and validators
-12. this Sprint Specification
-
-Sprint 3.88 is the authoritative evidence base for the nine open claims questions.
-
-It is not the authority for their answers.
-
-Sprint 3.76 remains binding for:
-
-* the closed evidence-status vocabulary;
-* governed-over-legacy precedence;
-* deterministic evidence status before model invocation;
-* model-owned interpretation;
-* non-authoritative advisory recommendations;
-* the prohibition on heuristic laundering.
-
-Sprint 3.82 remains binding for:
-
-* the Dedicated Conversational Projection Composer's exclusive ownership;
-* deterministic and versioned claims;
-* claim-linked conflicts;
-* non-canonical conversation history;
-* source/reference minimisation.
+6. `docs/audits/SPRINT-3.88-GOVERNED-CONVERSATIONAL-PRODUCTION-EVIDENCE-AUDIT.md`
+7. `docs/SPRINT-3.76-GOVERNED-CONVERSATIONAL-RUNTIME-CONTRACT.md`
+8. `docs/SPRINT-3.82-GOVERNED-CONVERSATIONAL-LINEAGE-IDENTITY-CONTRACT.md`
+9. `docs/SPRINT-3.85-GOVERNED-CONVERSATIONAL-IDENTITY-CORRECTION-CONTRACT.md`
+10. the Sprint 3.89 specification at this path on the review baseline
+
+## Sprint 3.88 Claims Finding
+
+The Claims Finding was reviewed in full: composer requirements, the current
+production analogue, the deterministic-design gap, the Cassie decomposition,
+classification and reasoning, and all nine questions. The audit establishes
+evidence, not the decisions below. Each question is decided independently here.
+
+## Claims-Boundary Architecture
+
+**Claims-Boundary Architecture: Option C**
+
+Option C is binding because it establishes one closed, ordered, pre-model path:
+typed intent first, governed deterministic recognition second, deterministic
+clarification third, and fail-closed unsupported last. It retains bounded
+ordinary language while preventing the answering model from classifying its own
+claims.
+
+* **Option A is rejected:** typed-only execution needlessly removes bounded
+  free-text utility even when a versioned grammar can publish the same intent.
+* **Option B is rejected:** it does not give existing typed capability and UI
+  publications explicit precedence over text recognition.
+* **Option D is rejected:** it prevents direct governed handling of safely
+  recognisable conversational requests and imposes an avoidable capability
+  transition.
+
+Unmatched language is published as unsupported. A governed intent with a
+missing or unresolved required parameter is published as clarification
+required. No model classifier participates.
+
+## Decision 1 — Claim Unit and Authoritative Input
+
+**Decision problem.** Define the independently evaluable unit and the input
+that has authority to create it.
+
+**Principles.** Claims are pre-model, deterministic, claim-local, fail closed,
+and versioned.
+
+**Options considered.** Explicit typed-intent publication gives strongest
+directness but no free-text path; a matched governed-intent rule gives bounded
+conversation but requires grammar maintenance; operator-confirmed clarification
+resolves known missing parameters but adds a turn; raw text gives breadth but
+has no claim authority.
+
+> **Claim Unit Decision:** One claim is one independently answerable factual
+> assertion with exactly one governed claim type, polarity, materiality value,
+> required evidence-class set, completeness rule, evidence status, factual-value
+> set, conflict set, ownership, and unsupported reason. Independently answerable
+> assertions with different evidence rules are separate claims.
+
+> **Authoritative Claim Input:** The immutable Governed Claim Set published by
+> the Governed Claim Boundary Engine from either a validated typed-intent
+> publication, a single matched rule in the Claim Boundary Ruleset, or an
+> operator response to an engine-published clarification choice.
+
+Raw free text is input to the recogniser, never authority. One operator sentence
+produces zero, one, or multiple claims. Typed-only authority is rejected because
+Option C includes governed patterns; pattern-only authority is rejected because
+typed publications have precedence; raw-text authority is rejected because it
+is not a deterministic classification publication. Implementation must split
+each matched intent into its ruleset-declared claim template and must not merge
+independent assertions.
+
+## Decision 2 — Vocabulary, Compound, and Negative Claims
+
+**Decision problem.** Fix vocabulary scope and representations for compound and
+negative questions.
+
+**Principles.** Closed vocabulary, claim-local evidence, bounded absence, and no
+invented domain types govern this decision.
+
+**Options considered.** Communication-only scope is concrete but prevents
+separately governed families; a cross-domain framework preserves separation
+without inventing types. A polarity field preserves the existing type vocabulary;
+new negative types duplicate every type; untyped absence loses scope.
+
+> **Claim Vocabulary Scope:** A cross-domain claim-family framework with each
+> domain vocabulary closed and governed separately. Sprint 3.89 admits only the
+> existing closed communication vocabulary; it creates no Calendar, memory, or
+> generic source claim types.
+
+> **Compound Question Rule:** Every independently answerable governed factual
+> request becomes a separate claim. An unsupported independently answerable
+> request receives a separate unsupported claim only when its existing closed
+> type is recognised; an unknown family produces an unsupported evaluation
+> segment rather than a fabricated claim.
+
+> **Negative Claim Representation:** A ruleset-owned polarity field with closed
+> values `affirmative` and `negative`, plus a bounded-completeness specification,
+> represents negation. A negative answer is `available` only when governed
+> coverage proves absence inside the declared source set and time/scope bounds.
+
+Negative-scope types are rejected as vocabulary duplication. Bare absence is
+rejected because it cannot distinguish observed absence, unavailable source,
+insufficient coverage, and unsupported semantics. Implementations must add the
+governed polarity and absence scope to future boundary publications without
+changing current runtime code in this sprint.
 
-Sprint 3.85 remains binding for truthful conversational identity.
+## Decision 3 — Type, Materiality, Source, and Coverage Ownership
 
----
+**Decision problem.** Assign deterministic ownership of classification fields.
 
-## 4. Repository Precondition
+**Principles.** The model, route, prompt builder, context builder, legacy state,
+and connectors cannot assign claim governance.
+
+**Options considered.** A dedicated engine centralises publication ownership; a
+registry alone cannot own a run; distributed route or connector assignment loses
+one deterministic authority.
+
+> **Claim Classification Owner:** The Governed Claim Boundary Engine, applying
+> the immutable Claim Boundary Ruleset.
 
-Before beginning the governance review:
+> **Materiality Owner:** The Claim Boundary Ruleset; the engine copies the
+> selected intent rule's fixed materiality into each claim.
+
+> **Source and Coverage Rule Owner:** The Claim Boundary Ruleset; source-specific
+> publishers supply observations and coverage facts but never choose claim
+> requirements.
 
-1. Confirm the intended repository and branch.
-2. Record the current commit.
-3. Confirm the working-tree state.
-4. Confirm the following governing artefacts exist:
-
-```text
-docs/ENGINEERING_CONSTITUTION.md
-docs/architecture/NORTH_STAR.md
-docs/architecture/JARVIS-Engineering-Specification-Standard.md
-docs/CONSTITUTIONAL-PUBLICATION-PRINCIPLES.md
-docs/architecture/ROADMAP.md
-
-docs/audits/SPRINT-3.88-GOVERNED-CONVERSATIONAL-PRODUCTION-EVIDENCE-AUDIT.md
-docs/SPRINT-3.76-GOVERNED-CONVERSATIONAL-RUNTIME-CONTRACT.md
-docs/SPRINT-3.82-GOVERNED-CONVERSATIONAL-LINEAGE-IDENTITY-CONTRACT.md
-docs/SPRINT-3.85-GOVERNED-CONVERSATIONAL-IDENTITY-CORRECTION-CONTRACT.md
-```
-
-5. Read Sprint 3.88 completely.
-6. Read its **Claims Finding** in full, including:
-
-   * composer requirements;
-   * current production analogue;
-   * deterministic-design gap;
-   * required Cassie decomposition;
-   * classification;
-   * reasoning;
-   * all nine bounded governance questions.
-7. Read Sprint 3.76, Sprint 3.82, Sprint 3.85, and the Roadmap completely.
-8. Confirm the following current files exist and inspect their relevant types and tests:
-
-```text
-lib/governed-conversation/types.ts
-lib/governed-conversation/projection-composer.ts
-lib/governed-conversation/evidence-status.ts
-lib/governed-conversation/input.ts
-lib/governed-conversation/model-request.ts
-lib/governed-conversation/validator.ts
-lib/governed-conversation/fixtures.ts
-lib/governed-conversation/lineage-test-fixtures.ts
-lib/governed-conversation/parallel-evaluation.ts
-```
-
-Use the actual current paths where names have changed.
-
-9. Locate and inspect:
-
-   * `GovernedClaimInput`;
-   * the closed claim-type vocabulary (`CommunicationClaimType`);
-   * claim materiality;
-   * claim ownership fields;
-   * source-reference requirements;
-   * bounded-completeness fields;
-   * claim-local conflicts;
-   * `claimClassificationRulesetId`;
-   * `computeCommunicationClaimStatus`;
-   * `aggregateEvidenceStatus`;
-   * all Cassie fixtures, including `cassie-fixture.test.ts`;
-   * all tests constructing compound claims.
-10. Confirm that no production route, registry, parser, or adapter currently constructs `GovernedClaimInput[]` from ordinary free-form chat.
-11. Confirm that typed capability payloads are currently the only deterministic production request parsing mechanism identified by Sprint 3.88.
-12. Confirm only the Sprint 3.89 contract document may change.
-
-If Sprint 3.88 is absent:
-
-* do not reconstruct its nine questions from chat;
-* do not infer the Cassie decomposition;
-* do not proceed.
-
-Return:
-
-> **Governance Review Incomplete — Required Audit Unavailable**
-
-If one of the other required governing artefacts is absent and its absence prevents a binding decision, stop rather than improvising authority.
-
----
-
-## 5. Governing Question
-
-Sprint 3.89 must answer:
-
-> **How shall JARVIS deterministically convert an operator interaction into a versioned set of governed claims—or an explicit unsupported result—before any answering model is invoked?**
-
-The answer must preserve both:
-
-* ordinary conversational usefulness; and
-* deterministic governance of factual claims.
-
-It must not solve one by quietly abandoning the other.
-
----
-
-## 6. Claims Boundary Principles
-
-The completed contract shall preserve the following principles.
-
-### 6.1 Pre-model ownership
-
-Claims must exist before the answering model is invoked.
-
-The answering model shall not:
-
-* define the claims it will answer;
-* split the question into claims;
-* assign claim types;
-* select claim materiality;
-* choose required sources;
-* declare its own coverage;
-* determine whether an unknown request is supported.
-
-### 6.2 Deterministic publication
-
-Every claim set shall be the output of an identified, versioned deterministic ruleset.
-
-### 6.3 Fail-closed recognition
-
-Failure to recognise an operator request shall not be converted into a guessed claim.
-
-### 6.4 Claim-local status
-
-Compound questions shall not receive one blended status where different claim components have materially different evidence conditions.
-
-### 6.5 No heuristic laundering
-
-The settled exclusions remain binding:
-
-```text
-unread
-Gmail important
-needsReply
-labels
-legacy attention ranking
-```
-
-These fields shall not become evidence of operator importance, urgency, significance, or priority.
-
-### 6.6 Model breadth does not create claim authority
-
-The model may discuss, interpret, explain, or advise only within the evidence and authority exposed by the governed claim set.
-
-Natural-language fluency does not grant claim-classification authority.
-
----
-
-## 7. Independent Decision Requirement
-
-Sprint 3.88 posed questions.
-
-Sprint 3.89 must answer them independently.
-
-For each of the nine questions, the completed contract shall:
-
-1. restate the precise decision problem;
-2. identify the relevant governing principles;
-3. identify the named options considered;
-4. explain the material benefit and cost of each;
-5. select one binding option or one explicitly named fixed combination;
-6. reject all non-selected options;
-7. state the implementation consequence;
-8. state what the decision prohibits.
-
-The contract shall not merely convert:
-
-> "whether typed UI, capability, pattern, confirmation, or fail-closed mechanisms are permitted"
-
-into:
-
-> "typed UI, capability, pattern, confirmation, or fail-closed mechanisms are governed."
-
-That would repeat the question rather than answer it.
-
----
-
-## 8. Prohibited Hedge Language
-
-The following are not valid final decisions:
-
-* "reuse where practical";
-* "a combination as needed";
-* "depending on context";
-* "implementation may decide";
-* "where appropriate";
-* "may vary by claim" without a binding closed rule;
-* "prefer";
-* "generally";
-* "support multiple approaches";
-* "future work may determine";
-* "use the best available method."
-
-A fixed architecture may contain more than one mechanism only where:
-
-* the combination is named as one architectural option;
-* each mechanism has a closed responsibility;
-* precedence is deterministic;
-* fallback behavior is explicit;
-* implementation has no discretion to substitute another mechanism.
-
----
-
-# Part I — Primary Claims-Boundary Decision
-
-## 9. Deterministic Claim-Bounding Options
-
-The single most consequential decision shall select exactly one of the following named architectural options.
-
----
-
-### Option A — Explicit Typed Interaction Only
-
-Governed claims may be created only from explicit typed operator inputs, including:
-
-* structured capability payloads;
-* dedicated UI controls;
-* predefined commands;
-* forms with explicit claim types and parameters.
-
-Ordinary free-text conversation does not produce governed factual claims.
-
-Free-text requests that would require claims return `unsupported` or prompt the operator to use the appropriate typed interaction.
-
-#### Consequences
-
-* strongest determinism;
-* simplest auditability;
-* narrowest conversational breadth;
-* no deterministic free-text recognition;
-* every supported claim requires an explicit interaction surface.
-
----
-
-### Option B — Closed Deterministic Intent Vocabulary
-
-Governed claims may be created from free text only when a deterministic, versioned recogniser matches the request to a closed claim-intent vocabulary.
-
-The recogniser may use only contract-authorised deterministic mechanisms such as:
-
-* exact commands;
-* declared aliases;
-* bounded lexical patterns;
-* deterministic entity slots;
-* explicit grammar rules.
-
-Unmatched or ambiguous text resolves to `unsupported` or clarification.
-
-No model classification is permitted.
-
-#### Consequences
-
-* preserves some free-text utility;
-* requires a closed vocabulary and grammar;
-* risks brittle recognition;
-* requires explicit ambiguity and clarification rules;
-* every recognised pattern is part of the governed ruleset.
-
----
-
-### Option C — Explicit-First Governed Hybrid
-
-Governed claims may be created through a fixed, ordered mechanism:
-
-1. explicit typed capability or UI intent;
-2. closed deterministic pattern recognition for a governed vocabulary;
-3. deterministic clarification where required fields or identity resolution are missing;
-4. fail-closed `unsupported` for anything unmatched or ambiguous.
-
-This option is one fixed architecture, not "a combination as needed."
-
-The order is binding.
-
-No model-based intent classification is permitted.
-
-#### Consequences
-
-* typed interactions remain authoritative where available;
-* bounded free text remains possible for governed known intents;
-* clarification preserves conversational usability;
-* unmatched open-ended language remains outside factual claim execution;
-* ruleset versioning and deterministic precedence are mandatory.
-
----
-
-### Option D — Free-Text Conversation Does Not Produce Governed Claims
-
-Ordinary free text remains model-mediated conversation only.
-
-Governed claim execution occurs exclusively through separately invoked governed capabilities.
-
-The conversational model may discuss a free-text request but cannot make governed factual assertions from connected sources unless the operator transitions into a governed capability.
-
-#### Consequences
-
-* clean separation between conversation and factual execution;
-* strongest boundary between chat and governed retrieval;
-* material friction in everyday assistant use;
-* requires explicit transition into governed capabilities.
-
----
-
-## 10. Required Primary Decision
-
-The completed contract shall state exactly:
-
-> **Claims-Boundary Architecture: Option A / Option B / Option C / Option D**
-
-Exactly one option shall be selected.
-
-The reasoning shall explain:
-
-* why the selected option is deterministic;
-* how it preserves or limits ordinary conversational breadth;
-* how it prevents model-owned classification;
-* how unmatched language is handled;
-* why each rejected option is not selected.
-
-No implementation may choose a different option later.
-
----
-
-# Part II — The Nine Binding Claims Questions
-
-## 11. Question 1 — What Is One Claim, and What Input Is Authoritative?
-
-Sprint 3.88 asked:
-
-> What is one claim, and what deterministic input is authoritative?
-
-The contract shall define one claim as a bounded unit that can independently receive:
-
-* one claim type;
-* materiality;
-* required source classes;
-* bounded completeness rules;
-* an evidence status;
-* factual values;
-* conflicts;
-* ownership;
-* unsupported reason.
-
-The contract must decide what authoritative deterministic input establishes that claim.
-
-Named options shall include, as applicable:
-
-* explicit typed intent publication;
-* matched governed intent rule;
-* clarified and operator-confirmed intent;
-* another specifically defined deterministic publication.
-
-The contract shall decide whether raw free-text content itself is authoritative or merely input to the selected recogniser.
-
-It shall state whether one operator sentence may yield:
-
-* zero claims;
-* one claim;
-* multiple claims.
-
-It shall prohibit one claim from combining independently answerable assertions with different evidence rules.
-
-### Required decision format
-
-> **Claim Unit Decision:** [binding definition]
-
-> **Authoritative Claim Input:** [binding publication or recogniser output]
-
----
-
-## 12. Question 2 — Claim Vocabulary, Compound Questions, and Negative Questions
-
-Sprint 3.88 asked:
-
-> Which claim vocabulary applies beyond communication, and how are compound and negative questions represented?
-
-The contract shall decide whether Sprint 3.89 governs:
-
-* only the currently closed communication claim vocabulary; or
-* a cross-domain claim-family framework with domain vocabularies governed separately.
-
-It shall not invent unreviewed Calendar, memory, or source claim types merely because those evidence categories exist.
-
-The contract shall specify:
-
-### Compound questions
-
-Whether every independently answerable request becomes a separate claim.
-
-The default shall not be left implicit.
-
-### Negative questions
-
-How requests such as:
-
-* "Is there nothing scheduled?";
-* "Did nobody reply?";
-* "Are there no important messages?";
-* "Is Cassie not included?";
-
-are represented.
-
-The contract shall decide whether negative claims require:
-
-* explicit negative-scope types;
-* a polarity field;
-* bounded absence claims;
-* another closed representation.
-
-It shall preserve the distinction between:
-
-* observed absence within governed coverage;
-* source unavailable;
-* insufficient coverage;
-* unsupported claim.
-
-### Required decision format
-
-> **Claim Vocabulary Scope:** [binding scope]
-
-> **Compound Question Rule:** [binding rule]
-
-> **Negative Claim Representation:** [binding rule]
-
----
-
-## 13. Question 3 — Who Assigns Type, Materiality, Sources, and Coverage?
-
-Sprint 3.88 asked:
-
-> Who assigns type/materiality and the required source/coverage rules?
-
-The contract shall identify one deterministic owner.
-
-The owner shall not be:
-
-* `/api/chat`;
-* the answering LLM;
-* the prompt builder;
-* `context-builder.ts`;
-* legacy `OperationalState`;
-* a connector.
-
-Named owner options may include:
-
-* a dedicated Governed Claim Boundary Engine;
-* a versioned claim-rules registry plus pure construction function;
-* another explicitly named deterministic publication owner.
-
-The completed contract shall define which responsibilities belong to:
-
-* the claim recogniser;
-* the claim ruleset;
-* source-specific publishers;
-* the projection composer;
-* evidence-status computation.
-
-Materiality shall not be model-assigned.
-
-Source requirements shall not be connector-assigned.
-
-Coverage rules shall not be inferred ad hoc from whatever data happens to be available.
-
-### Required decision format
-
-> **Claim Classification Owner:** [named owner]
-
-> **Materiality Owner:** [named owner]
-
-> **Source and Coverage Rule Owner:** [named owner]
-
----
-
-## 14. Question 4 — Which Recognition and Clarification Mechanisms Are Permitted?
-
-Sprint 3.88 asked:
-
-> Which typed UI/capability/pattern/confirmation/fail-closed mechanisms are permitted?
-
-This decision shall follow the selected Claims-Boundary Architecture.
-
-The contract must define a closed list of permitted mechanisms.
-
-For each permitted mechanism, define:
-
-* responsibility;
-* precedence;
-* allowed input;
-* output publication;
-* ambiguity behavior;
-* whether operator confirmation is required;
-* failure behavior.
-
-The contract shall explicitly decide the status of:
-
-* typed capability payloads;
-* typed UI actions;
-* exact commands;
-* deterministic lexical patterns;
-* deterministic grammar;
-* entity resolution;
-* operator clarification;
-* operator confirmation;
-* LLM intent classification;
-* probabilistic classifiers;
-* embedding similarity;
-* unrestricted semantic parsing.
-
-No mechanism shall remain implicitly permitted.
-
-### Required decision format
-
-> **Permitted Claim-Bounding Mechanisms:** [closed list]
-
-> **Prohibited Mechanisms:** [closed list]
-
-> **Precedence Rule:** [binding order]
-
----
-
-## 15. Question 5 — How Is Uncertainty Surfaced Without Model-Owned Classification?
-
-Sprint 3.88 asked:
-
-> How is uncertainty surfaced without model-owned classification?
-
-The contract shall define deterministic states for claim-boundary uncertainty.
-
-At minimum distinguish:
-
-* recognised;
-* recognised but missing required parameter;
-* ambiguous between governed claim types;
-* unresolved entity;
-* unsupported language;
-* unsupported claim type;
-* supported claim with unavailable source;
-* supported claim with insufficient coverage.
-
-These states shall not be collapsed into one generic error.
-
-The contract shall decide:
-
-* whether ambiguity produces clarification;
-* whether clarification creates a new request or continues the same request;
-* whether an unresolved claim receives an identity;
-* whether unsupported requests enter the governed projection;
-* whether the model may phrase the clarification;
-* who owns the clarification choices.
-
-The model may articulate a deterministic clarification result.
-
-It may not decide what the ambiguity was.
-
-### Required decision format
-
-> **Claim-Boundary Uncertainty Vocabulary:** [closed vocabulary]
-
-> **Clarification Ownership:** [binding owner]
-
-> **Model Role in Clarification:** [binding limit]
-
----
-
-## 16. Question 6 — When Is Language Unsupported, and May the Operator Clarify It?
-
-Sprint 3.88 asked:
-
-> When is unknown language `unsupported`, and may the operator clarify it?
-
-The contract shall define exactly when unsupported occurs.
-
-At minimum consider:
-
-* no matching governed intent;
-* multiple equal matches;
-* missing required entity;
-* entity resolution below the governed certainty threshold;
-* claim type not governed;
-* required evidence category not governed;
-* prohibited significance or authority request;
-* request requiring an LLM to classify its meaning.
-
-The contract shall decide whether clarification is permitted for each class.
-
-Clarification shall not be used to make an ungoverned claim type appear governed.
-
-The contract must distinguish:
-
-* clarification of a governed claim's parameters;
-* transition into a typed capability;
-* rejection of an unsupported claim family.
-
-### Required decision format
-
-> **Unsupported Trigger Rule:** [binding rule]
-
-> **Clarification-Permitted Cases:** [closed list]
-
-> **Clarification-Prohibited Cases:** [closed list]
-
----
-
-## 17. Question 7 — How Are Claim Families Separated?
-
-Sprint 3.88 asked:
-
-> How are identity, contact, importance, schedule, absence and retrieval separated?
-
-The contract shall define the architectural separation among at least:
-
-* identity resolution;
-* contact-address lookup;
-* communication retrieval;
-* message-content retrieval;
-* importance/significance;
-* schedule/commitment;
-* absence/completeness;
-* source retrieval.
-
-It shall decide whether these are:
-
-* claim types;
-* claim families;
-* capabilities that produce claims;
-* preconditions to claims;
-* unsupported until separately governed.
-
-The contract shall prohibit one broad type such as:
-
-```text
-communication_question
-```
-
-from hiding materially different evidence rules.
-
-It shall also distinguish:
-
-* identity resolution as a prerequisite;
-* retrieval as an action/capability boundary;
-* factual claim evaluation;
-* interpretive significance.
-
-### Required decision format
-
-> **Claim-Family Separation Model:** [binding model]
-
-The completed contract shall include a table:
+The recogniser selects exactly one rule or publishes ambiguity. The ruleset owns
+claim templates, materiality, evidence classes, polarity, and completeness. The
+projection composer consumes the claim set without recreation. Existing status
+functions compute statuses after evidence evaluation. Registry-only,
+route-owned, connector-owned, composer-owned, and model-owned assignment are
+rejected because each breaks canonical run ownership or permits ad hoc rules.
+
+## Decision 4 — Permitted Mechanisms
+
+**Decision problem.** Close the recognition, clarification, and fallback set.
+
+**Principles.** Ordered determinism, explicit ambiguity, and fail-closed
+recognition apply.
+
+> **Permitted Claim-Bounding Mechanisms:** (1) schema-validated typed capability
+> payloads; (2) schema-validated typed UI actions; (3) exact commands and declared
+> aliases; (4) bounded lexical patterns and deterministic grammar rules; (5)
+> exact, source-qualified entity resolution with ruleset-declared unique-match
+> criteria; (6) engine-published operator clarification choices for missing
+> parameters, equal rule matches, or unresolved entities; (7) operator
+> confirmation by selection of one such choice; and (8) fail-closed unsupported.
+
+> **Prohibited Mechanisms:** LLM intent classification, probabilistic
+> classifiers, embedding similarity, unrestricted semantic parsing, answering-
+> model extraction, route or prompt inference, connector classification, and
+> undeclared aliases or patterns.
+
+> **Precedence Rule:** Validate typed capability payload; otherwise validate
+> typed UI action; otherwise match exact command/alias; otherwise apply lexical
+> patterns and grammar; otherwise publish clarification only for a recognised
+> governed intent with a missing parameter, equal matches, or unresolved entity;
+> otherwise publish unsupported.
+
+At each stage, a valid unique match stops evaluation. An invalid typed payload
+produces clarification for correctable missing fields and unsupported for an
+invalid or ungoverned type; it does not fall through to text. Confirmation is
+required only after a clarification publication. The model can phrase the
+published choices but cannot add or select them.
+
+## Decision 5 — Uncertainty
+
+**Decision problem.** Surface boundary uncertainty without delegating meaning.
+
+**Principles.** Structural uncertainty is distinct from evidence status and is
+owned pre-model.
+
+> **Claim-Boundary Uncertainty Vocabulary:** `recognised`,
+> `missing_required_parameter`, `ambiguous_governed_intent`,
+> `unresolved_entity`, `unsupported_language`, `unsupported_claim_type`,
+> `source_unavailable`, and `insufficient_coverage`.
+
+The first six are evaluation outcomes. The final two are claim evidence results
+after a supported claim exists: `source_unavailable` maps through existing
+status computation to `unavailable`; `insufficient_coverage` maps to the
+identically named evidence status.
+
+> **Clarification Ownership:** The Governed Claim Boundary Engine owns the
+> ambiguity reason, closed choices, required fields, continuation token, and
+> original evaluation reference. Clarification continues the same request and
+> creates a new evaluation run referencing the prior run and operator response.
+
+> **Model Role in Clarification:** The model may render engine-published wording
+> and choices verbatim in meaning; it cannot invent a choice, resolve an entity,
+> alter a reason, or create a claim.
+
+No claim identity exists until classification and required parameters are
+resolved. Unsupported segments stay in the Claim Boundary Evaluation and do not
+enter the governed projection as fabricated claims. Generic-error collapse and
+model-decided ambiguity are rejected because they erase deterministic cause.
+
+## Decision 6 — Unsupported and Clarification
+
+**Decision problem.** Fix unsupported triggers and the cases that allow another
+operator turn.
+
+> **Unsupported Trigger Rule:** Publish unsupported for no governed intent match,
+> an ungoverned claim type or evidence category, a prohibited significance or
+> authority request, a request requiring semantic/model classification, an
+> invalid typed type, or ambiguity that remains after one engine-published
+> clarification response.
+
+> **Clarification-Permitted Cases:** A recognised governed intent missing a
+> required parameter; multiple equal governed-rule matches with a closed choice
+> list; multiple exact entity candidates; no exact entity candidate when a typed
+> identifier can be requested; and a malformed correctable field in a known
+> typed intent.
+
+> **Clarification-Prohibited Cases:** No governed family match; an ungoverned
+> claim or evidence category; importance/significance without a significance
+> contract; prohibited authority; a request requiring probabilistic or model
+> interpretation; and a second unresolved response to the same clarification.
+
+Clarification never upgrades an ungoverned family. Transition into a typed
+capability creates a new typed interaction, while clarification continues the
+same request lineage. Silent fallback to the model is rejected because it
+bypasses the boundary.
+
+## Decision 7 — Claim-Family Separation
+
+**Decision problem.** Separate prerequisites, actions, factual claims, absence,
+and interpretation.
+
+> **Claim-Family Separation Model:** Identity resolution is a deterministic
+> prerequisite; retrieval is a capability action; closed factual types are
+> claim templates; negative absence is polarity plus bounded completeness; and
+> importance/significance is unsupported until separately governed.
 
 | Claim family | Governed now? | Deterministic owner | Required evidence class | Status rule owner | Notes |
-| ------------ | ------------: | ------------------- | ----------------------- | ----------------- | ----- |
+| --- | ---: | --- | --- | --- | --- |
+| Identity resolution | Yes, as prerequisite | Boundary Engine + identity rule | Source-qualified identity candidates | Claim Boundary Ruleset | Never a broad communication claim |
+| Contact-address lookup | Yes | Boundary Engine | Identity-qualified contact metadata | Existing evidence-status computation | Existing `contact_address_lookup` |
+| Communication retrieval | Yes, only existing closed types | Typed capability and Boundary Engine | Governed communication publication | Existing evidence-status computation | Retrieval action and resulting claims remain distinct |
+| Message-content retrieval | Yes, only existing closed types | Typed capability and Boundary Engine | Provenanced content with content kind | Existing evidence-status computation | Snippets do not establish full content |
+| Importance/significance | No | Future significance contract | Not defined | `computeCommunicationClaimStatus` | Existing `message_importance` is published unsupported |
+| Schedule/commitment | No claim type admitted here | Future Calendar claim-family contract | Future Calendar publication | Future contract | Source governance can precede claim admission |
+| Absence/completeness | Yes, as representation | Boundary Engine | Closed source/time/scope coverage | Claim Boundary Ruleset + status computation | Negative polarity cannot imply coverage |
+| Source retrieval | Yes, as capability boundary | Typed capability owner | Source publication and availability | Source contract | Does not itself prove claim relevance |
 
----
+A generic `communication_question` is rejected because it hides distinct
+requirements. Treating identity, retrieval, and importance as factual peers
+without their separate boundaries is rejected because it launders prerequisites
+or interpretation into evidence.
 
-## 18. Question 8 — How Is Everyday Conversational Breadth Preserved?
+## Decision 8 — Conversational Breadth
 
-Sprint 3.88 asked:
+**Decision problem.** Preserve collaboration without allowing connected-data
+facts outside the governed boundary.
 
-> How is everyday conversational breadth preserved without weakening determinism?
+> **Conversational Breadth Rule:** Brainstorming, reflection, writing,
+> explanation, general reasoning, and non-source-dependent advice produce an
+> empty governed claim set and may proceed as open-ended conversation. Any
+> assertion dependent on connected data, current application state, identity,
+> retrieval, or bounded absence requires a governed claim or an explicit
+> unsupported result.
 
-The contract shall state plainly that not every conversational utterance must become a governed factual claim.
+> **Mixed Governed/Non-Governed Message Rule:** The Boundary Engine deterministically
+> segments every uniquely recognised governed intent and its grammar-bounded
+> span; all residual text is one non-governed segment. Recognised claims proceed
+> through the governed projection, while the model receives the residual segment
+> plus claim statuses and a prohibition on supplying connected-data facts absent
+> from the claim set. Clarification blocks only the affected governed segment.
 
-It shall distinguish:
+Rejecting every mixed message creates needless friction. Blocking all segments
+for one clarification suppresses safe conversation. Letting the model segment
+the message permits factual smuggling. Implementations must preserve the
+engine-published segment map.
 
-### Governed factual claim execution
+## Decision 9 — Ruleset and Publications
 
-Questions whose answers depend on:
+**Decision problem.** Identify canonical evidence that classification ran.
 
-* connected data;
-* source evidence;
-* current state;
-* absence/completeness;
-* identity;
-* retrieved content;
-* other verifiable application facts.
+> **Claim Ruleset Publication:** `ClaimBoundaryRuleset` is an immutable canonical
+> object owned by the governance-approved rules registry. It has
+> `claimBoundaryRulesetId`, schema version, ruleset version, closed intents,
+> grammar/aliases, precedence, claim templates, materiality, source and coverage
+> requirements, polarity rules, and clarification rules. Its content-derived ID
+> identifies one immutable body.
 
-### Open-ended conversation
+> **Claim Evaluation Publication:** `ClaimBoundaryEvaluation` is an immutable
+> canonical run object owned by the Governed Claim Boundary Engine. It has a
+> unique `claimBoundaryEvaluationId`, schema version, ruleset ID, thread/request/
+> exchange references, input digest, permitted-context references, matched rule
+> IDs and spans, entity-resolution result, segment outcomes, clarification or
+> unsupported details, created-at time, and optional prior-evaluation reference.
 
-Requests involving:
+> **Governed Claim Set Publication:** `GovernedClaimSet` is an immutable canonical
+> object owned by the Governed Claim Boundary Engine. It has a unique
+> `governedClaimSetId`, schema version, evaluation ID, ruleset ID,
+> thread/request/exchange references, ordered claims with durable claim IDs,
+> types, parameters, polarity, materiality, source requirements, bounded
+> completeness, and segment links. Empty sets are valid only for no-factual-claim
+> evaluations.
 
-* brainstorming;
-* reflection;
-* writing;
-* explanation;
-* general reasoning;
-* personal collaboration;
-* non-source-dependent advice.
+Each retry creates a new evaluation identity and, only when the outcome is
+`recognised` or `no_governed_factual_claim`, a new claim-set identity. Identical
+immutable bodies can be deduplicated only by the canonical content-derived
+identity policy; ruleset, evaluation, exchange, and claim-set identities never
+substitute for one another. Unsupported and clarification are discriminated
+evaluation outcomes and produce no claim set. `claimClassificationRulesetId`
+must reference the selected Claim Boundary Ruleset when a future adapter feeds
+the existing projection. Synthetic, exchange-reused, and unversioned identities
+are rejected because they cannot prove a distinct immutable run and output.
 
-The contract shall decide what happens when one operator message contains both.
+## Cassie Constitutional Test
 
-Named options shall include:
+Input: **“What's Cassie's email? Anything important?”**
 
-* split into governed and non-governed segments;
-* require clarification before either proceeds;
-* reject mixed requests;
-* another explicitly governed rule.
+The complete deterministic path under Option C is:
 
-The contract shall ensure that model-owned conversation cannot smuggle factual connected-data claims around the governed boundary.
+1. No typed payload or UI action is present.
+2. The versioned grammar matches two non-overlapping declared aliases:
+   `what is <person>'s email` → `contact_address_lookup`; and
+   `anything important` → `message_importance`.
+3. The Boundary Engine publishes two recognised intent segments. The grammar,
+   not an LLM, performs the split and type assignment.
+4. The exact entity slot `Cassie` is resolved under the identity rule. Multiple
+   exact Cassie candidates produce `unresolved_entity` with engine-owned choices;
+   one exact candidate supplies the stable entity reference.
+5. The contact template fixes materiality `true`, identity-qualified contact
+   metadata as its source class, and the source-qualified address completeness
+   rule.
+6. The importance template fixes materiality `true`, but the ruleset marks its
+   significance definition unsupported under current governance.
+7. The engine publishes one evaluation and one ordered Governed Claim Set that
+   supplies two `GovernedClaimInput` records to the future adapter. No answering
+   model has run or decided what either claim is.
 
-### Required decision format
+| Claim | Governed type | Evidence condition | Current status |
+| --- | --- | --- | --- |
+| Cassie contact address | `contact_address_lookup` | Uniquely resolved Cassie; available source-qualified address; provenance and observation time; bounded coverage satisfied | Potentially `available`; otherwise existing rules yield `unavailable` or `insufficient_coverage` |
+| Anything important | `message_importance` | Separately governed operator-significance definition and admissible evidence | `unsupported` |
 
-> **Conversational Breadth Rule:** [binding rule]
+The contact claim becomes `available` only after identity sufficiency, source
+availability, address provenance, observation time, and coverage are all
+satisfied. No conversational memory or unqualified snippet can supply the
+address.
 
-> **Mixed Governed/Non-Governed Message Rule:** [binding rule]
+**The importance claim remains `unsupported` under current governance.** Unread,
+Gmail-important, `needsReply`, labels, legacy attention ranking, and message
+ordering do not establish operator importance, urgency, priority, or
+significance. They cannot change the status to `insufficient_coverage` or supply
+model inference. With both claims material, existing `aggregateEvidenceStatus`
+produces overall `unsupported` even when the address is `available`.
 
----
+## Source-Category Independence
 
-## 19. Question 9 — Which Ruleset and Publication Prove Evaluation Ran?
+| Category | Contract independent of claims? | Publisher implementation independent of claims? | Claim-linked wiring waits? | Binding reason |
+| --- | ---: | ---: | ---: | --- |
+| Gmail | Yes | No | Yes | Source publication semantics can be contracted now; implementation awaits that contract and admission governance; relevance requires claim rules. |
+| Calendar | Yes | No | Yes | Event-evidence semantics can be contracted without inventing schedule claims; implementation and selection remain separately authorised work. |
+| Memory/priorities | Yes | No | Yes | Provenance and operator ownership can be contracted without admitting priority claims; implementation cannot imply significance. |
+| Connector availability | Yes | No | Yes | Availability is source state independent of claim meaning; implementation requires its own authorised sprint and claim mapping waits. |
 
-Sprint 3.88 asked:
+The four determinations are therefore **Yes / No / Yes** in every row. Contract
+independence authorises governance drafting only, not publisher code,
+source-evidence registry admission, claim selection, or production integration.
 
-> Which versioned ruleset and publication identity prove that evaluation ran?
+## Source Evidence and History Relationships
 
-The contract shall define the authoritative publications created by claim-boundary evaluation.
+Source-specific publication admission rules can be governed without claims when
+they define provenance, observation time, availability, content kind, and
+coverage facts without declaring relevance. Registry implementation,
+claim-linked evidence selection, claim-reference validation, and model-exposure
+policy depend on the claim ruleset and separate implementation authority.
 
-At minimum decide whether the architecture requires:
+Conversation-history classification and retention of non-canonical dialogue can
+be governed independently. Retrieval references can be represented without
+evidentiary authority. Deriving claims from prior turns and carrying unresolved
+claims across turns depend on a future advanced continuity contract. History
+text never creates a claim; only a typed publication, a current-request grammar
+match, or an operator response to an engine-owned clarification does so.
 
-* a Claim Boundary Ruleset publication;
-* a Claim Classification Run publication;
-* a Governed Claim Set publication;
-* unsupported/clarification outcome publication;
-* references to thread/request/exchange/projection identity.
+## Conflicts Decision
 
-For each publication, define:
+**Conflicts Contract Decision: Option A**
 
-* represented event or immutable body;
-* owner;
-* schema version;
-* ruleset version;
-* identity;
-* creation boundary;
-* input references;
-* output references;
-* whether it is canonical;
-* relationship to retries;
-* relationship to one exchange;
-* whether empty claim sets are valid.
+Option A is selected because contradiction eligibility, affected-claim linkage,
+status restrictions, evaluation coverage, publication identity, and EOS
+admissibility depend on the now-fixed claim boundary and require a complete
+dependent contract. Option B is rejected because a minimal subset here would
+either leave material semantics open or exceed this claims-only sprint. This
+contract makes no new conflict semantic decision; existing claim-local conflict
+structures remain evidence, not new authority.
 
-The contract shall comply with Constitutional Publication Principles:
-
-> One immutable identity shall correspond to one immutable canonical object.
-
-A ruleset ID shall not be used as the identity of one evaluation run.
-
-An exchange ID shall not be used as the identity of a distinct claim-set publication unless governance explicitly defines them as the same immutable object—which this sprint shall not assume.
-
-### Required decision format
-
-> **Claim Ruleset Publication:** [binding publication]
-
-> **Claim Evaluation Publication:** [binding publication]
-
-> **Governed Claim Set Publication:** [binding publication]
-
----
-
-# Part III — Required Cassie Constitutional Test
-
-## 20. Cassie Test Case
-
-The completed contract shall apply every material decision to:
-
-> **"What's Cassie's email? Anything important?"**
-
-The analysis shall not treat the sentence as one claim.
-
-The required minimum decomposition remains:
-
-1. a material `contact_address_lookup` claim; and
-2. a material `message_importance` claim.
-
-The contract shall show the complete deterministic path from operator input to both claims under the selected architecture.
-
-At minimum show:
-
-```text
-operator text or typed interaction
-        ↓
-permitted deterministic boundary mechanism
-        ↓
-recognised intent(s)
-        ↓
-entity/parameter handling
-        ↓
-claim type assignment
-        ↓
-materiality
-        ↓
-source and coverage requirements
-        ↓
-GovernedClaimInput[]
-```
-
----
-
-## 21. Cassie Contact-Address Claim
-
-The contract shall state how the contact-address claim is recognised.
-
-It shall define:
-
-* claim type;
-* entity parameter;
-* identity-resolution requirement;
-* source classes;
-* materiality;
-* bounded completeness;
-* status possibilities;
-* clarification behavior if multiple Cassies exist;
-* unsupported behavior if no governed identity/contact source exists.
-
-The claim may become `available` only where:
-
-* Cassie's identity is sufficiently resolved;
-* a source-qualified address is present;
-* the source is available;
-* provenance and observation time are present;
-* the required coverage rule is satisfied.
-
-The model shall not infer an address from conversational memory or an unqualified snippet.
-
----
-
-## 22. Cassie Importance Claim
-
-The importance claim shall remain distinct.
-
-The contract shall state explicitly:
-
-> The importance claim remains `unsupported` under current governance.
-
-The completed contract shall preserve the settled exclusion boundary.
-
-None of the following establishes operator significance:
+## Publication Architecture
 
 ```text
-unread
-Gmail important
-needsReply
-labels
-legacy attention ranking
-message ordering
-```
-
-The contract shall not:
-
-* define importance through those fields;
-* permit the model to infer importance from them;
-* allow a connector-provided importance marker to become operator significance;
-* weaken `unsupported` to `insufficient_coverage` merely because heuristic fields exist;
-* silently defer the importance definition to implementation.
-
-If a future significance contract is possible, it remains separate future work.
-
-Sprint 3.89 shall not create it.
-
----
-
-## 23. Cassie Compound-Question Outcome
-
-The contract shall show why the two claims receive separate statuses.
-
-Expected structure:
-
-| Claim                  | Governed type            | Evidence condition                                        | Current status          |
-| ----------------------- | ------------------------- | ----------------------------------------------------------- | ------------------------ |
-| Cassie contact address  | `contact_address_lookup`  | identity-sufficient source-qualified address evidence       | potentially `available`  |
-| Anything important      | `message_importance`      | separately governed significance definition and evidence    | `unsupported`            |
-
-The claim-set overall status shall follow the existing deterministic materiality-aware aggregation rule (`aggregateEvidenceStatus`).
-
-The contract shall not invent a new aggregation rule unless Sprint 3.76 explicitly left it open and the nine claims questions require it.
-
----
-
-# Part IV — Relationship to Other Production Evidence Categories
-
-## 24. Four Narrow Source Categories
-
-Sprint 3.88 proposed that four bounded evidence-category governance tracks could proceed independently of claims governance:
-
-* Gmail communication publication;
-* Calendar evidence publication;
-* memory/priority publication;
-* connector availability publication.
-
-Sprint 3.89 shall explicitly confirm or correct that finding.
-
-For each category, decide whether:
-
-* its source-specific publication contract can proceed before claims;
-* its implementation can proceed before claims;
-* claim-linked selection must wait;
-* source-evidence registry admission must wait;
-* production conversational integration must wait.
-
-The contract shall distinguish:
-
-```text
-publishing governed source evidence
-```
-
-from:
-
-```text
-selecting evidence as relevant to a governed claim
-```
-
-A source publisher may be independently governed even where claim relevance remains unresolved.
-
-### Required decision format
-
-Provide:
-
-| Category               | Contract independent of claims? | Publisher implementation independent of claims? | Claim-linked wiring waits? | Binding reason |
-| ----------------------- | -------------------------------: | -------------------------------------------------: | ---------------------------: | --------------- |
-| Gmail                   |                           Yes/No |                                             Yes/No |                       Yes/No | ...              |
-| Calendar                |                           Yes/No |                                             Yes/No |                       Yes/No | ...              |
-| Memory/priorities       |                           Yes/No |                                             Yes/No |                       Yes/No | ...              |
-| Connector availability  |                           Yes/No |                                             Yes/No |                       Yes/No | ...              |
-
-No row may remain ambiguous.
-
----
-
-## 25. Source Evidence Relationship
-
-The contract shall state whether the cross-source evidence registry can be governed or implemented independently of claims.
-
-At minimum distinguish:
-
-* source-specific publication admission rules;
-* claim-linked evidence selection;
-* claim-reference validation;
-* model-exposure policy.
-
-If only part is independent, the boundary must be explicit.
-
-"Partly independent" without naming the independent publication and dependent function is not sufficient.
-
----
-
-## 26. Conversation History Relationship
-
-The contract shall state whether governed conversation-history classification is independent of claims.
-
-It shall distinguish:
-
-* classifying operator and assistant turns;
-* retaining non-canonical dialogue;
-* representing retrieval references;
-* deriving new claims from prior turns;
-* carrying unresolved claims across turns.
-
-The contract must not silently authorize history to create claims merely because it contains operator text.
-
----
-
-# Part V — Conflicts Boundary
-
-## 27. Required Conflicts Decision
-
-Sprint 3.88 proposed a dependent conflict contract after the claims boundary.
-
-Sprint 3.89 must select exactly one:
-
-### Conflicts Option A — Separate Dependent Contract
-
-Sprint 3.89 governs claims only.
-
-A later conflicts contract shall define:
-
-* eligible source owners;
-* contradiction categories;
-* affected-claim linkage;
-* status restrictions;
-* description references;
-* sufficient conflict-evaluation coverage;
-* unevaluated representation;
-* ruleset and publication identity;
-* admissibility of any EOS mapping.
-
-This option recognises that conflict meaning depends on the claim boundary being settled first.
-
-### Conflicts Option B — Minimal Conflicts Boundary Included Here
-
-Sprint 3.89 additionally governs only the minimum conflict rules necessary to make claims structurally valid.
-
-Any included rules must be complete enough for implementation and may not defer material semantics.
-
-A later contract may govern advanced conflict classes only.
-
-### Required decision
-
-The completed contract shall state:
-
-> **Conflicts Contract Decision: Option A / Option B**
-
-Exactly one option shall be selected.
-
-"Some conflicts now, some later" is invalid unless Option B defines a closed present scope and a closed deferred scope.
-
-If Option A is selected, Sprint 3.89 shall not make implicit conflict decisions elsewhere.
-
----
-
-# Part VI — Governed Output Architecture
-
-## 28. Required Claim-Boundary Publications
-
-The completed contract shall define the final publication chain.
-
-A candidate structure to evaluate is:
-
-```text
-Claim Boundary Ruleset
-        ↓ applied to
+ClaimBoundaryRuleset
+        ↓ applied by Governed Claim Boundary Engine to
 Operator Request + Lineage + Permitted Context
         ↓ produces
-Claim Boundary Evaluation
-        ↓ produces
-Governed Claim Set
-        ↓ consumed by
+ClaimBoundaryEvaluation
+        ├── clarification_required / unsupported → no claim set
+        └── recognised / no_governed_factual_claim
+                    ↓ produces
+             GovernedClaimSet
+                    ↓ consumed by
 Dedicated Conversational Projection Composer
 ```
 
-The contract may select another structure only with explicit reasoning.
+The ruleset owns recognition rules, claim templates, materiality, evidence
+classes, completeness, and its own identity. The evaluation owns the run,
+segmentation, match, clarification, unsupported result, and lineage. The claim
+set owns claim identities and instantiated governed fields. The composer only
+consumes the claim set.
 
-It shall state which publication owns:
+When all claims are recognised, the model receives the governed projection and
+recognised residual conversation. When some segments are unsupported, it
+receives recognised claims plus the explicit unsupported segment outcomes and
+cannot answer those outcomes factually. When clarification is required, it
+receives only engine-owned clarification content for that segment; other
+recognised segments can proceed. With no governed factual claim, it receives the
+open-ended text and the empty-set publication. For mixed content, it receives
+the immutable segment map, governed statuses, and residual text. It cannot add,
+merge, upgrade, or answer omitted connected-data claims.
 
-* recognition;
-* clarification requirement;
-* unsupported outcome;
-* claim identities;
-* claim types;
-* materiality;
-* source requirements;
-* bounded completeness;
-* ruleset identity.
+## Final Decision Matrix
 
-The projection composer shall consume the governed claim set.
+| Question | Final decision | Architectural owner | Binding mechanism | Rejected alternatives | Implementation consequence |
+| --- | --- | --- | --- | --- | --- |
+| One claim and authoritative input | Independently evaluable unit; claim-set publication is authority | Boundary Engine | Typed/rule/clarified publication | Raw text; blended claims | Split templates deterministically |
+| Vocabulary, compound, negative | Separate closed families; split all independent requests; polarity + bounded absence | Ruleset | Closed type and polarity templates | Invented types; negative-type duplication | Preserve claim-local status |
+| Type/materiality/source/coverage owner | Ruleset assigns; engine instantiates | Boundary Engine | Versioned rule template | Model, route, connector, composer | No ad hoc inference |
+| Permitted bounding mechanisms | Closed Option C mechanisms in fixed order | Boundary Engine | Typed → exact → grammar → clarification → unsupported | Probabilistic and semantic parsing | Unique match or fail closed |
+| Uncertainty | Eight-state closed vocabulary | Boundary Engine/status computation | Discriminated evaluation outcome | Generic error; model resolution | Publish cause and owner |
+| Unsupported and clarification | Fixed triggers and one bounded clarification continuation | Boundary Engine | Engine choices + continuation lineage | Silent fallback; unbounded questioning | Ungoverned types stay unsupported |
+| Claim-family separation | Prerequisite/action/claim/absence/interpretation separated | Ruleset and domain contracts | Closed family registry | Broad communication question | Domain contracts admit types |
+| Conversational breadth | Empty claim set for open conversation; deterministic mixed segmentation | Boundary Engine | Segment map | Reject all mixed; model segmentation | Preserve non-factual collaboration |
+| Ruleset and publication identity | Three distinct immutable canonical publications | Registry and Boundary Engine | Content/run/output identities | Synthetic, reused, unversioned IDs | Prove evaluation and output |
+| Source-category independence | Contracts Yes; implementations No; wiring waits Yes | Source contract owners | Publication-only contract boundary | Claim-free relevance wiring | Parallel governance only |
+| Conflicts relationship | Option A dependent contract | Future conflicts owner | Separate contract | Partial implicit semantics | Conflicts sprint precedes integration |
 
-It shall not recreate it.
-
----
-
-## 29. Empty, Unsupported, and Clarification Outcomes
-
-The contract shall decide whether the claim-boundary process may produce:
-
-### Empty claim set
-
-Valid only where the request contains no governed factual claim.
-
-### Unsupported outcome
-
-Valid where the request seeks a factual claim outside the governed vocabulary or mechanism.
-
-### Clarification-required outcome
-
-Valid where the claim family is governed but a required parameter or identity remains unresolved.
-
-The contract shall define whether these are:
-
-* separate publication variants;
-* one discriminated evaluation outcome;
-* claim records with special status;
-* another closed representation.
-
-Implementation shall not infer this later.
-
----
-
-## 30. Model Boundary
-
-The completed contract shall state exactly what the model receives when:
-
-* all claims are recognised;
-* some claims are unsupported;
-* clarification is required;
-* the message contains no governed factual claims;
-* the message contains mixed governed and open-ended content.
-
-The model may:
-
-* articulate deterministic claim statuses;
-* explain evidence-supported facts;
-* provide non-authoritative interpretation;
-* phrase clarification choices;
-* continue open-ended conversation within the governed segmentation rule.
-
-The model may not:
-
-* introduce a new factual claim;
-* merge two claims;
-* upgrade unsupported;
-* answer a factual connected-data question omitted from the governed claim set;
-* redefine importance;
-* interpret a heuristic as significance;
-* claim that classification succeeded when no evaluation publication exists.
-
----
-
-# Part VII — Classification and Registers
-
-## 31. Final Decision Matrix
-
-The completed contract shall include at least the following matrix:
-
-| Question                                | Final decision | Architectural owner | Binding mechanism | Rejected alternatives | Implementation consequence |
-| ----------------------------------------- | --------------- | -------------------- | ------------------- | ----------------------- | ----------------------------- |
-| One claim and authoritative input         | ...             | ...                  | ...                 | ...                     | ...                            |
-| Vocabulary, compound, negative            | ...             | ...                  | ...                 | ...                     | ...                            |
-| Type/materiality/source/coverage owner    | ...             | ...                  | ...                 | ...                     | ...                            |
-| Permitted bounding mechanisms             | ...             | ...                  | ...                 | ...                     | ...                            |
-| Uncertainty                               | ...             | ...                  | ...                 | ...                     | ...                            |
-| Unsupported and clarification             | ...             | ...                  | ...                 | ...                     | ...                            |
-| Claim-family separation                   | ...             | ...                  | ...                 | ...                     | ...                            |
-| Conversational breadth                    | ...             | ...                  | ...                 | ...                     | ...                            |
-| Ruleset and publication identity          | ...             | ...                  | ...                 | ...                     | ...                            |
-| Source-category independence              | ...             | ...                  | ...                 | ...                     | ...                            |
-| Conflicts relationship                    | ...             | ...                  | ...                 | ...                     | ...                            |
-
-Every row must contain a binding answer.
-
----
-
-## 32. Final Classification Matrix
-
-The contract shall resolve the Sprint 3.88 claims items using:
-
-* **Accepted**
-* **Modified**
-* **Deferred**
-* **Rejected**
-
-Required structure:
+## Final Classification Matrix
 
 | Item | Sprint 3.88 finding | Final outcome | Architectural class | Binding decision | Owner | Implementation consequence |
-| ---- | -------------------- | --------------- | --------------------- | ------------------- | ------ | ----------------------------- |
+| --- | --- | --- | --- | --- | --- | --- |
+| Claim unit | Open design gap | Accepted | Boundary | One independently evaluable assertion | Boundary Engine | Split claims |
+| Claim vocabulary | Closed communication types exist | Modified | Vocabulary | Cross-domain framework; types governed per domain | Rules registry | No invented types |
+| Compound questions | Cassie requires decomposition | Accepted | Construction | One claim per independent request | Boundary Engine | Separate statuses |
+| Negative claims | Representation open | Modified | Representation | Polarity + bounded completeness | Ruleset | Distinguish absence states |
+| Recognition mechanism | No free-text owner | Modified | Option C | Fixed deterministic precedence | Boundary Engine | No LLM classification |
+| Type assignment | Owner absent | Accepted | Classification | Ruleset template instantiated by engine | Boundary Engine | Versioned type assignment |
+| Materiality | Owner absent | Accepted | Classification | Fixed in rule template | Ruleset | No model assignment |
+| Source requirements | Owner absent | Accepted | Evidence boundary | Fixed in rule template | Ruleset | Connectors cannot select |
+| Coverage rules | Owner absent | Accepted | Evidence boundary | Fixed bounded-completeness template | Ruleset | No availability-driven inference |
+| Unsupported language | Fail-closed needed | Accepted | Evaluation | Explicit unsupported variant | Boundary Engine | No silent fallback |
+| Clarification | Governance needed | Modified | Evaluation | One engine-owned continuation | Boundary Engine | Closed choices only |
+| Claim-family separation | Families materially differ | Accepted | Architecture | Prerequisite/action/fact/interpretation split | Rules registry | No broad type |
+| Mixed conversational messages | Breadth requires decision | Modified | Segmentation | Engine-owned governed/residual map | Boundary Engine | Safe open conversation continues |
+| Claim ruleset | Version identity missing | Accepted | Publication | Immutable `ClaimBoundaryRuleset` | Rules registry | Rules are auditable |
+| Claim evaluation publication | Run proof missing | Accepted | Publication | Immutable `ClaimBoundaryEvaluation` | Boundary Engine | Each run has identity |
+| Governed claim-set publication | Set proof missing | Accepted | Publication | Immutable `GovernedClaimSet` | Boundary Engine | Composer consumes, never recreates |
+| Cassie contact-address claim | Separate material claim | Accepted | Constitutional case | `contact_address_lookup`; conditionally available | Boundary Engine/status function | Requires qualified evidence |
+| Cassie importance claim | Separate unsupported claim | Accepted | Constitutional case | `message_importance`; unsupported | Ruleset/status function | No heuristic laundering |
+| Source-category independence | Four contracts can proceed | Modified | Sequencing | Contracts only can proceed in parallel | Source governance owners | No publisher implementation authority |
+| Conflicts sequencing | Dependent contract proposed | Accepted | Sequencing | Option A | Future conflicts owner | Contract before integration |
 
-At minimum include:
+Counts: **Accepted 15; Modified 5; Deferred 0; Rejected 0** in this matrix.
+Deferrals and mechanism rejections are recorded in the registers below rather
+than used to avoid any required decision.
 
-* claim unit;
-* claim vocabulary;
-* compound questions;
-* negative claims;
-* recognition mechanism;
-* type assignment;
-* materiality;
-* source requirements;
-* coverage rules;
-* unsupported language;
-* clarification;
-* claim-family separation;
-* mixed conversational messages;
-* claim ruleset;
-* claim evaluation publication;
-* governed claim-set publication;
-* Cassie contact-address claim;
-* Cassie importance claim;
-* source-category independence;
-* conflicts sequencing.
+## Rejected Register
 
----
+| Rejected item | False claim or authority problem prevented |
+| --- | --- |
+| Answering-model claim classification | Prevents the answerer defining its own evaluation boundary |
+| LLM-based intent extraction | Prevents probabilistic meaning from becoming canonical fact |
+| Unrestricted semantic parsing | Prevents undeclared intents and evidence rules |
+| Embedding-similarity claim assignment | Prevents similarity scores masquerading as governed classification |
+| Route-owned claim construction | Prevents transport code becoming a governance owner |
+| Prompt-builder claim construction | Prevents prompt text creating canonical claims |
+| Treating every free-text sentence as a claim | Prevents open conversation and unsupported language from being fabricated as facts |
+| One blended claim for compound questions | Prevents independent evidence conditions being hidden |
+| One blended status for the Cassie request | Prevents an address result concealing unsupported importance |
+| Unread as importance | Prevents a mailbox state from becoming significance |
+| Gmail-important as operator importance | Prevents connector heuristics from claiming operator authority |
+| `needsReply` as significance | Prevents workflow inference from becoming evidence of importance |
+| Labels as significance | Prevents arbitrary metadata from becoming operator meaning |
+| Legacy attention ranking as evidence | Prevents compatibility data from gaining canonical authority |
+| Silent unsupported-to-model fallback | Prevents the model bypassing fail-closed evaluation |
+| Synthetic claim identities | Prevents test or transient labels from representing canonical objects |
+| Unversioned recognition rules | Prevents untraceable classification changes |
+| Implementation-selected recognition mechanisms | Prevents implementation discretion from changing Option C |
 
-## 33. Rejected Register
+## Deferred Register
 
-The completed contract shall explicitly consider and classify at least:
+| Deferred matter | Why and missing governance | Blocks isolated claims implementation? | Blocks source-category contracts? | Blocks production integration? | Expected future sprint |
+| --- | --- | ---: | ---: | ---: | --- |
+| New claim families | Each needs closed vocabulary and evidence semantics | No | No | Yes for that family | Domain claim-family contract |
+| Message-significance governance | Operator significance and admissible evidence are undefined | No; importance remains unsupported | No | Yes for importance | Significance contract |
+| General-purpose natural-language recognition | Deterministic bounded grammar is the selected limit | No | No | No | No sprint scheduled |
+| Conflict semantics | Claim-linked categories and coverage need a full contract | No for boundary engine | No | Yes | Dependent conflicts contract |
+| Advanced cross-turn continuity | Carry-forward identity and expiry are ungoverned | No | No | Yes for continuity | History/continuity contract |
+| Production UI design | Interaction affordances require implementation design authority | No | No | Yes | Production integration design sprint |
+| Operator verification | Requires implemented isolated publications and evaluation | No | No | Yes | Verification sprint |
+| Promotion | Requires contracts, implementation, evaluation, and verification | No | No | Yes | Promotion sprint |
 
-* answering-model claim classification;
-* LLM-based intent extraction;
-* unrestricted semantic parsing;
-* embedding-similarity claim assignment;
-* route-owned claim construction;
-* prompt-builder claim construction;
-* treating every free-text sentence as a claim;
-* one blended claim for compound questions;
-* one blended status for the Cassie request;
-* unread as importance;
-* Gmail-important as operator importance;
-* labels as significance;
-* legacy attention ranking as evidence;
-* silent unsupported-to-model fallback;
-* synthetic claim identities;
-* unversioned recognition rules;
-* implementation-selected recognition mechanisms.
-
-Every rejection shall state the false claim or authority problem prevented.
-
----
-
-## 34. Deferred Register
-
-Any Deferred item shall record:
-
-* why it is not required to close the claims boundary;
-* what evidence or governance is missing;
-* whether it blocks isolated claims implementation;
-* whether it blocks source-category contracts;
-* whether it blocks production integration;
-* the expected future sprint.
-
-Potential deferred matters include:
-
-* new claim families beyond the governed vocabulary;
-* message-significance governance;
-* general-purpose natural-language intent recognition;
-* conflict semantics if Option A is selected;
-* advanced cross-turn claim continuity;
-* production UI design;
-* operator verification;
-* promotion.
-
-Deferral shall not be used to avoid answering any of the nine Sprint 3.88 questions.
-
----
-
-# Part VIII — Implementation Authority and Sequence
-
-## 35. No Implementation Authority
-
-The final contract shall state:
-
-> Sprint 3.89 establishes claims-boundary governance only. It does not implement claim recognition, claim construction, clarification, UI affordances, route behavior, source publication, conflicts, projection integration, model changes, or production behavior.
-
-Do not modify:
-
-```text
-app/api/chat/route.ts
-lib/context-builder.ts
-lib/useAgentConversation.ts
-lib/governed-conversation/
-lib/executive-context/
-lib/memory/
-lib/operational-state.ts
-```
-
-No test changes are authorised.
-
-No prompt changes are authorised.
-
-No selector changes are authorised.
-
----
-
-## 36. Future Implementation Boundary
-
-A future isolated implementation sprint may implement:
-
-* the selected claim-boundary architecture;
-* the closed ruleset;
-* deterministic claim construction;
-* clarification and unsupported outcomes;
-* publication identities;
-* Cassie decomposition tests;
-* integration with existing evidence-status computation;
-* no production route integration.
-
-It shall remain isolated first.
-
-Production integration remains a later sprint after:
-
-* source-specific evidence contracts and publishers;
-* source-evidence registry governance;
-* history governance where required;
-* conflicts governance where required;
-* isolated evaluation;
-* production evidence readiness.
-
----
-
-## 37. Source-Category Sequence Decision
-
-The contract shall produce a binding statement on whether the following may proceed in parallel after Sprint 3.89:
-
-```text
-Gmail publication contract
-Calendar publication contract
-Memory/priority publication contract
-Connector-availability contract
-```
-
-The decision shall not authorize implementation merely because parallel governance is permitted.
-
-It shall state what remains dependent on claims.
-
----
-
-## 38. Expected Follow-On
-
-The completed contract shall identify the next provisional sprint.
-
-Possible outcomes include:
-
-* isolated claims-boundary implementation;
-* dependent conflicts contract;
-* one or more source-specific contracts proceeding in parallel;
-* a source-evidence admission contract.
-
-The sequencing decision must be based on the final dependency findings.
-
-The contract shall not automatically declare claims implementation next if required publication identities or conflict rules remain unresolved.
-
----
-
-## 39. Output Location
-
-Create exactly:
+## Files Changed
 
 ```text
 docs/SPRINT-3.89-GOVERNED-CONVERSATIONAL-CLAIMS-BOUNDARY-CONTRACT.md
 ```
 
-This follows the numbered-sprint convention for bounded governance decisions.
-
-Do not place it under `docs/architecture/`.
-
-No other file shall change.
-
----
-
-## 40. Validation
-
-Full repository validation is mandatory.
-
-There is no documentation-only exception.
-
-Run:
-
-```text
-npm test
-npm run build
-npm run lint
-npm run typecheck
-git diff --check
-```
-
-Use current repository-defined equivalents if materially different.
-
-Validation shall additionally confirm:
-
-1. only the Sprint 3.89 contract document changed;
-2. no source code changed;
-3. no tests changed;
-4. all nine Sprint 3.88 questions received binding decisions;
-5. exactly one Claims-Boundary Architecture was selected;
-6. all non-selected architectural options were rejected with reasoning;
-7. the Cassie request was decomposed into two claims;
-8. the importance claim remains unsupported;
-9. settled heuristic exclusions remain intact;
-10. source-category independence was explicitly confirmed or corrected;
-11. one Conflicts Option was selected;
-12. required publication identities were defined;
-13. prohibited hedge language does not appear in final decisions;
-14. Rejected and Deferred registers are present;
-15. the final decision and classification matrices are complete;
-16. implementation is explicitly unauthorized.
-
-Any pre-existing validation failure must be distinguished from a sprint-created failure.
-
-Do not report incomplete validation as passing.
-
----
-
-## 41. Completion Report
-
-The completion report shall contain the following sections.
-
-### Repository Precondition
-
-Report:
-
-* repository;
-* branch;
-* commit;
-* working-tree state;
-* required governing artefacts;
-* relevant implementation files inspected.
-
-### Governing Artefacts Reviewed
-
-List every governing document read.
-
-### Sprint 3.88 Claims Finding
-
-Confirm complete review of:
-
-* the deterministic-design gap;
-* the Cassie decomposition;
-* all nine governance questions.
-
-### Claims-Boundary Architecture
-
-State exactly:
-
-```text
-Claims-Boundary Architecture: Option A
-```
-
-or:
-
-```text
-Claims-Boundary Architecture: Option B
-```
-
-or:
-
-```text
-Claims-Boundary Architecture: Option C
-```
-
-or:
-
-```text
-Claims-Boundary Architecture: Option D
-```
-
-### Decision 1 — Claim Unit and Authoritative Input
-
-State the binding decision and rejected alternatives.
-
-### Decision 2 — Vocabulary, Compound, and Negative Claims
-
-State the binding decisions.
-
-### Decision 3 — Type, Materiality, Source, and Coverage Ownership
-
-Name each owner.
-
-### Decision 4 — Permitted Mechanisms
-
-List the closed permitted and prohibited mechanisms and precedence.
-
-### Decision 5 — Uncertainty
-
-State the closed vocabulary and ownership.
-
-### Decision 6 — Unsupported and Clarification
-
-State the trigger and clarification rules.
-
-### Decision 7 — Claim-Family Separation
-
-Include the required table.
-
-### Decision 8 — Conversational Breadth
-
-State the ordinary and mixed-message rules.
-
-### Decision 9 — Ruleset and Publications
-
-Name the authoritative publications and identities.
-
-### Cassie Constitutional Test
-
-Show the deterministic decomposition and status result for:
-
-* contact-address claim;
-* importance claim.
-
-State explicitly that importance remains unsupported.
-
-### Source-Category Independence
-
-Include the required four-category table.
-
-### Source Evidence and History Relationships
-
-State the dependent and independent boundaries.
-
-### Conflicts Decision
-
-State exactly:
-
-```text
-Conflicts Contract Decision: Option A
-```
-
-or:
-
-```text
-Conflicts Contract Decision: Option B
-```
-
-### Publication Architecture
-
-Describe the final claim-boundary publication chain.
-
-### Final Decision Matrix
-
-Include the completed matrix.
-
-### Final Classification Matrix
-
-Include outcomes and counts.
-
-### Rejected Register
-
-List all rejected mechanisms and assumptions.
-
-### Deferred Register
-
-List all deferred matters and blocking effect.
-
-### Files Changed
-
-Expected:
-
-```text
-docs/SPRINT-3.89-GOVERNED-CONVERSATIONAL-CLAIMS-BOUNDARY-CONTRACT.md
-```
-
-### Validation
-
-Report exact commands and results.
-
-### Implementation Authority
-
-State:
+No source file, test, route, prompt, selector, or runtime file changed.
+
+## Validation
+
+Full-repository validation completed:
+
+| Command | Result |
+| --- | --- |
+| `npm test` | Passed: 133 test files; 648 tests passed and 1 skipped |
+| `npm run build` | Passed; Next.js completed the production build. Google Fonts stylesheet optimisation was skipped after a network download failure; compilation and page generation succeeded. |
+| `npm run lint` | Passed: no ESLint warnings or errors |
+| `npm run typecheck` | Passed: `tsc --noEmit` exited successfully |
+| `git diff --check` | Passed: no whitespace errors |
+
+Document checks additionally confirm one selected architecture and three
+reasoned rejections; nine binding decisions; deterministic Cassie decomposition;
+unsupported importance; intact heuristic exclusions; explicit source-category
+answers; Option A conflicts sequencing; distinct publication identities;
+complete matrices and registers; and no implementation authority.
+
+## Implementation Authority
+
+Sprint 3.89 establishes claims-boundary governance only. It does not implement
+claim recognition, claim construction, clarification, UI affordances, route
+behavior, source publication, conflicts, projection integration, model changes,
+or production behavior.
 
 > Sprint 3.89 authorizes no implementation and changes no production behavior.
 
-### Next Step
+## Next Step
 
-Identify the next governance or isolated implementation sprint permitted by the completed dependency decisions.
+The next permitted sprint is the dependent conflicts contract. Gmail, Calendar,
+memory/priority, and connector-availability publication contracts can proceed as
+parallel governance sprints. After the conflicts contract, an isolated
+claims-boundary implementation sprint can implement Option C and the three
+publications without production route integration.
 
-### Recommendation
+## Recommendation
 
-Return exactly one:
-
-```text
-Governed Contract Complete
-```
-
-or:
-
-```text
-Governance Review Incomplete
-```
-
-No other wording is permitted.
-
----
-
-## 42. Recommendation Gate
-
-### Governed Contract Complete
-
-Use only when:
-
-* all required governing artefacts were available;
-* all nine Sprint 3.88 questions were independently answered;
-* one Claims-Boundary Architecture was selected;
-* no hedge language remains in final decisions;
-* one deterministic pre-model claim owner is named;
-* one closed mechanism and precedence model is defined;
-* unsupported and clarification rules are binding;
-* compound and negative claim rules are binding;
-* claim families are separated;
-* conversational breadth is addressed;
-* ruleset and publication identities are defined;
-* the Cassie request is correctly decomposed;
-* contact address and importance remain separate;
-* importance remains unsupported;
-* heuristic exclusions remain intact;
-* source-category independence is decided;
-* one Conflicts Option is selected;
-* no implementation occurred;
-* full validation passed or any unrelated pre-existing failure was clearly evidenced.
-
-### Governance Review Incomplete
-
-Use when:
-
-* any of the nine questions remains unresolved;
-* more than one primary architecture remains permitted without deterministic precedence;
-* implementation retains discretion to choose mechanisms;
-* Cassie cannot be decomposed without model classification;
-* importance is implicitly redefined;
-* source-category independence remains ambiguous;
-* conflicts sequencing remains ambiguous;
-* publication identity is unresolved;
-* required governing authority is unavailable;
-* validation is incomplete;
-* code or tests changed.
-
----
-
-## 43. Return Format
-
-Return:
-
-1. Repository Precondition result.
-2. Governing artefacts reviewed.
-3. Sprint 3.88 Claims Finding confirmation.
-4. Selected Claims-Boundary Architecture.
-5. Claim-unit and authoritative-input decision.
-6. Vocabulary, compound, and negative-claim decision.
-7. Type/materiality/source/coverage ownership decision.
-8. Permitted-mechanism and precedence decision.
-9. Uncertainty vocabulary and ownership.
-10. Unsupported and clarification rules.
-11. Claim-family separation.
-12. Conversational-breadth and mixed-message rule.
-13. Ruleset and publication identity decision.
-14. Cassie deterministic decomposition.
-15. Cassie contact-address status rule.
-16. Cassie importance unsupported confirmation.
-17. Source-category independence table.
-18. Source-evidence relationship.
-19. Conversation-history relationship.
-20. Conflicts Option.
-21. Publication architecture.
-22. Final decision matrix.
-23. Final classification matrix.
-24. Rejected register.
-25. Deferred register.
-26. Files changed.
-27. Full validation results.
-28. Explicit confirmation that no implementation occurred.
-29. Recommended next sprint.
-30. Final recommendation gate.
-
-The final line must be exactly one of:
-
-> **Governed Contract Complete**
-
-or:
-
-> **Governance Review Incomplete**
-
----
-
-## 44. Success Criteria
-
-Sprint 3.89 succeeds when a future implementation sprint no longer needs to invent answers to any of these questions:
-
-* What is one claim?
-* What deterministic input creates it?
-* How are compound questions divided?
-* How are negative claims represented?
-* Who assigns type and materiality?
-* Who owns source and coverage requirements?
-* Which recognition mechanisms are permitted?
-* What happens when language is ambiguous?
-* When is a request unsupported?
-* When may the operator clarify it?
-* How are identity, contact, importance, schedule, absence, and retrieval separated?
-* How does ordinary conversational breadth continue?
-* Which ruleset proves classification ran?
-* Which immutable publication contains the claim set?
-* How does the Cassie request become two claims without an LLM?
-* Why does the address claim potentially succeed while importance remains unsupported?
-* Which source-category contracts may proceed independently?
-* Does conflict governance remain separate?
-
-The contract shall not make JARVIS less conversational by accident.
-
-It shall not make JARVIS less governed in order to preserve conversational convenience.
-
-The desired boundary is one in which:
-
-```text
-operator interaction
-        ↓
-deterministic governed claim boundary
-        ↓
-recognised claims / clarification / unsupported
-        ↓
-versioned claim-set publication
-        ↓
-governed evidence projection
-        ↓
-model-mediated explanation and collaboration
-```
-
-The model remains the conversational interface.
-
-It does not become the authority that decides what factual claims exist.
+**Governed Contract Complete**

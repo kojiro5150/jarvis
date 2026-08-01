@@ -33,12 +33,14 @@ describe("Sprint 3.84 composition diagnostic", () => {
   it("exercises the unchanged evidence/model pipeline with equivalent synthetic evidence, separately from the forbidden lineage mapping", async () => {
     const { projection } = cassieEvaluationFixture();
     const fields = projectionCompatibleInputFields(projection);
-    const input = constructGovernedConversationalInput({ ...fields, runId: "evaluation-run-not-conversational-lineage", sessionId: "evaluation-session-not-conversational-lineage", interfaceContractId: "evaluation-contract/1", question: { text: "What's Cassie's email? Anything important?" }, sources: [{ sourceId: "gmail", available: true, status: "available", observedAt: projection.referenceTime, provenance: "retrieval:1" }] });
-    const result = await invokeGovernedConversationModel(input, { invoke: async () => ({ metadataReference: "mock:1", text: JSON.stringify({ interpretation: { claimIds: ["cassie-address", "cassie-importance"], text: "The address is cassie@example.test; significance is unsupported and not established.", evidenceReferences: ["gmail:governed-publication:cassie-address:sender_address"], uncertaintyReferences: ["cassie-importance"], ownership: "model_interpretation" } }) }) }, { requestId: "model-request:1", envelopeId: "envelope:1", safeEnvelopeId: "safe:1", executionRecordId: "evidence-track-record:1", agentId: "evaluation-agent" });
+    const input = constructGovernedConversationalInput({ ...fields, question: { text: "What's Cassie's email? Anything important?" }, sources: [{ sourceId: "gmail", available: true, status: "available", observedAt: projection.referenceTime, provenance: "retrieval:1" }] });
+    const result = await invokeGovernedConversationModel(input, { invoke: async () => ({ metadataReference: "mock:1", text: JSON.stringify({ interpretation: { claimIds: ["cassie-address", "cassie-importance"], text: "The address is cassie@example.test; significance is unsupported and not established.", evidenceReferences: ["gmail:governed-publication:cassie-address:sender_address"], uncertaintyReferences: ["cassie-importance"], ownership: "model_interpretation" } }) }) }, { attemptId: "attempt:1", agentId: "evaluation-agent", completedAt: projection.referenceTime, schemaVersion: "2", validationPolicyId: "validation/1", policyReferences: ["validation/1"] });
     expect(result.modelOutcome).toBe("accepted");
     expect(result.validation.outcome).toBe("passed");
     expect(result.envelope.claims.map(({ status }) => status)).toEqual(["available", "unsupported"]);
     expect(result.request.governedContext.compatibilityBoundaries[0].authority).toBe("none");
+    expect(result.executionRecord).toMatchObject({ threadId: projection.threadId, requestId: projection.requestId, exchangeId: projection.exchangeId, projectionId: projection.projectionId, finalDisposition: "completed" });
+    expect(input.runId).toBeUndefined(); expect(input.sessionId).toBeUndefined(); expect(input.interfaceContractId).toBeUndefined();
   });
 
   it("rejects malformed projection integrity cases with real composer checks", () => {

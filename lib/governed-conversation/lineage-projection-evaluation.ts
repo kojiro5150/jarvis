@@ -32,8 +32,8 @@ export function evaluateProjectionHandoff(projection: GovernedConversationalProj
 }
 
 /** Returns construction fields that compose directly; deliberately does not invent legacy identity fields. */
-export function projectionCompatibleInputFields(projection: GovernedConversationalProjection): Pick<GovernedInputConstruction, "inputId" | "projectionId" | "referenceTime" | "claims" | "compatibilityContext" | "conversationHistory"> {
-  return { inputId: `governed-input:${projection.projectionId}`, projectionId: projection.projectionId, referenceTime: projection.referenceTime, claims: projection.claims, compatibilityContext: projection.compatibilityContext, conversationHistory: projection.conversationHistory };
+export function projectionCompatibleInputFields(projection: GovernedConversationalProjection): Pick<GovernedInputConstruction, "inputId" | "threadId" | "requestId" | "exchangeId" | "projectionId" | "projectionLineage" | "referenceTime" | "claims" | "compatibilityContext" | "conversationHistory"> {
+  return { inputId: `governed-input:${projection.projectionId}`, threadId: projection.threadId, requestId: projection.requestId, exchangeId: projection.exchangeId, projectionId: projection.projectionId, projectionLineage: { threadId: projection.threadId, requestId: projection.requestId, exchangeId: projection.exchangeId, projectionId: projection.projectionId }, referenceTime: projection.referenceTime, claims: projection.claims, compatibilityContext: projection.compatibilityContext, conversationHistory: projection.conversationHistory };
 }
 
 export function detectLineageMutation(projection: GovernedConversationalProjection, expectedExchangeId: string): CompositionFinding | null {

@@ -1,0 +1,9 @@
+import { describe, expect, it } from "vitest";
+import { evaluateClaimBoundary } from "./claim-boundary-engine";
+import { cassieBoundaryInput, inputFor } from "./claim-boundary-fixtures";
+import { CLAIM_BOUNDARY_RULESET } from "./claim-boundary-ruleset";
+describe("claim-boundary publications", () => {
+  it("keeps ruleset, evaluation, set, request, exchange and claim identities distinct", () => { const result = evaluateClaimBoundary(cassieBoundaryInput); const ids = [CLAIM_BOUNDARY_RULESET.claimBoundaryRulesetId, result.evaluation.claimBoundaryEvaluationId, result.claimSet!.governedClaimSetId, cassieBoundaryInput.requestId, cassieBoundaryInput.exchangeId, ...result.claimSet!.claimIds]; expect(new Set(ids)).toHaveLength(ids.length); expect(Object.isFrozen(result.evaluation)).toBe(true); expect(Object.isFrozen(result.claimSet)).toBe(true); });
+  it("creates distinct evaluation runs and preserves immutable references", () => { const first = evaluateClaimBoundary(cassieBoundaryInput); const second = evaluateClaimBoundary({ ...cassieBoundaryInput, createdAt: "2026-08-01T12:00:01.000Z" }); expect(first.evaluation.claimBoundaryEvaluationId).not.toBe(second.evaluation.claimBoundaryEvaluationId); expect(first.evaluation.claimBoundaryRulesetId).toBe(CLAIM_BOUNDARY_RULESET.claimBoundaryRulesetId); expect(first.claimSet?.claimBoundaryEvaluationId).toBe(first.evaluation.claimBoundaryEvaluationId); });
+  it("publishes a set for recognised unsupported importance, but not clarification or unknown family", () => { expect(evaluateClaimBoundary(inputFor("Anything important?")).claimSet?.claims[0].status).toBe("unsupported"); expect(evaluateClaimBoundary(inputFor("What's their email?")).claimSet).toBeUndefined(); expect(evaluateClaimBoundary(inputFor("text", { typedIntent: { type: "calendar" } })).claimSet).toBeUndefined(); });
+});

@@ -1806,3 +1806,164 @@ It must be useful by recognising only what has been explicitly governed, preserv
 Sprint 3.91 does not make the claims boundary live.
 
 It creates the first real, deterministic, versioned implementation of that boundary in isolation.
+
+---
+
+# Part 2: Completion Report
+
+## Repository Precondition
+
+* **Repository:** `/workspace/jarvis`
+* **Branch:** `work`
+* **Starting commit:** `f1aca7f67cef28aee429e42c967417b306e60238`
+* **Starting working tree:** clean
+* **Required documents:** all eleven artefacts listed in Section 4 existed. Sprint 3.89 was available and contained Claims-Boundary Architecture Option C, the fixed precedence and permitted/prohibited mechanisms, unsupported and clarification rules, claim-family separation, the Cassie decomposition, the immutable publication chain, source-category independence, and Conflicts Contract Decision Option A.
+* **Inspected implementation:** `types.ts`, `evidence-status.ts`, `input.ts`, `projection-composer.ts`, `fixtures.ts`, and `lineage-test-fixtures.ts`, plus every repository construction of the two admitted claim types. The existing `GovernedClaimInput` and `CommunicationClaimType` were compatible and were not changed. Existing Cassie fixtures were confirmed as post-evidence fixtures rather than recognition output.
+
+## Governing Artefacts Reviewed
+
+The following were read before implementation:
+
+1. `docs/ENGINEERING_CONSTITUTION.md`
+2. `docs/architecture/NORTH_STAR.md`
+3. `docs/architecture/JARVIS-Engineering-Specification-Standard.md`
+4. `docs/CONSTITUTIONAL-PUBLICATION-PRINCIPLES.md`
+5. `docs/architecture/ROADMAP.md`
+6. `docs/SPRINT-3.89-GOVERNED-CONVERSATIONAL-CLAIMS-BOUNDARY-CONTRACT.md`
+7. `docs/SPRINT-3.77-ISOLATED-GOVERNED-CONVERSATIONAL-RUNTIME-IMPLEMENTATION.md`
+8. `docs/SPRINT-3.83-ISOLATED-CONVERSATIONAL-LINEAGE-AND-PROJECTION-IMPLEMENTATION.md`
+9. `docs/SPRINT-3.76-GOVERNED-CONVERSATIONAL-RUNTIME-CONTRACT.md`
+10. `docs/SPRINT-3.82-GOVERNED-CONVERSATIONAL-LINEAGE-IDENTITY-CONTRACT.md`
+11. `docs/SPRINT-3.85-GOVERNED-CONVERSATIONAL-IDENTITY-CORRECTION-CONTRACT.md`
+
+## Sprint 3.89 Decisions Implemented
+
+**Claims-Boundary Architecture: Option C** is implemented in the binding order: (1) validated typed capability/UI intent, (2) closed exact-command/alias and bounded lexical/grammar recognition, (3) deterministic clarification, and (4) fail-closed unsupported. A typed publication stops all text recognition, including when invalid. No Sprint 3.89 decision was reopened.
+
+## Scope
+
+Implemented claim types:
+- `contact_address_lookup`
+- `message_importance`
+
+No other communication type, claim family, source vocabulary, conflict vocabulary, or cross-domain parser was admitted.
+
+## Modules Added
+
+* `claim-boundary-types.ts` — closed input, ruleset, evaluation, clarification, segment, and claim-set types.
+* `claim-boundary-ruleset.ts` — immutable versioned ruleset body and canonical publication.
+* `claim-boundary-publications.ts` — content/run/output identity, validation, cloning, and freezing.
+* `claim-boundary-engine.ts` — fixed Option C precedence, bounded matching, segmentation, extraction, clarification, fail-closed outcomes, and real claim construction.
+* `claim-boundary-fixtures.ts` — deterministic synthetic Cassie and input fixtures only.
+* `claim-boundary-ruleset.test.ts` — closure, version, immutability, and identity tests.
+* `claim-boundary-engine.test.ts` — typed, pattern, compound, clarification, fail-closed, heuristic mutation, and Cassie tests.
+* `claim-boundary-publications.test.ts` — publication identity and claim-set authorization tests.
+* `claim-boundary-isolation.test.ts` — pure-Node forward, reverse, repository, and blob-hash proofs.
+
+## Ruleset
+
+* **Ruleset ID:** `claim-boundary-ruleset:0d327b4ed3b53f439e53606ff833266f281e31f5498cab0a83babbb8ee5aece3`
+* **Schema version:** `1`
+* **Ruleset version:** `1.0.0`
+* **Commands and aliases:** bounded variants of “What's <person>'s email?”, “Give me <person>'s email.”, “Anything important?”, and “Are any of <person>'s messages important?”
+* **Patterns and grammar:** only the declared email-address, do-you-have-email, and important-from-person forms, with explicitly bounded case and punctuation normalization.
+* **Templates:** exactly `contact_address_lookup` and `message_importance`, both material.
+* **Prohibited fields:** `unread`, `important`, `needsReply`, `labels`, `messageOrdering`, and `legacyAttentionMetadata`.
+* **Identity behavior:** canonical SHA-256 content identity is stable for an identical body; any tested material expression change changes the identity; an incomplete/open template set is rejected.
+
+## Engine
+
+Stage 1 schema-validates the closed typed input and prevents fallthrough. Stage 2 applies only declared exact, alias, lexical, and grammar rules and deterministically preserves ordered source spans. Stage 3 publishes engine-owned missing-person, equal-intent, and exact-entity clarification with closed choices and a continuation token. Stage 4 publishes unsupported for unknown typed types, unmatched/prohibited/cross-domain language, and a second unresolved clarification. No model, embeddings, semantic service, connector, source acquisition, conflict evaluator, or heuristic is reachable.
+
+## Publications
+
+`ClaimBoundaryRuleset` is a frozen content-addressed canonical body. `ClaimBoundaryEvaluation` is a frozen run publication with distinct lineage, input digest, typed result, matches, parameters, segment map, outcome, and causes. `GovernedClaimSet` is a frozen output publication referencing its evaluation and ruleset and preserving ordered real `GovernedClaimInput[]`, segment links, and distinct claim IDs. Clarification and unknown unsupported outcomes cannot publish a set; recognized unsupported importance can; bounded non-factual conversation publishes an empty set.
+
+## Cassie Proof
+
+Exact input: `What's Cassie's email? Anything important?`
+
+* **Evaluation:** `claim-boundary-evaluation:16ddbc9e511441259f108425bd40eb84cfe19c29f6f60f428af762b3401c10ad`, outcome `recognised`, ruleset ID as above, two matched spans.
+* **Segment 1:** offsets 0–22, `contact.exact.whats-email`, `contact_address_lookup`.
+* **Segment 2:** offsets 23–42, `importance.exact.anything`, `message_importance`.
+* **Contact claim:** `governed-claim:7c276ab86cf27e8d495404de0a870c658730553dbc88eb744ea0b882d63d5605`; material; `sourceAvailable: true`; `status: "insufficient_coverage"`; `ownership: "deterministic_status"`; no facts, source observations, or conflicts. The status is obtained by calling the real `computeEvidenceStatus` with a supported and available-eligible pre-evidence condition set, not independently selected.
+* **Importance claim:** `governed-claim:950fda67747a0912be5f975cbb7efadc00c8fb3dac485efabd2536b5676670de`; material; `status: "unsupported"`; `ownership: "unsupported"`; no conflicts.
+* **Claim set:** `governed-claim-set:b26983dc276ddaa5c79540449c382392fb32b8db022b7ea35cd915b4d7ed866b`, two ordered claims and two separate segment links.
+* **Model calls:** zero; the test enters through the real engine from raw text.
+
+## Fail-Closed Proof
+
+Unregistered synonyms, email-like action wording, broad significance, Calendar, memory/priority, and semantic-interpretation requests publish `unsupported_language` without a claim set. Unknown or malformed typed types publish `unsupported_claim_type` and do not fall through. A declared synthetic equal-match case publishes `ambiguous_governed_intent` with the two closed admitted choices; multiple/no exact entity candidates publish `unresolved_entity`; repeated unresolved clarification publishes unsupported.
+
+## Heuristic Exclusion Proof
+
+Independent mutations of `unread`, `important`, `needsReply`, labels, message ordering, and legacy attention metadata produced structurally identical matched rule IDs and claims. They did not change intent, count, type, materiality, status, ownership, source requirement, or completeness requirement.
+
+## Existing-Type Compatibility
+
+The engine produces the real existing `GovernedClaimInput[]`. It did not redefine or modify `GovernedClaimInput`, `CommunicationClaimType`, evidence status, ownership, content kind, source reference, conflict shape, or readonly semantics.
+
+## Conflict Boundary
+
+> Sprint 3.91 did not evaluate conflicts. Empty claim conflict arrays do not prove that no conflict exists.
+
+## Isolation Proof
+
+Pure-Node tests use `node:fs` and `node:crypto`, with no `rg`, `execFileSync`, or shell-only dependency. Forward search found zero claim-boundary imports in the four production entry files. Reverse search found zero imports from routes, context builder, conversation hook, agents, production components, or EOS runtime. A repository-wide pure-Node scan found no hidden production import. All ten protected files remained byte-identical.
+
+## Files Changed
+
+* `docs/SPRINT-3.91-ISOLATED-GOVERNED-CLAIMS-BOUNDARY-IMPLEMENTATION.md` — appended this completion report without replacing Part 1.
+* `lib/governed-conversation/claim-boundary-types.ts` — added closed boundary publication types.
+* `lib/governed-conversation/claim-boundary-ruleset.ts` — added the two-template versioned ruleset.
+* `lib/governed-conversation/claim-boundary-publications.ts` — added immutable publication constructors and identity enforcement.
+* `lib/governed-conversation/claim-boundary-engine.ts` — added the isolated deterministic engine.
+* `lib/governed-conversation/claim-boundary-fixtures.ts` — added isolated synthetic fixtures.
+* `lib/governed-conversation/claim-boundary-ruleset.test.ts` — added ruleset proof.
+* `lib/governed-conversation/claim-boundary-engine.test.ts` — added Option C and Cassie proof.
+* `lib/governed-conversation/claim-boundary-publications.test.ts` — added publication proof.
+* `lib/governed-conversation/claim-boundary-isolation.test.ts` — added pure-Node isolation proof.
+
+No existing code or test file was modified.
+
+## Protected Files
+
+| File | Pre SHA-256 | Post SHA-256 |
+| --- | --- | --- |
+| `app/api/chat/route.ts` | `503840ffa6c17f52a049c1aaaad4e8402c000904dd3b7ce868104a10c6ba08a3` | `503840ffa6c17f52a049c1aaaad4e8402c000904dd3b7ce868104a10c6ba08a3` |
+| `lib/context-builder.ts` | `8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d` | `8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d` |
+| `lib/useAgentConversation.ts` | `55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97` | `55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97` |
+| `lib/agents/chat-execution.ts` | `da387b401acd4cc87609112e7b110451254af16bb33d8dd5224c4fb9aa210a88` | `da387b401acd4cc87609112e7b110451254af16bb33d8dd5224c4fb9aa210a88` |
+| `lib/governed-conversation/types.ts` | `ec4d954a866cd1312c7a1fdbb7053c47eb0ccc962c7461d545854a06bf40a09d` | `ec4d954a866cd1312c7a1fdbb7053c47eb0ccc962c7461d545854a06bf40a09d` |
+| `lib/governed-conversation/evidence-status.ts` | `c83ada16f09a7f5e04b4c82d937c05115ef432c9e50a860ad0b30250b3a3039e` | `c83ada16f09a7f5e04b4c82d937c05115ef432c9e50a860ad0b30250b3a3039e` |
+| `lib/governed-conversation/input.ts` | `15cc1689ee9234259b1ef52a1e8c6c38f1dd37aa808e3edc86cdd5e82342102f` | `15cc1689ee9234259b1ef52a1e8c6c38f1dd37aa808e3edc86cdd5e82342102f` |
+| `lib/governed-conversation/projection-composer.ts` | `b3fd03097cf8c4ff88fe3a07679566a72cd1e8aaa8bf0bf2cb4ea9948064dc76` | `b3fd03097cf8c4ff88fe3a07679566a72cd1e8aaa8bf0bf2cb4ea9948064dc76` |
+| `lib/governed-conversation/model-invocation.ts` | `beebd3cfb14c220c2249879661e225d3b2330cb766515c6bcac5338d2f814f5b` | `beebd3cfb14c220c2249879661e225d3b2330cb766515c6bcac5338d2f814f5b` |
+| `lib/governed-conversation/validator.ts` | `1bd9692f56ef0794f070c41ae962375bed93c953af22d393e796911e3f349fef` | `1bd9692f56ef0794f070c41ae962375bed93c953af22d393e796911e3f349fef` |
+
+## Targeted Tests
+
+* `npm test -- --run lib/governed-conversation/claim-boundary-ruleset.test.ts lib/governed-conversation/claim-boundary-engine.test.ts lib/governed-conversation/claim-boundary-publications.test.ts lib/governed-conversation/claim-boundary-isolation.test.ts` — passed: 4 files, 28 tests.
+* `node --import tsx -e <Cassie real-engine inspection>` — passed and reproduced the ruleset, evaluation, two spans, two claim IDs, exact contact pairing, unsupported importance, and claim-set identities recorded above.
+
+## Full Validation
+
+* `npm test` — passed: 137 test files; 676 passed and 1 skipped (677 total).
+* `npm run build` — passed: optimized production build, lint/type validation, page data, six static pages, traces, and page optimization completed. Google Fonts stylesheet optimization was skipped after a network download failure; compilation and generation succeeded.
+* `npm run lint` — passed with no ESLint warnings or errors.
+* `npm run typecheck` — passed; `tsc --noEmit` exited successfully.
+* `git diff --check` — passed with no whitespace errors.
+
+## Production Effect
+
+> Sprint 3.91 changes no live conversational behavior and performs no production integration.
+
+## Outstanding Findings
+
+The bounded grammar deliberately recognizes only its declared forms. Entity context remains explicitly supplied and synthetic in isolation. Clarification continuation publication is implemented, but production persistence, UI rendering, and multi-turn routing remain out of scope. Importance remains unsupported, and source acquisition, evidence evaluation, conflict evaluation, and composition are not performed here.
+
+## Next Step
+
+The next permitted step in the planned sequence is the isolated conflicts implementation governed by Sprint 3.90. After that, a separate sprint may prove composition of claims and conflicts against the existing evidence/model/lineage pipeline. Neither step implies production readiness or integration authority.
+
+**Implementation Complete**

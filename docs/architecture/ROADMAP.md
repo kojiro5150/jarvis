@@ -30,11 +30,10 @@ No phase below is authorised to skip Discover/Govern and jump to Implement, rega
 Proven and operational
     Phase I  — Deterministic Runtime Foundation
     Dashboard (governed, evaluated, integrated, promoted — live in production)
+    DAWNWATCH (governed, implemented, evaluated, integrated, promoted —
+    live on the real account, including a resolved Gmail recipient gap
+    that required a real connector change, not a presentation fix)
     Calendar & Gmail generic projection adapters
-
-Implemented but awaiting final evidence and promotion
-    DAWNWATCH (governed, implemented, evaluated, integrated — promotion blocked
-    on one named gap: Gmail recipient data)
 
 Architecture proven in isolation, production integration blocked on a
 precisely-scoped evidence-production gap
@@ -49,7 +48,6 @@ precisely-scoped evidence-production gap
 Ready for disciplined discovery
     Governed conversational production evidence inputs (blocking the
     conversational integration re-attempt — see Phase III)
-    Gmail recipient projection (blocking DAWNWATCH promotion)
 
 Known strategic directions, not yet architecturally earned
     Role-specific projection adapters
@@ -70,34 +68,15 @@ Canonical models (OperationalCommitment, OperationalCommunication), the 14-stage
 
 ---
 
-## Phase II — Projection & Presentation Layer — Nearly Complete
+## Phase II — Projection & Presentation Layer ✅ Complete
 
 **Dashboard:** governed (Sprint 3.58), implemented (3.59), evaluated with runtime-computed classification (3.60/3.60.1), integrated behind an explicit selector (3.61), and **promoted** to production default (3.62). Confirmed live against the real running application.
 
-**DAWNWATCH:** governed (3.64), implemented (3.65), evaluated (3.66), integrated (3.67). **Not yet promoted.** Three real production-evidence bugs were found and fixed by hand after integration (missing assertion identity, missing source observation evidence, missing memory source) — all verified against real operational data. One gap remains, deliberately unresolved:
+**DAWNWATCH:** governed (3.64), implemented (3.65), evaluated (3.66), integrated (3.67), **promoted (3.73), live on the real account.** Three real production-evidence bugs were found and fixed by hand after initial integration (missing assertion identity, missing source observation evidence, missing memory source) — all verified against real operational data. One further gap was then found and closed: communications could not reach `available` status because `EmailMessage` had no recipient field, requiring a real Gmail connector change rather than a presentation fix.
 
-> Communications cannot reach `available` status because `EmailMessage` has no recipient field. Fixing this requires a real Gmail connector change (fetching recipient headers from the live API), not a presentation-layer fix.
+**Resolved (Sprints 3.68-3.74).** Sprint 3.68 audited the Gmail connector and found a correct, tested canonical recipient-extraction adapter already existed but was unwired from production — a wiring gap, not a capability gap. Sprint 3.69 governed the fix: production routes through the canonical adapter, with a closed absence vocabulary (`none`/`not_fetched`/`not_authorised`/`unknown`, `none` reserved and unemittable). Sprint 3.70 implemented it — a real RFC 5322-aware address parser replacing naive comma-splitting, dual-query deduplication. Sprint 3.71 re-evaluated: the unchanged, runtime-computed comparator classified the change as a genuine `Intentional Improvement`. Sprint 3.72 verified this directly against the operator's live account — the real server-rendered payload showed `dawnwatchPresentationMode:"GOVERNED"`, and the real API response showed genuine, un-deduplicated multi-recipient evidence. Sprint 3.73 recorded promotion at `docs/architecture/DAWNWATCH-PROMOTION-RECORD.md`, with zero code change to the permanent `LEGACY` fallback — promotion is explicit deployment configuration only, confirmed live. Sprint 3.74 fixed a minor presentation issue (sender name preferred over raw Message-ID; Message-IDs no longer misrendered as email autolinks).
 
-### Immediate next steps
-
-```text
-3.68 — Gmail Recipient Projection Audit
-3.69 — Governed Gmail Recipient Contract
-3.70 — Gmail Recipient Implementation
-3.71 — DAWNWATCH Re-evaluation
-3.72 — DAWNWATCH Operator Verification
-3.73 — DAWNWATCH Promotion
-```
-
-Numbers are indicative, not binding — the audit may reveal the sequence needs to grow or shrink. The audit (3.68) must establish, before any implementation:
-
-- which Gmail fields are actually available from the connector;
-- whether `to`, `cc`, and `bcc` are distinguishable;
-- whether aliases, groups, delegated mailboxes, and hidden recipients affect semantics;
-- what counts as sufficient recipient evidence;
-- how provenance is retained;
-- whether historical messages lack coverage;
-- whether recipient absence means "none," "not fetched," or "not authorised."
+**Phase II is complete.** Selector: `lib/dawnwatch-presentation-selection.ts`.
 
 ---
 
@@ -227,6 +206,5 @@ The full Iron-Man vision — fully autonomous, understands anything, acts on eve
 Consistent with the discipline established across this session:
 
 - Do not build Phase IV, V, VI, VII, or the synthesis layer speculatively. Each requires its own audit first.
-- Do not fold the recipient-projection fix into a "quick patch" — Sprint 3.68 exists specifically because that temptation was already named and rejected once tonight.
-- Do not treat the `3.68`–`3.73` numbering as committed. It is a sketch of expected shape, not a binding plan.
-- Do not promote DAWNWATCH before the communications gap closes, or integrate `/api/chat` before the Projection Ownership Integration Gate genuinely passes. Sprint 3.87 exists specifically because that shortcut — inventing evidence mappings inside the route to make integration appear complete — was already available and deliberately refused. Replacement follows demonstrated equivalence — always.
+- Do not fold a projection fix into a "quick patch" — Sprint 3.68 exists specifically because that temptation was already named and rejected once, and the full audit-first sequence (3.68-3.74) is what actually closed the gap.
+- Do not integrate `/api/chat` before the Projection Ownership Integration Gate genuinely passes. Sprint 3.87 exists specifically because that shortcut — inventing evidence mappings inside the route to make integration appear complete — was already available and deliberately refused. Replacement follows demonstrated equivalence — always.

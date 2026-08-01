@@ -1,0 +1,2 @@
+import { expect,it } from "vitest"; import { governedLegacyConflictFixture } from "./fixtures";
+it("separates non-authoritative compatibility and non-canonical history",()=>{const i=governedLegacyConflictFixture.input; expect(i.claims[0].status).toBe("insufficient_coverage"); expect(i.compatibilityContext[0].authority).toBe("none"); expect(i.compatibilityContext[0].excludedHeuristicFields).toContain("important"); expect(i.conversationHistory.every(t=>!t.canonicalEvidence)).toBe(true); expect(i.claims[0].conflicts).toHaveLength(1);});

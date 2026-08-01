@@ -36,13 +36,21 @@ interface GoogleGmailPart {
   parts?: readonly GoogleGmailPart[];
 }
 
-interface GoogleGmailMessageDetail {
+export interface GoogleGmailMessageDetail {
   id: string;
   threadId?: string;
   labelIds?: string[];
   snippet?: string;
   internalDate?: string;
   payload?: GoogleGmailPart;
+  retrievedAt: string;
+}
+
+export interface GmailProductionAcquisition {
+  readonly messages: EmailMessage[];
+  readonly observations: readonly GoogleGmailMessageDetail[];
+  readonly observedAt: string;
+  readonly snapshotId: string;
 }
 
 interface QueryResult {
@@ -62,6 +70,8 @@ interface QueryResult {
  */
 export class GoogleGmailConnector implements GmailConnector {
   readonly source = "google" as const satisfies ConnectorSource;
+
+  constructor(private readonly clock: () => Date = () => new Date()) {}
 
   /**
    * Message IDs matching a Gmail search query. A 401 means the whole
@@ -120,14 +130,27 @@ export class GoogleGmailConnector implements GmailConnector {
           "Gmail API rejected the access token (messages.get)."
         );
       }
+      if (res.status === 403) {
+        throw new GoogleServiceAuthError(
+          "not_connected",
+          `Gmail API did not authorise message detail retrieval for "${id}".`
+        );
+      }
       console.warn(`[google/gmail] messages.get failed for "${id}": ${res.status} — skipping this message.`);
       return null;
     }
 
-    return (await res.json()) as GoogleGmailMessageDetail;
+    const detail = (await res.json()) as Omit<GoogleGmailMessageDetail, "retrievedAt">;
+    // The connector has now received the authoritative detail response and its metadata headers.
+    return { ...detail, retrievedAt: this.clock().toISOString() };
   }
 
   async listRecent(limit = 5): Promise<EmailMessage[]> {
+    return (await this.acquireRecent(limit)).messages;
+  }
+
+  /** One production acquisition, projected separately for legacy and canonical consumers. */
+  async acquireRecent(limit = 5): Promise<GmailProductionAcquisition> {
     const accessToken = await getValidGoogleAccessToken();
 
     const [mainResult, governanceResult] = await Promise.all([
@@ -166,18 +189,18 @@ export class GoogleGmailConnector implements GmailConnector {
       .filter((d): d is GoogleGmailMessageDetail => d !== null)
       .map((detail) => normalizeGmailMessage(detail, governanceIds.has(detail.id)));
 
-    return sortAndPrioritizeEmails(messages).slice(0, limit);
+    const selectedMessages = sortAndPrioritizeEmails(messages).slice(0, limit);
+    const selectedIds = new Set(selectedMessages.map(({ id }) => id));
+    const observations = Object.freeze(details.filter((detail): detail is GoogleGmailMessageDetail =>
+      detail !== null && selectedIds.has(detail.id)).map((detail) => Object.freeze({ ...detail })));
+    const observedAt = observations.reduce((latest, observation) =>
+      observation.retrievedAt > latest ? observation.retrievedAt : latest, observations[0]?.retrievedAt ?? this.clock().toISOString());
+    const snapshotId = `google-gmail:${observations.map(({ id, retrievedAt }) => `${id}@${retrievedAt}`).join("|") || `empty@${observedAt}`}`;
+    return Object.freeze({ messages: selectedMessages, observations, observedAt, snapshotId });
   }
 
   /** Metadata-only production observation path used by the constitutional projection adapter. */
   async listOperationalObservations(limit = 50): Promise<readonly GoogleGmailMessageDetail[]> {
-    const accessToken = await getValidGoogleAccessToken();
-    const result = await this.listMessageIds(accessToken, MAIN_INBOX_QUERY, limit);
-    if (result.insufficientScope) {
-      throw new GoogleServiceAuthError("not_connected", "Gmail scope not granted yet — reconnect to include Gmail access.");
-    }
-    const details = await Promise.all(result.ids.map((id) => this.getMessageDetail(accessToken, id)));
-    return Object.freeze(details.filter((detail): detail is GoogleGmailMessageDetail => detail !== null)
-      .map((detail) => Object.freeze({ ...detail })));
+    return (await this.acquireRecent(limit)).observations;
   }
 }

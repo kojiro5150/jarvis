@@ -13,6 +13,11 @@ import { hasStoredGoogleTokens } from "./connectors/google/tokens";
 import type { Priority, ProjectStatus, Signal } from "./memory/schema";
 import type { CalendarEvent } from "./connectors/calendar-event";
 import type { EmailMessage } from "./connectors/email-message";
+import { GoogleGmailConnector } from "./connectors/google/gmail";
+import {
+  projectProductionGmailEvidence,
+  type ProductionGmailRecipientEvidence,
+} from "./executive-context/gmail-production-evidence";
 import type {
   DriveFileRecord,
   ConnectorStatus,
@@ -54,6 +59,8 @@ export interface OperationalState {
   calendarStatus: CalendarIntelligenceStatus;
   /** Merged, prioritized communications — canonical shape, same regardless of connector or which mailbox it came from. */
   gmailThreads: EmailMessage[];
+  /** Canonical live Gmail evidence for governed consumers; never reconstructed from gmailThreads. */
+  gmailRecipientEvidence?: ProductionGmailRecipientEvidence;
   /** Same vocabulary/rules as calendarStatus, for Gmail. */
   gmailStatus: GmailIntelligenceStatus;
   driveFiles: DriveFileRecord[];
@@ -115,16 +122,25 @@ async function loadCalendar(): Promise<{
 async function loadGmail(): Promise<{
   messages: EmailMessage[];
   status: GmailIntelligenceStatus;
+  evidence: NonNullable<OperationalState["gmailRecipientEvidence"]>;
 }> {
   const connector = getGmailConnector();
 
   if (connector.source === "local") {
-    return { messages: await connector.listRecent(5), status: "unavailable" };
+    return { messages: await connector.listRecent(5), status: "unavailable", evidence: {
+      communications: [], sourceId: "google-gmail", availability: "unavailable", state: "unknown",
+    } };
   }
 
   try {
+    if (connector instanceof GoogleGmailConnector) {
+      const acquisition = await connector.acquireRecent(5);
+      return { messages: acquisition.messages, status: "online", evidence: projectProductionGmailEvidence(acquisition) };
+    }
     const messages = await connector.listRecent(5);
-    return { messages, status: "online" };
+    return { messages, status: "online", evidence: {
+      communications: [], sourceId: "google-gmail", availability: "unavailable", state: "unknown",
+    } };
   } catch (err) {
     const status: GmailIntelligenceStatus =
       err instanceof GoogleServiceAuthError && err.reason === "refresh_failed"
@@ -132,7 +148,10 @@ async function loadGmail(): Promise<{
         : "unavailable";
     console.warn("[operational-state] Gmail fetch failed, falling back to local:", err);
     const messages = await new LocalGmailConnector().listRecent(5);
-    return { messages, status };
+    return { messages, status, evidence: {
+      communications: [], sourceId: "google-gmail", availability: "unavailable",
+      state: err instanceof GoogleServiceAuthError ? "not_authorised" : "not_fetched",
+    } };
   }
 }
 
@@ -175,7 +194,7 @@ export async function buildOperationalState(): Promise<OperationalState> {
   const [
     memory,
     { events: calendar, status: calendarStatus },
-    { messages: gmailThreads, status: gmailStatus },
+    { messages: gmailThreads, status: gmailStatus, evidence: gmailRecipientEvidence },
     { files: driveFiles, status: driveStatus },
   ] = await Promise.all([readMemory(), loadCalendar(), loadGmail(), loadDrive()]);
 
@@ -187,6 +206,7 @@ export async function buildOperationalState(): Promise<OperationalState> {
     calendar,
     calendarStatus,
     gmailThreads,
+    gmailRecipientEvidence,
     gmailStatus,
     driveFiles,
     driveStatus,

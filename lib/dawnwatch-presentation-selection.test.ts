@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { dawnwatchEvaluationFixture } from "./dawnwatch-parallel-evaluation";
 import { getOpeningBrief } from "./briefing";
+import { projectProductionGmailEvidence } from "./executive-context/gmail-production-evidence";
 import {
   buildDawnwatchPresentation,
   DEFAULT_DAWNWATCH_PRESENTATION_CONFIGURATION,
@@ -107,7 +108,8 @@ describe("production DAWNWATCH opening-brief integration", () => {
     const bridged = buildProductionDawnwatchInput(state);
     expect(bridged.priorities[0]?.provenance.assertionId).toBe("priority-0");
     expect(bridged.commitments[0]?.provenance.assertionId).toBe("commitment-1");
-    expect(bridged.communications[0]?.provenance.assertionId).toBe("communication-1");
+    // Legacy EmailMessage is not a recipient authority and is no longer projected as canonical evidence.
+    expect(bridged.communications).toEqual([]);
     expect(bridged.sources.map(source => source.provenance.assertionId)).toEqual(["memory", "calendar", "gmail", "drive"]);
 
     // Satisfy the bridge's other deliberately unavailable evidence inputs independently so this
@@ -116,9 +118,8 @@ describe("production DAWNWATCH opening-brief integration", () => {
     const evidenceReadyInput = {
       priorities: bridged.priorities.map(item => ({ ...item, provenance: provenance(item.provenance.assertionId) })),
       commitments: bridged.commitments.map(item => ({ ...item, provenance: provenance(item.provenance.assertionId) })),
-      communications: bridged.communications.map(item => ({
-        ...item, recipients: ["operator@example.com"], provenance: provenance(item.provenance.assertionId),
-      })),
+      communications: [{ id: "communication-1", sender: "operator@example.com", recipients: ["operator@example.com"],
+        sentAt: "2026-07-31T11:00:00Z", provenance: provenance("communication-1") }],
       sources: [{
         id: "operational", kind: "operational", availability: "available",
         observedAt: "2026-07-31T11:00:00Z", snapshotId: "snapshot-1",
@@ -161,7 +162,7 @@ describe("production DAWNWATCH opening-brief integration", () => {
 
     const input = buildProductionDawnwatchInput(state);
     expect(input.commitments[0]?.provenance.sourceId).toBe("calendar");
-    expect(input.communications[0]?.provenance.sourceId).toBe("gmail");
+    expect(input.communications).toEqual([]);
     expect(input.sources).toEqual([{
       id: "memory",
       kind: "memory",
@@ -211,5 +212,57 @@ describe("production DAWNWATCH opening-brief integration", () => {
       provenance: { sourceId: "memory", assertionId: "memory" },
     });
     expect(presentation.priorities.status).toBe("available");
+  });
+
+  it("feeds complete canonical Gmail recipient evidence to governed DAWNWATCH end-to-end", () => {
+    const state = dawnwatchEvaluationFixture("shared-priority-observation");
+    state.connectorStatuses = state.connectorStatuses.map(source => ({ ...source, connected: true }));
+    state.gmailRecipientEvidence = projectProductionGmailEvidence({
+      messages: [], observedAt: "2026-08-01T00:05:00.000Z",
+      snapshotId: "google-gmail:gmail-1@2026-08-01T00:05:00.000Z",
+      observations: [{ id: "gmail-1", internalDate: "1785542400000", retrievedAt: "2026-08-01T00:05:00.000Z",
+        payload: { headers: [
+          { name: "Message-ID", value: "<message-1@example.test>" },
+          { name: "From", value: "Sender <sender@example.test>" },
+          { name: "To", value: '"Smith, John" <john@example.test>' },
+          { name: "Date", value: "2026-08-01T00:00:00.000Z" },
+        ] } }],
+    });
+    const result = buildDawnwatchOpeningPresentation("GOVERNED", "dawnwatch", state);
+    if (result?.mode !== "GOVERNED") throw new Error("expected governed presentation");
+    expect(result.presentation.sections.communications.status).toBe("available");
+    const input = buildProductionDawnwatchInput(state);
+    expect(input.communications[0]).toMatchObject({
+      id: "google-gmail:<message-1@example.test>", recipients: ['"Smith, John" <john@example.test>'],
+    });
+    expect(input.sources.find(({ id }) => id === "google-gmail")).toMatchObject({
+      observedAt: "2026-08-01T00:05:00.000Z", snapshotId: "google-gmail:gmail-1@2026-08-01T00:05:00.000Z",
+    });
+  });
+
+  it("does not upgrade malformed partial or local/mock recipient-like evidence", () => {
+    const state = dawnwatchEvaluationFixture("shared-priority-observation");
+    state.gmailRecipientEvidence = {
+      sourceId: "google-gmail", availability: "available", state: "unknown",
+      observedAt: "2026-08-01T00:05:00.000Z", snapshotId: "real-snapshot",
+      communications: [{
+        messageId: "<partial@example.test>", sender: "sender@example.test",
+        recipients: ["valid@example.test"], recipientEvidence: "unknown",
+        sentAt: "2026-08-01T00:00:00.000Z", references: [], provenance: {
+          gmailMessageId: "partial", retrievedAt: "2026-08-01T00:05:00.000Z",
+          hasAttachment: false, unread: false, multipart: false, htmlOnly: false,
+        },
+      }],
+    };
+    const partial = buildDawnwatchOpeningPresentation("GOVERNED", "dawnwatch", state);
+    if (partial?.mode !== "GOVERNED") throw new Error("expected governed presentation");
+    expect(partial.presentation.sections.communications.status).toBe("insufficient_coverage");
+
+    state.gmailRecipientEvidence = {
+      sourceId: "google-gmail", availability: "unavailable", state: "unknown", communications: [],
+    };
+    const local = buildDawnwatchOpeningPresentation("GOVERNED", "dawnwatch", state);
+    if (local?.mode !== "GOVERNED") throw new Error("expected governed presentation");
+    expect(local.presentation.sections.communications.status).toBe("unavailable");
   });
 });

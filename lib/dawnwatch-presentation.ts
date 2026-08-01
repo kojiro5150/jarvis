@@ -197,9 +197,14 @@ function renderVoice(parts: {
   commitments: DawnwatchPresentation["commitments"];
   communications: DawnwatchPresentation["communications"];
 }): string {
-  const render = (label: string, section: DawnwatchSection<{ readonly title?: string; readonly subject?: string; readonly id: string }>) => {
+  const render = (label: string, section: DawnwatchSection<{
+    readonly title?: string;
+    readonly subject?: string;
+    readonly sender?: string;
+    readonly id: string;
+  }>) => {
     if (section.status !== "available") return `${label}: ${section.status.replace("_", " ")}.`;
-    const values = section.observations.map(item => item.title ?? item.subject ?? item.id);
+    const values = section.observations.map(formatDawnwatchVoiceObservation);
     return `${label}: ${values.join(", ")}.`;
   };
   return [
@@ -208,6 +213,22 @@ function renderVoice(parts: {
     render("Commitment observations", parts.commitments),
     render("Communication observations", parts.communications),
   ].join(" ");
+}
+
+/**
+ * Selects only an already-authorised display value. A protocol Message-ID is
+ * code-formatted solely when it is the final floor so Markdown cannot mistake
+ * it for a recipient email autolink.
+ */
+export function formatDawnwatchVoiceObservation(item: {
+  readonly title?: string;
+  readonly subject?: string;
+  readonly sender?: string;
+  readonly id: string;
+}): string {
+  const preferred = item.title ?? item.subject ?? item.sender;
+  if (preferred !== undefined) return preferred;
+  return /^<[^<>\s@]+@[^<>\s@]+>$/.test(item.id) ? `\`${item.id}\`` : item.id;
 }
 
 /** Pure governed projection-to-presentation adapter. */

@@ -1,5 +1,14 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { createElement } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { describe, expect, it } from "vitest";
-import { buildDawnwatchPresentation, getDawnwatchCapabilityStatus, getTomorrowAfternoonStatus } from "./dawnwatch-presentation";
+import {
+  buildDawnwatchPresentation,
+  formatDawnwatchVoiceObservation,
+  getDawnwatchCapabilityStatus,
+  getTomorrowAfternoonStatus,
+} from "./dawnwatch-presentation";
 
 const provenance = (sourceId: string, assertionId: string) => ({ sourceId, assertionId });
 const configuration = { viewerTimeZone: "Australia/Melbourne", locale: "en-AU", referenceTime: "2026-07-31T12:00:00Z", sourceScope: ["canonical"], identityTieBreakRule: "canonical_identity_ascending" } as const;
@@ -42,5 +51,44 @@ describe("governed DAWNWATCH presentation", () => {
       .toThrow("referenceTime must be an explicit RFC 3339 instant");
     expect(() => buildDawnwatchPresentation({ priorities: [], commitments: [], communications: [], sources: [] }, { ...configuration, sourceScope: [] }))
       .toThrow("sourceScope must be explicit and non-empty");
+  });
+
+  it("prefers communication subjects, then senders, without changing title-first observations", () => {
+    const result = buildDawnwatchPresentation({
+      priorities: [{ id: "p1", title: "Priority title", provenance: provenance("canonical", "p1-a") }],
+      commitments: [{ id: "c1", title: "Commitment title", status: "scheduled", provenance: provenance("canonical", "c1-a") }],
+      communications: [
+        { id: "<sender-fallback@example.test>", sender: "Sender Name", recipients: ["Team"], sentAt: "2026-07-31T10:00:00Z", provenance: provenance("canonical", "m1-a") },
+        { id: "<subject-first@example.test>", subject: "Subject first", sender: "Hidden Sender", recipients: ["Team"], sentAt: "2026-07-31T10:01:00Z", provenance: provenance("canonical", "m2-a") },
+      ],
+      sources: [source],
+    }, configuration);
+
+    expect(result.voice).toContain("Priority observations: Priority title.");
+    expect(result.voice).toContain("Commitment observations: Commitment title.");
+    expect(result.voice).toContain("Communication observations: Sender Name, Subject first.");
+    expect(result.voice).not.toContain("sender-fallback@example.test");
+    expect(result.voice).not.toContain("Hidden Sender");
+  });
+
+  it("keeps a true ID fallback visible and code-formats a canonical Message-ID", () => {
+    expect(formatDawnwatchVoiceObservation({ id: "ordinary-id" })).toBe("ordinary-id");
+    expect(formatDawnwatchVoiceObservation({ id: "<message-id@example.test>" }))
+      .toBe("`<message-id@example.test>`");
+  });
+
+  it("prevents Message-ID mailto links through the real Markdown surface without disabling genuine email links", () => {
+    const fallback = formatDawnwatchVoiceObservation({ id: "<message-id@example.test>" });
+    const renderMarkdown = (content: string) => renderToStaticMarkup(createElement(
+      ReactMarkdown,
+      { remarkPlugins: [remarkGfm] },
+      content,
+    ));
+    const fallbackMarkup = renderMarkdown(fallback);
+    expect(fallbackMarkup).toContain("&lt;message-id@example.test&gt;");
+    expect(fallbackMarkup).not.toContain('href="mailto:message-id@example.test"');
+
+    const emailMarkup = renderMarkdown("operator@example.test");
+    expect(emailMarkup).toContain('href="mailto:operator@example.test"');
   });
 });

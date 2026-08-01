@@ -1,2093 +1,704 @@
 # Sprint 3.90 — Governed Conversational Conflicts Boundary Contract
 
-**Status:** Specification
+**Status:** Complete
 **Sprint Type:** Governance Decision / Conflicts Boundary Contract
 **Implementation Authority:** None
-**Output Path:** `docs/SPRINT-3.90-GOVERNED-CONVERSATIONAL-CONFLICTS-BOUNDARY-CONTRACT.md`
-**Document Convention:** Single-file specification and completed contract
+**Repository:** `/workspace/jarvis`
+**Branch reviewed:** `work`
+**Review commit:** `8c81b717b5c316457aa835347d88e5b8d640cfb7`
 
----
+## Repository Precondition
 
-## 1. Purpose
+The review began in `/workspace/jarvis` on branch `work`, at commit
+`8c81b717b5c316457aa835347d88e5b8d640cfb7`, with a clean working tree. The
+repository has no configured local or remote `main` ref; the reviewed commit is
+the merge commit containing the Sprint 3.90 specification and is the intended
+review baseline. All required governing artefacts existed.
 
-Sprint 3.90 establishes the binding deterministic boundary for conflicts in the governed conversational runtime.
+The current definitions, validators, fixtures, evaluations, and construction
+paths for conversational and EOS conflicts were inspected. In particular:
 
-Sprint 3.88 found that the existing projection architecture accepts structured conflicts but does not derive them. It also found no production owner capable of constructing claim-aware conversational conflicts.
+* `projection-composer.ts` defines `GovernedConflictInput` with `conflictId`,
+  `sourceOwners`, `affectedClaimIds`, `statusRestriction`, and
+  `descriptionReference`; it checks affected claim IDs, hashes and aggregates
+  supplied conflicts, and neither derives conflicts nor changes claim status;
+* `types.ts` defines the distinct older `GovernedConflict` with singular
+  `claimId`, `governedReference`, `compatibilityContextId`, and `description`;
+  it remains load-bearing in `GovernedClaimInput.conflicts` and the response
+  envelope;
+* fixtures and evaluation modules construct only synthetic conversational
+  conflicts; no production conversational conflict engine exists;
+* EOS situational-awareness assembly creates `structural_conflict` records and
+  executive-context validation consumes them, but no production path converts
+  them to claim-aware conversational conflicts; and
+* `GovernedClaimSet` is the authoritative future publication named by Sprint
+  3.89, not a current code definition.
 
-Sprint 3.89 subsequently established:
+Only this contract file is changed.
 
-* **Claims-Boundary Architecture: Option C** — explicit typed intent, followed by closed deterministic recognition, deterministic clarification, and fail-closed unsupported;
-* claims exist before model invocation;
-* claims are independently identified, typed, materiality-scored, source-scoped, coverage-bounded, and published through a versioned Governed Claim Set;
-* the answering model cannot create, merge, classify, or redefine claims;
-* conflicts require a separate dependent contract;
-* the next permitted sprint is the dependent conflicts contract.
+## Governing Artefacts Reviewed
 
-Sprint 3.90 executes that governance step.
+The following were read completely before decisions were drafted:
 
-Its purpose is to answer the ten conflict questions scoped by Sprint 3.88 as binding decisions.
+1. `docs/ENGINEERING_CONSTITUTION.md`
+2. `docs/architecture/NORTH_STAR.md`
+3. `docs/architecture/JARVIS-Engineering-Specification-Standard.md`
+4. `docs/CONSTITUTIONAL-PUBLICATION-PRINCIPLES.md`
+5. `docs/architecture/ROADMAP.md`
+6. `docs/audits/SPRINT-3.88-GOVERNED-CONVERSATIONAL-PRODUCTION-EVIDENCE-AUDIT.md`
+7. `docs/SPRINT-3.89-GOVERNED-CONVERSATIONAL-CLAIMS-BOUNDARY-CONTRACT.md`
+8. `docs/SPRINT-3.76-GOVERNED-CONVERSATIONAL-RUNTIME-CONTRACT.md`
+9. `docs/SPRINT-3.82-GOVERNED-CONVERSATIONAL-LINEAGE-IDENTITY-CONTRACT.md`
+10. `docs/SPRINT-3.85-GOVERNED-CONVERSATIONAL-IDENTITY-CORRECTION-CONTRACT.md`
+11. the submitted Sprint 3.90 specification at this path on the review baseline.
 
-The central objective is:
+## Sprint 3.88 Conflicts Finding
 
-> **Define when a governed conversational conflict exists, how it is deterministically evaluated and published, how it restricts affected claims, and how the system proves the difference between "no conflict found" and "conflict evaluation did not run."**
+The Conflicts Finding was reviewed in full. Its composer requirement, current
+production analogues, gap analysis, classification, reasoning, earliest next
+step, and ten questions were traced from the prose. Sprint 3.88 is evidence,
+not decision authority. The ten questions are independently decided below.
 
-This sprint does not implement conflict detection.
+The repository confirms its central evidence: supplied projection conflicts
+are structured and claim-linked; the composer does not derive them; the older
+claim-local conflict remains in use; EOS conflicts have different semantics;
+fixtures are the only conversational constructors; no deterministic,
+versioned production conversational conflict engine exists; and an empty array
+proves only that no conflicts were supplied.
 
-It creates the contract a future isolated implementation sprint must follow.
+## Sprint 3.89 Claims Foundation
 
----
+Sprint 3.89 binds this contract to **Claims-Boundary Architecture: Option C**:
+typed intent, closed deterministic recognition, deterministic clarification,
+then fail-closed unsupported. Claims exist pre-model. `ClaimBoundaryRuleset`,
+`ClaimBoundaryEvaluation`, and immutable `GovernedClaimSet` publications have
+separate identities. Claim identity, type, polarity, materiality, source and
+coverage ownership, unsupported behavior, compound segmentation, family
+separation, and Cassie importance exclusion remain unchanged.
 
-## 2. Sprint Character
+Sprint 3.89 selected **Conflicts Contract Decision: Option A**, requiring this
+complete dependent contract rather than partial conflict semantics. This
+document fulfills that next-step statement. It does not reopen any Sprint 3.89
+claim decision. Conflicts consume claims; they never create, merge, classify,
+or redefine them.
 
-This is a governance-decision sprint.
+## Conversational Conflict Architecture
 
-It is not:
+**Conversational Conflict Architecture: Option B**
 
-* an implementation sprint;
-* a conflict-engine implementation;
-* a source-normalisation sprint;
-* a projection-composer modification;
-* a claims-boundary revision;
-* an EOS integration sprint;
-* a route-integration sprint;
-* an operator-verification sprint;
-* a promotion sprint.
+Option B, a closed multi-class claim-restriction taxonomy, is binding. A
+governed conversational conflict exists only when the applicable immutable
+conflict ruleset matches one of these classes against an existing claim and
+admissible source publications:
 
-No code changes are authorised.
+1. `source_value_contradiction`;
+2. `policy_incompatibility`; or
+3. `temporal_commitment_incompatibility`.
 
-The only authorised output is:
+Each class has fixed eligible claim families, source publication types,
+comparison keys, scope and coverage tests, rule IDs, and status effects.
+Domain modules sit beneath one root ruleset and cannot add classes. Claim
+identity fixes the assertion being restricted; unequal values outside the same
+claim property, entity, time, scope, and normalization rule do not conflict.
+
+Option A is rejected because factual contradiction alone omits genuine,
+deterministic policy and commitment incompatibilities that can restrict a
+claim without being factual-value disagreement. Option C is rejected because
+independent taxonomies would duplicate publication and no-conflict semantics
+and permit inconsistent cross-family outcomes. Option D is rejected because
+source-only publication leaves ordinary cross-source conversational conflict
+evaluation unavailable. Relations outside the three named classes are not
+governed conversational conflicts.
+
+## Decision 1 — Claim Linkage
+
+**Conflict Claim-Linkage Decision: Option A**
+
+Strict claim linkage is binding. Every conflict references at least one claim
+ID present in the single Governed Claim Set under evaluation. One conflict can
+affect multiple claims in that set only when one ruleset rule names every
+eligible claim family and establishes one shared comparison scope. It cannot
+reference another claim set, exchange, or thread.
+
+Unsupported evaluation segments have no claim and cannot have conflicts. A
+supported claim whose conflict class is unsupported receives an evaluation
+scope result, not a fabricated conflict. A no-claim evaluation produces no
+Conflict Evaluation because there is no claim set to consume. Option B is
+rejected: environmental inconsistencies lack the claim relevance required for
+conversational restriction and need their own domain publications.
+
+## Decision 2 — Identity Chain
+
+> **Conflict Identity Chain:** `ClaimBoundaryRuleset` →
+> `ClaimBoundaryEvaluation` → `GovernedClaimSet` → claim IDs →
+> `ConflictEvaluationRuleset` → `ConflictEvaluation` →
+> `GovernedConflictSet` → conflict IDs → immutable source publication
+> references and source-owner IDs; the composer then creates a separate
+> projection identity.
+
+> **Conflict Identity Rule:** Every ID identifies exactly one immutable
+> canonical body or event in its own identity domain; no identity substitutes
+> for another and any semantic or body change creates a new identity.
+
+The ruleset ID is content-derived from canonical ruleset content. Evaluation
+IDs are event-derived and identify one attempt over one claim set, ruleset,
+evidence set, availability/coverage set, comparison time, and policy. The
+conflict-set ID and individual conflict IDs are content-derived from their
+canonical bodies. Thread, request, exchange, and future projection references
+are lineage only. The evaluation precedes the projection, so its projection
+reference is absent; the projection records the evaluation and set references.
+
+Every retry creates a new evaluation ID and links the prior attempt. A retry
+that publishes an evaluated outcome creates a new conflict-set identity;
+canonical content-addressed deduplication can resolve identical bodies to the
+same content identity without reusing an event identity. A claim ID cannot be
+a conflict ID, a set ID cannot be an evaluation ID, a projection ID cannot be
+a set ID, and an exchange ID cannot be a conflict ID.
+
+## Decision 3 — Source Ownership
+
+> **Admissible Conflict Source Owners:** A publication is admissible only when
+> it is immutable, provenance-bearing, admitted by the cross-source governed
+> evidence registry, referenced by an affected claim's source scope, produced
+> by a source-specific governed publisher or explicitly admitted governed
+> policy publisher, and eligible under the selected conflict rule. Source-owner
+> identity, schema and publication identity, observation/effective time,
+> comparison scope, content kind, availability, and coverage must be present.
+
+The engine consumes registry-admitted source-specific publications directly
+through immutable registry entries. It cannot introduce a source or widen a
+claim's source scope. Availability records and coverage records are metadata
+for evaluation proof, never factual observations. Two observations from one
+source owner can conflict only when they are separate immutable publications,
+the selected rule admits version/temporal comparison, and neither supersedes
+the other under a governed precedence rule. Policy versions are policy
+publications for the policy class, otherwise they are evaluation metadata.
+
+> **Prohibited Conflict Inputs:** raw connector payloads; unregistered or
+> mutable observations; legacy compatibility context; source silence;
+> unavailable-source markers as factual values; conversation text; prior or
+> current assistant output; model interpretation; operator assertions lacking
+> a separately governed source publication; prompts; route state; EOS conflict
+> results; and publications outside the claim's declared source scope.
+
+An operator assertion can become eligible only through a future governed
+operator-assertion source contract and claim-family rule. The conflict
+evaluator compares publications but never becomes their source owner.
+
+## Decision 4 — Composer Role
+
+**Projection Composer Conflict Role: Option A**
+
+The dedicated conflict owner runs before composition and publishes the
+evaluation and, for evaluated outcomes, a Governed Conflict Set. The composer
+validates publication identity, claim-set linkage, affected claims, source
+references, and allowed restrictions; includes the immutable publications;
+and preserves canonical order and status effects.
+
+The composer cannot derive, merge, rewrite, re-ID, reorder semantically, alter
+restriction, suppress, or drop conflicts. It cannot infer no-conflict from
+absence. Invalid input fails composition. Duplicate relation normalization is
+owned solely by the conflict evaluator before publication. Option B is
+rejected because composition ownership would combine evidence reasoning with
+exclusive projection assembly and obscure whether evaluation ran.
+
+## Decision 5 — Conflict Ruleset
+
+> **Conflict Ruleset Architecture:** One immutable cross-domain root
+> `ConflictEvaluationRuleset` with closed, separately versioned domain modules.
+> The root fixes the three-class vocabulary, module IDs, deterministic module
+> precedence, common identity/publication schema, claim linkage, admissibility,
+> outcome aggregation, and no-conflict proof. A module can narrow eligible
+> claims and sources and provide class rules; it cannot add a class or override
+> root semantics.
+
+> **Conflict Ruleset Owner:** The governance-approved conflict rules registry.
+
+The publication contains immutable ruleset ID, schema and ruleset versions;
+the three classes; eligible claim families/types and evidence publication
+types; comparison keys and canonical normalization; temporal, entity, scope,
+and coverage requirements; module order; source-owner requirements;
+supersession and separately governed precedence references; restriction maps;
+deterministic description templates; partial-evaluation rules; no-conflict
+proof; prohibited relations; and module identities.
+
+Rules execute in fixed class order: source value, policy, then temporal
+commitment. Within a class, canonical rule ID orders evaluation. One canonical
+relation key—class, sorted affected claim IDs, comparison key/scope, sorted
+source references, and rule ID—produces one conflict. A semantic change creates
+a new root or child identity. Claim and conflict rulesets remain distinct;
+`ConflictEvaluationRuleset` consumes the selected Claim Boundary Ruleset ID.
+
+## Decision 6 — Conflict Engine
+
+**Conflict Evaluation Owner: Option A**
+
+**Conflict Evaluation Owner:** Governed Conversational Conflict Engine
+
+**Existing Engine Reuse Decision:** No production conversational conflict
+engine exists. A dedicated Governed Conversational Conflict Engine must be
+created in a future isolated implementation sprint. Existing EOS assembly,
+status aggregation, validators, and projection composition do not own these
+semantics. Generic immutable-record, sorting, validation, comparison, identity,
+and storage mechanisms can be adapted only beneath the new ruleset.
+
+Owner B is rejected because claim recognition and conflict comparison are
+separate dependent evaluations. Owner C is rejected by the composer decision.
+Owner D is rejected because individual source publishers cannot determine a
+cross-source, claim-scoped relation.
+
+## Decision 7 — EOS Reuse
+
+**EOS Structural Conflict Reuse: Option C**
+
+Current direct reuse is prohibited. EOS and conversational conflict remain
+separate publication and identity domains. A future governed mapping contract
+can transform only named EOS classes for named claim types after it proves
+equivalent trigger, affected object, source authority, scope, lifecycle,
+ruleset, status effect, and lineage. Until that contract exists, no mapping,
+copy, retyping, or identifier conversion is valid.
+
+**Mechanism reuse cannot transfer meaning.** Shared fields such as conflict ID,
+source IDs, observed time, or rule text describe structural similarity, not
+semantic equivalence. Likewise, a shared algorithm establishes only mechanism.
+Executive-state inconsistency concerns an EOS entity snapshot; conversational
+conflict restricts claims using admitted evidentiary publications. Option A is
+rejected because it unnecessarily forbids a later proof-governed mapping.
+Option B is rejected because identifier mapping proves neither authority nor
+meaning.
+
+## Decision 8 — Cross-Domain Boundary
+
+> **Cross-Domain Conflict Boundary:** A relation crosses claim families or
+> domains only when one identified root rule and its versioned domain modules
+> explicitly admit every claim type and source publication type, name all
+> affected claim IDs, prove one shared entity/property/time/scope comparison,
+> and define one deterministic restriction. Shared names, fields, identifiers,
+> storage, or algorithms never establish admissibility.
+
+Thus EOS structural conflict is not evidentiary contradiction; Calendar
+overlap is not communication conflict; source unavailability is not value
+contradiction; model disagreement is validation failure; prior assistant error
+is non-canonical dialogue; policy incompatibility is not factual
+contradiction; and a family rule cannot run against another family without a
+root-authorized module. Cross-claim conflict within one set is admitted under
+the stated proof. Cross-set, cross-exchange, and cross-thread conflict is
+Deferred and prohibited in the current contract.
+
+## Decision 9 — Evaluation-State Architecture
+
+**Conflict Evaluation-State Architecture: Option A**
+
+Every nonempty Governed Claim Set receives one immutable Conflict Evaluation.
+Evaluation is claim-set-wide but records a product of claim IDs × applicable
+conflict classes. Each cell records evaluated scope or an explicit unevaluated
+reason. Partial evaluation is allowed and represented structurally.
+
+The closed overall outcome vocabulary is:
+
+* `evaluated_no_conflict`: every applicable cell evaluated with sufficient
+  coverage and none matched;
+* `evaluated_conflict_found`: every applicable cell evaluated and at least one
+  conflict matched;
+* `partially_evaluated`: at least one cell evaluated and at least one applicable
+  cell unevaluated, whether or not evaluated cells found conflicts;
+* `evaluation_unavailable`: no applicable cell evaluated because required
+  source publication, registry record, ruleset artifact, or infrastructure was
+  unavailable;
+* `evaluation_unsupported`: no applicable cell evaluated because all claims or
+  requested classes are outside the selected ruleset; and
+* `evaluation_failed`: no authoritative result because validation, evaluator,
+  persistence, or identity publication failed.
+
+A Governed Conflict Set exists only for
+`evaluated_no_conflict`, `evaluated_conflict_found`, and
+`partially_evaluated`. The first publishes a zero-conflict set. A partial set
+contains conflicts found in evaluated cells and explicit coverage; it never
+claims whole-set absence. Options B and C are rejected because a projection
+marker or array convention cannot independently prove rules, sources, scope,
+coverage, and immutable evaluation identity.
+
+## Decision 10 — No-Conflict Proof
+
+> **No-Conflict Proof Rule:** No conflict is proven only by a
+> `ConflictEvaluation` with outcome `evaluated_no_conflict` and its linked
+> zero-conflict `GovernedConflictSet`. The evaluation must identify the ruleset,
+> evaluation, claim set, every evaluated claim, every applicable class,
+> admissible source publications, availability and coverage records,
+> comparison scopes and reference time, deterministic per-cell results, and
+> the conflict-set identity. All applicable cells must have sufficient required
+> source coverage.
+
+> **Unevaluated Representation:** Unevaluated scope is a nonempty immutable list
+> of records containing claim ID, class, source requirement, comparison scope,
+> and exactly one closed reason:
+> `conflict_class_unsupported`, `required_source_unavailable`,
+> `insufficient_source_coverage`, `ruleset_unavailable`, `evaluator_failure`,
+> `claim_type_outside_ruleset`, or `evaluation_deferred`. Overall outcome is
+> derived from the cell records by the fixed vocabulary above.
+
+This is a checkable structural difference: evaluated no-conflict has an
+evaluation, complete per-cell coverage, a deterministic `no_match` result for
+every applicable cell, and a linked zero-conflict set; unevaluated has explicit
+reason records and cannot use `evaluated_no_conflict`. No supplied conflict,
+one source, source silence, no model objection, empty compatibility context,
+or an empty array never proves absence.
+
+## Closed Taxonomy
+
+| Candidate relation | Conflict class? | Governing owner | Required claim linkage | Required evidence | Result if not a conflict |
+| --- | ---: | --- | --- | --- | --- |
+| Source-value contradiction | Yes | Conflict Engine, `source_value_contradiction` rule | One or more eligible claims in one set | At least two admissible observations with incompatible normalized values for the same property/entity/scope/time and sufficient coverage | No match for evaluated scope, or explicit coverage/unavailability result |
+| Source-availability disagreement | No | Source availability and coverage publishers | Claim source requirement only | Immutable availability/coverage records | Availability or coverage restriction; never contradiction |
+| Claim-status inconsistency | No | Publication validator | Same claim and canonical evaluation lineage | Incompatible canonical statuses or duplicate owners | Publication-coherence validation failure |
+| Temporal/commitment incompatibility | Yes | Conflict Engine, `temporal_commitment_incompatibility` module | All affected eligible claims in one set | Admissible commitments plus deterministic temporal/resource impossibility proof | Ordinary schedule relation or unsupported/unevaluated class |
+| Prior assistant-output contradiction | No | Response/history validator | Prior turn reference only; not claim evidence | Current governed evidence and non-canonical dialogue | Correction/uncertainty response; no conflict publication |
+| Policy incompatibility | Yes | Conflict Engine, `policy_incompatibility` module | All affected eligible claims in one set | Two or more applicable governed policy publications whose obligations cannot jointly hold in one scope | Policy applicability result or unsupported/unevaluated class |
+| Coverage incompatibility | No | Claim ruleset and evidence coverage evaluator | Claim whose required scope is unmet | Registry-admitted coverage records | `insufficient_coverage` restriction or unevaluated cell |
+| Operator assertion contradiction | No | Future operator-source governance | None under current rules | No current admissible publication | Clarification/non-canonical context; future source contract required |
+| Model-output contradiction | No | Governed response validator | Output-to-claim validation links | Model output and canonical projection | Validation failure or invented-fact violation; response withheld |
+
+Relations not explicitly admitted by the closed taxonomy are not governed
+conversational conflicts. There is no `other` class.
+
+## Publication Architecture
+
+```text
+ClaimBoundaryRuleset → ClaimBoundaryEvaluation → GovernedClaimSet
+                                                    ↓
+Registry-admitted source publications + availability/coverage publications
+                                                    ↓
+ConflictEvaluationRuleset → Governed Conversational Conflict Engine
+                                                    ↓
+                           ConflictEvaluation → GovernedConflictSet
+                                                    ↓
+                         Dedicated Conversational Projection Composer
+```
+
+### ConflictEvaluationRuleset
+
+This immutable canonical publication is owned by the governance-approved
+conflict rules registry. It contains all fields and rules fixed in Decision 5.
+Its ID is derived from canonical content. Publication occurs before evaluation.
+A schema-compatible editorial change that affects canonical content and every
+semantic, module, template, precedence, status, or proof change creates a new
+ID and version. It references, but never shares identity with, the Claim
+Boundary Ruleset.
+
+### ConflictEvaluation
+
+This immutable event publication represents exactly one engine attempt over
+one claim set, conflict ruleset, identified source-evidence and coverage set,
+comparison time, and evaluation policy. It contains evaluation ID, schema
+version, ruleset and claim-set IDs, claim IDs, source publication references,
+availability/coverage references, evaluated class/cell records, excluded or
+unsupported cells, comparison time, closed outcome, unevaluated/failure reason,
+created-at time, optional prior evaluation, and thread/request/exchange
+lineage. It does not claim a future projection ID. Each retry has a new event
+ID and prior-attempt link.
+
+### GovernedConflictSet
+
+This immutable result publication contains a content-derived set ID, schema
+version, evaluation/ruleset/claim-set IDs, canonically ordered immutable
+conflicts, evaluated claim IDs and cells, coverage records, and the scoped
+no-conflict result. Zero-conflict sets are published for
+`evaluated_no_conflict`. Failed, unavailable, and unsupported evaluations
+publish no set. Partial evaluations publish a set with explicit evaluated and
+unevaluated scope. A set can span claim families only under the cross-domain
+proof and only within one claim set. Order is canonical, not semantic. The
+engine alone deduplicates by canonical relation key before publication.
+
+### Individual Governed Conflict
+
+Each canonical conflict contains conflict ID, class, affected claim IDs,
+source publication references and owners, comparison key and scope,
+restricting status, ruleset-owned description reference, evaluated-at time,
+rule ID, evidence/coverage references, and class-schema-validated domain
+metadata. `detectedAt` is not a separate inferred event: it equals the parent
+evaluation's evaluated-at time. The structured rule match, not its description,
+establishes existence.
+
+The existing `GovernedConflictInput` is a **projection view of the richer
+canonical conflict**. Its five fields are insufficient to prove class,
+ruleset/rule, source publication identity, comparison scope, evaluation, and
+coverage, so it cannot be the canonical publication. A future adapter derives
+that view without changing meaning.
+
+The older `GovernedConflict` is a **legacy claim-local and response-envelope
+view**, not the same type and not a duplicate. Its singular `claimId`, governed
+reference, compatibility reference, and description cannot represent the new
+canonical multi-claim relation. During future isolated migration, each
+claim-local occurrence must reference one canonical conflict ID and carry only
+a non-authoritative compatibility projection; it cannot create conflict
+semantics. Response envelopes expose canonical conflict views. Removal or
+schema replacement requires a separately authorized compatibility migration.
+
+## Identity Integrity Compliance
+
+The Constitutional Publication Principles' **Identity Integrity** principle
+applies to every publication:
+
+| Publication | Immutable object/event represented | ID identifies | Cannot share ID with | Change requiring new identity | Retry/content rule |
+| --- | --- | --- | --- | --- | --- |
+| Conflict Evaluation Ruleset | One canonical rules body and module graph | Exact ruleset content | Claim ruleset, evaluation, set, conflict | Any canonical or semantic rule change | Content-addressed; no retry concept |
+| Conflict Evaluation | One attempt over fixed inputs, coverage, time, and policy | Evaluation event | Ruleset, claim set, conflict set, projection | Retry, input/coverage/time/policy/outcome change | New event ID; link prior attempt |
+| Governed Conflict Set | One ordered result and coverage body | Exact set content | Evaluation, claim set, projection, conflict | Conflict, order key, coverage, scope, or result change | New result identity; identical canonical content can deduplicate |
+| Governed Conflict | One matched canonical relation | Exact class/claims/sources/scope/rule/restriction body | Claim, set, evaluation, exchange | Any affected claim, source, scope, rule, class, or restriction change | Content-addressed; retry can reference same relation only when body is identical |
+
+One set identity cannot represent different conflict bodies. An evaluation ID
+cannot survive source coverage change. A conflict ID cannot survive affected
+claim changes. A ruleset ID cannot survive semantic changes. A claim ID never
+stands in for a conflict ID. Mutable bodies under stable IDs are invalid.
+
+## Status Restriction
+
+The root ruleset owns a monotonic restriction lattice:
+
+```text
+available → insufficient_coverage → unavailable → unsupported
+```
+
+A conflict or evaluation condition can preserve or move right; it can never
+upgrade evidence sufficiency. `source_value_contradiction` restricts an
+otherwise available affected claim to `insufficient_coverage` because evidence
+exists but does not establish one coherent value. `policy_incompatibility`
+restricts an otherwise available claim to `unsupported` when no governed
+treatment can jointly satisfy applicable policies. A policy module with a
+governed safe treatment can preserve the existing status while publishing the
+conflict and treatment reference. `temporal_commitment_incompatibility`
+restricts affected available claims to `insufficient_coverage`; it never
+selects a commitment.
+
+Insufficient coverage without a matched conflict maps to
+`insufficient_coverage`. An unavailable required source maps to `unavailable`.
+An unsupported class or claim family maps to `unsupported` only when the claim
+ruleset declares conflict evaluation mandatory for that claim; otherwise it is
+an explicit unevaluated cell and the existing claim status is preserved with a
+model wording restriction. Claim-status inconsistency, malformed publication,
+unknown claim ID, evaluator exception, persistence failure, and publication
+identity failure are validation/evaluation failures, not status choices. The
+composer merely verifies the ruleset-owned mapping.
+
+Both or all incompatible source-owned values remain visible by governed
+reference. Suppression is forbidden. A separately governed precedence rule can
+select one value only when referenced by the conflict rule and evaluation; the
+losing observation remains auditable. Without such a rule, no conflict-free
+synthesized value can be created. The model can describe the bounded conflict
+and recommend verification, but cannot adjudicate or select precedence.
+
+Descriptions use immutable deterministic ruleset templates populated with
+structured references. Human-authored policy text can be referenced by a
+template. Source publishers and models do not author the canonical description
+or determine existence. The model can render it without changing class,
+restriction, or scope.
+
+## No-Conflict and Partial Evaluation
+
+Partial evaluation is permitted by claim × class cell, not by hidden source or
+domain omission. Every applicable source requirement and class is recorded.
+Evaluated cells can support a bounded no-conflict statement; unevaluated cells
+carry one closed reason. Overall aggregation follows Decision 9. Any found
+conflict restricts its affected claims even when the overall result is partial.
+Missing required coverage applies the claim-status rule above. Evaluation
+failure never yields an empty set or model-ready conflict-free projection.
+
+The answering model can say **“No conflict was detected within the identified
+sources, classes, and comparison scope.”** only for an
+`evaluated_no_conflict` evaluation, or for named evaluated cells in a partial
+evaluation with explicit unevaluated scope. It cannot say “No conflict exists”
+or “The sources agree” universally. For unavailable, unsupported, failed, or
+deferred scope it must say **“Conflict evaluation did not complete for [named
+scope and published reason].”** It cannot turn source silence into agreement.
+
+Malformed sources, unknown claim IDs, evaluator exceptions, persistence
+failure, and identity failure produce `evaluation_failed` and withhold a
+conflict set. Ruleset or required infrastructure absence produces
+`evaluation_unavailable`. Unsupported claims/classes produce
+`evaluation_unsupported`. Insufficient coverage and unavailable sources are
+cell reasons and aggregate to partial or unavailable according to whether any
+cell completed.
+
+## EOS Comparison
+
+| Property | EOS structural conflict | Conversational evidentiary conflict |
+| --- | --- | --- |
+| Trigger | Incompatible canonical values for one EOS entity identity | A named conflict rule matches claim-linked admitted publications |
+| Affected object | Executive-state entity/snapshot | Claim or claims in one Governed Claim Set |
+| Source owners | EOS assembly source IDs | Claim-scoped governed evidence or policy publishers admitted by registry/rule |
+| Lifecycle | EOS situational-awareness assembly and executive-context consumption | Pre-model conflict evaluation, set publication, projection, validation |
+| Ruleset | EOS assembly rule | Versioned `ConflictEvaluationRuleset` and domain modules |
+| Status effect | Structural record counted in executive context | Monotonic claim restriction or evaluation/validation result |
+| Publication identity | EOS `conflictId` in EOS domain | Separate evaluation, set, and canonical relation identities |
+| Model role | Receives executive context under EOS contract | Explains published bounded result; never creates or adjudicates it |
+
+EOS records remain EOS-only now. Current direct reuse is prohibited. A future
+mapping contract is permitted under Decision 7. Shared storage and algorithms
+can be reused without sharing publication semantics. Shared implementation
+mechanisms do not establish shared semantic authority.
+
+## Four Source Categories
+
+Conflict governance confirms Sprint 3.89's **Yes / No / Yes** findings in every
+row; it does not correct them.
+
+| Category | Source contract remains independent? | Publisher implementation remains independent? | Conflict-aware claim wiring waits? | Binding reason |
+| --- | ---: | ---: | ---: | --- |
+| Gmail | Yes | No | Yes | Publication semantics can be governed independently; publisher implementation needs separate authority and registry admission; claim/conflict relevance waits for ruleset wiring. |
+| Calendar | Yes | No | Yes | Event publication semantics do not depend on conflict classes; implementation is separately authorized; commitment comparison waits for a Calendar claim module. |
+| Memory/priorities | Yes | No | Yes | Provenance and operator ownership can be contracted without making priority or significance a conflict; implementation and claim admission remain separate. |
+| Connector availability | Yes | No | Yes | Availability is source-state/coverage metadata, not contradiction; implementation requires separate authority and conflict-aware claim mapping waits. |
+
+Source contracts can proceed as parallel governance work. Conflicts do not
+block source publication, but this sprint authorizes no publisher code,
+registry implementation, claim wiring, or production integration.
+
+## Ten-Question Decision Matrix
+
+| Sprint 3.88 question | Binding decision | Architectural owner | Publication affected | Rejected alternatives | Implementation consequence |
+| --- | --- | --- | --- | --- | --- |
+| Can conflict exist without a claim? | Claim-Linkage A: no; all affected claims are in one set | Conflict Engine | Conflict Evaluation/Set/conflict | Environmental conflict | Validate nonempty claim links |
+| What identities link conflict, claims, and sources? | Distinct ruleset, evaluation, set, conflict, claim, source, and lineage identities | Registry + Engine | All four conflict publications | Aliasing or mutable IDs | Implement immutable chain and retry links |
+| Who owns underlying observations? | Registry-admitted source/policy publishers | Source publishers and registry | Evaluation/conflict | Engine, legacy, model, raw source ownership | Consume references without widening scope |
+| Does composer derive or aggregate? | Composer Option A: validate and aggregate only | Projection Composer | Projection | Composer derivation | Consume immutable evaluation/set |
+| What rules govern evaluation? | One root ruleset with closed versioned modules and three classes | Conflict rules registry | Ruleset | Unversioned or independent taxonomies | Implement fixed rule/module schema |
+| Does an engine exist/reuse? | None exists; create dedicated engine; mechanism-only adaptation | Conflict Engine | Evaluation/Set | Claim engine, composer, source owners | Isolated engine implementation required |
+| May EOS conflicts be reused? | EOS Option C: no current reuse; future proof-governed mapping only | Separate EOS and conflict owners | Future mapping publication | Direct reuse; permanent mapping ban | Keep identities/results separate |
+| What is cross-domain conflation? | Crossing requires root rule, modules, eligible claims/sources, and shared scope proof | Conflict rules registry | Ruleset/Evaluation | Shared names, fields, IDs, algorithms | Fail closed outside authorized module |
+| Does empty array prove no conflict? | Evaluation-State A; no | Conflict Engine | Evaluation/Set | Projection marker; array convention | Publish zero set only with complete proof |
+| What proves no conflict versus unevaluated? | Complete per-cell proof + zero set versus explicit reason records | Conflict Engine | Evaluation/Set | Absence inference | Structurally distinct outcomes |
+
+## Final Classification Matrix
+
+| Item | Sprint 3.88 finding | Final outcome | Architectural class | Binding decision | Owner | Implementation consequence |
+| --- | --- | --- | --- | --- | --- | --- |
+| Central conflict taxonomy | Relation semantics absent | Modified | Option B | Three-class closed taxonomy | Rules registry | Root ruleset plus modules |
+| Claim linkage | Claim required | Accepted | Claim-Linkage A | At least one claim in one set | Conflict Engine | Reject orphan/cross-set conflicts |
+| Multi-claim linkage | Input permits affected claims | Accepted | Relation | Shared rule/scope permits many | Conflict Engine | Canonical sorted claim IDs |
+| Cross-claim linkage | Needed rule absent | Modified | Boundary | Root/module authorization required | Rules registry | Fail closed outside named families |
+| Source ownership | Source-owned observations required | Accepted | Evidence | Publishers remain owners | Source publishers | Engine consumes references |
+| Source eligibility | Not production-governed | Modified | Admission | Registry + claim scope + rule | Registry/ruleset | No backdoor admission |
+| Composer role | Aggregates and checks claim IDs | Accepted | Composer A | Validate/aggregate only | Composer | No derivation or mutation |
+| Conflict ruleset | Missing | Accepted | Publication | Immutable root plus modules | Rules registry | Version all semantics |
+| Conflict evaluator | Missing | Accepted | Owner A | Dedicated engine | Conflict Engine | Isolated implementation |
+| Evaluation publication | Missing | Accepted | Publication | Immutable event with closed outcome | Conflict Engine | Prove every attempt |
+| Conflict-set publication | Missing | Accepted | Publication | Evaluated outcomes only | Conflict Engine | Zero and partial sets explicit |
+| Individual conflict identity | Shapes incomplete | Modified | Publication | Rich immutable canonical relation | Conflict Engine | Adapt two legacy views later |
+| Source-value contradiction | Candidate relation | Accepted | Conflict class | Same property/entity/scope incompatibility | Conflict Engine | Preserve values |
+| Source availability | Not automatically conflict | Rejected | Coverage | Metadata/restriction only | Availability publisher | No conflict construction |
+| Claim-status inconsistency | Open distinction | Rejected | Validation | Coherence failure | Validator | Fail publication |
+| Temporal incompatibility | Calendar overlap not automatic | Modified | Conflict class | Deterministic eligible commitment impossibility only | Domain module | Calendar claim module required |
+| Prior assistant contradiction | Non-canonical analogue | Rejected | Dialogue | Correction, not evidence conflict | Validator/model boundary | Revalidate current evidence |
+| Policy incompatibility | Not factual disagreement | Modified | Conflict class | Separate governed class | Policy module | Require applicable policy publications |
+| Coverage incompatibility | Open distinction | Rejected | Coverage | Insufficient coverage, not conflict | Coverage evaluator | Publish reason/restrict status |
+| Operator assertion contradiction | Ownership absent | Deferred | Source governance | Not currently eligible | Future source owner | Future contract needed |
+| Model-output contradiction | Model cannot own conflict | Rejected | Validation | Withhold invalid output | Response validator | No conflict publication |
+| No-conflict proof | Empty array insufficient | Accepted | Evaluation A | Complete proof + zero set | Conflict Engine | Explicit per-cell results |
+| Partial evaluation | Needed distinction | Modified | Evaluation | Allowed by claim × class cell | Conflict Engine | Record all omitted scope |
+| Empty conflict arrays | Proves none supplied | Rejected | Representation | Never proves no conflict alone | Conflict Engine | Require evaluation/set |
+| EOS conflict reuse | Different domain | Modified | EOS Option C | No current reuse; mapped only by future contract | Separate owners | Keep identity domains separate |
+| Cross-domain mapping | Equivalence unproven | Deferred | Mapping | Current mapping prohibited | Future governance | Does not block isolated engine |
+| Source-category independence | Yes/No/Yes | Accepted | Sequencing | Confirm all four rows | Source governance owners | Contracts can proceed; wiring waits |
+
+Counts: **Accepted 12; Modified 9; Deferred 2; Rejected 6**. Deferrals do not
+leave any of the ten questions or current taxonomy decisions open.
+
+## Rejected Register
+
+| Rejected item | False claim, authority error, or audit ambiguity prevented |
+| --- | --- |
+| Conversational Architecture A | Prevents policy and commitment incompatibility from being hidden outside an otherwise complete restriction contract |
+| Conversational Architecture C | Prevents family implementations from inventing inconsistent taxonomy and no-conflict semantics |
+| Conversational Architecture D | Prevents absence of source-produced conflicts from masquerading as a completed conversational boundary |
+| Conflict without an affected claim | Prevents environmental inconsistency from acquiring conversational relevance |
+| Model-generated conflicts | Prevents the answerer creating its own restriction evidence |
+| Route-owned conflict detection | Prevents transport code becoming canonical evaluator |
+| Projection-composer-owned derivation | Preserves exclusive composition without covert evidence reasoning |
+| Empty-array-as-no-conflict | Prevents “none supplied” from becoming proof of evaluation |
+| Source unavailability as contradiction | Preserves availability and coverage meaning |
+| Two unequal strings as conflict | Requires entity/property/time/scope normalization and logical incompatibility |
+| Prior assistant output as canonical evidence | Prevents non-canonical dialogue from gaining source authority |
+| Current model disagreement as conflict | Keeps invented-fact and validation failure distinct |
+| Direct EOS conflict copying/retyping | Prevents mechanism or vocabulary from transferring meaning |
+| Shared type or identifier names as equivalence | Preserves publication-domain identity |
+| Mutable conflict under stable ID | Enforces Identity Integrity |
+| Conflict rules without version identity | Preserves repeatability and auditability |
+| Evaluation without source coverage | Prevents scoped ignorance from being reported as agreement |
+| Implementation-defined or `other` classes | Keeps taxonomy closed |
+| Model-selected source precedence | Prevents model adjudication |
+| Conflict status upgrade | Preserves monotonic evidence restriction |
+| Silent suppression of a conflicting value | Preserves source ownership and uncertainty |
+| Claim Boundary Engine as conflict owner | Preserves dependent evaluation separation |
+| Source publishers as cross-source evaluator | Prevents one source assigning relevance to other sources |
+| EOS Reuse Option A | Preserves a strictly proof-governed future mapping path without authorizing it now |
+| EOS Reuse Option B | Prevents identifier mapping from pretending semantic equivalence |
+| Projection Boolean or absence marker | Prevents projection structure from substituting for immutable evaluation proof |
+
+## Deferred Register
+
+| Deferred matter | Why and missing governance/evidence | Blocks isolated conflict implementation? | Blocks source-category work? | Blocks projection integration? | Expected future sprint |
+| --- | --- | ---: | ---: | ---: | --- |
+| Calendar commitment module | Closed Calendar claim types, resource semantics, and admissible commitment publications are absent | No; class framework and unsupported cells are fixed | No | Yes for this class | Calendar claim-family and conflict-module contract |
+| New domain conflict classes | Closed taxonomy amendment requires evidence and a new root ruleset governance decision | No | No | No for admitted classes | Future conflict-taxonomy amendment |
+| Significance conflicts | Sprint 3.89 keeps importance/significance unsupported | No | No | Yes for significance | Significance contract, then module governance |
+| Cross-set/exchange/thread conflicts | Continuity, expiry, and identity scopes are not governed | No | No | Yes for continuity conflicts | History/continuity conflict contract |
+| Governed operator-assertion source | Provenance, authority, expiry, and claim eligibility are undefined | No | No | Yes for operator conflicts | Operator-source publication contract |
+| Human-authored resolution | Resolution authority and audit publication are outside conflict detection | No | No | No | Conflict-resolution contract |
+| Source precedence policy | No general authority selects a substantively correct source | No; preserve all values | No | Yes for automatic adjudication only | Source-precedence contract |
+| EOS-to-conversation mapping | Semantic equivalence has not been proven for any named class | No | No | Yes for EOS-derived evidence only | Dedicated mapping contract |
+| Durable persistence | Storage port and retention choices require implementation authority | No | No | Yes | Isolated implementation design |
+| Operator verification | Requires implemented publications and fixtures | No | No | Yes | Verification sprint |
+| Promotion | Requires implementation, evaluation, integration, and verification | No | No | Yes | Promotion sprint |
+
+None of these deferrals blocks a future isolated implementation of the root
+ruleset, evaluation, conflict set, source-value contradiction module, explicit
+evaluation states, and canonical identities.
+
+## Files Changed
 
 ```text
 docs/SPRINT-3.90-GOVERNED-CONVERSATIONAL-CONFLICTS-BOUNDARY-CONTRACT.md
 ```
 
-Following the Sprint 3.89 convention, this file shall be used for both:
-
-1. the submitted specification; and
-2. the completed governed contract.
-
-On completion, the same file shall be replaced in place and shall begin with:
-
-```text
-**Status:** Complete
-```
-
-No separate completion-report document shall be created.
-
----
-
-## 3. Governing Hierarchy
-
-The governance review shall apply the repository's established hierarchy:
-
-1. JARVIS Engineering Constitution
-2. JARVIS North Star
-3. JARVIS Engineering Specification Standard
-4. Constitutional Publication Principles
-5. `docs/architecture/ROADMAP.md`
-6. Sprint 3.89 — Governed Conversational Claims Boundary Contract
-7. Sprint 3.82 — Governed Conversational Lineage Identity Contract
-8. Sprint 3.76 — Governed Conversational Runtime Contract
-9. Sprint 3.85 — Governed Conversational Identity Correction Contract
-10. Sprint 3.88 — Governed Conversational Production Evidence Audit
-11. accepted responsibility statements and ADRs
-12. current governed-conversation conflict types, composer behavior, fixtures, evaluation code, and validators
-13. this Sprint specification
-
-Sprint 3.89 is binding for:
-
-* claim identity;
-* claim type;
-* claim materiality;
-* source and coverage requirements;
-* polarity;
-* unsupported outcomes;
-* claim-set publication;
-* `claimClassificationRulesetId`;
-* the pre-model ownership boundary.
-
-Sprint 3.90 shall not reopen any Sprint 3.89 decision.
-
-Sprint 3.82 remains binding for:
-
-* exclusive ownership of projection composition;
-* immutable publication identity;
-* source/reference minimisation;
-* claim-linked conflict requirements;
-* the prohibition on route, model, prompt builder, context builder, or legacy state becoming canonical projection owners.
-
-Sprint 3.76 remains binding for:
-
-* deterministic evidence status;
-* governed-over-legacy precedence;
-* uncertainty preservation;
-* model-owned interpretation;
-* non-authoritative recommendations;
-* validation before response release.
-
----
-
-## 4. Repository Precondition
-
-Before drafting any governance decision:
-
-1. Confirm the intended repository and branch.
-2. Record the current commit.
-3. Confirm the working-tree state.
-4. Confirm the following governing artefacts exist:
-
-```text
-docs/ENGINEERING_CONSTITUTION.md
-docs/architecture/NORTH_STAR.md
-docs/architecture/JARVIS-Engineering-Specification-Standard.md
-docs/CONSTITUTIONAL-PUBLICATION-PRINCIPLES.md
-docs/architecture/ROADMAP.md
-
-docs/audits/SPRINT-3.88-GOVERNED-CONVERSATIONAL-PRODUCTION-EVIDENCE-AUDIT.md
-docs/SPRINT-3.89-GOVERNED-CONVERSATIONAL-CLAIMS-BOUNDARY-CONTRACT.md
-docs/SPRINT-3.76-GOVERNED-CONVERSATIONAL-RUNTIME-CONTRACT.md
-docs/SPRINT-3.82-GOVERNED-CONVERSATIONAL-LINEAGE-IDENTITY-CONTRACT.md
-docs/SPRINT-3.85-GOVERNED-CONVERSATIONAL-IDENTITY-CORRECTION-CONTRACT.md
-```
-
-5. Read Sprint 3.89 completely.
-6. Confirm directly that Sprint 3.89 records:
-
-   * **Claims-Boundary Architecture: Option C**;
-   * **Conflicts Contract Decision: Option A**;
-   * the Governed Claim Set publication;
-   * the Claim Boundary Ruleset publication;
-   * the Claim Boundary Evaluation publication;
-   * the closed claim vocabulary and ownership rules;
-   * the exact next-step statement identifying the dependent conflicts contract.
-7. Read Sprint 3.88 completely.
-8. Read its **Conflicts Finding** in full.
-9. Trace and record answers to all ten scoped conflict questions, even though Sprint 3.88 presents them through prose rather than a numbered list.
-10. Read Sprint 3.76, Sprint 3.82, Sprint 3.85, and the Roadmap completely.
-11. Inspect the current definitions and tests for:
-
-```text
-GovernedConflictInput
-GovernedConflict
-GovernedClaimInput
-GovernedClaimSet
-claimClassificationRulesetId
-affectedClaimIds
-sourceOwners
-statusRestriction
-descriptionReference
-claim-local conflicts
-```
-
-12. Inspect the projection composer to determine whether it:
-
-* derives conflicts;
-* validates supplied conflicts;
-* aggregates supplied conflicts;
-* checks affected claim IDs;
-* modifies claim status based on conflicts.
-
-13. Inspect fixtures and evaluation modules that construct conversational conflicts.
-14. Inspect EOS structural-conflict types and their production construction path.
-15. Confirm whether any production conversational conflict engine currently exists.
-16. Confirm only the Sprint 3.90 contract file may change.
-
-If Sprint 3.88 or Sprint 3.89 is absent:
-
-* do not reconstruct the missing governance from conversation history;
-* do not infer the ten conflict questions;
-* do not proceed.
-
-Return:
-
-> **Governance Review Incomplete — Required Predecessor Unavailable**
-
-If repository evidence materially contradicts the governing contracts, stop and report the contradiction rather than silently resolving it through implementation assumptions.
-
----
-
-## 5. Governing Question
-
-Sprint 3.90 must answer:
-
-> **What deterministic, versioned relation constitutes a governed conversational conflict, how is that relation evaluated against an existing Governed Claim Set, and what immutable publications prove whether conflict evaluation ran and what it found?**
-
-The answer must ensure that:
-
-* conflicts are not merely unequal strings;
-* source failure is not automatically a conflict;
-* model disagreement is not automatically a conflict;
-* calendar overlap is not automatically a conversational conflict;
-* legacy output does not acquire canonical authority;
-* an empty conflict array does not falsely prove conflict-free evidence;
-* the answering model cannot decide whether a conflict exists.
-
----
-
-## 6. Conflict-Boundary Principles
-
-The completed contract shall preserve the following principles.
-
-### 6.1 Claims precede conflicts
-
-Conflict evaluation occurs only after a valid Governed Claim Set exists.
-
-### 6.2 Conflicts are deterministic
-
-Conflict evaluation is performed by an identified, versioned deterministic owner before model invocation.
-
-### 6.3 Conflicts restrict; they do not adjudicate
-
-A conflict may restrict claim status, confidence, completeness, or permissible model phrasing.
-
-It shall not decide which source is substantively "correct" unless a separate governed precedence rule already establishes that result.
-
-### 6.4 Source ownership remains intact
-
-The conflict engine compares source-owned governed observations.
-
-It does not recreate, normalise, or alter source publications.
-
-### 6.5 No model-owned conflict creation
-
-The model may explain a published conflict.
-
-It may not:
-
-* detect an unpublished conflict;
-* decide source precedence;
-* invent affected claims;
-* convert uncertainty into contradiction;
-* declare evidence conflict-free without a completed evaluation.
-
-### 6.6 No mechanism-to-meaning transfer
-
-A reusable algorithm, type, or storage mechanism does not transfer the semantic meaning of EOS structural conflict into conversational evidentiary conflict.
-
-### 6.7 Evaluation absence is explicit
-
-"No conflict detected" and "conflict evaluation did not run" are different structural outcomes.
-
-### 6.8 Identity integrity
-
-One immutable identity shall correspond to one immutable canonical object.
-
-Ruleset, evaluation, conflict-set, conflict, claim-set, claim, exchange, and projection identities shall not alias one another.
-
----
-
-## 7. Independent Decision Requirement
-
-Sprint 3.88 identified evidence and questions.
-
-Sprint 3.90 must independently decide them.
-
-For each of the ten questions, the completed contract shall:
-
-1. state the precise decision problem;
-2. identify applicable governing principles;
-3. define named options;
-4. explain each option's consequences;
-5. select one binding option or one fixed named combination;
-6. reject the alternatives;
-7. identify the architectural owner;
-8. identify implementation consequences;
-9. state what is prohibited.
-
-Restating Sprint 3.88's prose is not an independent decision.
-
----
-
-## 8. Prohibited Hedge Language
-
-The completed contract shall not use any of the following as a final decision:
-
-* "reuse where practical";
-* "where appropriate";
-* "as needed";
-* "depending on the situation";
-* "implementation may decide";
-* "may vary" without a closed rule;
-* "potentially";
-* "prefer";
-* "generally";
-* "could include";
-* "one or more mechanisms" without deterministic precedence;
-* "future work will determine" for any of the ten required questions;
-* "use EOS conflicts where useful";
-* "an empty list usually means no conflict."
-
-A fixed architecture may contain multiple conflict classes only where:
-
-* the taxonomy is closed;
-* each class has a precise test;
-* precedence is deterministic;
-* non-membership is explicit;
-* implementation cannot invent additional classes.
-
----
-
-# Part I — Central Conflict Architecture
-
-## 9. Named Conflict-Taxonomy Options
-
-The completed contract shall select exactly one central taxonomy architecture.
-
-### Option A — Source-Value Contradiction Only
-
-A conflict exists only where two or more admissible source-owned governed observations make mutually incompatible factual assertions about the same affected claim and comparison scope.
-
-Other restrictions—availability failure, status inconsistency, calendar incompatibility, or prior assistant disagreement—are represented outside the conflict system.
-
-#### Consequences
-
-* narrowest semantic boundary;
-* strong auditability;
-* risks excluding materially relevant structural incompatibilities;
-* requires separate treatment of non-value restrictions.
-
----
-
-### Option B — Closed Multi-Class Claim Restriction Taxonomy
-
-A conflict exists only where one of a closed set of deterministic claim-linked relations is satisfied.
-
-The taxonomy may include:
-
-* source-value contradiction;
-* source-coverage incompatibility;
-* source-policy incompatibility;
-* temporal/commitment incompatibility;
-* claim-status coherence failure;
-* prior-output contradiction after current governed revalidation.
-
-Each class must have:
-
-* a fixed meaning;
-* eligible source classes;
-* comparison requirements;
-* restricting status;
-* coverage rule;
-* versioned evaluator.
-
-Relations outside the closed taxonomy are not conflicts.
-
-#### Consequences
-
-* captures multiple genuine restriction types;
-* remains deterministic;
-* requires careful distinction between conflict and mere unavailability;
-* requires a versioned ruleset covering all admitted classes.
-
----
-
-### Option C — Domain-Specific Conflict Taxonomies Only
-
-No cross-domain conflict taxonomy exists.
-
-Each claim family defines its own conflict classes and evaluator.
-
-The common architecture provides only identity, claim linkage, and publication envelopes.
-
-#### Consequences
-
-* preserves domain specificity;
-* delays cross-domain conflict handling;
-* risks duplicated semantics and inconsistent no-conflict proof;
-* requires separate contracts for every claim family.
-
----
-
-### Option D — No Automated Conversational Conflict Evaluation
-
-The governed conversation runtime accepts only externally supplied conflicts from independently governed source systems.
-
-It performs no conversational conflict evaluation.
-
-If no external governed conflict publication exists, conflict evaluation remains unavailable.
-
-#### Consequences
-
-* avoids premature inference;
-* prevents cross-source conflict support in ordinary chat;
-* leaves a major projection category unavailable;
-* makes production integration dependent on future source-level conflict publishers.
-
----
-
-## 10. Required Central Decision
-
-The completed contract shall state exactly:
-
-> **Conversational Conflict Architecture: Option A / Option B / Option C / Option D**
-
-Exactly one option shall be selected.
-
-The reasoning shall explain:
-
-* what constitutes a conflict;
-* what does not;
-* how the taxonomy remains closed;
-* how claim identity constrains evaluation;
-* why rejected options are not selected;
-* whether a common ruleset or domain-specific ruleset owns each class.
-
----
-
-# Part II — The Ten Binding Conflict Questions
-
-## 11. Question 1 — Can a Conflict Exist Without an Affected Claim?
-
-Sprint 3.88 asked whether a conflict can exist without an affected claim.
-
-The contract shall select exactly one:
-
-### Claim-Linkage Option A — Strict Claim Linkage
-
-Every governed conversational conflict must reference at least one existing claim ID from the Governed Claim Set under evaluation.
-
-No claim means no conversational conflict.
-
-Unrelated source inconsistencies may exist elsewhere but are not conversational conflict publications.
-
-### Claim-Linkage Option B — Independent Environmental Conflicts
-
-A conflict may exist independently and later become associated with claims.
-
-This requires a separate environmental-conflict publication and identity domain.
-
-### Required decision
-
-State exactly:
-
-> **Conflict Claim-Linkage Decision: Option A / Option B**
-
-The decision shall address:
-
-* whether affected claims are mandatory;
-* whether one conflict may affect multiple claims;
-* whether a conflict may reference claims from different claim sets;
-* whether unsupported segments can have conflicts;
-* whether no-claim evaluations can produce conflicts.
-
-No implicit exception is permitted.
-
----
-
-## 12. Question 2 — What Identities Link Conflict, Claim, and Sources?
-
-Sprint 3.88 asked what identities link conflict to claims and source-owned observations.
-
-The contract shall define the complete identity chain.
-
-At minimum evaluate:
-
-```text
-Claim Boundary Ruleset
-        ↓
-Claim Boundary Evaluation
-        ↓
-Governed Claim Set
-        ↓
-Claim
-        ↓
-Conflict Evaluation
-        ↓
-Governed Conflict Set
-        ↓
-Governed Conflict
-        ↓
-Source Publication References
-```
-
-The contract shall define:
-
-* conflict ruleset identity;
-* conflict evaluation identity;
-* conflict-set identity;
-* individual conflict identity;
-* affected claim IDs;
-* source publication references;
-* source owner IDs;
-* projection identity relationship;
-* exchange/request/thread references;
-* retry behavior;
-* content-derived versus event-derived identity.
-
-The contract shall prohibit:
-
-* using a claim ID as a conflict ID;
-* using a conflict-set ID as an evaluation ID;
-* using the projection ID as the conflict-set identity;
-* using an exchange ID as an individual conflict identity;
-* mutable conflict bodies under one identity.
-
-### Required decision format
-
-> **Conflict Identity Chain:** [binding chain]
-
-> **Conflict Identity Rule:** [binding immutable-object rule]
-
----
-
-## 13. Question 3 — Which Owners Establish the Underlying Observations?
-
-Sprint 3.88 asked which source owners establish the observations being compared.
-
-The contract shall distinguish:
-
-* source-specific evidence publishers;
-* cross-source evidence registry;
-* claim ruleset;
-* conflict ruleset;
-* conflict evaluator;
-* projection composer.
-
-The conflict evaluator shall not become a source owner.
-
-The contract shall decide:
-
-* what qualifies as an admissible source publication;
-* whether legacy compatibility data may participate;
-* whether prior assistant output may participate;
-* whether operator assertions may participate;
-* whether unavailable sources may be conflict participants;
-* whether one-source contradictions are possible through multiple observations;
-* whether policy version differences are source observations or conflict metadata.
-
-### Required decision format
-
-> **Admissible Conflict Source Owners:** [closed list or closed rule]
-
-> **Prohibited Conflict Inputs:** [closed list]
-
----
-
-## 14. Question 4 — Does the Projection Composer Derive or Aggregate Conflicts?
-
-Sprint 3.88 asked whether the composer derives conflicts or merely aggregates them.
-
-The contract shall select exactly one:
-
-### Composer Option A — Aggregate and Validate Only
-
-The conflict owner runs before projection and publishes a Governed Conflict Set.
-
-The composer:
-
-* validates claim/source references;
-* includes the publication;
-* preserves status restrictions;
-* does not derive new conflicts.
-
-### Composer Option B — Composer-Owned Derivation
-
-The composer evaluates evidence and creates conflicts while composing the projection.
-
-### Required decision
-
-State exactly:
-
-> **Projection Composer Conflict Role: Option A / Option B**
-
-The decision shall address:
-
-* whether the composer may merge duplicate conflicts;
-* whether it may alter restricting status;
-* whether it may drop conflicts;
-* whether it may infer no-conflict;
-* whether it may validate but not derive.
-
----
-
-## 15. Question 5 — What Deterministic and Versioned Rules Govern Conflict Evaluation?
-
-Sprint 3.88 asked whether deterministic/versioned conflict rules already exist and what must govern them.
-
-The contract shall define:
-
-* ruleset owner;
-* schema version;
-* ruleset version;
-* admitted conflict classes;
-* eligible claim types;
-* eligible evidence classes;
-* comparison keys;
-* temporal and coverage requirements;
-* precedence rules;
-* restricting-status mapping;
-* conflict-description references;
-* no-conflict proof requirements;
-* unknown/unevaluated behavior.
-
-The completed contract shall decide whether:
-
-* one cross-domain ruleset exists;
-* domain modules exist under one root ruleset;
-* every claim family requires a separately versioned child ruleset;
-* another fixed architecture applies.
-
-### Required decision format
-
-> **Conflict Ruleset Architecture:** [binding architecture]
-
-> **Conflict Ruleset Owner:** [named owner]
-
----
-
-## 16. Question 6 — Does a Production Conflict Engine Already Exist?
-
-Sprint 3.88 asked whether any production engine exists under another package.
-
-The completed contract shall record the repository finding as one of:
-
-* no production conversational conflict engine exists;
-* an existing engine can be reused without changing meaning;
-* an existing engine supplies only mechanism and requires a new semantic owner.
-
-This is a governance contract, not an audit repetition.
-
-The decision must state whether future implementation shall:
-
-* create a dedicated Governed Conversational Conflict Engine;
-* adapt an existing engine under a new governed ruleset;
-* consume source-produced conflict publications only;
-* use another named architecture.
-
-### Required decision format
-
-> **Conflict Evaluation Owner:** [named owner]
-
-> **Existing Engine Reuse Decision:** [binding decision]
-
----
-
-## 17. Question 7 — May EOS Structural Conflicts Be Reused?
-
-Sprint 3.88 asked whether EOS structural conflicts can be honestly reused.
-
-The contract shall select exactly one:
-
-### EOS Reuse Option A — Semantic Reuse Prohibited
-
-EOS structural conflicts and conversational evidentiary conflicts are separate publication domains.
-
-Existing EOS conflict records may not be copied or retyped into conversational conflicts.
-
-They may be referenced only as source publications where a future governed claim type explicitly admits them as evidence.
-
-### EOS Reuse Option B — Direct Reuse Permitted
-
-EOS structural conflicts may directly satisfy conversational conflict input where identifiers can be mapped.
-
-### EOS Reuse Option C — Governed Mapping Permitted
-
-A future mapping contract may transform narrowly defined EOS conflict classes into conversational conflicts where semantic equivalence is proven.
-
-No mapping is allowed until that separate contract exists.
-
-### Required decision
-
-State exactly:
-
-> **EOS Structural Conflict Reuse: Option A / Option B / Option C**
-
-The reasoning shall apply:
-
-> **Mechanism reuse cannot transfer meaning.**
-
-It shall explain why shared fields, types, or algorithms do or do not establish semantic equivalence.
-
----
-
-## 18. Question 8 — What Constitutes Cross-Domain Conflation?
-
-Sprint 3.88 asked what would constitute cross-domain conflation.
-
-The contract shall define prohibited conflation explicitly.
-
-At minimum address:
-
-* EOS structural conflict treated as conversational evidence contradiction;
-* Calendar overlap treated as communication conflict;
-* source unavailability treated as value contradiction;
-* model disagreement treated as source conflict;
-* prior assistant error treated as canonical conflict without revalidation;
-* policy disagreement treated as factual contradiction;
-* one claim family's conflict rule applied to another without authorization;
-* shared identifier formats treated as shared meaning.
-
-### Required decision format
-
-> **Cross-Domain Conflict Boundary:** [binding rule]
-
-The contract shall define what evidence is required before a relation may cross claim families or domains.
-
----
-
-## 19. Question 9 — Does an Empty Conflict Array Prove No Conflict?
-
-Sprint 3.88 asked whether empty conflicts are valid only when evaluation actually ran.
-
-The contract shall select exactly one structural architecture.
-
-### Evaluation-State Option A — Explicit Evaluation Publication
-
-Every Governed Claim Set receives a Conflict Evaluation publication with a closed outcome:
-
-```text
-evaluated_no_conflict
-evaluated_conflict_found
-evaluation_unavailable
-evaluation_unsupported
-evaluation_failed
-```
-
-A conflict set exists only for evaluated outcomes.
-
-An empty set is authoritative only under `evaluated_no_conflict`.
-
-### Evaluation-State Option B — Optional Marker on Projection
-
-The projection includes a Boolean or enum saying whether conflict evaluation ran.
-
-No separate evaluation publication is required.
-
-### Evaluation-State Option C — Empty Array Convention
-
-An empty array means no conflict.
-
-Absence of the field means evaluation did not run.
-
-### Required decision
-
-State exactly:
-
-> **Conflict Evaluation-State Architecture: Option A / Option B / Option C**
-
-The decision shall define:
-
-* whether every claim is evaluated;
-* whether evaluation is claim-set-wide or claim-local;
-* how partial evaluation is represented;
-* whether one claim can be evaluated while another is unevaluated;
-* whether evaluation failure restricts claim status;
-* whether an unsupported conflict class differs from unavailable sources.
-
----
-
-## 20. Question 10 — What Proves "No Conflict" Versus "Unevaluated"?
-
-Sprint 3.88 asked what evidence proves no conflict rather than unavailable evaluation.
-
-The contract shall define the minimum proof required for:
-
-### Evaluated — no conflict
-
-At minimum consider:
-
-* ruleset ID;
-* evaluation ID;
-* claim-set ID;
-* evaluated claim IDs;
-* evaluated conflict classes;
-* admissible source references;
-* source coverage;
-* source availability;
-* comparison scope;
-* evaluation time;
-* deterministic result;
-* conflict-set identity.
-
-### Unevaluated
-
-At minimum distinguish:
-
-* conflict class unsupported;
-* required source unavailable;
-* insufficient source coverage;
-* ruleset absent;
-* evaluator failure;
-* claim type outside ruleset;
-* evaluation intentionally deferred.
-
-The contract shall prohibit inferring no conflict from:
-
-* no supplied conflicts;
-* one available source;
-* source silence;
-* no model objection;
-* empty compatibility context;
-* an empty array without evaluation proof.
-
-### Required decision format
-
-> **No-Conflict Proof Rule:** [binding rule]
-
-> **Unevaluated Representation:** [binding representation]
-
----
-
-# Part III — Closed Conflict Taxonomy
-
-## 21. Required Taxonomy
-
-The completed contract shall define one closed taxonomy corresponding to the selected architecture.
-
-It must explicitly decide the status of each candidate relation below.
-
-### 21.1 Source-value contradiction
-
-Two or more admissible source publications make mutually incompatible factual assertions about the same claim property, entity, and comparison scope.
-
-### 21.2 Source-availability disagreement
-
-Sources differ in availability or authorization state.
-
-The contract shall decide whether this is:
-
-* a conflict;
-* an availability restriction;
-* a coverage condition;
-* another governed relation.
-
-### 21.3 Claim-status inconsistency
-
-Different evaluators or evidence paths produce incompatible statuses for one claim.
-
-The contract shall decide whether this is:
-
-* a conflict;
-* a validation defect;
-* a publication-coherence failure;
-* another category.
-
-### 21.4 Temporal or commitment incompatibility
-
-Two or more governed commitments cannot all be satisfied under their temporal or resource constraints.
-
-The contract shall decide whether this belongs in:
-
-* conversational conflict;
-* Calendar claim-family conflict;
-* EOS reasoning;
-* another future domain.
-
-### 21.5 Prior assistant-output contradiction
-
-A prior assistant statement conflicts with current governed evidence.
-
-The contract shall decide whether prior output is:
-
-* a conflict participant;
-* non-canonical dialogue requiring correction;
-* admissible only after current revalidation;
-* never source evidence.
-
-### 21.6 Policy incompatibility
-
-Two applicable policies impose incompatible treatment.
-
-The contract shall distinguish policy conflict from factual contradiction.
-
-### 21.7 Coverage incompatibility
-
-Available evidence sources cover different scopes such that a claim cannot be resolved coherently.
-
-The contract shall decide whether this is conflict, insufficient coverage, or both under a closed rule.
-
-### 21.8 Operator assertion contradiction
-
-An operator-provided statement conflicts with current governed evidence.
-
-The contract shall decide whether operator assertions are:
-
-* source evidence;
-* non-canonical context;
-* clarification input;
-* conflict participants under a special class.
-
-### 21.9 Model-output contradiction
-
-The current model output contradicts the Governed Claim Set or source facts.
-
-The contract shall state whether this is:
-
-* a conflict publication;
-* a validation failure;
-* an invented-fact violation;
-* another model-governance result.
-
-### 21.10 Other relations
-
-The completed contract shall state:
-
-> Relations not explicitly admitted by the closed taxonomy are not governed conversational conflicts.
-
-Implementation shall not add an "other" conflict class.
-
----
-
-## 22. Required Taxonomy Matrix
-
-The completed contract shall include:
-
-| Candidate relation                   | Conflict class? | Governing owner | Required claim linkage | Required evidence | Result if not a conflict |
-| ------------------------------------- | ---------------: | ---------------- | ------------------------ | ------------------- | --------------------------- |
-| Source-value contradiction           |          Yes/No | ...              | ...                      | ...                 | ...                          |
-| Source-availability disagreement     |          Yes/No | ...              | ...                      | ...                 | ...                          |
-| Claim-status inconsistency           |          Yes/No | ...              | ...                      | ...                 | ...                          |
-| Temporal/commitment incompatibility  |          Yes/No | ...              | ...                      | ...                 | ...                          |
-| Prior assistant-output contradiction |          Yes/No | ...              | ...                      | ...                 | ...                          |
-| Policy incompatibility               |          Yes/No | ...              | ...                      | ...                 | ...                          |
-| Coverage incompatibility             |          Yes/No | ...              | ...                      | ...                 | ...                          |
-| Operator assertion contradiction     |          Yes/No | ...              | ...                      | ...                 | ...                          |
-| Model-output contradiction           |          Yes/No | ...              | ...                      | ...                 | ...                          |
-
-No row may remain open.
-
----
-
-# Part IV — Conflict Ownership and Publications
-
-## 23. Conflict Evaluation Owner
-
-The contract shall name one deterministic owner.
-
-Candidate options shall include:
-
-### Owner Option A — Governed Conversational Conflict Engine
-
-A dedicated engine applies the versioned conflict ruleset to:
-
-* one Governed Claim Set;
-* admissible source publications;
-* source availability;
-* coverage records;
-* permitted prior-context references.
-
-It publishes the evaluation and conflict set.
-
-### Owner Option B — Claim Boundary Engine
-
-The Claim Boundary Engine additionally evaluates conflicts after source evidence is available.
-
-### Owner Option C — Projection Composer
-
-The projection composer evaluates and publishes conflicts.
-
-### Owner Option D — Source Publishers
-
-Each source publisher emits conflicts directly.
-
-### Required decision
-
-State exactly:
-
-> **Conflict Evaluation Owner: Option A / Option B / Option C / Option D**
-
-Exactly one owner shall have canonical evaluation authority.
-
-Other components may validate or consume but not recreate the decision.
-
----
-
-## 24. Conflict Ruleset Publication
-
-The completed contract shall define:
-
-```text
-ConflictEvaluationRuleset
-```
-
-or an equivalent binding publication name.
-
-It shall include at minimum:
-
-* immutable ruleset ID;
-* schema version;
-* ruleset version;
-* admitted conflict classes;
-* eligible claim types or families;
-* eligible source publication types;
-* comparison keys;
-* claim-linkage rules;
-* source-owner requirements;
-* temporal/scope rules;
-* coverage requirements;
-* source-availability treatment;
-* restricting-status mapping;
-* no-conflict proof rules;
-* partial-evaluation rules;
-* prohibited relations;
-* domain-module references where applicable.
-
-The contract shall define:
-
-* owner;
-* publication boundary;
-* identity method;
-* change/version rule;
-* relationship to the Claim Boundary Ruleset.
-
-The claim ruleset and conflict ruleset shall not share one identity.
-
----
-
-## 25. Conflict Evaluation Publication
-
-The completed contract shall define:
-
-```text
-ConflictEvaluation
-```
-
-or an equivalent binding name.
-
-It shall represent one immutable evaluation event over:
-
-* one Governed Claim Set;
-* one conflict ruleset;
-* one identified source-evidence set;
-* one comparison/reference time;
-* one evaluation policy.
-
-It shall contain at minimum:
-
-* conflict evaluation ID;
-* schema version;
-* conflict ruleset ID;
-* governed claim-set ID;
-* claim IDs in scope;
-* source publication references;
-* availability/coverage references;
-* evaluated conflict classes;
-* excluded or unsupported classes;
-* comparison/reference time;
-* evaluation outcome;
-* failure/unevaluated reason;
-* created-at time;
-* optional prior-evaluation reference;
-* thread/request/exchange/projection references where governed.
-
-The contract shall define whether retries produce:
-
-* new evaluation identities;
-* new conflict-set identities;
-* links to prior attempts.
-
----
-
-## 26. Governed Conflict Set Publication
-
-The completed contract shall define:
-
-```text
-GovernedConflictSet
-```
-
-or an equivalent binding publication name.
-
-It shall contain at minimum:
-
-* governed conflict-set ID;
-* schema version;
-* conflict evaluation ID;
-* conflict ruleset ID;
-* governed claim-set ID;
-* ordered immutable conflicts;
-* evaluated claim IDs;
-* evaluation coverage;
-* no-conflict result where applicable.
-
-The contract shall decide:
-
-* whether a zero-conflict set is published;
-* whether unavailable/failed evaluations produce a conflict set;
-* whether one conflict set may combine multiple claim families;
-* whether conflict order is semantic or canonical only;
-* whether duplicate relations are merged and by whom.
-
----
-
-## 27. Individual Governed Conflict Publication
-
-Each conflict shall be one immutable canonical object.
-
-At minimum define:
-
-* conflict ID;
-* conflict class;
-* affected claim IDs;
-* source publication references;
-* source owners;
-* comparison key;
-* comparison scope;
-* restricting status;
-* description reference;
-* detected-at/evaluated-at relationship;
-* ruleset rule ID;
-* evidence/coverage references;
-* optional domain metadata allowed by the closed taxonomy.
-
-The contract shall determine whether the existing `GovernedConflictInput` shape is:
-
-* sufficient as the canonical conflict;
-* a composer input requiring a richer upstream conflict publication;
-* a projection view of the canonical conflict;
-* another explicitly selected role.
-
-Implementation shall not decide that later.
-
----
-
-## 28. Identity Integrity Compliance
-
-The completed contract shall apply Constitutional Publication Principles explicitly.
-
-For each publication:
-
-* Conflict Evaluation Ruleset;
-* Conflict Evaluation;
-* Governed Conflict Set;
-* individual Governed Conflict;
-
-state:
-
-1. what immutable body or event it represents;
-2. what its ID identifies;
-3. what cannot share that ID;
-4. what changes require a new identity;
-5. how retries relate;
-6. how content-addressing or event identity applies.
-
-The contract shall cite the **Identity Integrity** principle by name.
-
-It shall explicitly prohibit:
-
-* one conflict-set identity representing different conflict bodies;
-* one evaluation identity reused after source coverage changes;
-* one conflict identity reused after affected claim IDs change;
-* one ruleset identity reused after rule semantics change;
-* one claim identity standing in for a conflict identity.
-
----
-
-# Part V — Claim Status and Restriction
-
-## 29. Restricting-Status Rule
-
-The contract shall define how each admitted conflict class affects claim status.
-
-At minimum distinguish:
-
-* available evidence with a source-value contradiction;
-* insufficient coverage;
-* unavailable required source;
-* unsupported conflict class;
-* policy incompatibility;
-* temporal incompatibility;
-* validation defect.
-
-The conflict engine shall not arbitrarily select:
-
-```text
-available
-insufficient_coverage
-unavailable
-unsupported
-```
-
-The ruleset shall own the mapping.
-
-The contract shall decide whether a conflict may:
-
-* only preserve or restrict status;
-* ever upgrade status;
-* convert `available` to `insufficient_coverage`;
-* convert `available` to `unavailable`;
-* convert a supported claim to `unsupported`;
-* trigger validation failure rather than a claim status.
-
-A conflict shall never upgrade evidence sufficiency.
-
----
-
-## 30. Conflict and Factual-Value Preservation
-
-The contract shall state whether conflicting factual values remain visible.
-
-At minimum decide:
-
-* whether both source-owned values are preserved;
-* whether one may be suppressed;
-* whether precedence rules may select one;
-* whether the model may describe both;
-* whether the model may recommend verification;
-* whether a conflict-free synthesized value may be created.
-
-Absent a separately governed precedence rule, the system shall not silently collapse incompatible values into one fact.
-
----
-
-## 31. Conflict Descriptions
-
-The existing conflict shape includes a description reference.
-
-The contract shall define who owns that description.
-
-Named options include:
-
-* deterministic ruleset template;
-* source publisher;
-* model-generated description;
-* human-authored policy text.
-
-The description shall not become the canonical basis for conflict existence.
-
-The conflict exists because the deterministic structured rule matched.
-
-Natural-language text may explain the match.
-
-The model may render the description but shall not replace or reinterpret the structured class.
-
----
-
-# Part VI — No Conflict, Partial Evaluation, and Failure
-
-## 32. Conflict Evaluation Outcome Vocabulary
-
-The contract shall define a closed vocabulary.
-
-At minimum evaluate:
-
-```text
-evaluated_no_conflict
-evaluated_conflict_found
-partially_evaluated
-evaluation_unavailable
-evaluation_unsupported
-evaluation_failed
-```
-
-The completed contract shall select the final vocabulary and define each state.
-
-No implementation-defined extra states are permitted.
-
----
-
-## 33. Partial Evaluation
-
-The contract shall decide whether partial evaluation is allowed.
-
-If permitted, define:
-
-* whether it applies by claim;
-* by conflict class;
-* by source;
-* by domain;
-* how evaluated and unevaluated scope is recorded;
-* how claim status is restricted;
-* whether the model may say "no conflict" for evaluated scope only;
-* how overall conflict status is aggregated.
-
-If partial evaluation is prohibited, any missing required scope must produce a whole-evaluation unavailable or insufficient result.
-
-State one binding rule.
-
----
-
-## 34. No-Conflict Statement Boundary
-
-The completed contract shall define exactly what the model may say.
-
-Examples requiring decisions:
-
-* "No conflict was found."
-* "No conflict exists."
-* "The sources agree."
-* "I could not evaluate conflicts."
-* "No conflict was detected within the available sources and evaluated scope."
-
-The model shall not convert scoped no-conflict evidence into universal absence.
-
-A no-conflict statement must include the bounded scope required by the contract.
-
----
-
-## 35. Evaluation Failure
-
-The contract shall define handling for:
-
-* ruleset unavailable;
-* malformed source publication;
-* unknown claim ID;
-* unsupported claim family;
-* insufficient source coverage;
-* source unavailable;
-* deterministic evaluator exception;
-* persistence failure;
-* publication-identity failure.
-
-The answering model shall not receive a false empty conflict set after failure.
-
----
-
-# Part VII — EOS and Cross-Domain Boundaries
-
-## 36. EOS Structural Conflict Decision
-
-The completed contract shall apply the selected EOS reuse option.
-
-It shall explicitly state whether:
-
-* EOS structural conflicts remain EOS-only;
-* a future mapping contract is permitted;
-* current direct reuse is prohibited;
-* shared storage/algorithms may be reused without sharing publication semantics.
-
-The reasoning shall compare:
-
-| Property             | EOS structural conflict | Conversational evidentiary conflict |
-| --------------------- | ------------------------ | -------------------------------------- |
-| Trigger               | ...                       | ...                                     |
-| Affected object       | ...                       | ...                                     |
-| Source owners         | ...                       | ...                                     |
-| Lifecycle             | ...                       | ...                                     |
-| Ruleset               | ...                       | ...                                     |
-| Status effect         | ...                       | ...                                     |
-| Publication identity  | ...                       | ...                                     |
-| Model role            | ...                       | ...                                     |
-
-The conclusion must be binding.
-
----
-
-## 37. Mechanism Reuse Boundary
-
-The contract shall state:
-
-> Shared implementation mechanisms do not establish shared semantic authority.
-
-A future implementation may reuse:
-
-* generic comparison utilities;
-* immutable-record helpers;
-* ID constructors;
-* storage ports;
-* validation scaffolding;
-
-only where the conversational conflict ruleset remains the semantic owner.
-
-It may not reuse an EOS result merely because both systems use the word "conflict."
-
----
-
-## 38. Cross-Claim and Cross-Domain Conflicts
-
-The contract shall define whether one conflict may affect:
-
-* multiple claims of one type;
-* multiple claim types in one family;
-* claims across different families;
-* claims from different Governed Claim Sets;
-* claims from different exchanges.
-
-Each permitted relation must have:
-
-* one governing ruleset;
-* shared comparison scope;
-* admissible source classes;
-* explicit affected claim IDs.
-
-If cross-exchange conflict is not required for current production integration, it shall be explicitly Deferred rather than implicitly allowed.
-
----
-
-# Part VIII — Relationship to Source Categories and Claims
-
-## 39. Four Narrow Source Categories
-
-Sprint 3.89 decided the independence boundary for:
-
-* Gmail publication;
-* Calendar publication;
-* memory/priority publication;
-* connector availability publication.
-
-Sprint 3.90 shall explicitly confirm or correct whether conflict governance changes that conclusion.
-
-The contract shall provide:
-
-| Category               | Source contract remains independent? | Publisher implementation remains independent? | Conflict-aware claim wiring waits? | Binding reason |
-| ------------------------ | --------------------------------------: | -----------------------------------------------: | -------------------------------------: | ---------------- |
-| Gmail                    |                                  Yes/No |                                            Yes/No |                                 Yes/No | ...               |
-| Calendar                 |                                  Yes/No |                                            Yes/No |                                 Yes/No | ...               |
-| Memory/priorities        |                                  Yes/No |                                            Yes/No |                                 Yes/No | ...               |
-| Connector availability   |                                  Yes/No |                                            Yes/No |                                 Yes/No | ...               |
-
-No row may remain ambiguous.
-
-The default assumption shall not be that conflicts block source publication.
-
-Source-specific governed publications and conflict evaluation are different responsibilities.
-
----
-
-## 40. Claims Contract Preservation
-
-The completed contract shall confirm that Sprint 3.90 does not modify:
-
-* Option C recognition precedence;
-* claim unit;
-* claim identity;
-* claim materiality;
-* source/coverage ownership;
-* negative polarity;
-* unsupported and clarification rules;
-* claim-family separation;
-* Governed Claim Set publication;
-* claim ruleset identity;
-* mixed-message segmentation;
-* Cassie importance exclusion.
-
-Conflicts consume claims.
-
-They do not redefine them.
-
----
-
-## 41. Source-Evidence Registry Relationship
-
-The contract shall state whether conflict evaluation consumes:
-
-* source-specific publications directly;
-* the cross-source governed evidence registry;
-* both under a fixed rule.
-
-It shall define:
-
-* whether all compared observations must already be admitted to the registry;
-* whether a conflict may introduce a source not referenced by the claim;
-* whether conflict evaluation may widen claim source scope;
-* whether a source unavailable record participates as evidence or coverage metadata.
-
-The conflict evaluator shall not become a backdoor source-admission authority.
-
----
-
-# Part IX — Final Matrices and Registers
-
-## 42. Ten-Question Decision Matrix
-
-The completed contract shall include:
-
-| Sprint 3.88 question                                | Binding decision | Architectural owner | Publication affected | Rejected alternatives | Implementation consequence |
-| ----------------------------------------------------- | ------------------ | ---------------------- | ----------------------- | ------------------------- | ------------------------------ |
-| Can conflict exist without a claim?                  | ...                 | ...                     | ...                      | ...                         | ...                              |
-| What identities link conflict, claims, and sources?  | ...                 | ...                     | ...                      | ...                         | ...                              |
-| Who owns underlying observations?                    | ...                 | ...                     | ...                      | ...                         | ...                              |
-| Does composer derive or aggregate?                   | ...                 | ...                     | ...                      | ...                         | ...                              |
-| What rules govern evaluation?                        | ...                 | ...                     | ...                      | ...                         | ...                              |
-| Does an engine exist/reuse?                          | ...                 | ...                     | ...                      | ...                         | ...                              |
-| May EOS conflicts be reused?                         | ...                 | ...                     | ...                      | ...                         | ...                              |
-| What is cross-domain conflation?                     | ...                 | ...                     | ...                      | ...                         | ...                              |
-| Does empty array prove no conflict?                  | ...                 | ...                     | ...                      | ...                         | ...                              |
-| What proves no conflict versus unevaluated?          | ...                 | ...                     | ...                      | ...                         | ...                              |
-
-Every row must contain a final decision.
-
----
-
-## 43. Final Classification Matrix
-
-Resolve all conflict-boundary items using:
-
-* **Accepted**
-* **Modified**
-* **Deferred**
-* **Rejected**
-
-Required columns:
-
-| Item | Sprint 3.88 finding | Final outcome | Architectural class | Binding decision | Owner | Implementation consequence |
-| ---- | -------------------- | --------------- | --------------------- | ------------------- | ------ | ----------------------------- |
-
-At minimum include:
-
-* central conflict taxonomy;
-* claim linkage;
-* multi-claim linkage;
-* cross-claim linkage;
-* source ownership;
-* source eligibility;
-* composer role;
-* conflict ruleset;
-* conflict evaluator;
-* evaluation publication;
-* conflict-set publication;
-* individual conflict identity;
-* source-value contradiction;
-* source availability;
-* claim-status inconsistency;
-* temporal incompatibility;
-* prior assistant contradiction;
-* policy incompatibility;
-* coverage incompatibility;
-* operator assertion contradiction;
-* model-output contradiction;
-* no-conflict proof;
-* partial evaluation;
-* empty conflict arrays;
-* EOS conflict reuse;
-* cross-domain mapping;
-* source-category independence.
-
----
-
-## 44. Rejected Register
-
-The completed contract shall explicitly consider and classify at least:
-
-* model-generated conflicts;
-* route-owned conflict detection;
-* projection-composer-owned derivation where not selected;
-* conflict without an affected claim where not selected;
-* empty-array-as-no-conflict;
-* source unavailability automatically treated as contradiction;
-* two unequal strings automatically treated as conflict;
-* prior assistant output treated as canonical evidence;
-* current model disagreement treated as evidence conflict;
-* EOS structural conflict copied directly into conversational conflict;
-* shared type names treated as semantic equivalence;
-* one mutable conflict record under a stable ID;
-* conflict rules without version identity;
-* conflict evaluation without source coverage;
-* implementation-defined conflict classes;
-* "other" conflict class;
-* model-selected source precedence;
-* conflict status upgrade;
-* silent suppression of one conflicting source value.
-
-Every rejection shall identify the false claim, authority error, or audit ambiguity prevented.
-
----
-
-## 45. Deferred Register
-
-Any Deferred item shall state:
-
-* why it is unnecessary to close the present contract;
-* what governance or evidence is missing;
-* whether it blocks isolated conflict implementation;
-* whether it blocks source-category work;
-* whether it blocks projection integration;
-* the expected future sprint.
-
-Potential deferred matters include:
-
-* new domain conflict classes;
-* Calendar commitment conflict rules;
-* significance conflicts;
-* cross-exchange conflicts;
-* cross-thread conflicts;
-* human-authored conflict resolution;
-* source-precedence policy;
-* EOS-to-conversation mapping;
-* durable persistence implementation;
-* operator verification;
-* promotion.
-
-Deferral shall not be used to avoid answering any of the ten required questions.
-
----
-
-# Part X — No Implementation Authority
-
-## 46. No Implementation Authority
-
-The completed contract shall state:
+No source, test, route, prompt, selector, runtime, Roadmap, or separate report
+file changed.
+
+## Validation
+
+Full repository validation completed after the contract was written:
+
+| Command | Result |
+| --- | --- |
+| `npm test` | Passed: 133 test files; 648 tests passed and 1 skipped |
+| `npm run build` | Passed: compilation, type validation, page generation, and build traces completed; Google Fonts stylesheet optimization was skipped after its download failed |
+| `npm run lint` | Passed: no ESLint warnings or errors |
+| `npm run typecheck` | Passed: `tsc --noEmit` exited successfully |
+| `git diff --check` | Passed |
+
+Document checks confirm: ten binding decisions; exactly one central,
+claim-linkage, composer, EOS, owner, and evaluation-state option; a closed
+three-class taxonomy; explicit publication identities and Identity Integrity;
+structurally different no-conflict and unevaluated results; complete matrices
+and registers; unmodified Sprint 3.89 decisions; unambiguous Yes/No/Yes source
+rows; and no implementation authority.
+
+## Implementation Authority
 
 > Sprint 3.90 establishes conflict-boundary governance only. It does not implement conflict evaluation, source comparison, conflict publications, status restriction, source precedence, route behavior, projection behavior, model behavior, persistence, or production integration.
 
-Do not modify:
-
-```text
-app/api/chat/route.ts
-lib/context-builder.ts
-lib/useAgentConversation.ts
-lib/governed-conversation/
-lib/executive-context/
-lib/executive-operating-system/
-lib/memory/
-lib/operational-state.ts
-```
-
-No test changes are authorised.
-
-No prompt changes are authorised.
-
-No selector changes are authorised.
-
-No Roadmap change is authorised.
-
----
-
-## 47. Future Implementation Boundary
-
-A future isolated implementation sprint may implement only the completed contract's decisions.
-
-It may include:
-
-* conflict ruleset types;
-* conflict evaluation publication;
-* Governed Conflict Set publication;
-* individual conflict identity;
-* deterministic evaluator;
-* no-conflict/unevaluated structure;
-* claim-linked restrictions;
-* test fixtures;
-* Cassie-style source contradiction scenarios;
-* isolated composition with the existing claim-set architecture.
-
-It shall not integrate into `/api/chat` in the same sprint.
-
-It shall remain isolated, tested, evaluated, then integrated through the established staged sequence.
-
----
-
-## 48. Expected Follow-On
-
-The completed contract shall identify the next permitted sprint.
-
-Potential outcomes include:
-
-* isolated governed conversational conflict implementation;
-* source-specific publication contracts proceeding in parallel;
-* source-evidence admission contract;
-* another governance sprint only if a required source-precedence decision remains intentionally outside this contract.
-
-The next-step decision must reflect the completed dependency matrix.
-
----
-
-## 49. Output Location and Single-File Convention
-
-Create exactly:
-
-```text
-docs/SPRINT-3.90-GOVERNED-CONVERSATIONAL-CONFLICTS-BOUNDARY-CONTRACT.md
-```
-
-This file initially contains the specification.
-
-On completion, replace its contents in place with the completed contract.
-
-The completed file shall begin:
-
-```text
-# Sprint 3.90 — Governed Conversational Conflicts Boundary Contract
-
-**Status:** Complete
-```
-
-Do not create:
-
-```text
-docs/reports/SPRINT-3.90-...
-```
-
-Do not preserve a separate submitted-specification file.
-
-The repository history preserves the specification.
-
-The current file becomes the binding completed contract.
-
-No other file shall change.
-
----
-
-## 50. Validation
-
-Full repository validation is mandatory.
-
-There is no governance-only exception.
-
-Run:
-
-```text
-npm test
-npm run build
-npm run lint
-npm run typecheck
-git diff --check
-```
-
-Use current repository-defined equivalents where materially different.
-
-Validation shall additionally confirm:
-
-1. only the Sprint 3.90 contract document changed;
-2. no source code changed;
-3. no tests changed;
-4. all ten Sprint 3.88 conflict questions received binding decisions;
-5. exactly one Conversational Conflict Architecture was selected;
-6. exactly one conflict claim-linkage option was selected;
-7. exactly one composer-role option was selected;
-8. exactly one EOS reuse option was selected;
-9. exactly one evaluation-state architecture was selected;
-10. one deterministic conflict owner was named;
-11. one closed taxonomy was defined;
-12. every candidate relation received an explicit classification;
-13. no-conflict and unevaluated are structurally distinct;
-14. required publication identities were defined;
-15. Identity Integrity was explicitly applied;
-16. source-category independence was confirmed or corrected;
-17. Sprint 3.89 claim decisions remain unchanged;
-18. Prohibited Hedge Language does not appear in final decisions;
-19. Rejected and Deferred registers are present;
-20. implementation is explicitly unauthorized;
-21. the final recommendation uses the exact permitted wording.
-
-Any pre-existing validation failure must be distinguished from a sprint-created failure.
-
-Do not report incomplete validation as passing.
-
----
-
-## 51. Completion Report Structure
-
-Because Sprint 3.90 uses the single-file convention, the completed contract itself shall contain the following sections.
-
-### Repository Precondition
-
-Report:
-
-* repository;
-* branch;
-* commit;
-* working-tree state;
-* required governing artefacts;
-* relevant implementation files inspected.
-
-### Governing Artefacts Reviewed
-
-List every governing document read.
-
-### Sprint 3.88 Conflicts Finding
-
-Confirm the full Conflicts Finding was reviewed and the ten questions were traced from prose.
-
-### Sprint 3.89 Claims Foundation
-
-Confirm:
-
-* Option C;
-* pre-model deterministic claims;
-* Governed Claim Set;
-* claim ruleset identity;
-* claim identity and materiality;
-* Conflicts Option A;
-* no claim decision was reopened.
-
-### Conversational Conflict Architecture
-
-State exactly:
-
-```text
-Conversational Conflict Architecture: Option A
-```
-
-or:
-
-```text
-Conversational Conflict Architecture: Option B
-```
-
-or:
-
-```text
-Conversational Conflict Architecture: Option C
-```
-
-or:
-
-```text
-Conversational Conflict Architecture: Option D
-```
-
-### Decision 1 — Claim Linkage
-
-State the selected option and binding rule.
-
-### Decision 2 — Identity Chain
-
-Define every publication and identity.
-
-### Decision 3 — Source Ownership
-
-Define admissible and prohibited sources.
-
-### Decision 4 — Composer Role
-
-State the selected composer option.
-
-### Decision 5 — Conflict Ruleset
-
-Define architecture, owner, versioning, and closed classes.
-
-### Decision 6 — Conflict Engine
-
-Name the evaluation owner and reuse decision.
-
-### Decision 7 — EOS Reuse
-
-State the selected EOS option.
-
-### Decision 8 — Cross-Domain Boundary
-
-State the binding conflation rule.
-
-### Decision 9 — Evaluation-State Architecture
-
-State the selected option.
-
-### Decision 10 — No-Conflict Proof
-
-Define proof and unevaluated representation.
-
-### Closed Taxonomy
-
-Include the required taxonomy matrix.
-
-### Publication Architecture
-
-Define:
-
-* ruleset;
-* evaluation;
-* conflict set;
-* individual conflicts.
-
-### Identity Integrity Compliance
-
-State how each publication satisfies Constitutional Publication Principles.
-
-### Status Restriction
-
-Define conflict-to-status effects.
-
-### No-Conflict and Partial Evaluation
-
-Define the closed outcome vocabulary and model wording boundary.
-
-### EOS Comparison
-
-Include the EOS/conversational comparison table.
-
-### Four Source Categories
-
-Include the required independence table.
-
-### Ten-Question Decision Matrix
-
-Include the completed matrix.
-
-### Final Classification Matrix
-
-Include outcomes and counts.
-
-### Rejected Register
-
-List every rejected architecture and assumption.
-
-### Deferred Register
-
-List every deferred matter and blocking effect.
-
-### Files Changed
-
-Expected:
-
-```text
-docs/SPRINT-3.90-GOVERNED-CONVERSATIONAL-CONFLICTS-BOUNDARY-CONTRACT.md
-```
-
-### Validation
-
-Report exact commands and results.
-
-### Implementation Authority
-
-State:
-
 > Sprint 3.90 authorizes no implementation and changes no production behavior.
 
-### Next Step
+## Next Step
 
-Identify the next permitted governance or isolated implementation sprint.
+The next permitted sprint is an isolated governed conversational conflict
+implementation sprint for the root ruleset, source-value contradiction module,
+evaluation publication, Governed Conflict Set, canonical conflict identity,
+and explicit no-conflict/unevaluated structure. It cannot integrate `/api/chat`.
+Gmail, Calendar, memory/priority, and connector-availability source-publication
+contracts can proceed in parallel as governance-only work. Calendar commitment,
+operator assertion, source precedence, and EOS mapping remain subject to their
+named future contracts.
 
-### Recommendation
+## Recommendation
 
-Return exactly one:
-
-```text
-Governed Contract Complete
-```
-
-or:
-
-```text
-Governance Review Incomplete
-```
-
-No other wording is permitted.
-
----
-
-## 52. Recommendation Gate
-
-### Governed Contract Complete
-
-Use only when:
-
-* all required governing artefacts were available;
-* all ten conflict questions were independently answered;
-* one central conflict architecture was selected;
-* one closed taxonomy was established;
-* claim linkage was decided;
-* conflict identity and publication chains were defined;
-* one deterministic owner was named;
-* source admissibility was defined;
-* composer responsibility was fixed;
-* ruleset architecture and versioning were fixed;
-* EOS reuse was decided;
-* cross-domain conflation was defined;
-* no-conflict and unevaluated are structurally distinct;
-* evaluation-state vocabulary is closed;
-* Identity Integrity was applied;
-* status restrictions are deterministic;
-* the four source-category independence findings were confirmed or corrected;
-* Sprint 3.89 remains unchanged;
-* no hedge language remains;
-* no implementation occurred;
-* full validation passed or unrelated pre-existing failures were clearly evidenced.
-
-### Governance Review Incomplete
-
-Use when:
-
-* any of the ten questions remains unresolved;
-* more than one conflict architecture remains implementation-selectable;
-* the taxonomy contains an open "other" category;
-* conflicts can exist without a clear identity and owner;
-* no-conflict remains inferable from an empty array;
-* EOS reuse remains ambiguous;
-* source admissibility remains open;
-* publication identity remains unresolved;
-* conflict status effects remain implementation-defined;
-* source-category dependency remains ambiguous;
-* a Sprint 3.89 claim decision is reopened;
-* required authority is unavailable;
-* validation is incomplete;
-* source code or tests changed.
-
----
-
-## 53. Return Format
-
-Return:
-
-1. Repository Precondition result.
-2. Governing artefacts reviewed.
-3. Sprint 3.88 Conflicts Finding confirmation.
-4. Sprint 3.89 claims-foundation confirmation.
-5. Selected Conversational Conflict Architecture.
-6. Claim-linkage decision.
-7. Conflict identity chain.
-8. Source-ownership decision.
-9. Projection-composer role.
-10. Conflict-ruleset architecture.
-11. Conflict-evaluation owner.
-12. EOS reuse decision.
-13. Cross-domain conflation boundary.
-14. Evaluation-state architecture.
-15. No-conflict proof rule.
-16. Closed taxonomy matrix.
-17. Publication architecture.
-18. Identity Integrity compliance.
-19. Status-restriction rules.
-20. Partial-evaluation rule.
-21. Model wording boundary.
-22. Four-source-category independence table.
-23. Ten-question decision matrix.
-24. Final classification matrix.
-25. Rejected register.
-26. Deferred register.
-27. Files changed.
-28. Full validation results.
-29. Explicit confirmation that no implementation occurred.
-30. Recommended next sprint.
-31. Final recommendation gate.
-
-The final line must be exactly one of:
-
-> **Governed Contract Complete**
-
-or:
-
-> **Governance Review Incomplete**
-
----
-
-## 54. Success Criteria
-
-Sprint 3.90 succeeds when a future implementation sprint no longer needs to invent answers to any of the following:
-
-* What constitutes a conflict?
-* Which conflict relations are admitted?
-* Can a conflict exist without a claim?
-* How are claims, sources, evaluations, sets, and conflicts linked?
-* Who owns the underlying observations?
-* Who owns conflict evaluation?
-* Does the projection composer derive or aggregate?
-* Which versioned rules prove evaluation ran?
-* Can EOS structural conflicts be reused?
-* What constitutes cross-domain conflation?
-* Does an empty conflict array prove no conflict?
-* What proves evaluated-no-conflict?
-* How is unevaluated represented?
-* How do conflicts restrict claim status?
-* Are conflicting values preserved?
-* Which source-category contracts remain independent?
-* What immutable publications and identities exist?
-
-The desired architecture is:
-
-```text
-Governed Claim Set
-        ↓
-Admissible governed source publications
-        ↓
-Versioned deterministic conflict evaluation
-        ↓
-Conflict Evaluation publication
-        ↓
-Governed Conflict Set
-        ↓
-Dedicated Conversational Projection Composer
-        ↓
-Validated model explanation
-```
-
-The conflict engine determines whether a governed relation exists.
-
-The model explains the published result.
-
-The model does not create the relation.
-
-An empty array does not prove that evaluation occurred.
-
-Shared EOS mechanisms do not transfer EOS meaning into ordinary conversation.
-
-Sprint 3.90 establishes that boundary and authorizes no implementation.
+**Governed Contract Complete**

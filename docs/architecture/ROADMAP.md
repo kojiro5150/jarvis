@@ -1,6 +1,6 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Last updated 2026-08-01 following the DAWNWATCH governance/implementation/evaluation/integration sequence.
+**Status:** Living document. Last updated 2026-08-01 following Sprint 3.87's conversational-runtime integration re-attempt — updated deliberately at this point rather than waiting for full production integration, because the identity/lineage architecture is now complete and proven while the remaining gap to integration is precisely scoped rather than unknown. That combination is itself a meaningful, honestly-statable milestone.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
 
@@ -36,8 +36,19 @@ Implemented but awaiting final evidence and promotion
     DAWNWATCH (governed, implemented, evaluated, integrated — promotion blocked
     on one named gap: Gmail recipient data)
 
+Architecture proven in isolation, production integration blocked on a
+precisely-scoped evidence-production gap
+    Conversational runtime identity/lineage architecture (Sprints 3.75-3.86:
+    governed, implemented, evaluated, found genuinely incompatible mid-stream,
+    corrected, and proven — via a real composition test, not assertion — to
+    compose truthfully with all EOS references absent. /api/chat itself
+    remains completely untouched; Sprint 3.87's re-attempt correctly stopped
+    at the Projection Ownership Integration Gate rather than integrate on
+    invented evidence)
+
 Ready for disciplined discovery
-    Conversational runtime (/api/chat) migration
+    Governed conversational production evidence inputs (blocking the
+    conversational integration re-attempt — see Phase III)
     Gmail recipient projection (blocking DAWNWATCH promotion)
 
 Known strategic directions, not yet architecturally earned
@@ -90,25 +101,24 @@ Numbers are indicative, not binding — the audit may reveal the sequence needs 
 
 ---
 
-## Phase III — Conversational Runtime Migration — Not Started, Highest Value
+## Phase III — Conversational Runtime Migration — Identity Architecture Proven, Production Integration Blocked on a Named Evidence Gap
 
-`/api/chat` still runs entirely on legacy `OperationalState`. This is where the project's original motivating bug lives — a confident scheduling claim followed by an unprompted retraction — and it has not been fixed, only worked around at the margins (Sprint 3.58.1's deterministic relative-date context). Sprint 3.51 exposed `ExecutiveContext` and governed retrieval to `/api/chat` *in parallel*, but the default conversational path was never migrated.
+`/api/chat` still runs entirely on legacy `OperationalState`. This is where the project's original motivating bug lives — a confident scheduling claim followed by an unprompted retraction. Sprint 3.51 had earlier exposed `ExecutiveContext` and governed retrieval to `/api/chat` *in parallel*, and Sprint 3.58.1 added a deterministic relative-date workaround at the margins — but neither migrated the default conversational path itself. The live route remains completely unmodified since: confirmed by blob hash at multiple points across the sequence below, `app/api/chat/route.ts` has not changed throughout Sprints 3.75-3.87, including the most recent integration attempt.
 
-This is arguably the single highest-value remaining phase, because it is the surface most conversations actually touch.
+What has changed is everything underneath it. This section previously read "Not Started" — that was accurate then and would be false now, but "Complete" would be equally false. The honest state, following the same audit-first discipline used for DAWNWATCH:
 
-### Required first step: full audit, mirroring Sprint 3.63's DAWNWATCH audit
+**Governed and proven (Sprints 3.75-3.86).** Sprint 3.75 audited `/api/chat`'s legacy path and found it had no evidence-sufficiency discipline at all. Sprint 3.76 governed a conversational contract with a closed evidence-status vocabulary. Sprints 3.77-3.79 built and evaluated an isolated governed pipeline — evidence status, model invocation, response validation — with zero live-route contact, proven by forward/reverse import search. Sprint 3.80 attempted first integration and correctly stopped: ordinary chat had no honest identity capable of satisfying the governed input contract without falsely implying an EOS run had occurred. Sprints 3.82-3.83 built a genuine conversational lineage/identity architecture (thread/request/exchange, separate from EOS identity). Sprint 3.84 then found that this lineage architecture and the earlier evidence/model architecture did not actually compose — two independently valid tracks using incompatible identity semantics. Sprint 3.85 governed the correction; Sprint 3.86 implemented it, after its own first attempt correctly caught a real contradiction in its own frozen-test scope that four prior review passes had missed. The result, verified directly against the committed code rather than taken from any report's prose: an ordinary conversational exchange now completes the full isolated pipeline — projection, evidence status, model invocation, validation, terminal execution record — with no EOS identity present or required.
+
+**Integration re-attempted and correctly stopped again (Sprint 3.87), on a different and much more specific blocker.** With the identity foundation resolved, Sprint 3.87 re-attempted live integration and investigated, category by category, whether production already exposes the evidence shapes the existing Dedicated Conversational Projection Composer requires. It does not. Of the eight required evidence categories, seven have no production producer at all (calendar, memory/priorities, general source evidence, connector availability, conversation history, claims, conflicts). The eighth — communications — has a real, live, production-wired Gmail normalizer (`projectProductionGmailEvidence`, built for DAWNWATCH and already feeding production `OperationalState`), but it produces the wrong shape: a normalized observation, not the composer's required governed publication with provenance, policy, and availability semantics. Sprint 3.87 correctly declined to invent any of these mappings inside the route, bypass the projection composer, or claim partial credit for shipping only a selector — the same discipline the whole sequence has held throughout.
+
+### Immediate next step
 
 ```text
-request
-  → /api/chat
-  → state acquisition
-  → prompt/context assembly
-  → model invocation
-  → response validation
-  → client rendering
+3.88 — Governed Conversational Production Projection Inputs Contract
+       and Implementation
 ```
 
-The audit must identify every place where legacy state, temporal inference, connector heuristics, role context, or unsupported claims enter the conversation, before any governed conversational contract is written.
+Scope, named directly by Sprint 3.87's own findings: govern and implement production owners for the seven missing evidence categories, plus the second-stage mapping from the existing Gmail normalizer's output into the composer's required communication-evidence shape. This must not touch the projection composer itself, derive evidence inside `/api/chat`, or introduce general natural-language claim extraction. Only after this sprint passes independently should Sprint 3.87's integration be re-attempted — not skipped past toward operator verification.
 
 ---
 
@@ -219,4 +229,4 @@ Consistent with the discipline established across this session:
 - Do not build Phase IV, V, VI, VII, or the synthesis layer speculatively. Each requires its own audit first.
 - Do not fold the recipient-projection fix into a "quick patch" — Sprint 3.68 exists specifically because that temptation was already named and rejected once tonight.
 - Do not treat the `3.68`–`3.73` numbering as committed. It is a sketch of expected shape, not a binding plan.
-- Do not promote DAWNWATCH before the communications gap closes, or Dashboard's `/api/chat` migration before its own audit exists. Replacement follows demonstrated equivalence — always.
+- Do not promote DAWNWATCH before the communications gap closes, or integrate `/api/chat` before the Projection Ownership Integration Gate genuinely passes. Sprint 3.87 exists specifically because that shortcut — inventing evidence mappings inside the route to make integration appear complete — was already available and deliberately refused. Replacement follows demonstrated equivalence — always.

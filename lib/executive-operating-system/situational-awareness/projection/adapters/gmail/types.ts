@@ -10,13 +10,16 @@ export interface GmailMessageObservation {
   readonly internalDate?: string;
   readonly labelIds?: readonly string[];
   readonly payload?: GmailPartObservation & { readonly headers?: readonly GmailHeaderObservation[] };
-  readonly retrievedAt?: OperationalTimestamp;
+  readonly retrievedAt: OperationalTimestamp;
 }
+
+export type GmailRecipientEvidenceState = "available" | "not_fetched" | "not_authorised" | "unknown";
 
 export interface NormalizedGmailObservation {
   readonly messageId: string;
   readonly sender: string;
   readonly recipients: readonly string[];
+  readonly recipientEvidence: GmailRecipientEvidenceState;
   readonly sentAt: OperationalTimestamp;
   readonly inReplyTo?: string;
   readonly references: readonly string[];

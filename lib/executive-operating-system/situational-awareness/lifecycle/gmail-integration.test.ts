@@ -7,7 +7,7 @@ import { compareSituationalAwarenessSnapshots, createSituationalAwarenessSnapsho
 describe("Gmail projection lifecycle integration", () => {
   it("assembles and compares immutable communication snapshots", async () => {
     const connector = { source: "google" as const, listOperationalObservations: async () => [{
-      id: "gmail-1", payload: { headers: [
+      id: "gmail-1", retrievedAt: "2026-07-29T11:05:00.000Z", payload: { headers: [
         { name: "Message-ID", value: "<gmail-1@example.test>" }, { name: "From", value: "sender@example.test" },
         { name: "To", value: "recipient@example.test" }, { name: "Date", value: "2026-07-29T11:00:00Z" },
       ] },

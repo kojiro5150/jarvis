@@ -21,6 +21,7 @@ export function selectDawnwatchPresentationMode(value: string | undefined): Dawn
  * a canonical publication or reconstructing legacy-only presentation claims.
  */
 export function buildProductionDawnwatchInput(state: OperationalState): DawnwatchPresentationInput {
+  const gmailEvidence = state.gmailRecipientEvidence;
   // Legacy connector data has no assertion identity distinct from its stable entity identity, so
   // reuse each entity id. Revisit this when a canonical ExecutiveStateSnapshot-backed source can
   // supply genuine per-assertion identities.
@@ -38,15 +39,17 @@ export function buildProductionDawnwatchInput(state: OperationalState): Dawnwatc
       status: commitment.status === "cancelled" ? "cancelled" : "scheduled",
       provenance: { sourceId: "calendar", assertionId: commitment.id },
     })),
-    communications: state.gmailThreads.map(communication => ({
-      id: communication.id,
-      sender: communication.from,
-      recipients: [],
-      sentAt: communication.receivedAt,
-      receivedAt: communication.receivedAt,
-      subject: communication.subject,
-      provenance: { sourceId: "gmail", assertionId: communication.id },
-    })),
+    communications: (gmailEvidence?.communications ?? []).map(communication => {
+      const id = `${gmailEvidence?.sourceId}:${communication.messageId}`;
+      return {
+        id,
+        sender: communication.sender,
+        // Partial values remain canonical evidence, but cannot satisfy DAWNWATCH while coverage is unknown.
+        recipients: communication.recipientEvidence === "available" ? communication.recipients : [],
+        sentAt: communication.sentAt,
+        provenance: { sourceId: gmailEvidence?.sourceId ?? "google-gmail", assertionId: id },
+      };
+    }),
     sources: [{
       id: "memory",
       kind: "memory",
@@ -56,7 +59,7 @@ export function buildProductionDawnwatchInput(state: OperationalState): Dawnwatc
       observedAt: state.updatedAt,
       snapshotId: `snapshot-memory-${state.updatedAt}`,
       provenance: { sourceId: "memory", assertionId: "memory" },
-    }, ...state.connectorStatuses.map(source => {
+    }, ...state.connectorStatuses.filter(source => source.name !== "gmail" || gmailEvidence === undefined).map(source => {
       // OperationalState has no canonical snapshot identity. Use a deterministic presentation-
       // boundary placeholder until an ExecutiveStateSnapshot-backed source supplies the real one.
       const snapshotId = `snapshot-${source.name}-${state.updatedAt}`;
@@ -68,7 +71,14 @@ export function buildProductionDawnwatchInput(state: OperationalState): Dawnwatc
         snapshotId,
         provenance: { sourceId: source.name, assertionId: source.name },
       };
-    })],
+    }), ...(gmailEvidence === undefined ? [] : [{
+      id: gmailEvidence.sourceId,
+      kind: "gmail",
+      availability: gmailEvidence.availability,
+      ...(gmailEvidence.observedAt === undefined ? { observedAt: "" } : { observedAt: gmailEvidence.observedAt }),
+      ...(gmailEvidence.snapshotId === undefined ? { snapshotId: "" } : { snapshotId: gmailEvidence.snapshotId }),
+      provenance: { sourceId: gmailEvidence.sourceId, assertionId: gmailEvidence.snapshotId ?? "" },
+    }])],
   };
 }
 

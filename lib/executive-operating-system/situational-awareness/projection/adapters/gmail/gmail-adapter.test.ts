@@ -8,6 +8,7 @@ const identity = { userId: "executive", displayName: "Executive" } as const;
 const projectedAt = "2026-07-29T12:00:00Z";
 const complete: GmailMessageObservation = {
   id: "gmail-123", threadId: "thread-connector-only", internalDate: "1785322800000", labelIds: ["UNREAD"],
+  retrievedAt: "2026-07-29T11:05:00.000Z",
   payload: {
     mimeType: "multipart/mixed",
     headers: [
@@ -61,6 +62,45 @@ describe("GmailProjectionAdapter", () => {
     expect(normalized.inReplyTo).toBe("<parent@example.test>");
     expect(normalized.references).toEqual(["<root@example.test>", "<parent@example.test>"]);
     expect(normalized.provenance).not.toHaveProperty("gmailThreadId");
+  });
+
+  it("parses quoted commas, comments, angle addresses and groups without expanding groups", () => {
+    const normalized = normalizeGmailObservation({ ...complete, payload: { ...complete.payload, headers: [
+      ...(complete.payload?.headers?.filter(({ name }) => !["To", "Cc"].includes(name)) ?? []),
+      { name: "To", value: '\"Smith, John\" <john@example.com>, Jane (operations) <jane@example.com>' },
+      { name: "Cc", value: "Review Board: one@example.com, Two <two@example.com>;" },
+    ] } });
+    expect(normalized.recipients).toEqual([
+      '\"Smith, John\" <john@example.com>', "Jane (operations) <jane@example.com>",
+      "Review Board: one@example.com, Two <two@example.com>;",
+    ]);
+    expect(normalized.recipientEvidence).toBe("available");
+  });
+
+  it("preserves repeated occurrences, To-Cc-Bcc order, and every duplicate", () => {
+    const normalized = normalizeGmailObservation({ ...complete, payload: { ...complete.payload, headers: [
+      ...(complete.payload?.headers?.filter(({ name }) => !["To", "Cc", "Bcc"].includes(name)) ?? []),
+      { name: "Cc", value: "same@example.com" }, { name: "To", value: "same@example.com, SAME@example.com" },
+      { name: "Bcc", value: "Named <same@example.com>" }, { name: "To", value: "same@example.com" },
+      { name: "Cc", value: "same@example.com" },
+    ] } });
+    expect(normalized.recipients).toEqual([
+      "same@example.com", "SAME@example.com", "same@example.com",
+      "same@example.com", "same@example.com", "Named <same@example.com>",
+    ]);
+  });
+
+  it("retains valid partial values but marks malformed and missing coverage unknown", () => {
+    const malformed = normalizeGmailObservation({ ...complete, payload: { ...complete.payload, headers: [
+      ...(complete.payload?.headers?.filter(({ name }) => !["To", "Cc"].includes(name)) ?? []),
+      { name: "To", value: "valid@example.com, Broken <broken@example.com" },
+    ] } });
+    const missing = normalizeGmailObservation({ ...complete, payload: { ...complete.payload, headers:
+      complete.payload?.headers?.filter(({ name }) => !["To", "Cc", "Bcc"].includes(name)) } });
+    expect(malformed.recipients).toEqual(["valid@example.com"]);
+    expect(malformed.recipientEvidence).toBe("unknown");
+    expect(missing).toMatchObject({ recipients: [], recipientEvidence: "unknown" });
+    expect(JSON.stringify([malformed, missing])).not.toContain('\"none\"');
   });
 
   it.each([

@@ -43,9 +43,12 @@ export interface GovernedModelOutputContract {
 export interface GovernedModelRequest {
   readonly requestId: string;
   readonly inputId: string;
-  readonly runId: string;
-  readonly sessionId: string;
-  readonly interfaceContractId: string;
+  readonly threadId: string;
+  readonly exchangeId: string;
+  readonly projectionId: string;
+  readonly runId?: string;
+  readonly sessionId?: string;
+  readonly interfaceContractId?: string;
   readonly systemInstruction: string;
   readonly userQuestion: string;
   readonly governedContext: GovernedModelContext;
@@ -70,6 +73,9 @@ export function constructGovernedModelRequest(input: GovernedConversationalInput
   return {
     requestId,
     inputId: input.inputId,
+    threadId: input.threadId,
+    exchangeId: input.exchangeId,
+    projectionId: input.projectionId,
     runId: input.runId,
     sessionId: input.sessionId,
     interfaceContractId: input.interfaceContractId,

@@ -2338,3 +2338,195 @@ Sprint 3.84 established the governing lesson:
 > **Individually correct governed components are not assumed composable. Composition itself must be proven.**
 
 Sprint 3.93 applies that discipline to the claims/conflicts boundary before any production integration is permitted.
+
+# Part 2: Completion Report
+
+## Repository Precondition
+
+* Repository `/workspace/jarvis`; branch `work`; starting commit `e91148dc57852f07c9ab576f721068a138638e47`; clean starting tree.
+* Every Section 4 artefact existed. All listed Sprint 3.91/3.92 modules, `projection-composer.ts`, `types.ts`, `evidence-status.ts`, `model-invocation.ts`, and the model request/parser/envelope/validator/execution/lineage constructors were inspected.
+* Only the four new evaluation files and this report changed.
+
+## Governing Artefacts Reviewed
+
+Read completely before evaluation: Engineering Constitution, North Star, JESS, Constitutional Publication Principles, Roadmap, Sprints 3.84, 3.89, 3.90, 3.91, 3.92, 3.77, 3.82, 3.83, and 3.85, plus the current implementations named above.
+
+## Sprint 3.84 Precedent
+
+Sprint 3.84 found that conversational `threadId/requestId/exchangeId` could not truthfully satisfy the then-required `sessionId/interfaceContractId/runId`. It stopped rather than relabel identities or invent a compatibility shim. That result proves isolated correctness is insufficient and required this evaluation to treat negative composition evidence as success rather than route around it.
+
+## Central Cassie Scenario
+
+Operator input was exactly `What's Cassie's email? Anything important?`. Deterministic lineage was `thread:3.93:cassie`, `request:3.93:cassie`, `exchange:3.93:cassie`; reference/publication time was `2026-08-01T12:00:00.000Z`; the entity was `person:cassie`. The source observations were available, complete, current, claim-scoped `resolved_contact_address` publications owned by `source-owner:contacts-a` and `source-owner:contacts-b`, containing `cassie.primary@example.com` and `cassie.hayward@example.org`.
+
+## Claims Result
+
+* Ruleset: `claim-boundary-ruleset:0d327b4ed3b53f439e53606ff833266f281e31f5498cab0a83babbb8ee5aece3`.
+* Evaluation: `claim-boundary-evaluation:fe867fd7d6f1a343008cf62db9d59e360812776f08d5689db799ec8db42d92c9`; outcome `recognised`.
+* Claim set: `governed-claim-set:bab503c5157d1ffcddddab946fb64ad35ae6e2eb0f44c87efdb6ef45ffad96a8`, with the exact lineage above.
+* `governed-claim:7c276ab86cf27e8d495404de0a870c658730553dbc88eb744ea0b882d63d5605`: `contact_address_lookup`, material, `insufficient_coverage`, `deterministic_status`, no source references at this pre-evidence stage.
+* `governed-claim:950fda67747a0912be5f975cbb7efadc00c8fb3dac485efabd2536b5676670de`: `message_importance`, material, `unsupported`, `unsupported` ownership, no source references.
+
+## Conflict Result
+
+The mandatory compound claim set entered the real conflict engine and produced real evaluation `conflict-evaluation:cf1197198eb77d51dc1904797b0fdf2b932863585478b0f45c11786b0ef86095`, linked to the exact central claim set, but outcome `evaluation_unsupported` / `claim_type_outside_ruleset`; no conflict set or canonical conflict was truthfully publishable because the engine admits only a one-claim contact set.
+
+An explicitly independent seam evaluation ran a second real claim-engine publication for the contact-only question (not a filtered or hand-built intermediate) and then produced:
+
+* ruleset `conflict-evaluation-ruleset:daeba1245e51a71b2bf733493681ef66f9b9246880949d33162b5cfcda5dbae6`;
+* evaluation `conflict-evaluation:d6ca2e1231cc3beb41e3af9a2866eeff878130b5e7c4da741a974a8ada0ace09`, outcome `evaluated_conflict_found`;
+* conflict set `governed-conflict-set:b68426afeee682b359622997406338b581ee255c008b93b7bcf1b5393eae4ba8`;
+* conflict `governed-conflict:b4182055ada87c1ec85926f08d9813cff29faafa2b9eb126c1fb88eb065b9ed8`, affected exact real contact claim, both owners/publications/values/coverage references, restriction `insufficient_coverage`, and no selected owner.
+
+## Claims → Conflicts Finding
+
+**`semantic-incompatibility` (blocking).** The types connect directly through the isolation-only adapter, which is only a type/constructor re-export and performs no transformation. Runtime lineage and exact claim/set identity are derived and preserved. Nevertheless, the actual two-claim Cassie publication is rejected because `evaluateGovernedConversationalConflicts` requires exactly one contact-address claim. Splitting or republishing the governed set would violate the mandated real-publication chain.
+
+## Publication Identity Finding
+
+**`compatible` for identity distinctness/linkage in the independently reachable contact seam.** All ruleset, evaluation, set, item, thread, request, and exchange identities are pairwise distinct. **`semantic-incompatibility` for the full central publication chain**, which stops before conflict-set publication.
+
+## Exchange Lineage Finding
+
+**`bounded-adapter-needed` (blocking).** The real engine derives and populates equal optional evaluation lineage. `ConflictEvaluation` nevertheless types these fields as optional, while `GovernedConflictSet` omits exchange lineage. Runtime equality is not a structural guarantee that later composition can prove co-exchange membership.
+
+## Claim Set → Projection Finding
+
+**`semantic-incompatibility` (blocking).** `governedClaimSet.claims` is the exact expected item type, but the projection has no home for `governedClaimSetId`, `claimBoundaryEvaluationId`, or `claimBoundaryRulesetId`. Passing only the array drops authoritative publication ownership.
+
+## Conflict → Projection Finding
+
+**`semantic-incompatibility` (blocking).** The canonical fifteen-field conflict is not a `GovernedConflictInput`: `sourceOwnerIds` is renamed `sourceOwners`, while conflict class, source publications, comparison key/scope, both values, ruleset rule, coverage, evaluated time, and the structural no-selection guarantee have no destination. A five-field test mapping would discard governed meaning and was not implemented.
+
+## Conflict Set → Projection Finding
+
+**`semantic-incompatibility` (blocking).** The projection has no truthful representation for conflict ruleset, evaluation, conflict-set, or governed-claim-set identity.
+
+## Claim Classification Ruleset Finding
+
+**`unresolved` (blocking).** Neither contracts nor implementation establish that `claimBoundaryRulesetId` and `claimClassificationRulesetId` inhabit the same identity domain. They were not equated.
+
+## Conflict Ruleset Finding
+
+**`semantic-incompatibility` (blocking).** `conflictEvaluationRulesetId` has no explicit projection field, and generic source-derived upstream references cannot truthfully stand in for it.
+
+## Evaluation-State Finding
+
+**`semantic-incompatibility` (blocking).** Real engine paths produced `evaluated_conflict_found`, `evaluated_no_conflict`, `evaluation_unavailable`, and `evaluation_unsupported`. Projection `conflicts: []` cannot distinguish no conflict from unavailable, unsupported, or never run.
+
+## Projection Composition Result
+
+The real composer was genuinely invoked using the exact central claims and lineage, empty conflict values, and an explicit unresolved classification-ruleset sentinel. It constructed a projection and its unknown-affected-claim validator rejected a mutation. This is only a boundary diagnostic: it did not compose the conflict publication and does not establish end-to-end success.
+
+## Projection → Governed Input Result
+
+**`compatible` at the corrected current identity seam.** Current `GovernedConversationalInput` requires `threadId/requestId/exchangeId/projectionId`; the former EOS fields are optional. The Sprint 3.84 identity blocker is therefore corrected. This independent downstream fact cannot bypass earlier blockers.
+
+## Evidence/Status Result
+
+Contact remains `insufficient_coverage` and importance remains `unsupported`. No current governed owner applies canonical `statusRestriction` to an authoritative post-conflict effective claim status. That seam is **`semantic-incompatibility`**; model code reads claim-local legacy conflicts, not the canonical publication.
+
+## Model-Invocation Result
+
+Not reached by the central chain. Exact blockers are the compound claim-set rejection, conflict/projection shape and publication loss, unresolved classification-ruleset identity, and evaluation-state collapse. No deterministic adapter was invoked merely to conceal them.
+
+## Response/Validation Result
+
+Not reached for the same fail-closed reasons; no envelope, validation result, or execution record is claimed.
+
+## Restrict-Don't-Adjudicate Proof
+
+At every reached real stage both sources remain preserved and unselected. `selectedSourceOwnerId` is structurally `?: never` and runtime `undefined`. Evaluation code introduced no precedence or winner.
+
+## Unsupported Importance Proof
+
+The real central claim remains `unsupported`; no unread, important, needsReply, labels, ordering, or legacy attention metadata was supplied or allowed to upgrade it.
+
+## Composition Matrix
+
+| Seam | Upstream | Downstream | Status | Evidence | Blocking? |
+|---|---|---|---|---|---:|
+| Claim engine → Claim Set | real engine result | `GovernedClaimSet` | compatible | real constructors publish it | no |
+| Claim Set → Conflict engine | compound set | conflict input | semantic-incompatibility | real outcome unsupported | yes |
+| Claim identity → Conflict linkage | claim ID | affected IDs | compatible | exact ID in independent seam | no |
+| Claim lineage → Conflict lineage | required lineage | optional/omitted lineage | bounded-adapter-needed | runtime copied; type/set do not guarantee | yes |
+| Claim publication IDs → Conflict chain | publication chain | conflict chain | semantic-incompatibility | central chain stops | yes |
+| Claim Set → Projection claims | set wrapper | item array | semantic-incompatibility | wrapper IDs lost | yes |
+| Conflict → Projection conflict | canonical 15 fields | five fields | semantic-incompatibility | governed fields absent | yes |
+| Conflict Set → Projection lineage | set publication | projection | semantic-incompatibility | no destination IDs | yes |
+| Exchange lineage → Projection | central lineage | same three fields | compatible | real attempted projection preserves | no |
+| Projection → Governed Input | conversational identity | conversational identity | compatible | corrected current types | no |
+| Claims/conflicts → evidence status | status/restriction | model semantics | semantic-incompatibility | no canonical restriction consumer | yes |
+| Projection → model request | blocked projection | request | semantic-incompatibility | fail-closed stop | yes |
+| Model result → envelope | no model result | envelope | semantic-incompatibility | not truthfully reachable | yes |
+| Envelope → execution record | no envelope | terminal record | semantic-incompatibility | not truthfully reachable | yes |
+
+## Publication Lineage Matrix
+
+| Publication | Created by | ID/reference | Referenced by next stage? | Preserved in projection? | Preserved downstream? |
+|---|---|---|---:|---:|---:|
+| ClaimBoundaryRuleset | 3.91 | `claim-boundary-ruleset:0d327…` | yes | no | no |
+| ClaimBoundaryEvaluation | 3.91 | `claim-boundary-evaluation:fe867…` | yes | no | no |
+| GovernedClaimSet | 3.91 | `governed-claim-set:bab503…` | yes in failed evaluation | no | no |
+| ConflictEvaluationRuleset | 3.92 | `conflict-evaluation-ruleset:daeba…` | yes | no | no |
+| ConflictEvaluation | 3.92 | `conflict-evaluation:d6ca2…` independent | yes | no | no |
+| GovernedConflictSet | 3.92 | `governed-conflict-set:b684…` independent | owns conflict | no | no |
+| CanonicalGovernedConflict | 3.92 | `governed-conflict:b418…` independent | no direct type fit | no | no |
+| GovernedConversationalProjection | 3.83 | diagnostic attempt ID | blocked from truthful conflict input | n/a | not entered |
+
+## Mutation Sensitivity
+
+| Test | Baseline | Mutation | Expected detection | Actual detection | Finding |
+|---|---|---|---|---|---|
+| Claim/conflict linkage | exact claim | unknown claim | reject | evaluator false; composer throws | compatible detector |
+| Exchange lineage | same exchange | changed exchange | reject | evaluator changes true→false | compatible detector; structural conflict gap remains |
+| Conflict restriction | insufficient coverage | available | diagnose | evaluator changes true→false | semantic-incompatibility diagnosed |
+| Publication identity | canonical set ID | mutated ID | diagnose | evaluator changes true→false | verification gap diagnosed |
+
+Every baseline/mutation pair differs; the evaluation is data-sensitive.
+
+## Isolation and Blob Proof
+
+Pure-Node `node:fs`/`node:path` scans found zero production imports and zero prohibited reverse imports. The fixture adapter remains a pure re-export. Pre/post SHA-256 values are identical for route `503840…`, context `8e689…`, hook `552749…`, chat execution `da387…`, claim core `cd544…/afe7…/9ab35…/ccd7…`, conflict core `4d9b…/bc89…/b174…/9a370…`, composer `b3fd…`, evidence `c83a…`, and model invocation `beeb…`; all other inspected runtime modules were untouched.
+
+## Files Changed
+
+* `claim-boundary-conflict-boundary-composition-evaluation-fixtures.ts` — deterministic primitive inputs and real-function scenarios.
+* `claim-boundary-conflict-boundary-composition-evaluation.ts` — typed findings, truthful projection attempt, and mutation diagnostics.
+* `claim-boundary-conflict-boundary-composition-evaluation.test.ts` — real publication, seam, state, identity, and sensitivity proofs.
+* `claim-boundary-conflict-boundary-composition-evaluation-isolation.test.ts` — pure-Node import and blob proof.
+* This document — required completion report.
+
+## Targeted Tests
+
+* `npm test -- --run lib/governed-conversation/claim-boundary-conflict-boundary-composition-evaluation.test.ts lib/governed-conversation/claim-boundary-conflict-boundary-composition-evaluation-isolation.test.ts` — 2 files, 9 tests passed.
+* `npm run typecheck` — passed.
+
+## Full Validation
+
+* `npm test` — passed: 143 files; 704 passed and 1 skipped (705 total).
+* `npm run build` — passed: optimized production build, type/lint validation, six static pages, and traces completed; Google Fonts optimization was skipped after a network stylesheet download failure without failing the build.
+* `npm run lint` — passed with no warnings or errors.
+* `npm run typecheck` — passed.
+* `git diff --check` — passed.
+
+## Production Effect
+
+> Sprint 3.93 changes no live conversational behavior and performs no production integration.
+
+## Outstanding Findings
+
+* **bounded-adapter-needed:** conflict lineage is optional on evaluation and omitted on the set despite runtime derivation.
+* **semantic-incompatibility:** compound Cassie claim set is outside the conflict engine's one-claim scope.
+* **semantic-incompatibility:** claim-set publication identities disappear at projection.
+* **semantic-incompatibility:** canonical conflict cannot enter the five-field projection view without governed information loss.
+* **semantic-incompatibility:** conflict-set/ruleset/evaluation lineage has no projection representation.
+* **semantic-incompatibility:** conflict evaluation states collapse to the same conflict array representation.
+* **semantic-incompatibility:** no owner applies conflict restriction to downstream effective claim status.
+* **unresolved:** claim-boundary and claim-classification ruleset identity-domain equivalence.
+
+## Recommended Next Step
+
+Authorize the smallest governance-contract sprint to decide compound claim-set conflict scope, mandatory conflict/exchange publication lineage, projection preservation of claim/conflict publications and evaluation state, canonical conflict view semantics, classification-ruleset identity, and ownership of post-conflict effective status. Only after those decisions should an adapter or correction implementation be authorized.
+
+**Evaluation Complete**

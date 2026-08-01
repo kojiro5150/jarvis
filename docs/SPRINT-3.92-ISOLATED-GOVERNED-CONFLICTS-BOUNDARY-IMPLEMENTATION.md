@@ -2029,3 +2029,215 @@ EOS conflict meaning remains separate.
 Sprint 3.92 does not make conflict evaluation live.
 
 It creates the first real, deterministic, versioned conflict class in isolation.
+
+---
+
+# Part 2: Completion Report
+
+## Repository Precondition
+
+* **Repository:** `/workspace/jarvis`
+* **Branch:** `work`
+* **Starting commit:** `964ab2cba3d06915dfe6b957e931b40b234ff6a4`
+* **Starting working tree:** clean. The repository has no local or remote `main` ref; `HEAD` is the merge commit containing this Sprint 3.92 specification and was used as the intended merged-main baseline.
+* **Required documents:** all thirteen artefacts listed in Section 4 existed. Sprint 3.90 was present and directly confirmed all six named decisions, its closed three-class taxonomy, six-state Decision 9 vocabulary, source-value rule, immutable publication chain, no-conflict proof, and source-value-only next step.
+* **Inspected implementation:** `types.ts`, `projection-composer.ts`, every Sprint 3.91 claim-boundary core/fixture module, conversational conflict fixtures/tests, and the EOS situational-awareness assembly types and engine. `GovernedConflictInput` has the five projection fields stated in Section 4; older `GovernedConflict` remains a distinct claim-local type. No production conversational conflict engine existed.
+* **Authorized change surface:** implementation remained additive: new isolated conflict modules, their tests, one isolated claim-publication fixture adapter, and this completion report. No existing source or test file changed.
+
+## Governing Artefacts Reviewed
+
+The following were read completely before implementation:
+
+1. `docs/ENGINEERING_CONSTITUTION.md`
+2. `docs/architecture/NORTH_STAR.md`
+3. `docs/architecture/JARVIS-Engineering-Specification-Standard.md`
+4. `docs/CONSTITUTIONAL-PUBLICATION-PRINCIPLES.md`
+5. `docs/architecture/ROADMAP.md`
+6. `docs/SPRINT-3.90-GOVERNED-CONVERSATIONAL-CONFLICTS-BOUNDARY-CONTRACT.md`
+7. `docs/SPRINT-3.89-GOVERNED-CONVERSATIONAL-CLAIMS-BOUNDARY-CONTRACT.md`
+8. `docs/SPRINT-3.91-ISOLATED-GOVERNED-CLAIMS-BOUNDARY-IMPLEMENTATION.md`
+9. `docs/SPRINT-3.77-ISOLATED-GOVERNED-CONVERSATIONAL-RUNTIME-IMPLEMENTATION.md`
+10. `docs/SPRINT-3.83-ISOLATED-CONVERSATIONAL-LINEAGE-AND-PROJECTION-IMPLEMENTATION.md`
+11. `docs/SPRINT-3.76-GOVERNED-CONVERSATIONAL-RUNTIME-CONTRACT.md`
+12. `docs/SPRINT-3.82-GOVERNED-CONVERSATIONAL-LINEAGE-IDENTITY-CONTRACT.md`
+13. `docs/SPRINT-3.85-GOVERNED-CONVERSATIONAL-IDENTITY-CORRECTION-CONTRACT.md`
+
+## Sprint 3.90 Decisions Implemented
+
+* **Conversational Conflict Architecture: Option B**
+* **Conflict Claim-Linkage Decision: Option A**
+* **Projection Composer Conflict Role: Option A**
+* **Conflict Evaluation Owner: Option A**
+* **EOS Structural Conflict Reuse: Option C**
+* **Conflict Evaluation-State Architecture: Option A**
+
+No Sprint 3.90 decision was reopened.
+
+## Scope
+
+Implemented conflict class:
+- `source_value_contradiction`
+
+Deferred:
+- `policy_incompatibility`
+- `temporal_commitment_incompatibility`
+
+No executable rule or placeholder evaluator was added for either deferred class.
+
+## Modules Added
+
+* `conflict-boundary-types.ts` — closed taxonomy, six-state outcomes, source observation, ruleset, evaluation, set, and canonical conflict types.
+* `conflict-boundary-ruleset.ts` — fixed immutable Part 1 ruleset body and publication.
+* `conflict-boundary-publications.ts` — deep-immutable constructors and domain-distinct content/event identities.
+* `conflict-boundary-engine.ts` — dedicated deterministic admissibility, claim-linkage, comparison, outcome, conflict, and set evaluation.
+* `conflict-boundary-fixtures.ts` — synthetic Cassie claim-set and source-observation fixtures.
+* `claim-boundary-conflict-fixture-adapter.ts` — isolated downstream adapter exposing Sprint 3.91's real public `GovernedClaimSet` type and constructor without changing claim semantics or composing the engines.
+* `conflict-boundary-ruleset.test.ts` — closure, rules, immutability, and six-state tests.
+* `conflict-boundary-engine.test.ts` — central contradiction, no-conflict, admissibility, all active outcomes, deferred classes, and partial-unreachability tests.
+* `conflict-boundary-publications.test.ts` — identity distinction, mutation, and immutability tests.
+* `conflict-boundary-isolation.test.ts` — pure-Node forward/reverse, EOS, hidden-import, and hash proofs.
+
+## Ruleset
+
+* **Ruleset ID:** `conflict-evaluation-ruleset:daeba1245e51a71b2bf733493681ef66f9b9246880949d33162b5cfcda5dbae6`
+* **Schema version:** `1`
+* **Ruleset version:** `1.0.0`
+* **Root taxonomy version:** `3.90`
+* **Root taxonomy:** all three Sprint 3.90 classes.
+* **Executable class:** exactly `source_value_contradiction`.
+* **Deferred classes:** exactly `policy_incompatibility` and `temporal_commitment_incompatibility`.
+* **Eligible claim type:** exactly `contact_address_lookup`.
+* **Eligible source type:** exactly `governed_contact_observation`.
+* **Comparison key:** exactly `resolved_contact_address`.
+* **Normalization:** NFC, trim whitespace, extract an already-structured angle address, exclude display names, lowercase exact comparison, and perform no alias equivalence or mailbox inference.
+* **Status restriction:** `insufficient_coverage`.
+* **No-conflict rule:** complete single-cell evaluation linked to a real zero-conflict set.
+* **Closure:** there is no extension map or runtime registration API.
+
+## Engine
+
+The pure dedicated engine consumes the immutable ruleset, one real Sprint 3.91 `GovernedClaimSet`, source-owned observations, requested class, comparison time, publication time, and an evaluation-event discriminator. It validates strict existing claim linkage; source identity, ownership, provenance, availability, coverage, content kind, and factual normalization; and the supported claim/class boundary. It compares only same-claim, same-entity, same-key, same-scope, current observations. Its canonical relation key is claim, entity, key, scope, canonically ordered sources, and fixed rule. It deduplicates relations before constructing canonical conflicts. Fully evaluated runs publish an evaluation and a linked conflict set; unavailable, unsupported, and failed runs publish an evaluation but no authoritative set.
+
+## Central Contradiction Proof
+
+The fixture creates a real `contact_address_lookup` claim through Sprint 3.91's exported `constructGovernedClaimSet`:
+
+* **Claim ID:** `governed-claim:2a304abd22148ca1472a15f165b5936660aa8f68454a3ef44129645b38819c63`
+* **Source A:** `source-publication:contacts-a`, owner `source-owner:contacts-a`, value `cassie.primary@example.com`.
+* **Source B:** `source-publication:contacts-b`, owner `source-owner:contacts-b`, value `cassie.hayward@example.org`.
+* **Evaluation outcome:** `evaluated_conflict_found`.
+* **Evaluation ID:** `conflict-evaluation:dd96cb67c69f33ff5bd0658ff87c86c4160fc665250e4004a82a330b9d152494` in the recorded report run.
+* **Conflict-set ID:** `governed-conflict-set:207aaf8a99917c59a1b60294b92504a80d65295ffb305847af8d29e334b6f2c6` in that run.
+* **Conflict ID:** `governed-conflict:fafcbb2ffea079aaece71c29b28385c223b8df76d452a6e26f5d653791527035`.
+* **Affected claims:** exactly the real claim above.
+* **Restriction:** `insufficient_coverage`.
+* **Preservation:** both original and normalized incompatible values and both source/owner identities remain present.
+* **Adjudication:** no winning or correct source field exists or is selected.
+
+The test enters through the real conflict engine and obtains exactly one conflict; it does not instantiate the expected conflict directly.
+
+## No-Conflict Proof
+
+Two complete available observations that normalize to the same address produce `evaluated_no_conflict`, one complete `no_match` cell record, and the linked zero-conflict set `governed-conflict-set:c9b614239a33b08f2ccfdba16713546152a24236f3c758e72090e89b9d961328` in the report run. The evaluation identifies the ruleset, claim set, claim, class, source publications, owners, availability references, coverage references, scope, and comparison time. This is structurally different from no engine invocation: no claim set returns no evaluation at all, while evaluated no-conflict returns both an immutable evaluation publication and authoritative zero-conflict set.
+
+## Other Evaluation Outcomes
+
+* **`evaluation_unavailable`:** source silence, insufficient coverage, an unavailable publication, and an unavailable marker all produce an exact unavailable/coverage reason, no conflict, and no zero-conflict set.
+* **`evaluation_unsupported`:** `message_importance` and each deferred class produce an exact unsupported reason, no generic comparison, and no conflict set.
+* **`evaluation_failed`:** an unknown affected claim and a malformed/non-normalizable address fail closed with `evaluator_failure`, no conflict, and no authoritative set.
+
+## Six-State Vocabulary and `partially_evaluated` Reachability
+
+`ConflictEvaluationOutcome` and the immutable ruleset declare all six binding Sprint 3.90 outcomes: `evaluated_no_conflict`, `evaluated_conflict_found`, `partially_evaluated`, `evaluation_unavailable`, `evaluation_unsupported`, and `evaluation_failed`.
+
+`partially_evaluated` is structurally unreachable in Part 1's single-cell scope: one `contact_address_lookup` claim type × one executable `source_value_contradiction` class produces exactly one cell, which cannot be partitioned into at least one evaluated and at least one unevaluated cell. The required engine test runs representative conflict-found, unavailable, and failed Part 1 scenarios, asserts that none produces `partially_evaluated`, and passed. This state is declared and proven unreachable in this scope; it is not omitted, unimplemented, or deferred.
+
+## Identity Integrity
+
+Ruleset, evaluation event, governed conflict set, and individual conflict use four distinct identity prefixes and domains. Tests prove those identities are pairwise distinct and distinct from claim, claim-set, and exchange identities. Ruleset normalization mutation changes the ruleset ID; source/value/event mutations change evaluation and conflict identities. All publication bodies and nested collections are deeply frozen. Evaluation-to-set linkage does not make the set ID part of the event identity, avoiding circular identity aliasing while preserving the immutable link.
+
+## EOS Boundary
+
+No new conflict runtime module imports EOS code, reuses an EOS type, invokes an EOS algorithm, maps an EOS identity, or references EOS conflict semantics. Pure-Node scans using `node:fs` and `node:crypto` prove zero prohibited imports/references. The two inspected EOS assembly files remained byte-identical.
+
+## Composer Boundary
+
+> Sprint 3.92's engine runs upstream of the projection composer. The composer was not modified and does not derive conflicts.
+
+The engine produces complete evaluation, set, and individual conflict publications without invoking the composer.
+
+## Existing Conflict Types
+
+The new `CanonicalGovernedConflict` is the rich Sprint 3.90 publication: it carries class, affected claim list, source publications and owners, comparison key/scope, values, rule, coverage, restriction, evaluation time, and its own content identity. The older `GovernedConflict` remains a singular-claim legacy/response-envelope view with `governedReference` and `compatibilityContextId`. `GovernedConflictInput` remains a five-field projection view (`conflictId`, `sourceOwners`, `affectedClaimIds`, `statusRestriction`, `descriptionReference`). Neither older type was relabeled or modified. A later separately authorized adapter will be required to derive the projection view from the richer canonical publication.
+
+## Deferred-Class Proof
+
+Requests for `policy_incompatibility` and `temporal_commitment_incompatibility` both return `evaluation_unsupported` with `conflict_class_unsupported`. Neither evaluator exists, neither request publishes a conflict set, and neither is misreported as evaluated no-conflict.
+
+## Isolation Proof
+
+Pure-Node tests perform all searches without `rg`, shell execution, or `execFileSync`. Forward search found zero conflict-boundary imports in the four production conversational entry files. Reverse search found zero imports from production routes/context/hooks/agents/components and zero EOS semantic imports or references. A repository scan found no hidden production consumer. Hash tests prove production, composer, Sprint 3.91 core, and inspected EOS files byte-identical.
+
+## Files Changed
+
+* `docs/SPRINT-3.92-ISOLATED-GOVERNED-CONFLICTS-BOUNDARY-IMPLEMENTATION.md` — appended this completion report while preserving the specification.
+* `lib/governed-conversation/claim-boundary-conflict-fixture-adapter.ts` — added isolated access to the real Sprint 3.91 public type and constructor for fixtures only.
+* `lib/governed-conversation/conflict-boundary-types.ts` — added closed Part 1 publication and source types.
+* `lib/governed-conversation/conflict-boundary-ruleset.ts` — added the immutable source-value ruleset.
+* `lib/governed-conversation/conflict-boundary-publications.ts` — added deep-immutable identity constructors.
+* `lib/governed-conversation/conflict-boundary-engine.ts` — added the dedicated deterministic engine.
+* `lib/governed-conversation/conflict-boundary-fixtures.ts` — added isolated synthetic Cassie observations and real constructed claim sets.
+* `lib/governed-conversation/conflict-boundary-ruleset.test.ts` — added ruleset proof.
+* `lib/governed-conversation/conflict-boundary-engine.test.ts` — added evaluation and central behavior proof.
+* `lib/governed-conversation/conflict-boundary-publications.test.ts` — added identity proof.
+* `lib/governed-conversation/conflict-boundary-isolation.test.ts` — added pure-Node isolation/EOS/hash proof.
+
+No existing code or test file was modified.
+
+## Protected Files
+
+| File | Pre SHA-256 | Post SHA-256 |
+| --- | --- | --- |
+| `app/api/chat/route.ts` | `503840ffa6c17f52a049c1aaaad4e8402c000904dd3b7ce868104a10c6ba08a3` | `503840ffa6c17f52a049c1aaaad4e8402c000904dd3b7ce868104a10c6ba08a3` |
+| `lib/context-builder.ts` | `8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d` | `8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d` |
+| `lib/useAgentConversation.ts` | `55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97` | `55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97` |
+| `lib/agents/chat-execution.ts` | `da387b401acd4cc87609112e7b110451254af16bb33d8dd5224c4fb9aa210a88` | `da387b401acd4cc87609112e7b110451254af16bb33d8dd5224c4fb9aa210a88` |
+| `lib/governed-conversation/projection-composer.ts` | `b3fd03097cf8c4ff88fe3a07679566a72cd1e8aaa8bf0bf2cb4ea9948064dc76` | `b3fd03097cf8c4ff88fe3a07679566a72cd1e8aaa8bf0bf2cb4ea9948064dc76` |
+| `lib/governed-conversation/claim-boundary-types.ts` | `cd5446f7f6bedb567be4b1bc7195c96f94b6b23bec82864102a090db49d6436a` | `cd5446f7f6bedb567be4b1bc7195c96f94b6b23bec82864102a090db49d6436a` |
+| `lib/governed-conversation/claim-boundary-ruleset.ts` | `afe7fce7814b2d02da8e6ebecfbff2c721abf418bdfd426cf689340d898a8e83` | `afe7fce7814b2d02da8e6ebecfbff2c721abf418bdfd426cf689340d898a8e83` |
+| `lib/governed-conversation/claim-boundary-engine.ts` | `9ab35f47190e803468003a9accd34e0cc613e9438c8077a882d0b108d22f827a` | `9ab35f47190e803468003a9accd34e0cc613e9438c8077a882d0b108d22f827a` |
+| `lib/governed-conversation/claim-boundary-publications.ts` | `ccd7caa39316eb2fce1c7c8c8eda3741d0182eb12a123de9f7860e8225aa7c95` | `ccd7caa39316eb2fce1c7c8c8eda3741d0182eb12a123de9f7860e8225aa7c95` |
+| `lib/executive-operating-system/situational-awareness/assembly/engine.ts` | `b5407703ee42b8fe348341709d1db7e56d11b24128feb6f9619ea1164b6fcc37` | `b5407703ee42b8fe348341709d1db7e56d11b24128feb6f9619ea1164b6fcc37` |
+| `lib/executive-operating-system/situational-awareness/assembly/types.ts` | `61495a5f45672ac1290e38a354416f5e1942be6181637b119e9b10fb46f9c948` | `61495a5f45672ac1290e38a354416f5e1942be6181637b119e9b10fb46f9c948` |
+
+## Targeted Tests
+
+* `npm test -- --run lib/governed-conversation/conflict-boundary-ruleset.test.ts lib/governed-conversation/conflict-boundary-engine.test.ts lib/governed-conversation/conflict-boundary-publications.test.ts lib/governed-conversation/conflict-boundary-isolation.test.ts` — passed: 4 files, 19 tests.
+* `npm test -- --run lib/governed-conversation/claim-boundary-isolation.test.ts lib/governed-conversation/conflict-boundary-isolation.test.ts` — passed: 2 files, 8 tests, proving old and new isolation contracts together.
+* `node --import tsx -e <real engine contradiction/no-conflict inspection>` — passed and reproduced the ruleset, claim, evaluation, conflict-set, conflict, preserved values, restriction, and zero-set identities recorded above.
+
+## Full Validation
+
+* `npm test` — passed: 141 test files; 695 passed and 1 skipped (696 total).
+* `npm run build` — passed: optimized production build, lint/type validation, page generation, and trace collection completed. Google Fonts stylesheet optimization was skipped after a network download failure; compilation and generation succeeded.
+* `npm run lint` — passed with no ESLint warnings or errors.
+* `npm run typecheck` — passed; `tsc --noEmit` exited successfully.
+* `git diff --check` — passed with no whitespace errors.
+
+## Production Effect
+
+> Sprint 3.92 changes no live conversational behavior and performs no production integration.
+
+## Outstanding Findings
+
+Only `source_value_contradiction` is executable. Policy and temporal commitment incompatibilities remain deferred and explicitly unsupported. Source observations are synthetic isolated publications, not a production evidence registry. Alias identity, source precedence/adjudication, multi-claim/cross-set evaluation, persistence, composer adaptation, operator verification, and production wiring remain out of scope. The claim and conflict engines are not composed here; the adapter only constructs fixtures through Sprint 3.91's real public constructor. This implementation is not production readiness or promotion evidence.
+
+## Next Step
+
+The next permitted sprint is:
+
+`Sprint 3.93 — Governed Claims and Conflicts Composition Evaluation`
+
+That sprint may prove the bounded claims-to-conflicts composition separately; it must not be inferred from this isolated implementation.
+
+**Implementation Complete**

@@ -7,6 +7,8 @@ import {
   type DawnwatchPresentationInput,
 } from "./dawnwatch-presentation";
 import type { OperationalState } from "./operational-state";
+import { projectProductionGmailEvidence } from "./executive-context/gmail-production-evidence";
+import { buildProductionDawnwatchInput } from "./dawnwatch-presentation-selection";
 
 export const DAWNWATCH_EVALUATION_REFERENCE_TIME = "2026-07-31T12:00:00Z";
 export const DAWNWATCH_EVALUATION_LOCALE = "en-AU" as const;
@@ -16,7 +18,11 @@ export type DawnwatchEvaluationScenario =
   | "shared-priority-observation"
   | "empty-evidence"
   | "unavailable-evidence"
-  | "tomorrow-afternoon";
+  | "tomorrow-afternoon"
+  | "recipient-evidence-available"
+  | "recipient-evidence-unknown"
+  | "recipient-evidence-not-fetched"
+  | "recipient-evidence-not-authorised";
 
 export type DawnwatchBehaviouralClassification =
   | "Equivalent"
@@ -49,7 +55,7 @@ export interface DawnwatchComparisonEvidence {
 }
 
 export interface DawnwatchEvaluationResult {
-  readonly evaluationVersion: "sprint-3.66-v1";
+  readonly evaluationVersion: "sprint-3.71-v1";
   readonly fixtureNotice: "SYNTHETIC_EVALUATION_ARTEFACT_NOT_AUTHENTICATED_OPERATIONAL_EVIDENCE";
   readonly scenario: DawnwatchEvaluationScenario;
   readonly context: {
@@ -155,6 +161,40 @@ export function dawnwatchEvaluationFixture(scenario: DawnwatchEvaluationScenario
       day: "SAT", time: "10:00", source: "google", calendarId: "primary", calendarName: "Evaluation", status: "confirmed",
     }];
   }
+  if (scenario === "recipient-evidence-available") {
+    state.gmailRecipientEvidence = projectProductionGmailEvidence({
+      messages: [], observedAt: "2026-07-31T11:05:00.000Z",
+      snapshotId: "google-gmail:gmail-evaluation-1@2026-07-31T11:05:00.000Z",
+      observations: [{ id: "gmail-evaluation-1", internalDate: "1785495600000", retrievedAt: "2026-07-31T11:05:00.000Z",
+        payload: { headers: [
+          { name: "Message-ID", value: "<evaluation-1@example.test>" },
+          { name: "From", value: "Sender <sender@example.test>" },
+          { name: "To", value: "\"Smith, John\" <john@example.test>" },
+          { name: "Date", value: "2026-07-31T11:00:00.000Z" },
+        ] } }],
+    });
+  }
+  if (scenario === "recipient-evidence-unknown") {
+    state.gmailRecipientEvidence = {
+      sourceId: "google-gmail", availability: "available", state: "unknown",
+      observedAt: "2026-07-31T11:05:00.000Z", snapshotId: "google-gmail:partial@2026-07-31T11:05:00.000Z",
+      communications: [{ messageId: "<partial@example.test>", sender: "sender@example.test",
+        recipients: ["valid@example.test"], recipientEvidence: "unknown", sentAt: "2026-07-31T11:00:00.000Z",
+        references: [], provenance: { gmailMessageId: "partial", retrievedAt: "2026-07-31T11:05:00.000Z",
+          hasAttachment: false, unread: false, multipart: false, htmlOnly: false } }],
+    };
+  }
+  if (scenario === "recipient-evidence-not-fetched" || scenario === "recipient-evidence-not-authorised") {
+    const recipientEvidence = scenario === "recipient-evidence-not-fetched" ? "not_fetched" : "not_authorised";
+    state.gmailRecipientEvidence = {
+      sourceId: "google-gmail", availability: "available", state: recipientEvidence,
+      observedAt: "2026-07-31T11:05:00.000Z", snapshotId: `google-gmail:${recipientEvidence}@2026-07-31T11:05:00.000Z`,
+      communications: [{ messageId: `<${recipientEvidence}@example.test>`, sender: "sender@example.test",
+        recipients: [], recipientEvidence, sentAt: "2026-07-31T11:00:00.000Z", references: [],
+        provenance: { gmailMessageId: recipientEvidence, retrievedAt: "2026-07-31T11:05:00.000Z",
+          hasAttachment: false, unread: false, multipart: false, htmlOnly: false } }],
+    };
+  }
   return state;
 }
 
@@ -183,6 +223,26 @@ export function runDawnwatchScenario(scenario: DawnwatchEvaluationScenario): Daw
       legacyContext: "Sprint 3.63 records index-zero calendar selection as incomplete and potentially correct only by coincidence; it is not a semantic temporal-window answer.",
     };
   }
+  if (scenario.startsWith("recipient-evidence-")) {
+    const productionInput = buildProductionDawnwatchInput(input);
+    const governedOutput = buildDawnwatchPresentation(productionInput, {
+      ...configuration,
+      referenceTime: input.updatedAt,
+      sourceScope: productionInput.sources.map(item => item.id),
+    });
+    const recipientState = input.gmailRecipientEvidence?.state;
+    return {
+      input, capability: "Gmail recipient evidence", legacyOutput, governedOutput,
+      legacyComparable: { communicationClaim: legacyOutput.match(/Communications clear\./)?.[0] ?? null },
+      governedComparable: {
+        evidenceStatuses: [governedOutput.communications.status],
+        observations: governedOutput.communications.observations,
+        recipientEvidence: recipientState,
+        sourceAvailability: productionInput.sources.find(item => item.id === "google-gmail")?.availability,
+      },
+      legacyContext: "Legacy DAWNWATCH does not consume canonical Gmail recipient evidence.",
+    };
+  }
   const governedOutput = buildDawnwatchPresentation(governedInput(input, scenario), configuration);
   const evidenceScenario = scenario === "empty-evidence" || scenario === "unavailable-evidence";
   const legacyComparable = evidenceScenario
@@ -201,7 +261,7 @@ export function runDawnwatchScenario(scenario: DawnwatchEvaluationScenario): Daw
 export function evaluateDawnwatchScenario(scenario: DawnwatchEvaluationScenario): DawnwatchEvaluationResult {
   const { input, ...runtime } = runDawnwatchScenario(scenario);
   return {
-    evaluationVersion: "sprint-3.66-v1",
+    evaluationVersion: "sprint-3.71-v1",
     fixtureNotice: "SYNTHETIC_EVALUATION_ARTEFACT_NOT_AUTHENTICATED_OPERATIONAL_EVIDENCE",
     scenario,
     context: { referenceTime: DAWNWATCH_EVALUATION_REFERENCE_TIME, locale: DAWNWATCH_EVALUATION_LOCALE, viewerTimeZone: DAWNWATCH_EVALUATION_TIME_ZONE },
@@ -212,4 +272,5 @@ export function evaluateDawnwatchScenario(scenario: DawnwatchEvaluationScenario)
 
 export const DAWNWATCH_EVALUATION_SCENARIOS: readonly DawnwatchEvaluationScenario[] = [
   "shared-priority-observation", "empty-evidence", "unavailable-evidence", "tomorrow-afternoon",
+  "recipient-evidence-available", "recipient-evidence-unknown", "recipient-evidence-not-fetched", "recipient-evidence-not-authorised",
 ];

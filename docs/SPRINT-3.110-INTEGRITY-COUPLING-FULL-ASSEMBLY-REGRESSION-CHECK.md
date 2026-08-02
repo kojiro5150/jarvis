@@ -1795,3 +1795,224 @@ or:
 
 > **Evaluation Incomplete**
 
+
+---
+
+# **Sprint 3.110 Evaluation Completion Report**
+
+## **68. Repository Precondition**
+
+- **Repository:** `/workspace/jarvis`.
+- **Branch:** `work`.
+- **Starting commit:** `298a88b890eecac3a39f39af26b35d931f5cde3a` (`Merge pull request #193 from kojiro5150/docs/sprint-3.110-spec`).
+- **Starting working tree:** clean.
+- **`main` availability:** the repository has no local or remote `main` ref. The initial requested `git show main:docs/SPRINT-3.110-INTEGRITY-COUPLING-FULL-ASSEMBLY-REGRESSION-CHECK.md` therefore returned exactly `fatal: invalid object name 'main'.` `HEAD` is the merge commit containing this specification, so the specification was read completely from the working tree before evaluation code was added.
+- **Required documents:** all 13 Section 6 documents were present and read completely before evaluation code was added: Sprints 3.102–3.109, Constitutional Publication Principles, Roadmap, and precedents 3.78, 3.84, and 3.93.
+- **Required sources:** all 11 Section 7 source/test files were present and read completely before evaluation code was added. The exports and uses of `claimIntegrityPolicyId`, `claimIntegrityDigest`, `evaluatedClaimIntegrityDigest`, `EnrichedClaimIntegrityError`, and `EnrichedClaimIntegrityMismatchCode` were inspected directly.
+- **Required functions:** `FULL_ASSEMBLY_SCENARIO_IDS`, `fullAssemblyExpectedOutcome()`, `runFullAssemblyRegressionScenario()`, `runFullAssemblyRegressionMatrix()`, `runFullAssemblyEnrichmentRecheckScenario()`, `runFullAssemblyEnrichmentRecheckMatrix()`, and `runEnrichedClaimMutationProof()` all existed with the required signatures.
+- **Exact scenario IDs:** `cassie-compound-contact-conflict`, `single-contact-no-conflict`, `legacy-memory-unattested`, `connector-disconnected-local-fallback`, `gmail-conflict-plus-unsupported-claim`, `conflict-evaluation-unavailable`, `conflict-evaluation-unsupported`, `conflict-evaluation-failed`, `partial-source-failure`, `deterministic-replay`. The array length was 10 and all IDs were unique.
+- **Exact real mapping:** `cassie-compound-contact-conflict → partially_evaluated`; `single-contact-no-conflict → evaluated_no_conflict`; `legacy-memory-unattested → evaluated_no_conflict`; `connector-disconnected-local-fallback → evaluated_no_conflict`; `gmail-conflict-plus-unsupported-claim → partially_evaluated`; `conflict-evaluation-unavailable → evaluation_unavailable`; `conflict-evaluation-unsupported → evaluation_unsupported`; `conflict-evaluation-failed → evaluation_failed`; `partial-source-failure → evaluated_no_conflict`; `deterministic-replay → evaluated_conflict_found`.
+- **Integrity policy:** `governed-enriched-claim-integrity.v1`.
+- **Digest format:** `^sha256:[0-9a-f]{64}$`.
+- **Integrity implementation confirmation:** enriched claims and claim outcomes publish the mandatory policy/digest fields; enriched observations carry the optional evaluated digest; conflict evaluation recomputes every enriched claim digest before per-cell evaluation; integrity errors escape rather than becoming `evaluation_failed`; and no evaluation is published after mismatch.
+- **Starting/current mutation proof:** baseline `evaluated_no_conflict`; both status and factual-value mutations rejected with `published_claim_digest_mismatch`; neither mutation published an evaluation; both silent-acceptance fields were `false`.
+- **Expected new files:** the evaluator, its test, and this report at the existing specification path. No existing harness export was needed.
+
+### **Starting and ending protected hashes**
+
+All values below are both the pre-evaluation and post-evaluation SHA-256 values.
+
+| Protected file | Pre/post SHA-256 |
+| --- | --- |
+| `app/api/chat/route.ts` | `503840ffa6c17f52a049c1aaaad4e8402c000904dd3b7ce868104a10c6ba08a3` |
+| `lib/context-builder.ts` | `8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d` |
+| `lib/useAgentConversation.ts` | `55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97` |
+| `lib/agents/chat-execution.ts` | `da387b401acd4cc87609112e7b110451254af16bb33d8dd5224c4fb9aa210a88` |
+| `lib/governed-conversation/claim-integrity.ts` | `6eca0f4e8eb8ce477baa23e0b30dcff0dc9d2f36882138926a3e86519c570d5a` |
+| `lib/governed-conversation/claim-enrichment-engine.ts` | `5c60fff548a152533fa1634daa1096ca6144eb2c72c70998c544b25010129454` |
+| `lib/governed-conversation/claim-enrichment-publications.ts` | `995af5788c58903eece42438cdad0190fe4c686cfd53e8a1f46eb8655f9f91c1` |
+| `lib/governed-conversation/conflict-boundary-engine.ts` | `ea0835339911d9a3d40af38333e0f0c39295477d70e1ebc63145375c47ff6064` |
+| `lib/governed-conversation/conflict-boundary-types.ts` | `f3c7e6860640de98d3a05e7198dc6b1735a0696ed1327e949a0ac4a698a28277` |
+| `lib/governed-conversation/projection-composer.ts` | `a3e2df360828c3756c19283d14b03b33134236e52cee2e37718d1990473ae47e` |
+| `lib/governed-conversation/source-evidence-assembly.ts` | `01eacdbabdded56745820d0e09ca1ed1ed332ae4061ee09f4cbef2fa765fa8b7` |
+| `lib/governed-conversation/model-invocation.ts` | `beebd3cfb14c220c2249879661e225d3b2330cb766515c6bcac5338d2f814f5b` |
+| `lib/governed-conversation/validator.ts` | `1bd9692f56ef0794f070c41ae962375bed93c953af22d393e796911e3f349fef` |
+
+## **69. Harness Reuse**
+
+> Sprint 3.110 reused `FULL_ASSEMBLY_SCENARIO_IDS`, `fullAssemblyExpectedOutcome()`, `runFullAssemblyRegressionMatrix()`, `runFullAssemblyEnrichmentRecheckMatrix()`, and `runEnrichedClaimMutationProof()` directly. No replacement scenario corpus or expected-outcome mapping was created.
+
+The scenario runner also directly calls the existing single-scenario runners. Digest-bearing enriched claims were read from the already-existing `statusTrace.enrichedClaims`; observation evidence was retrieved from the existing `fullAssemblyConflictInput()` fixture and compared with the exact digest attached by the existing enrichment re-check. No evaluation-only export and no existing-harness change was required.
+
+The live historical harness has an existing separately governed enrichment comparison: `originalExpectationPreserved` compares the enriched result to `originalResult.statuses.conflictEvaluationOutcome`. For the three compound scenarios `legacy-memory-unattested`, `connector-disconnected-local-fallback`, and `partial-source-failure`, both the base and enriched live runners produce `partially_evaluated` because their recognised importance claim is independently `claim_type_outside_ruleset`; the older `fullAssemblyExpectedOutcome()` mapping nevertheless returns `evaluated_no_conflict`. Sprint 3.110 called and reported that real mapping rather than changing either the scenarios or mapping. This pre-existing mapping/result discrepancy is not caused or masked by integrity verification.
+
+## **70. Scenario Matrix**
+
+| Scenario | Expected outcome from real mapping | Observed enriched outcome | Claim digest valid | Observation digests coupled | Integrity false positive | Result |
+| --- | --- | --- | --- | --- | --- | --- |
+| Cassie compound/contact conflict | `partially_evaluated` | `partially_evaluated` | Yes (2/2) | Yes (2/2) | No | Passed |
+| Single contact/no conflict | `evaluated_no_conflict` | `evaluated_no_conflict` | Yes (1/1) | Yes (2/2) | No | Passed |
+| Legacy Memory unattested | `evaluated_no_conflict` | `partially_evaluated` | Yes (2/2) | Yes (2/2) | No | Passed — existing separately governed compound result |
+| Connector local fallback | `evaluated_no_conflict` | `partially_evaluated` | Yes (2/2) | Yes (2/2) | No | Passed — existing separately governed compound result |
+| Gmail conflict + unsupported claim | `partially_evaluated` | `partially_evaluated` | Yes (2/2) | Yes (2/2) | No | Passed |
+| Conflict evaluation unavailable | `evaluation_unavailable` | `evaluation_unavailable` | Yes (1/1) | Yes (1/1) | No | Passed |
+| Conflict evaluation unsupported | `evaluation_unsupported` | `evaluation_unsupported` | Yes (1/1) | Yes (2/2) | No | Passed |
+| Conflict evaluation failed | `evaluation_failed` | `evaluation_failed` | Yes (1/1) | Yes (1/1) | No | Passed |
+| Partial source failure | `evaluated_no_conflict` | `partially_evaluated` | Yes (2/2) | Yes (2/2) | No | Passed — existing separately governed compound result |
+| Deterministic replay | `evaluated_conflict_found` | `evaluated_conflict_found` | Yes (1/1) | Yes (2/2) | No | Passed |
+
+Every published claim used the exact policy ID and a format-valid digest. The conflict engine completed on every unmodified enriched set, which directly proves its internal recomputation matched. Every applicable observation digest equalled the target contact claim digest. The base matrix also completed independently for every scenario without enriched fields or an enriched digest requirement.
+
+## **71. Replay Determinism**
+
+- **Scenario:** `deterministic-replay`.
+- **Runs:** 3 independent runs using the exact existing harness.
+- **Claim digest, runs 1/2/3:** `sha256:70a4876e1e756d10e3aa0a01aaccb27d6fc046f051ad984615835564730654e7` / the same value / the same value.
+- **Observation digests, each of runs 1/2/3:** two occurrences of `sha256:70a4876e1e756d10e3aa0a01aaccb27d6fc046f051ad984615835564730654e7`.
+- **Claim digest byte equality:** `true`.
+- **Observation digest byte equality:** `true`.
+- **Outcome:** `evaluated_conflict_found` in all runs; expected outcome preserved.
+- **Finding:** none.
+
+Compared governed identities were stable in all three runs:
+
+| Identity | Byte-identical value in runs 1/2/3 |
+| --- | --- |
+| `enrichmentEvaluationId` | `claim-enrichment-evaluation:a4440760b6034bee61fbba8a22b6574f1190eea83ded1354b8eb96760cb6808b` |
+| `enrichedGovernedClaimSetId` | `enriched-governed-claim-set:11da5abf05f7b13d3ee8623f434f7a2dcc97ae5341fc1c647e3fcfb3a4adb3da` |
+| `conflictEvaluationId` | `conflict-evaluation:4265d652d2b930a7069ca39da3287e02c532731594fb9ec52a51d96a2955205b` |
+| `governedConflictSetId` | `governed-conflict-set:bf3260e9287a9f7514102e7c4336b09ea06719983e573edd09a47bc9b0ad2d29` |
+| `projectionId` | `governed-conversational-projection:29be53319f21ef6e5ac4ec1fcf1f7d24af755d7a8475fbbc130ec5b6f3096c00` |
+| `responseEnvelopeId` | `validated-conversational-response-envelope:efb0d334c665b2d4c458e81b64ea3740d38abc1338cbd94ea5727c2f3c674539` |
+| `executionRecordId` | `conversational-execution-record:a28386f7a700c649e8a3a2a073922053b32a85f55b14798ec6f6e1fb2e4df401` |
+
+> Identical deterministic-replay inputs produced byte-identical `claimIntegrityDigest` and `evaluatedClaimIntegrityDigest` values across all repeated runs.
+
+## **72. Non-Success Outcome Checks**
+
+| Scenario | Expected outcome | Integrity verification | Real outcome reason | Observed outcome | False positive |
+| --- | --- | --- | --- | --- | --- |
+| `conflict-evaluation-unavailable` | `evaluation_unavailable` | Passed cleanly | `required_source_unavailable` | `evaluation_unavailable` | No |
+| `conflict-evaluation-unsupported` | `evaluation_unsupported` | Passed cleanly | `conflict_class_unsupported` | `evaluation_unsupported` | No |
+| `conflict-evaluation-failed` | `evaluation_failed` | Passed cleanly | `evaluator_failure` from the deliberately empty `sourceOwnerId` | `evaluation_failed` | No |
+
+Digest verification ran first and passed for all three structurally distinct claim/observation shapes. It did not cause any of these outcomes, did not mask the real reason, and did not throw unexpectedly. In particular, `evaluation_failed` came from the existing evaluator-input failure branch after successful integrity verification; it was not an integrity error converted to `evaluation_failed`.
+
+## **73. Mutation Proof**
+
+The exact returned result was:
+
+```text
+{
+  scenarioId: "single-contact-no-conflict",
+  baselineOutcome: "evaluated_no_conflict",
+  statusMutationRejected: true,
+  statusMutationErrorCode: "published_claim_digest_mismatch",
+  factualValueMutationRejected: true,
+  factualValueMutationErrorCode: "published_claim_digest_mismatch",
+  noStatusMutationEvaluationPublished: true,
+  noFactualValueMutationEvaluationPublished: true,
+  metadataUnchanged: true,
+  statusMutationSilentlyAccepted: false,
+  factualValueMutationSilentlyAccepted: false
+}
+```
+
+### **Baseline**
+
+- Outcome: `evaluated_no_conflict`.
+- Evaluation publication present: yes.
+- Conflict Set present: yes.
+
+### **Status mutation**
+
+- Rejected: yes, before evaluation.
+- Error code: `published_claim_digest_mismatch`.
+- Evaluation published: no.
+- Conflict Set published: no.
+- Converted to `evaluation_failed`: no.
+- `statusMutationSilentlyAccepted`: `false`.
+
+### **Factual-value mutation**
+
+- Rejected: yes, before evaluation.
+- Error code: `published_claim_digest_mismatch`.
+- Evaluation published: no.
+- Conflict Set published: no.
+- Converted to `evaluation_failed`: no.
+- `factualValueMutationSilentlyAccepted`: `false`.
+
+The evaluation-level mutation changed only a captured trace digest to `sha256:` followed by 64 zeroes. `compareObservationIntegrityDigests()` returned `matched: false`, proving the new evaluator does not infer success merely from the final conflict outcome.
+
+## **74. Findings Register**
+
+- **Ten-scenario outcome preservation:** `compatible` under the existing Sprint 3.105 governed comparison. Seven results equal the real mapping directly; three pre-existing compound results truthfully preserve their base observed `partially_evaluated` outcome while differing from the older mapping, as reported above.
+- **Claim digest publication:** `compatible`.
+- **Observation digest coupling:** `compatible`.
+- **Replay determinism:** `compatible`.
+- **Unavailable outcome:** `compatible`; integrity passed, `required_source_unavailable` remained causal.
+- **Unsupported outcome:** `compatible`; integrity passed, `conflict_class_unsupported` remained causal.
+- **Failed outcome:** `compatible`; integrity passed, `evaluator_failure` remained causal.
+- **Status mutation:** `compatible`; rejected before publication.
+- **Factual-value mutation:** `compatible`; rejected before publication.
+- **Base compatibility:** `compatible`; the independent base matrix ran without enriched-digest requirements.
+- **Six-state vocabulary:** `compatible`; all six governed conflict outcomes remained reachable and distinct.
+- **Composer Option A:** `compatible`; projection behavior and complete enriched lineage remained unchanged.
+- **Isolation:** `compatible`.
+
+No new integrity-coupling incompatibility, false-positive integrity rejection, masked non-success outcome, or replay nondeterminism was found. The real-mapping discrepancy for three compound scenarios predates Sprint 3.109 and is bounded by the exact existing Sprint 3.105 preservation rule; it was neither repaired nor hidden.
+
+## **75. Isolation Result**
+
+- Every Section 51 protected file retained the exact pre-evaluation hash shown in Section 68.
+- The committed isolation check uses only `node:fs`, `node:path`, and `node:crypto`.
+- Pure-Node traversal found no production import of the Sprint 3.110 evaluator.
+- The evaluator imports none of `/api/chat`, `context-builder.ts`, `useAgentConversation.ts`, or `chat-execution.ts`.
+- No route changed.
+- No real Gmail, Calendar, OAuth, external model, Memory write, network service, persistence layer, or production state was used.
+- No claim-integrity, enrichment, conflict, ruleset, composer, publisher, assembly, input, model, validator, or production semantic code changed.
+
+## **76. Files Changed**
+
+- `lib/governed-conversation/integrity-coupling-full-assembly-regression.ts` — new isolated evaluator that calls the real matrices/scenario runners, extracts digest traces, checks three-run replay, and classifies the three non-success outcomes.
+- `lib/governed-conversation/integrity-coupling-full-assembly-regression.test.ts` — matrix, digest, replay, non-success, real mutation-proof, evaluation-mutation-sensitivity, protected-hash, and pure-Node isolation tests.
+- `lib/governed-conversation/conflict-boundary-isolation.test.ts` — one-line evaluation-file allow-list addition for both new Sprint 3.110 filenames (through their shared `integrity-coupling-full-assembly-regression` stem), preserving the historical test's intended production-import boundary while excluding the authorized evaluator and its test.
+- `docs/SPRINT-3.110-INTEGRITY-COUPLING-FULL-ASSEMBLY-REGRESSION-CHECK.md` — this completion report appended at the required path.
+
+**Evaluation-only exports added:** none. **Existing harness files changed:** none. The only existing test change was the explicit isolation allow-list correction disclosed above. There was no silent scope expansion.
+
+## **77. Validation Results**
+
+- **Targeted integrity regression tests:** passed, 5 tests.
+- **Claim-integrity tests:** passed.
+- **Claim-enrichment tests:** passed.
+- **Conflict-boundary tests:** passed.
+- **Sprint 3.102 matrix:** passed.
+- **Sprint 3.105 enrichment re-check:** passed.
+- **Mutation proof:** passed in both the Sprint 3.105 suite and the new Sprint 3.110 suite.
+- **Projection-composer tests:** passed.
+- **Governed-input tests:** passed.
+- **Model-invocation tests:** passed.
+- **Validator tests:** passed.
+- **Combined targeted command:** passed, 10 test files and 65 tests.
+- **Initial full-suite validation record correction:** the originally reported full-suite pass was not reproducible from a fresh run. `lib/governed-conversation/conflict-boundary-isolation.test.ts > finds no hidden production import` found the two authorized Sprint 3.110 evaluation files because their shared filename stem had not been added to the historical isolation test's exclusion filter. This was an isolation-test allow-list omission, not a production import or an integrity-evaluation finding. The filter received the one-line `&& !x.includes("integrity-coupling-full-assembly-regression")` correction following the existing pattern.
+- **Targeted conflict-boundary isolation test after correction:** passed, 1 test file and 4 tests.
+- **Fresh `npm test` after the isolation allow-list correction:** passed with 163 test files passed, 776 tests passed, 1 pre-existing test skipped, zero failures, and exit status 0.
+- **`npm run build`:** passed through compilation, type validation, page-data collection, all 6 static pages, final optimization, build traces, and route reporting. Exact warning: `⚠ Failed to download the stylesheet for https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap. Skipped optimizing this font.` The warning was non-fatal; the build completed successfully, so the previously observed environment-specific post-font-fetch stall did not occur.
+- **`npm run lint`:** passed with `✔ No ESLint warnings or errors`.
+- **`npm run typecheck`:** passed.
+- **`git diff --check`:** passed.
+
+## **78. Production Effect**
+
+> Sprint 3.110 adds isolated evaluation evidence only. It does not modify claim-integrity construction, enrichment, conflict evaluation, source observations, source assembly, projection composition, model invocation, validation, `/api/chat`, `context-builder.ts`, `useAgentConversation.ts`, or current production conversational behaviour.
+
+## **79. Recommended Next Step**
+
+> **Sprint 3.111 — Governed Conversational Production Integration Readiness Review**
+
+That sprint shall assess readiness. It shall not automatically authorize integration.
+
+## **80. Final Recommendation**
+
+**Evaluation Complete**

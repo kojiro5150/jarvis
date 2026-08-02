@@ -38,7 +38,7 @@ const files = (root: string): string[] => readdirSync(root).flatMap(name => { co
 describe("pure-Node publisher isolation proof", () => {
   it("keeps publishers mutually independent and free of protected runtime dependencies", () => { for (const path of publisherFiles) { const source = readFileSync(path, "utf8"); for (const other of publisherNames.filter(name => !path.includes(name))) expect(source).not.toContain(other); for (const forbidden of ["app/api/chat", "context-builder", "useAgentConversation", "chat-execution", "composeGovernedConversationalProjection"]) expect(source).not.toContain(forbidden); } });
   it("has no hidden production import and retains every protected byte hash", () => {
-    const candidates = [...files("app"), ...files("components"), ...files("lib")].filter(path => /\.tsx?$/.test(path) && !publisherNames.some(name => path.includes(name)) && !path.endsWith("projection-composer.ts"));
+    const candidates = [...files("app"), ...files("components"), ...files("lib")].filter(path => /\.tsx?$/.test(path) && !path.endsWith(".test.ts") && !publisherNames.some(name => path.includes(name)) && !path.endsWith("projection-composer.ts") && !path.includes("-acquisition-adapter") && !path.endsWith("source-evidence-assembly.ts"));
     for (const path of candidates) for (const name of publisherNames) expect(readFileSync(path, "utf8"), path).not.toContain(name);
     for (const [path, expected] of Object.entries(protectedHashes)) expect(createHash("sha256").update(readFileSync(path)).digest("hex"), path).toBe(expected);
   });

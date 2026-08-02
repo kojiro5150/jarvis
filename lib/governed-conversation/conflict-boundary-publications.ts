@@ -21,6 +21,7 @@ export function constructCanonicalGovernedConflict(body: Omit<CanonicalGovernedC
   return freeze({ ...canonicalBody, conflictId: `governed-conflict:${digest(canonicalBody)}` });
 }
 export function constructConflictEvaluation(body: Omit<ConflictEvaluation, "conflictEvaluationId">, discriminator: string): ConflictEvaluation {
+  required(body.governedClaimSetId && body.threadId && body.requestId && body.exchangeId, "claim-set and conversational lineage are required");
   required(discriminator && ![body.governedClaimSetId, body.exchangeId, body.requestId, body.conflictEvaluationRulesetId].includes(discriminator), "distinct evaluation event discriminator is required");
   const { conflictSetId: _linkedOutput, ...eventBody } = body;
   return freeze({ ...body, conflictEvaluationId: lineageIdentity("conflict-evaluation", { ...eventBody, discriminator }) });
@@ -28,5 +29,6 @@ export function constructConflictEvaluation(body: Omit<ConflictEvaluation, "conf
 export function constructGovernedConflictSet(body: Omit<GovernedConflictSet, "governedConflictSetId">): GovernedConflictSet {
   const canonicalBody = { ...body, conflicts: [...body.conflicts].sort((a, b) => a.conflictId.localeCompare(b.conflictId)), sourcePublicationReferences: [...body.sourcePublicationReferences].sort() };
   required(canonicalBody.conflictEvaluationId !== canonicalBody.governedClaimSetId, "set identities must not alias inputs");
+  required(canonicalBody.conflictEvaluationId && canonicalBody.conflictEvaluationRulesetId && canonicalBody.governedClaimSetId, "canonical conflict-set links are required");
   return freeze({ ...canonicalBody, governedConflictSetId: `governed-conflict-set:${digest(canonicalBody)}` });
 }

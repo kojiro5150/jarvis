@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { canonicalise, lineageIdentity } from "./lineage-types";
-import type { CanonicalGovernedConflict, ConflictEvaluation, ConflictEvaluationRuleset, ConflictEvaluationRulesetBody, GovernedConflictSet } from "./conflict-boundary-types";
+import type { GovernedClaimSet } from "./claim-boundary-types";
+import type { EnrichedGovernedClaimSet } from "./claim-enrichment-types";
+import type { BaseConflictEvaluableClaimSet, CanonicalGovernedConflict, ConflictEvaluation, ConflictEvaluationRuleset, ConflictEvaluationRulesetBody, EnrichedConflictEvaluableClaimSet, GovernedConflictSet } from "./conflict-boundary-types";
 
 const digest = (value: unknown) => createHash("sha256").update(canonicalise(value)).digest("hex");
 function deepFreeze<T>(value: T): T {
@@ -9,6 +11,20 @@ function deepFreeze<T>(value: T): T {
 }
 const freeze = <T>(value: T): T => deepFreeze(structuredClone(value)) as T;
 function required(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message); }
+
+export function constructBaseConflictEvaluableClaimSet(set: GovernedClaimSet): BaseConflictEvaluableClaimSet {
+  required(set.schemaVersion === "1" && Boolean(set.governedClaimSetId), "base claim-set identity is required");
+  required(new Set(set.claimIds).size === set.claimIds.length && set.claims.every(claim => set.claimIds.includes(claim.claimId)), "duplicate or mismatched base claim identity");
+  required(set.segmentLinks.every(link => set.claimIds.includes(link.claimId)), "base segment link references unknown claim");
+  return freeze({ ...set, claimSetKind: "base", claimSetPublicationType: "governed_claim_set", claimSetPublicationId: set.governedClaimSetId });
+}
+export function constructEnrichedConflictEvaluableClaimSet(set: EnrichedGovernedClaimSet): EnrichedConflictEvaluableClaimSet {
+  required(Boolean(set.enrichedGovernedClaimSetId && set.baseGovernedClaimSetId && set.enrichmentEvaluationId), "enriched claim-set lineage is required");
+  required(set.enrichedGovernedClaimSetId !== set.baseGovernedClaimSetId, "base and enriched claim-set identities must differ");
+  required(new Set(set.claimIds).size === set.claimIds.length && set.claims.every(claim => Boolean(claim.baseClaimId) && claim.claimId !== claim.baseClaimId && set.claimIds.includes(claim.claimId)), "invalid enriched claim identity");
+  required(set.segmentLinks.every(link => set.claimIds.includes(link.claimId)), "enriched segment link references unknown claim");
+  return freeze({ ...set, schemaVersion: "1", claimSetKind: "enriched", claimSetPublicationType: "enriched_governed_claim_set", claimSetPublicationId: set.enrichedGovernedClaimSetId });
+}
 
 export function constructConflictEvaluationRuleset(body: ConflictEvaluationRulesetBody): ConflictEvaluationRuleset {
   required(body.rootTaxonomy.length === 3 && body.executableClasses.length === 1 && body.deferredClasses.length === 2, "closed conflict taxonomy is required");

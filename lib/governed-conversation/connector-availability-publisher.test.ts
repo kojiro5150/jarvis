@@ -32,7 +32,7 @@ const protectedHashes: Readonly<Record<string, string>> = {
   "lib/context-builder.ts": "8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d",
   "lib/useAgentConversation.ts": "55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97",
   "lib/agents/chat-execution.ts": "da387b401acd4cc87609112e7b110451254af16bb33d8dd5224c4fb9aa210a88",
-  "lib/governed-conversation/projection-composer.ts": "d66c9dfccf98a428fb58e6db68af171751bfe2b56b602d028f9c212fee958355",
+  "lib/governed-conversation/projection-composer.ts": "a3e2df360828c3756c19283d14b03b33134236e52cee2e37718d1990473ae47e",
 };
 const files = (root: string): string[] => readdirSync(root).flatMap(name => { const path = join(root, name); return statSync(path).isDirectory() ? files(path) : [path]; });
 describe("pure-Node publisher isolation proof", () => {

@@ -2439,3 +2439,245 @@ or:
 
 > **Correction Implementation Incomplete**
 
+
+---
+
+# **Part XXI — Completed Correction Implementation Record**
+
+## **116. Repository Precondition**
+
+* Repository: `/workspace/jarvis`.
+* Active branch at start: `work`.
+* Starting commit: `2c401d433501ce88e73bae0d39749ab012feba92`.
+* Starting working tree: clean.
+* The repository has no local `main` ref or configured remote. As in the finalized Sprint 3.106 record, the merged contract and this specification at `HEAD` were therefore read from the working tree. All thirteen documents required by Section 5 existed and were read completely before code was written. Every source named by Section 7 was also read completely, and the required repository-wide searches were performed.
+* The extracted binding fields were exact: `claimSetKind`, `claimSetPublicationType`, `claimSetPublicationId`, `claimPublicationStage`, `baseGovernedClaimSetId`, `enrichmentRulesetId`, `enrichmentEvaluationId`, `enrichedGovernedClaimSetId`, and `enrichedClaimBaseReferences`.
+* Starting shapes matched Sprint 3.106: `GovernedClaimSet` had a base `governedClaimSetId`; `EnrichedGovernedClaimSet` had a distinct `enrichedGovernedClaimSetId`, `baseGovernedClaimSetId`, and `enrichmentEvaluationId`; `ConflictEngineInput.claimSet` accepted only the historical base shape; conflict publications used only `governedClaimSetId`; projection input/output had no stage or enrichment publication lineage.
+* The existing composer validated Claim Boundary ruleset/evaluation/set identity, exchange lineage, exact claim bodies, conflict evaluation/set linkage, conflict summaries, sources, and non-authoritative history/context. It did not validate enrichment publications.
+* The exact Sprint 3.105 alias was located in `full-assembly-enrichment-composition-recheck.ts` as `{ ...set, schemaVersion: "1" as const, governedClaimSetId: set.enrichedGovernedClaimSetId }` inside `conflictBoundaryView`.
+* `runEnrichedClaimMutationProof()` was confirmed to mutate enriched status and factual values while retaining the independently supplied observations.
+* Expected changes were limited to conflict input/types/publications/engine, projection validation/output, live fixtures/harnesses/tests, isolation hash assertions for authorized files, and this report.
+
+Protected starting hashes were:
+
+```text
+503840ffa6c17f52a049c1aaaad4e8402c000904dd3b7ce868104a10c6ba08a3  app/api/chat/route.ts
+8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d  lib/context-builder.ts
+55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97  lib/useAgentConversation.ts
+da387b401acd4cc87609112e7b110451254af16bb33d8dd5224c4fb9aa210a88  lib/agents/chat-execution.ts
+9ab35f47190e803468003a9accd34e0cc613e9438c8077a882d0b108d22f827a  lib/governed-conversation/claim-boundary-engine.ts
+67cb850e992027f01174f3a23ead072776021f21ade4703f5fdfe544b87eb45b  lib/governed-conversation/claim-enrichment-engine.ts
+01eacdbabdded56745820d0e09ca1ed1ed332ae4061ee09f4cbef2fa765fa8b7  lib/governed-conversation/source-evidence-assembly.ts
+c83ada16f09a7f5e04b4c82d937c05115ef432c9e50a860ad0b30250b3a3039e  lib/governed-conversation/evidence-status.ts
+beebd3cfb14c220c2249879661e225d3b2330cb766515c6bcac5338d2f814f5b  lib/governed-conversation/model-invocation.ts
+1bd9692f56ef0794f070c41ae962375bed93c953af22d393e796911e3f349fef  lib/governed-conversation/validator.ts
+```
+
+## **117. Contract Decisions Implemented**
+
+### **Claim-Set Composition**
+
+> Claim-Set Composition Option A was implemented through a closed `claimSetKind: "base" | "enriched"` discriminated architecture.
+
+### **Projection Lineage**
+
+> Projection Lineage Option A was implemented through conditional but structurally complete enrichment lineage.
+
+The preferred mechanical migration was used: conflict publications temporarily retain `governedClaimSetId`, but its meaning is narrowed permanently to the base Claim Boundary publication identity.
+
+## **118. Exact Implemented Type Shapes**
+
+```ts
+export interface BaseConflictEvaluableClaimSet extends GovernedClaimSet {
+  readonly claimSetKind: "base";
+  readonly claimSetPublicationId: string;
+  readonly claimSetPublicationType: "governed_claim_set";
+}
+
+export interface EnrichedConflictEvaluableClaimSet extends EnrichedGovernedClaimSet {
+  readonly claimSetKind: "enriched";
+  readonly claimSetPublicationId: string;
+  readonly claimSetPublicationType: "enriched_governed_claim_set";
+  readonly schemaVersion: "1";
+}
+
+export type ConflictEvaluableClaimSet =
+  | BaseConflictEvaluableClaimSet
+  | EnrichedConflictEvaluableClaimSet;
+
+export interface EvaluatedClaimSetReference {
+  readonly publicationId: string;
+  readonly publicationType:
+    | "governed_claim_set"
+    | "enriched_governed_claim_set";
+  readonly claimSetKind: "base" | "enriched";
+  readonly schemaVersion: "1";
+}
+```
+
+The pure constructors validate nonempty identities, exact schema, duplicate/mismatched claim IDs, segment-link membership, complete enriched lineage, base/enriched identity inequality, and every enriched `baseClaimId` relationship. They freeze a truthful boundary view and create no new publication identity.
+
+## **119. Conflict Publication Migration**
+
+Both `ConflictEvaluation` and `GovernedConflictSet` now carry `evaluatedClaimSetReference`, `baseGovernedClaimSetId`, and conditionally `enrichmentEvaluationId` and `enrichedGovernedClaimSetId`.
+
+* Base evaluation: the evaluated reference is `{ publicationId: governedClaimSetId, publicationType: "governed_claim_set", claimSetKind: "base", schemaVersion: "1" }`; `governedClaimSetId === baseGovernedClaimSetId`; enrichment fields are absent.
+* Enriched evaluation: the evaluated reference identifies the actual enriched publication; `governedClaimSetId === baseGovernedClaimSetId`; the enrichment evaluation and enriched set IDs are required.
+* The owning Conflict Set receives the identical evaluated reference and lineage.
+* Conflict evaluation and set identities now include this complete body; changing the evaluated publication kind, ID, or conditional lineage changes the derived identity.
+
+> `governedClaimSetId` never contains or aliases `enrichedGovernedClaimSetId`.
+
+The Sprint 3.105 `conflictBoundaryView` function and its alias were deleted. The live enriched harness calls `constructEnrichedConflictEvaluableClaimSet()` and verifies that `evaluatedClaimSetReference.publicationId === enrichedGovernedClaimSetId` while `governedClaimSetId === baseGovernedClaimSetId`.
+
+## **120. Projection Fields and Requiredness**
+
+The projection now publishes:
+
+* mandatory `claimPublicationStage`;
+* mandatory `baseGovernedClaimSetId`, equal to base-lineage `governedClaimSetId`;
+* conditionally complete `enrichmentRulesetId`, `enrichmentEvaluationId`, `enrichedGovernedClaimSetId`, and `enrichedClaimBaseReferences`.
+
+At `base` stage, both enrichment publications and all enrichment output fields are absent, and claims equal the base Claim Set claims. At `enriched` stage, both canonical enrichment publications are required, claims equal the enriched Claim Set claims, all four enrichment output fields are present, the enriched set ID differs from the base ID, and the reference list is deterministically sorted from explicit `{ claimId, baseClaimId }` publication data.
+
+## **121. Composer Validation**
+
+The composer now validates:
+
+1. the explicit `claimPublicationStage`, never an inferred stage;
+2. absence of both enrichment publications at base stage;
+3. presence of both enrichment publications at enriched stage;
+4. enrichment-evaluation base set ID against the base Claim Set;
+5. enriched-set base ID against the base Claim Set;
+6. enriched-set evaluation ID against the enrichment evaluation;
+7. nonempty enrichment ruleset identity;
+8. exact stage-appropriate claim bodies;
+9. every enriched `baseClaimId` exists in the base Claim Set;
+10. every enriched `claimId` differs from its `baseClaimId`;
+11. conflict evaluation base lineage and stage discriminator;
+12. conflict evaluation actual publication ID against the stage-appropriate canonical Claim Set;
+13. enriched conflict evaluation IDs against the supplied enrichment publications;
+14. identical Conflict Set/evaluation evaluated references and conditional lineage;
+15. conflict affected IDs against the stage-appropriate projected claim IDs.
+
+> The composer validates and passes through already-published enrichment lineage. It does not perform claim recognition, evidence resolution, enrichment, conflict derivation, or source adjudication.
+
+A direct source inspection confirms that `projection-composer.ts` imports only publication/type and identity/canonicalization modules. It has no runtime import of the enrichment engine, enrichment ruleset, source resolver, or conflict engine.
+
+## **122. Central Regression Result**
+
+### **Sprint 3.102 matrix**
+
+The real `runFullAssemblyRegressionMatrix()` executed all ten scenario IDs. The matrix regression test passed. Six scenarios retain their historically complete `passed` aggregate; the other four truthfully retain the pre-existing Claim Boundary/enrichment seam finding represented by that historical harness. All ten produced their governed conflict outcomes, and no new regression was observed.
+
+### **Sprint 3.105 re-check**
+
+The real `runFullAssemblyEnrichmentRecheckMatrix()` executed all ten scenario IDs. All ten completed every re-check stage and returned:
+
+```text
+Enriched Claim Set → Conflict Evaluation = compatible
+Projection enrichment lineage = compatible
+```
+
+The prior `bounded-adapter-needed` result is corrected by the truthful enriched discriminator and publication identity. The prior projection `semantic-incompatibility` is corrected by complete validated enrichment lineage. No check was weakened: the assertions now verify the corrected governed reason rather than the former alias.
+
+For the Cassie compound scenario, the base set remains immutable, enriched claims retain distinct IDs, the engine evaluates the enriched publication, contact conflict cells use enriched IDs, importance remains independently ineligible, the projection is enriched and restricted, and no source owner is selected. For the single-contact scenario, base status remains `insufficient_coverage`, enriched status becomes `available`, conflict outcome is `evaluated_no_conflict`, effective projected status remains `available`, and complete lineage survives. Base-only callers use `constructBaseConflictEvaluableClaimSet()` and continue to publish base-stage projections without synthetic enrichment fields.
+
+## **123. Identity Integrity**
+
+The scenario proof records distinct base and enriched Claim Set IDs. The evaluated publication ID is the enriched ID; base lineage remains the original `governedClaimSetId`; the enrichment evaluation ID is retained in conflict and projection publications; and every projection reference explicitly links an enriched claim ID to its different base claim ID. Repository search found no assignment of an enriched identity to `governedClaimSetId`.
+
+## **124. Composer Option A Proof**
+
+Runtime imports remain limited to `lineage-types`; all other relevant imports are types. Pure-Node searches found no composer dependency on claim recognition, enrichment execution/ruleset, evidence resolution, conflict execution, a model, or a production route. Tests exercise complete/incomplete publication groups, mismatch rejection through the centralized validation path, lineage pass-through, deterministic projection identity, and unchanged effective-status aggregation. Derivation ownership remains with its existing upstream publisher.
+
+## **125. Mutation Proof**
+
+The exact existing `runEnrichedClaimMutationProof()` ran after mechanical migration to the enriched constructor and returned:
+
+```json
+{
+  "scenarioId": "single-contact-no-conflict",
+  "baselineOutcome": "evaluated_no_conflict",
+  "statusMutationOutcome": "evaluated_no_conflict",
+  "factualValueMutationOutcome": "evaluated_no_conflict",
+  "metadataUnchanged": true,
+  "statusMutationSilentlyAccepted": true,
+  "factualValueMutationSilentlyAccepted": true
+}
+```
+
+> The enrichment composition identity and projection-lineage defects are corrected. The separate mutation-integrity gap remains: conflict evaluation still operates on independently supplied observations and does not verify mutated enriched status or factual values against the enrichment publication.
+
+> The mutation-integrity gap remains and was not within Sprint 3.107’s implementation authority.
+
+No integrity validator, source-observation reconciliation, factual comparison, model check, or derived observation mechanism was added.
+
+## **126. Isolation Result**
+
+All ten protected files have the same post-implementation hashes shown in Section 116. Pure-Node tests traverse with `node:fs`, `node:path`, and `node:crypto`; production import searches report zero production contact. There is no new model call, route dependency, production wiring, or change to source acquisition/publication, claim recognition, enrichment semantics, or protected per-cell semantics.
+
+## **127. Files Changed**
+
+| File | Reason | Sprint 3.106 authority | Classification |
+|---|---|---|---|
+| `conflict-boundary-types.ts` | Closed claim-set union and truthful conflict lineage fields | §§15, 23–26 | Semantic |
+| `conflict-boundary-publications.ts` | Governed base/enriched constructors and validation | §§15–16, 24–27 | Semantic |
+| `conflict-boundary-engine.ts` | Variant validation and truthful lineage publication | §§21–27, 55–57 | Semantic |
+| `projection-composer.ts` | Stage input, complete output lineage, chain validation, identity body | §§38–59 | Semantic |
+| `full-assembly-claim-boundary-conflict-boundary-composition-regression.ts` | Base constructor/stage migration | §§71, 80 | Mechanical migration |
+| `full-assembly-enrichment-composition-recheck.ts` | Delete alias; use enriched constructor/publications; corrected live findings | §§75–79, 81–82 | Mechanical/test migration |
+| `claim-boundary-conflict-boundary-composition-evaluation-fixtures.ts` | Base constructor migration | §§71, 80 | Fixture migration |
+| `conflict-boundary-fixtures.ts` | Shared base constructor fixture | §§71, 80 | Fixture migration |
+| `governed-publication-test-fixtures.ts` | Base evaluated-reference and stage fixtures | §§71, 80 | Fixture migration |
+| `claims-conflicts-correction-composition.test.ts` | Base constructor/stage and lineage regression | §§71, 80 | Test migration |
+| `full-assembly-claim-boundary-conflict-boundary-composition-regression.test.ts` | Truthful base inputs and authorized isolation hashes | §§71, 80, 83 | Test migration |
+| `full-assembly-enrichment-composition-recheck.test.ts` | Compatible expectation and authorized isolation hashes | §§75–83 | Test migration |
+| `claim-enrichment-composition.test.ts` | Authorized composer hash migration only | §83 | Test migration |
+| `source-evidence-assembly.test.ts` | Authorized composer hash migration only | §83 | Test migration |
+| `connector-availability-publisher.test.ts` | Authorized composer hash migration only | §83 | Test migration |
+| `claim-boundary-isolation.test.ts` | Permit the governed conflict boundary type/constructor dependency while retaining production isolation | §§15, 71, 83 | Test migration |
+| `conflict-boundary-isolation.test.ts` | Permit the governed enriched re-check consumer while retaining production isolation | §§75–83 | Test migration |
+| `SPRINT-3.107-ENRICHMENT-COMPOSITION-CORRECTION-IMPLEMENTATION.md` | Required completion record | Sprint 3.107 §§90–106 | Documentation |
+
+Historical Sprint 3.105 prose in `docs/SPRINT-3.105-FULL-ASSEMBLY-COMPOSITION-RECHECK-WITH-ENRICHMENT.md` and the finalized Sprint 3.106 contract were deliberately left unchanged. Their historical findings remain true. No other historical record was rewritten.
+
+## **128. Validation Results**
+
+* Conflict-evaluable constructors, conflict engine, conflict publications, projection composer, Sprint 3.102 matrix, Sprint 3.105 matrix, and mutation proof targeted tests: passed, 5 files and 28 tests.
+* Claim Boundary, claim enrichment, source assembly, claims/conflicts composition, governed input, model invocation, and validator suites: passed as part of the repository-wide suite.
+* `npm test`: passed repository-wide.
+* `npm run build`: passed; Next.js completed the production build with the pre-existing non-fatal Google Fonts optimization warning.
+* `npm run lint`: passed with no warnings or errors.
+* `npm run typecheck`: passed.
+* `git diff --check`: passed.
+* Pure-Node protected-hash and isolation checks: passed.
+* Exact enriched-ID-to-`governedClaimSetId` assignment search: zero matches.
+
+## **129. Production Effect**
+
+> Sprint 3.107 corrects the isolated enrichment-to-conflict and enrichment-to-projection composition architecture. It does not modify `/api/chat`, `context-builder.ts`, `useAgentConversation.ts`, model-provider behaviour, source acquisition, source publication, claim recognition, enrichment semantics, conflict taxonomy, or production conversational behaviour.
+
+## **130. Outstanding Findings**
+
+* Discriminated claim-set architecture: complete.
+* Conflict publication lineage: complete and truthful.
+* Projection enrichment lineage: conditionally complete.
+* Composer validation: complete within Option A.
+* Per-cell evaluation: unchanged and passing.
+* Base-only compatibility: preserved.
+* Enriched compatibility: compatible across all ten re-check scenarios.
+* Mutation integrity: remains open and honestly reproduced.
+* Isolation: holds.
+
+## **131. Recommended Next Step**
+
+> **Sprint 3.108 — Governed Enriched Claim and Conflict Observation Integrity Audit**
+
+The remaining mutation gap should be classified there as immutable-publication verification, a bounded missing validator, or a deeper semantic relationship. It was not folded into this correction or production integration.
+
+## **132. Final Recommendation**
+
+The exact Sprint 3.106 architecture is implemented; the evaluation-only alias is removed; conflict and projection publications preserve truthful, complete lineage; both central matrices pass their governed regression assertions; the mutation gap remains openly reported; protected production and semantic boundaries are unchanged; and full validation passes.
+
+> **Correction Implementation Complete**

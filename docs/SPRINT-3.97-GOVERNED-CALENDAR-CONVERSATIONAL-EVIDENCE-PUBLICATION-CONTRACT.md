@@ -1,6 +1,6 @@
 # **Sprint 3.97 — Governed Calendar Conversational Evidence Publication Contract**
 
-**Status:** Specification
+**Status:** Governed
 
 **Sprint Type:** Governance Decision / Publication Contract
 
@@ -60,86 +60,45 @@ It does not authorize implementation.
 
 ## **2\. Repository Precondition**
 
-Before completing this governance sprint:
-
-| Record | Required result |
+| Record | Result |
 | ----- | ----- |
-| Repository | Intended JARVIS repository confirmed |
-| Branch | Recorded |
-| Starting commit | Recorded |
+| Repository | `/workspace/jarvis` — intended JARVIS repository confirmed |
+| Branch | `work` |
+| Starting commit | `a866ad0c964eabba2b7c272c502b59d3b274e4cd` |
 | Starting working tree | Clean |
-| Sprint 3.96 | Present and merged |
-| Required governing artefacts | Present |
-| `GovernedCalendarEvidenceInput` | Current nine-field definition confirmed |
+| Sprint 3.96 | Present and merged by the starting commit |
+| Required governing artefacts | Present and read completely |
+| `GovernedCalendarEvidenceInput` | Current exact nine-field definition confirmed |
 | Production Calendar governed evidence producer | None |
 | `/api/chat` | Unchanged by this sprint |
 
-Read completely before finalising this contract:
+Repository-wide searches confirmed that no production `calendarEvidence` publisher exists outside governed-conversation fixtures/tests, no production Calendar governed evidence normalizer exists under `lib/executive-context/`, and no other production package owns the nine-field mapping governed here. Existing Calendar projection-adapter and governed-conversation fixture values are not a production conversational publisher and do not constitute production authority.
 
-1. `docs/SPRINT-3.96-GOVERNED-GMAIL-CONVERSATIONAL-EVIDENCE-PUBLICATION-CONTRACT.md`;  
-2. `docs/audits/SPRINT-3.88-GOVERNED-CONVERSATIONAL-PRODUCTION-EVIDENCE-AUDIT.md`, with specific attention to the Calendar Finding;  
-3. `docs/SPRINT-3.69-GOVERNED-GMAIL-RECIPIENT-CONTRACT.md`;  
-4. `docs/CONSTITUTIONAL-PUBLICATION-PRINCIPLES.md`;  
-5. the constitutional and architectural authorities required by Sprint 3.96;  
-6. `lib/governed-conversation/projection-composer.ts`;  
-7. `lib/connectors/calendar-event.ts`;  
-8. `lib/connectors/google/calendar.ts`;  
-9. the Calendar connector-selection path;  
-10. `lib/operational-state.ts`; and  
-11. current tests and fixtures that construct `GovernedCalendarEvidenceInput`.
-
-Confirm by repository-wide search that:
-
-* no production `calendarEvidence` publisher exists outside governed-conversation fixtures/tests;  
-* no production Calendar governed evidence normalizer exists under `lib/executive-context/`;  
-* no other production package already owns the nine-field mapping governed here; and  
-* fixture values do not constitute production authority.
-
-If repository evidence contradicts these premises, stop.
-
-Return:
-
-> **Governance Review Incomplete**
-
----
+Repository-wide identifier searches also confirmed that neither `governed-calendar-conversational-metadata-disclosure.v1` nor `google-calendar:calendar:<calendarId>:event:<eventId>` collides with an existing policy identifier or publication identity. Before this document was finalized, both identifiers occurred only in this draft.
 
 ## **3\. Governing Artefacts Reviewed**
 
-The completed sprint record shall list every governing artefact read completely.
+The following artefacts were read completely, in governing order:
 
-At minimum, governing authority shall be applied in this order:
+1. `docs/ENGINEERING_CONSTITUTION.md` and `CONSTITUTION.md`;
+2. `docs/architecture/NORTH_STAR.md`;
+3. `docs/architecture/JARVIS-Engineering-Specification-Standard.md`;
+4. `docs/CONSTITUTIONAL-PUBLICATION-PRINCIPLES.md`;
+5. `docs/architecture/ROADMAP.md`;
+6. `docs/SPRINT-3.69-GOVERNED-GMAIL-RECIPIENT-CONTRACT.md`;
+7. `docs/SPRINT-3.70-GMAIL-RECIPIENT-PRODUCTION-INTEGRATION.md`;
+8. `docs/SPRINT-3.76-GOVERNED-CONVERSATIONAL-RUNTIME-CONTRACT.md`;
+9. `docs/SPRINT-3.82-GOVERNED-CONVERSATIONAL-LINEAGE-IDENTITY-CONTRACT.md`;
+10. `docs/SPRINT-3.89-GOVERNED-CONVERSATIONAL-CLAIMS-BOUNDARY-CONTRACT.md`;
+11. `docs/SPRINT-3.90-GOVERNED-CONVERSATIONAL-CONFLICTS-BOUNDARY-CONTRACT.md`;
+12. `docs/SPRINT-3.94-GOVERNED-CLAIMS-AND-CONFLICTS-COMPOSITION-CORRECTION-CONTRACT.md`;
+13. `docs/SPRINT-3.95-CLAIMS-AND-CONFLICTS-COMPOSITION-CORRECTION-IMPLEMENTATION.md`;
+14. `docs/audits/SPRINT-3.88-GOVERNED-CONVERSATIONAL-PRODUCTION-EVIDENCE-AUDIT.md`;
+15. `docs/SPRINT-3.96-GOVERNED-GMAIL-CONVERSATIONAL-EVIDENCE-PUBLICATION-CONTRACT.md`;
+16. `docs/architecture/ADR-0007-Calendar-Projection-Adapter-Boundary.md`; and
+17. current definitions, implementations, selection paths, tests, and fixtures in `lib/governed-conversation/projection-composer.ts`, `lib/connectors/calendar-event.ts`, `lib/connectors/google/calendar.ts`, `lib/connectors/calendar.ts`, `lib/connectors/index.ts`, `lib/operational-state.ts`, `lib/governed-conversation/projection-composer.test.ts`, `lib/governed-conversation/lineage-test-fixtures.ts`, and `lib/governed-conversation/lineage-projection-evaluation-fixtures.ts`.
 
-1. Engineering Constitution;  
-2. North Star;  
-3. JARVIS Engineering Specification Standard;  
-4. Constitutional Publication Principles;  
-5. Roadmap;  
-6. Sprint 3.69 — Governed Gmail Recipient Contract, as an acquisition-adjacent evidence precedent;  
-7. Sprint 3.88 — Governed Conversational Production Evidence Audit, as evidence;  
-8. Sprint 3.96 — Governed Gmail Conversational Evidence Publication Contract, as the direct structural precedent;  
-9. current Calendar connector and normalization source;  
-10. current governed-conversation types and composer; and  
-11. this contract.
-
-Sprint 3.96 establishes the structural pattern:
-
-inspect real production evidence  
-    ↓  
-separate mechanical facts from governance decisions  
-    ↓  
-define exact source references  
-    ↓  
-define bounded provenance  
-    ↓  
-define fixed versioned policy  
-    ↓  
-preserve Identity Integrity  
-    ↓  
-authorize no implementation
-
-Sprint 3.97 applies that pattern to Calendar without pretending Calendar already has Gmail's production evidence maturity.
-
----
+The governing pattern from Sprint 3.96 was applied without imputing Gmail's canonical-normalizer maturity to Calendar.
 
 ## **4\. Sprint 3.88 Finding Reconfirmed**
 
@@ -1515,40 +1474,26 @@ Those remain future implementation work.
 
 ## **46\. Validation**
 
-Full repository validation is required.
+Full repository validation completed against this documentation-only change:
 
-No exception applies because this sprint changes documentation only.
+| Command | Result |
+| ----- | ----- |
+| `npm test` | Pass — 145 test files passed; 710 tests passed and 1 skipped (711 total) |
+| `npm run build` | Pass — production build completed; Google Fonts stylesheet download failed and font optimization was skipped |
+| `npm run lint` | Pass — no ESLint warnings or errors |
+| `npm run typecheck` | Pass |
+| `git diff --check` | Pass |
 
-Run:
+Repository-wide searches additionally confirmed:
 
-npm test  
-npm run build  
-npm run lint  
-npm run typecheck  
-git diff \--check
-
-All must pass.
-
-Repository-wide searches shall additionally confirm:
-
-1. no production governed Calendar evidence publisher exists;  
-2. no Calendar governed evidence normalizer already owns the source boundary defined here;  
-3. no existing policy identifier conflicts with:  
-   `governed-calendar-conversational-metadata-disclosure.v1`;  
-4. no existing publication identity collides with:  
-   `google-calendar:calendar:<calendarId>:event:<eventId>`;  
-5. `calendarEvidence` production construction remains absent;  
-6. local fallback remains distinguishable from Google acquisition;  
-7. `/api/chat` is unchanged; and  
+1. no production governed Calendar evidence publisher exists;
+2. no Calendar governed evidence normalizer already owns the source boundary defined here;
+3. no existing policy identifier conflicts with `governed-calendar-conversational-metadata-disclosure.v1`;
+4. no existing publication identity collides with `google-calendar:calendar:<calendarId>:event:<eventId>`;
+5. `calendarEvidence` production construction remains absent;
+6. local fallback remains distinguishable from Google acquisition;
+7. `/api/chat` is unchanged; and
 8. only this Sprint 3.97 document changed.
-
-If any validation contradicts this contract, do not reinterpret the repository to fit the specification.
-
-Return:
-
-> **Governance Review Incomplete**
-
----
 
 ## **47\. Files Changed**
 
@@ -1562,124 +1507,125 @@ only.
 
 ## **48\. Required Completion Record**
 
-The completed Sprint 3.97 record shall report:
-
 ### **Repository Precondition**
 
-* repository;  
-* branch;  
-* starting commit;  
-* working-tree state;  
-* Sprint 3.96 presence;  
-* required artefact presence.
+* Repository: `/workspace/jarvis` (intended JARVIS repository confirmed).
+* Branch: `work`.
+* Starting commit: `a866ad0c964eabba2b7c272c502b59d3b274e4cd`.
+* Starting working-tree state: clean.
+* Sprint 3.96: present and merged by the starting commit.
+* Required artefacts: present and read completely.
 
 ### **Governing Artefacts Reviewed**
 
-List every artefact read completely.
+Every artefact listed in Section 3 was read completely.
 
 ### **Sprint 3.88 Finding Reconfirmed**
-
-State explicitly:
 
 > Real production Calendar acquisition exists, but no governed production Calendar evidence normalizer or conversational publisher exists.
 
 ### **Maturity Distinction**
 
-State explicitly:
-
 > Calendar begins one stage earlier than Gmail at Sprint 3.96 because Gmail already possessed a production canonical evidence normalizer.
 
 ### **Acquisition Decision**
-
-State:
 
 > Sprint 3.97 does not redesign Calendar acquisition. It governs only the minimum acquisition evidence that must be preserved for truthful downstream publication.
 
 ### **Architecture Decision**
 
-Report:
-
 > **Option C — Govern a narrow production Calendar evidence normalizer over existing acquisition, followed by deterministic conversational mapping under a fixed versioned Calendar disclosure policy.**
 
 ### **Nine-Field Mapping**
 
-Report the exact binding for every field.
+| Field | Exact binding |
+| ----- | ----- |
+| `commitmentReference` | `"google-calendar:calendar:" + calendarId + ":event:" + eventId` |
+| `sourceReference` | `{ sourceId: "google-calendar", resourceId: "calendar:" + calendarId + ":event:" + eventId, field: "schedule_interval", observedAt: acquisition.retrievedAt }` |
+| `start` | source-observed event start preserved by the governed normalizer |
+| `end` | source-observed event end preserved by the governed normalizer |
+| `timezone` | explicit provider-observed UTC offset, or `floating-date` for an all-day event |
+| `provenanceReference` | `commitmentReference + "#provenance"` |
+| `available` | `true` only for an eligible observation from an available governed Google Calendar acquisition |
+| `coverageLimit` | `"window=<windowStart>/<windowEnd>;max_events=<requestedLimit>;scope=visible_non_hidden_calendars;completeness=bounded"` |
+| `policyReference` | `"governed-calendar-conversational-metadata-disclosure.v1"` |
 
 ### **Timezone Decision**
-
-Report:
 
 > Timed events use the explicit provider-observed UTC offset; all-day events use `floating-date`.
 
 ### **Coverage Decision**
 
-Report the exact bounded coverage expression.
+`window=<windowStart>/<windowEnd>;max_events=<requestedLimit>;scope=visible_non_hidden_calendars;completeness=bounded`
 
 ### **Provenance Decision**
 
-Report the subordinate reference rule.
+`provenanceReference = commitmentReference + "#provenance"`. This reference is subordinate to the source-qualified event and does not create a second event publication.
 
 ### **Disclosure Policy**
 
-Report:
-
-governed-calendar-conversational-metadata-disclosure.v1
+`governed-calendar-conversational-metadata-disclosure.v1`
 
 ### **Compatibility-Equivalent Decision**
-
-State:
 
 > No new `compatibilityBoundary` field is introduced. Equivalent minimisation and non-authority rules are carried by the Calendar disclosure policy.
 
 ### **Identity Integrity Decision**
 
-Confirm no competing source publication is created.
+No competing source publication is created. The conversational projection references the source-qualified Google Calendar event and its subordinate provenance; it does not replace or duplicate source authority.
 
 ### **Dependency Decision**
-
-State:
 
 > Current `CalendarEvent` alone is insufficient. A narrow governed production Calendar evidence boundary is required before conversational mapping. No mutable policy registry is required.
 
 ### **Publication Responsibility Audit**
 
-Report every audit answer.
+| Question | Binding answer |
+| ----- | ----- |
+| Has Calendar acquisition strategy changed? | No |
+| Does this contract establish minimum evidence-preservation requirements? | Yes |
+| Is that necessary for truthful governed publication? | Yes |
+| Does current `CalendarEvent` alone satisfy the governed target? | No |
+| Is a narrow production evidence normalizer required first? | Yes |
+| Does this require a comprehensive acquisition redesign? | No |
+| Does the mapping create another source authority for the event? | No |
+| Does it reconstruct legacy `OperationalState` as canonical evidence? | No |
+| Does it preserve source-qualified event identity? | Yes |
+| Does it introduce a disclosure policy? | Yes, narrowly and explicitly |
+| Does the disclosure policy authorize event titles by default? | No |
+| Does it authorize attendee lists? | No |
+| Does it require a new compatibility field? | No |
+| Does it require mutable runtime policy state? | No |
+| Does it acquire claim classification? | No |
+| Does it acquire conflict derivation? | No |
+| Does it preserve deterministic replay? | Yes, provided acquisition time and coverage are explicit inputs |
+| Does it preserve Identity Integrity? | Yes |
+
+**Decision:** Publication Responsibility Audit passes.
 
 ### **No-Implementation Statement**
-
-State:
 
 > Sprint 3.97 authorizes no code change, production wiring, or `/api/chat` modification.
 
 ### **Validation**
 
-Report exact results for:
+| Command | Result |
+| ----- | ----- |
+| `npm test` | Pass — 145 test files passed; 710 tests passed and 1 skipped (711 total) |
+| `npm run build` | Pass — production build completed; Google Fonts stylesheet download failed and font optimization was skipped |
+| `npm run lint` | Pass — no ESLint warnings or errors |
+| `npm run typecheck` | Pass |
+| `git diff --check` | Pass |
 
-npm test  
-npm run build  
-npm run lint  
-npm run typecheck  
-git diff \--check
+Repository-wide searches passed: no production governed Calendar evidence publisher or normalizer owns this boundary; no policy-identifier or publication-identity collision exists; `calendarEvidence` production construction remains absent; local fallback remains distinguishable from Google acquisition; `/api/chat` is unchanged; and only this Sprint 3.97 document changed.
 
 ### **Files Changed**
 
-Expected:
-
-docs/SPRINT-3.97-GOVERNED-CALENDAR-CONVERSATIONAL-EVIDENCE-PUBLICATION-CONTRACT.md
+`docs/SPRINT-3.97-GOVERNED-CALENDAR-CONVERSATIONAL-EVIDENCE-PUBLICATION-CONTRACT.md`
 
 only.
 
 ### **Recommendation Gate**
-
-Final line exactly one of:
-
-> **Governed Contract Complete**
-
-or:
-
-> **Governance Review Incomplete**
-
----
 
 ## **49\. Binding Summary**
 

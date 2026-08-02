@@ -1,6 +1,6 @@
 # **Sprint 3.103 — Governed Evidence-to-Claim Enrichment Contract**
 
-**Status:** Specification  
+**Status:** Governed Contract Complete
 **Sprint Type:** Governance Decision / Composition Correction Contract  
 **Implementation Authority:** None  
 **Production Integration:** Prohibited  
@@ -17,11 +17,11 @@
 Sprint 3.102 established a real semantic incompatibility:
 
 assembled governed source evidence exists  
-        ↓  
+        ↓
 deterministic claim recognition succeeds  
-        ↓  
+        ↓
 contact\_address\_lookup is published  
-        ↓  
+        ↓
 claim remains insufficient\_coverage
 
 The claim remains insufficient because:
@@ -186,13 +186,13 @@ It does not invalidate Sprint 3.89’s recognition decisions.
 Sprint 3.102 proved:
 
 real Gmail acquisition  
-    ↓  
+    ↓
 real Gmail publisher  
-    ↓  
+    ↓
 real assembled communicationEvidence  
-    ↓  
+    ↓
 real contact-address recognition  
-    ↓  
+    ↓
 claim status remains insufficient\_coverage
 
 The problem is not that Gmail evidence is unavailable.
@@ -210,11 +210,11 @@ have no governed correlation stage.
 The current chain is:
 
 source assembly  
-    ↓  
+    ↓
 claim recognition  
-    ↓  
+    ↓
 conflict evaluation  
-    ↓  
+    ↓
 projection
 
 but recognition produces its status without receiving source assembly.
@@ -321,11 +321,11 @@ Insert a dedicated deterministic stage after claim recognition and before confli
 Governed Claim Set  
     \+  
 assembled governed source evidence  
-    ↓  
+    ↓
 Evidence-to-Claim Enrichment  
-    ↓  
+    ↓
 Enriched Governed Claim Set  
-    ↓  
+    ↓
 Conflict Evaluation
 
 ### **Decision**
@@ -444,25 +444,25 @@ It shall not determine the canonical status of the claim it is interpreting.
 The binding chain becomes:
 
 operator text / typed intent  
-    ↓  
+    ↓
 Sprint 3.89 deterministic recognition  
-    ↓  
+    ↓
 Claim Boundary Evaluation  
-    ↓  
+    ↓
 Base Governed Claim Set  
-    ↓  
+    ↓
 assembled governed source evidence  
-    ↓  
+    ↓
 Evidence-to-Claim Enrichment Evaluation  
-    ↓  
+    ↓
 Enriched Governed Claim Set  
-    ↓  
+    ↓
 Sprint 3.90 conflict evaluation  
-    ↓  
+    ↓
 Governed Conflict Set / evaluation outcome  
-    ↓  
+    ↓
 Sprint 3.94 projection composer  
-    ↓  
+    ↓
 effectiveClaimStatus aggregation
 
 ---
@@ -958,7 +958,7 @@ It may not itself contain the complete factual address value.
 Therefore enrichment may use a deterministic evidence-resolution port whose only responsibility is:
 
 governed evidence reference  
-    ↓  
+    ↓
 corresponding immutable canonical source observation
 
 This port shall not:
@@ -1110,15 +1110,15 @@ does not change that result.
 ## **48\. Cassie Final Chain**
 
 Cassie question  
-    ↓  
+    ↓
 base contact claim: insufficient\_coverage  
 base importance claim: unsupported  
-    ↓  
+    ↓
 Gmail evidence enrichment  
-    ↓  
+    ↓
 enriched contact claim: available  
 enriched importance claim: unsupported  
-    ↓  
+    ↓
 conflict evaluation  
     ├── no contradiction  
     │      → evaluated\_no\_conflict  
@@ -1127,7 +1127,7 @@ conflict evaluation
     └── contradiction  
            → evaluated\_conflict\_found  
            → effective contact status restricted  
-    ↓  
+    ↓
 model interpretation
 
 ---
@@ -1577,11 +1577,11 @@ The central implementation proof shall run:
 through:
 
 real claim boundary  
-    ↓  
+    ↓
 real base Claim Set  
-    ↓  
+    ↓
 real assembled Gmail evidence  
-    ↓  
+    ↓
 real enrichment engine
 
 Required result:
@@ -1676,20 +1676,18 @@ Return:
 
 ## **81\. Repository Precondition**
 
-Report:
-
-* repository;  
-* branch;  
-* starting commit;  
-* working-tree state;  
-* required artefact presence;  
-* source-file inspection.
+* **Repository:** `/workspace/jarvis`, the intended JARVIS repository.
+* **Branch:** `work`.
+* **Starting commit:** `10c0cdf804cb8be4cd9bbcc5be8835c0ee6880e2` (`Merge pull request #179 from kojiro5150/docs/sprint-3.103-spec`).
+* **Starting working-tree state:** clean.
+* **Required artefact presence:** Sprint 3.102 is present and complete. Every document and source file required by Section 3 is present and was read completely.
+* **Source-file inspection:** `evaluateClaimBoundary(input: BoundaryEngineInput): BoundaryEngineResult` is the exact current signature. `BoundaryEngineInput` contains only `text`, `typedIntent`, `typedIntentSource`, `threadId`, `requestId`, `exchangeId`, `referenceTime`, `createdAt`, `entities`, `priorEvaluationId`, `clarificationAttempt`, and `compatibilityContext`; it contains no assembled governed evidence. The recognised contact claim has empty `sourceReferences` and `factualValues`, and its `computeEvidenceStatus` call fixes `governedEvidence`, `provenanceSufficient`, `scopeComplete`, `fieldCoverage`, `fresh`, and `contentComplete` to `false`.
+* **Assembly and downstream inspection:** `assembleGovernedSourceEvidence` produces `communicationEvidence`, `calendarEvidence`, `memoryPriorityReferences`, and `connectorAvailability`. The conflict engine consumes a Governed Claim Set. The projection composer validates publication coherence, aggregates canonical conflict restrictions into `effectiveClaimStatuses`, and carries evidence collections without deriving evidence-to-claim relationships.
+* **Required repository searches:** repository-wide searches found no existing claim-enrichment engine or other enrichment owner, no assembled-evidence argument at any `evaluateClaimBoundary` call, no projection-composer source-to-claim derivation, no source contract publishing message-importance evidence, and no model owner of canonical claim-status enrichment. The premises of this contract are confirmed.
 
 ---
 
 ## **82\. Sprint 3.102 Finding Reconfirmed**
-
-State exactly:
 
 > The recognised contact-address claim cannot become available because the current Claim Boundary has no assembled-evidence input and no separate enrichment stage exists.
 
@@ -1697,20 +1695,14 @@ State exactly:
 
 ## **83\. Options Decision**
 
-Report:
-
-Option A — Rejected  
-Option B — Selected  
-Option C — Rejected  
-Option D — Rejected
-
-Include independent reasoning.
+* **Option A — Rejected.** Making the Claim Boundary evidence-aware would conflate recognition and evidence sufficiency, weaken evidence-blind recognition, couple evidence refreshes to recognition replay, and obscure publication responsibility.
+* **Option B — Selected.** A separate deterministic stage gives evidence correlation one bounded owner, permits independent recognition and enrichment replay, preserves immutable recognition history, supplies current evidentiary state to conflict evaluation, and leaves the composer pure.
+* **Option C — Rejected.** Composer enrichment would turn validation and aggregation into hidden evidentiary derivation, occur after conflict evaluation, and create an unbounded claim-by-source correlation responsibility.
+* **Option D — Rejected.** Model-assisted evidence selection would make a probabilistic interpreter the owner of canonical claim sufficiency and violate the deterministic, evidence-governed boundary.
 
 ---
 
 ## **84\. Recognition Compatibility**
-
-State:
 
 > Sprint 3.89 Option C remains unchanged. Recognition stays evidence-blind and no model classification is introduced.
 
@@ -1718,15 +1710,11 @@ State:
 
 ## **85\. Composer Compatibility**
 
-State:
-
 > Sprint 3.90 Composer Option A remains unchanged. The projection composer does not perform evidence-to-claim enrichment.
 
 ---
 
 ## **86\. Conflict Compatibility**
-
-State:
 
 > Sprint 3.94/3.95 per-cell conflict evaluation remains unchanged and will consume the enriched Claim Set.
 
@@ -1734,15 +1722,13 @@ State:
 
 ## **87\. Identity Decision**
 
-State:
-
 > An enriched claim receives a new immutable claim identity linked to its base claim. The base claim and base Claim Set remain unchanged.
+
+The enriched Claim Set receives its own new `enrichedGovernedClaimSetId`; it shall not reuse the base `governedClaimSetId`.
 
 ---
 
 ## **88\. Cassie Decision**
-
-Report:
 
 contact\_address\_lookup  
     → available when sufficient governed Gmail evidence exists
@@ -1750,38 +1736,74 @@ contact\_address\_lookup
 message\_importance  
     → unsupported
 
-State the conflict caveat separately.
+**Conflict caveat:** contradictory admissible contact-address values are all preserved by enrichment. Conflict evaluation detects and restricts the contradiction; neither enrichment nor the model selects a source.
 
 ---
 
 ## **89\. Materiality Matrix**
 
-Include the complete closed matrix.
+| Claim type | Communication evidence | Calendar evidence | Memory Priority evidence | Connector availability |
+| ----- | ----- | ----- | ----- | ----- |
+| `contact_address_lookup` | Material | Not material | Not material | Conditionally material to source availability only |
+| `message_importance` | Not admitted as importance evidence | Not material | Not material | Conditionally material only to explain unavailable source, never to support importance |
+
+Every unlisted claim × evidence-category combination is `not_material`.
 
 ---
 
 ## **90\. Publication Lineage**
 
-Report required identities:
+The required immutable lineage is:
 
-base Governed Claim Set  
-enrichment ruleset  
-enrichment evaluation  
-enriched Governed Claim Set  
-enriched claim  
-base claim link
+base `governedClaimSetId`
+    ↓
+`enrichmentRulesetId`
+    ↓
+`enrichmentEvaluationId`
+    ↓
+new `enrichedGovernedClaimSetId`
+    ↓
+new enriched `claimId`
+    ↓
+`baseClaimId`
+
+The base claim and base Governed Claim Set remain immutable, and thread/request/exchange lineage remains continuous.
 
 ---
 
 ## **91\. Publication Responsibility Audit**
 
-Report every answer from Section 67\.
+| Question | Binding answer |
+| ----- | ----- |
+| Does claim recognition remain evidence-blind? | Yes |
+| Does the claim engine gain source-acquisition responsibility? | No |
+| Does enrichment occur after recognition? | Yes |
+| Does enrichment occur before conflict evaluation? | Yes |
+| Does the composer perform enrichment? | No |
+| Does a model determine canonical claim status? | No |
+| Is enrichment deterministic? | Yes |
+| Does enrichment use a closed materiality matrix? | Yes |
+| Is communication evidence material to contact lookup? | Yes |
+| Is Calendar evidence material to contact lookup under this contract? | No |
+| Is Memory Priority evidence material to current communication claims? | No |
+| Does connector availability supply factual values? | No |
+| Does importance gain an admitted evidence source? | No |
+| Does importance remain unsupported? | Yes |
+| Is a new enrichment evaluation publication required? | Yes |
+| Is a new enriched Claim Set publication required? | Yes |
+| Does an enriched claim receive a new identity? | Yes |
+| Does the base claim remain immutable? | Yes |
+| Does conflict evaluation consume enriched claims? | Yes |
+| Does the composer remain validate/aggregate-only? | Yes |
+| Does projection retain enrichment lineage? | Yes |
+| Is source adjudication prohibited? | Yes |
+| Does this contract authorize implementation? | No |
+
+**Decision:** Publication Responsibility Audit passes.
 
 ---
 
 ## **92\. No-Implementation Statement**
-
-State:
 
 > Sprint 3.103 authorizes no implementation or production integration.
 
@@ -1789,29 +1811,27 @@ State:
 
 ## **93\. Validation**
 
-Report exact results for:
-
-npm test  
-npm run build  
-npm run lint  
-npm run typecheck  
-git diff \--check
+| Command | Result |
+| ----- | ----- |
+| `npm test` | Passed: 155 test files; 743 tests passed and 1 skipped. |
+| `npm run build` | Passed: optimized production build, type/lint validation, six static pages, and build traces completed; Google Fonts stylesheet optimization was skipped after its download failed. |
+| `npm run lint` | Passed: no ESLint warnings or errors. |
+| `npm run typecheck` | Passed: `tsc --noEmit` exited successfully. |
+| `git diff --check` | Passed: no whitespace errors. |
 
 ---
 
 ## **94\. Files Changed**
 
-Expected:
+Only:
 
-docs/SPRINT-3.103-GOVERNED-EVIDENCE-TO-CLAIM-ENRICHMENT-CONTRACT.md
+`docs/SPRINT-3.103-GOVERNED-EVIDENCE-TO-CLAIM-ENRICHMENT-CONTRACT.md`
 
-only.
+No code, test, fixture, route, type, engine, composer, publisher, integration, or other documentation file changed.
 
 ---
 
 ## **95\. Next Step**
-
-Expected:
 
 > **Sprint 3.104 — Isolated Governed Evidence-to-Claim Enrichment Implementation**
 
@@ -1821,194 +1841,4 @@ Expected:
 
 ## **96\. Permitted Final Recommendation**
 
-The final line shall be exactly one:
-
 > **Governed Contract Complete**
-
-or:
-
-> **Governance Review Incomplete**
-
-No other wording is permitted.
-
----
-
-## **97\. Governed Contract Complete**
-
-Use only if:
-
-* all options were independently evaluated;  
-* Option B was selected without hedge language;  
-* recognition remains unchanged;  
-* the composer remains unchanged;  
-* conflict evaluation remains structurally unchanged;  
-* Identity Integrity is resolved;  
-* Cassie is resolved precisely;  
-* importance remains unsupported;  
-* materiality is closed and explicit;  
-* no implementation is authorized;  
-* full validation passes.
-
----
-
-## **98\. Governance Review Incomplete**
-
-Use if:
-
-* any required option remains unresolved;  
-* evidence materiality remains open-ended;  
-* claim identity remains ambiguous;  
-* Cassie’s contact status is not explicitly decided;  
-* importance is implicitly reopened;  
-* composer responsibility is blurred;  
-* implementation is silently authorized;  
-* repository evidence contradicts this contract.
-
----
-
-# **Part XXIII — Binding Summary**
-
-## **99\. Corrected Architecture**
-
-operator question  
-    ↓  
-Sprint 3.89 Option C recognition  
-    ├── typed intent  
-    ├── deterministic pattern  
-    ├── deterministic clarification  
-    └── fail-closed unsupported  
-    ↓  
-Claim Boundary Evaluation  
-    ↓  
-Base Governed Claim Set  
-    ├── contact claim: pre-evidence insufficient\_coverage  
-    └── importance claim: unsupported  
-    ↓  
-assembled governed source evidence  
-    ↓  
-Sprint 3.103 Evidence-to-Claim Enrichment  
-    ├── closed materiality matrix  
-    ├── deterministic evidence correlation  
-    ├── evidence-status computation  
-    ├── no model  
-    ├── no adjudication  
-    └── immutable publication  
-    ↓  
-Evidence-to-Claim Enrichment Evaluation  
-    ↓  
-Enriched Governed Claim Set  
-    ├── new claim identities  
-    ├── base claim links  
-    ├── evidence references  
-    ├── factual values  
-    └── enriched canonical statuses  
-    ↓  
-Sprint 3.90 conflict evaluation  
-    ↓  
-Sprint 3.94 projection aggregation  
-    ↓  
-effectiveClaimStatus  
-    ↓  
-governed model interpretation
-
----
-
-## **100\. Binding Decisions**
-
-Architecture  
-\= Option B — separate enrichment stage
-
-Recognition  
-\= remains evidence-blind
-
-Model classification  
-\= prohibited
-
-Composer enrichment  
-\= prohibited
-
-Contact-address material evidence  
-\= governed communication evidence
-
-Connector availability  
-\= source-availability context only
-
-Calendar evidence  
-\= not material to current communication claims
-
-Memory Priority evidence  
-\= not material to current communication claims
-
-Message importance  
-\= unsupported
-
-Base claim identity  
-\= immutable
-
-Enriched claim identity  
-\= new identity linked to baseClaimId
-
-Base Claim Set  
-\= immutable
-
-Enriched Claim Set  
-\= new publication identity
-
-Conflict evaluation  
-\= consumes enriched Claim Set
-
-Projection  
-\= retains enrichment lineage and aggregates conflict restriction only
-
----
-
-## **101\. Cassie Result**
-
-With sufficient, non-conflicting governed Gmail evidence:
-
-“What’s Cassie’s email?”  
-    ↓  
-available
-
-For:
-
-“Anything important?”  
-    ↓  
-unsupported
-
-With contradictory contact-address evidence:
-
-contact evidence present  
-    ↓  
-enriched claim retains source values  
-    ↓  
-conflict engine restricts  
-    ↓  
-no source selected
-
----
-
-## **102\. Governing Principle**
-
-The correction follows this sequence:
-
-recognise without evidence bias  
-publish the recognised claim immutably  
-consult only governed evidence  
-apply only closed materiality rules  
-publish enrichment separately  
-preserve base lineage  
-evaluate conflicts after enrichment  
-aggregate restrictions without adjudication  
-allow the model to interpret, never determine canonical truth
-
-No implementation is authorized.
-
-The final line shall be exactly:
-
-> **Governed Contract Complete**
-
-or:
-
-> **Governance Review Incomplete**
-

@@ -32,7 +32,7 @@ const protectedHashes: Record<string, string> = {
   [`lib/governed-conversation/claim-${"boundary"}-ruleset.ts`]: "afe7fce7814b2d02da8e6ebecfbff2c721abf418bdfd426cf689340d898a8e83",
   [`lib/governed-conversation/claim-${"boundary"}-publications.ts`]: "ccd7caa39316eb2fce1c7c8c8eda3741d0182eb12a123de9f7860e8225aa7c95",
   "lib/governed-conversation/projection-composer.ts": "a3e2df360828c3756c19283d14b03b33134236e52cee2e37718d1990473ae47e",
-  [`lib/governed-conversation/conflict-${"boundary"}-engine.ts`]: "48eaf88dff015a705a6849ce2256458536410ec82471ab6710bc4458557d5309",
+  [`lib/governed-conversation/conflict-${"boundary"}-engine.ts`]: "ea0835339911d9a3d40af38333e0f0c39295477d70e1ebc63145375c47ff6064",
   "app/api/chat/route.ts": "503840ffa6c17f52a049c1aaaad4e8402c000904dd3b7ce868104a10c6ba08a3",
   "lib/context-builder.ts": "8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d",
   "lib/useAgentConversation.ts": "55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97",

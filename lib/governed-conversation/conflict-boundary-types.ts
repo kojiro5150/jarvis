@@ -1,6 +1,7 @@
 import type { CommunicationClaimType } from "./types";
 import type { GovernedClaimSet } from "./claim-boundary-types";
 import type { EnrichedGovernedClaimSet } from "./claim-enrichment-types";
+import type { ClaimIntegrityDigest } from "./claim-integrity";
 
 export const CONFLICT_CLASSES = ["source_value_contradiction", "policy_incompatibility", "temporal_commitment_incompatibility"] as const;
 export type ConversationalConflictClass = (typeof CONFLICT_CLASSES)[number];
@@ -28,7 +29,7 @@ export interface ConflictEvaluationRuleset extends ConflictEvaluationRulesetBody
 
 export interface GovernedSourceObservation {
   readonly sourcePublicationId: string; readonly sourceOwnerId: string; readonly sourceType: "governed_contact_observation";
-  readonly resourceEntityId: string; readonly affectedClaimId: string; readonly comparisonKey: string;
+  readonly resourceEntityId: string; readonly affectedClaimId: string; readonly evaluatedClaimIntegrityDigest?: ClaimIntegrityDigest; readonly comparisonKey: string;
   readonly canonicalFactualValue: string; readonly originalFactualValue: string; readonly observedAt: string; readonly publishedAt: string;
   readonly provenance: string; readonly comparisonScope: string; readonly availability: "available" | "unavailable";
   readonly coverage: "complete" | "insufficient"; readonly supersessionStatus: "current" | "superseded";

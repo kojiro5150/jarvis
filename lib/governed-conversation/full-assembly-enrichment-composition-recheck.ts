@@ -11,6 +11,7 @@ import {
 } from "./full-assembly-claim-boundary-conflict-boundary-composition-regression";
 import { constructGovernedConversationalInput } from "./input";
 import { lineageIdentity } from "./lineage-types";
+import { EnrichedClaimIntegrityError } from "./claim-integrity";
 import { invokeGovernedConversationModel, type GovernedConversationModelAdapter } from "./model-invocation";
 import { composeGovernedConversationalProjection, constructGovernedConflictSummary } from "./projection-composer";
 import { assembleGovernedSourceEvidence } from "./source-evidence-assembly";
@@ -49,7 +50,7 @@ export async function runFullAssemblyEnrichmentRecheckScenario(scenarioId: FullA
   const contact = enriched.claims.find(claim => claim.claimType === "contact_address_lookup")!;
   const conflictFixture = fullAssemblyConflictInput(scenarioId, contact.claimId);
   const boundarySet = constructEnrichedConflictEvaluableClaimSet(enriched);
-  const conflicts = evaluateGovernedConversationalConflicts({ ruleset: CONFLICT_EVALUATION_RULESET, claimSet: boundarySet, observations: conflictFixture.observations, requestedConflictClasses: conflictFixture.classes, referenceTime: FULL_ASSEMBLY_TIME, createdAt: FULL_ASSEMBLY_TIME, evaluationDiscriminator: `enriched:${scenarioId}` });
+  const conflicts = evaluateGovernedConversationalConflicts({ ruleset: CONFLICT_EVALUATION_RULESET, claimSet: boundarySet, observations: conflictFixture.observations.map(observation => ({ ...observation, evaluatedClaimIntegrityDigest: contact.claimIntegrityDigest })), requestedConflictClasses: conflictFixture.classes, referenceTime: FULL_ASSEMBLY_TIME, createdAt: FULL_ASSEMBLY_TIME, evaluationDiscriminator: `enriched:${scenarioId}` });
   if (!conflicts.evaluation) throw new Error("re-check conflict evaluation did not publish");
   const cellIds = [...conflicts.evaluation.cellEvaluations.map(cell => cell.claimId), ...conflicts.evaluation.unevaluatedReasons.flatMap(item => item.claimId ? [item.claimId] : [])];
   const idsPreserved = cellIds.every(id => enriched.claimIds.includes(id)) && !cellIds.some(id => recognition.claimSet!.claimIds.includes(id));
@@ -79,10 +80,15 @@ export async function runEnrichedClaimMutationProof() {
   if (enrichment.outcome !== "completed") throw new Error("mutation baseline enrichment failed");
   const contact = enrichment.enrichedClaimSet.claims.find(claim => claim.claimType === "contact_address_lookup")!;
   const fixture = fullAssemblyConflictInput(scenarioId, contact.claimId);
-  const evaluate = (set: EnrichedGovernedClaimSet, discriminator: string) => evaluateGovernedConversationalConflicts({ ruleset: CONFLICT_EVALUATION_RULESET, claimSet: constructEnrichedConflictEvaluableClaimSet(set), observations: fixture.observations, requestedConflictClasses: fixture.classes, referenceTime: FULL_ASSEMBLY_TIME, createdAt: FULL_ASSEMBLY_TIME, evaluationDiscriminator: discriminator }).evaluation!;
+  const evaluate = (set: EnrichedGovernedClaimSet, discriminator: string) => evaluateGovernedConversationalConflicts({ ruleset: CONFLICT_EVALUATION_RULESET, claimSet: constructEnrichedConflictEvaluableClaimSet(set), observations: fixture.observations.map(observation => ({ ...observation, evaluatedClaimIntegrityDigest: contact.claimIntegrityDigest })), requestedConflictClasses: fixture.classes, referenceTime: FULL_ASSEMBLY_TIME, createdAt: FULL_ASSEMBLY_TIME, evaluationDiscriminator: discriminator }).evaluation!;
   const baseline = evaluate(enrichment.enrichedClaimSet, "mutation:baseline");
   const mutate = (changes: Record<string, unknown>): EnrichedGovernedClaimSet => ({ ...enrichment.enrichedClaimSet, claims: enrichment.enrichedClaimSet.claims.map(claim => claim.claimId === contact.claimId ? { ...claim, ...changes } : claim) });
-  const status = evaluate(mutate({ status: "unsupported" }), "mutation:status");
-  const factualValues = evaluate(mutate({ factualValues: ["corrupt@example.invalid"] }), "mutation:factual-values");
-  return Object.freeze({ scenarioId, baselineOutcome: baseline.outcome, statusMutationOutcome: status.outcome, factualValueMutationOutcome: factualValues.outcome, metadataUnchanged: enrichment.enrichedClaimSet.threadId === lineage.threadId, statusMutationSilentlyAccepted: status.outcome === baseline.outcome, factualValueMutationSilentlyAccepted: factualValues.outcome === baseline.outcome });
+  const rejection = (set: EnrichedGovernedClaimSet, discriminator: string) => {
+    let publicationProduced = false;
+    try { publicationProduced = Boolean(evaluate(set, discriminator)); return { rejected: false, publicationProduced }; }
+    catch (error) { return { rejected: true, publicationProduced, code: error instanceof EnrichedClaimIntegrityError ? error.code : undefined }; }
+  };
+  const status = rejection(mutate({ status: "unsupported" }), "mutation:status");
+  const factualValues = rejection(mutate({ factualValues: ["corrupt@example.invalid"] }), "mutation:factual-values");
+  return Object.freeze({ scenarioId, baselineOutcome: baseline.outcome, statusMutationRejected: status.rejected, statusMutationErrorCode: status.code, factualValueMutationRejected: factualValues.rejected, factualValueMutationErrorCode: factualValues.code, noStatusMutationEvaluationPublished: !status.publicationProduced, noFactualValueMutationEvaluationPublished: !factualValues.publicationProduced, metadataUnchanged: enrichment.enrichedClaimSet.threadId === lineage.threadId, statusMutationSilentlyAccepted: !status.rejected, factualValueMutationSilentlyAccepted: !factualValues.rejected });
 }

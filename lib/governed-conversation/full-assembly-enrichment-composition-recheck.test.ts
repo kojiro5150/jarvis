@@ -10,8 +10,6 @@ const protectedHashes: Readonly<Record<string, string>> = {
   "lib/context-builder.ts": "8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d",
   "lib/useAgentConversation.ts": "55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97",
   "lib/agents/chat-execution.ts": "da387b401acd4cc87609112e7b110451254af16bb33d8dd5224c4fb9aa210a88",
-  "lib/governed-conversation/claim-enrichment-engine.ts": "67cb850e992027f01174f3a23ead072776021f21ade4703f5fdfe544b87eb45b",
-  "lib/governed-conversation/claim-enrichment-types.ts": "b31fba4c1bf895113de4426d02d56513d7fd43f20741fd7dfdcd0f3d05ebb1d3",
   "lib/governed-conversation/source-evidence-assembly.ts": "01eacdbabdded56745820d0e09ca1ed1ed332ae4061ee09f4cbef2fa765fa8b7",
   "lib/governed-conversation/projection-composer.ts": "a3e2df360828c3756c19283d14b03b33134236e52cee2e37718d1990473ae47e",
   "lib/governed-conversation/input.ts": "15cc1689ee9234259b1ef52a1e8c6c38f1dd37aa808e3edc86cdd5e82342102f",
@@ -21,8 +19,6 @@ const protectedHashes: Readonly<Record<string, string>> = {
 const historicalBoundaryHashes = new Map([
   [["lib/governed-conversation/claim", "boundary-engine.ts"].join("-"), "9ab35f47190e803468003a9accd34e0cc613e9438c8077a882d0b108d22f827a"],
   [["lib/governed-conversation/claim", "boundary-types.ts"].join("-"), "cd5446f7f6bedb567be4b1bc7195c96f94b6b23bec82864102a090db49d6436a"],
-  [["lib/governed-conversation/conflict", "boundary-engine.ts"].join("-"), "48eaf88dff015a705a6849ce2256458536410ec82471ab6710bc4458557d5309"],
-  [["lib/governed-conversation/conflict", "boundary-types.ts"].join("-"), "275443691488dc8c7de4f459cad8bcb7c6e15538863c159a477cf7ddda86137e"],
 ]);
 const digest = (path: string) => createHash("sha256").update(readFileSync(path)).digest("hex");
 const walk = (directory: string): string[] => readdirSync(directory).flatMap(name => { const path = join(directory, name); return statSync(path).isDirectory() ? walk(path) : [path]; });
@@ -69,9 +65,7 @@ describe("Sprint 3.105 full-assembly enrichment composition re-check", () => {
 
   it("proves status and factual-value mutation sensitivity by truthfully detecting silent acceptance", async () => {
     const proof = await runEnrichedClaimMutationProof();
-    expect(proof).toMatchObject({ metadataUnchanged: true, statusMutationSilentlyAccepted: true, factualValueMutationSilentlyAccepted: true });
-    expect(proof.statusMutationOutcome).toBe(proof.baselineOutcome);
-    expect(proof.factualValueMutationOutcome).toBe(proof.baselineOutcome);
+    expect(proof).toMatchObject({ metadataUnchanged: true, statusMutationSilentlyAccepted: false, factualValueMutationSilentlyAccepted: false, statusMutationRejected: true, factualValueMutationRejected: true, statusMutationErrorCode: "published_claim_digest_mismatch", factualValueMutationErrorCode: "published_claim_digest_mismatch", noStatusMutationEvaluationPublished: true, noFactualValueMutationEvaluationPublished: true });
   });
 
   it("keeps protected semantics byte-identical and proves production-import isolation with pure Node", () => {

@@ -1,5 +1,6 @@
 import type { CanonicalGovernedConflict, ConflictCellEvaluation, ConflictEngineInput, ConflictEngineResult, ConflictEvaluation, ConflictEvaluationOutcome, ConversationalConflictClass, GovernedSourceObservation, UnevaluatedReason, UnevaluatedScope } from "./conflict-boundary-types";
 import { constructCanonicalGovernedConflict, constructConflictEvaluation, constructGovernedConflictSet } from "./conflict-boundary-publications";
+import { EnrichedClaimIntegrityError, GOVERNED_ENRICHED_CLAIM_INTEGRITY_POLICY_ID, isClaimIntegrityDigest, recomputeEnrichedClaimIntegrityDigest } from "./claim-integrity";
 
 const SOURCE_REQUIREMENT = "two_complete_governed_contact_observations";
 const EXPLANATION = "conflict_evaluation.part1.v1";
@@ -41,8 +42,37 @@ function publishEvaluation(input: ConflictEngineInput, cells: readonly ConflictC
   return Object.freeze({ evaluation: constructConflictEvaluation({ ...body, conflictSetId: conflictSet.governedConflictSetId }, input.evaluationDiscriminator), conflictSet });
 }
 
+function verifyClaimIntegrity(input: ConflictEngineInput): void {
+  const claimSet = input.claimSet!;
+  const expectedPublicationId = claimSet.claimSetKind === "base" ? claimSet.governedClaimSetId : claimSet.enrichedGovernedClaimSetId;
+  if (claimSet.claimSetPublicationId !== expectedPublicationId) throw new Error("claim-set publication identity mismatch");
+  if (claimSet.claimSetKind === "base") {
+    if (input.observations.some(observation => observation.evaluatedClaimIntegrityDigest !== undefined)) throw new Error("base observations must not carry an enriched claim digest");
+    return;
+  }
+  for (const claim of claimSet.claims) {
+    const policy = (claim as { claimIntegrityPolicyId?: unknown }).claimIntegrityPolicyId;
+    const published = (claim as { claimIntegrityDigest?: unknown }).claimIntegrityDigest;
+    if (policy === undefined || published === undefined) throw new EnrichedClaimIntegrityError("claim_digest_missing", claim.claimId, undefined, typeof published === "string" ? published : undefined);
+    if (policy !== GOVERNED_ENRICHED_CLAIM_INTEGRITY_POLICY_ID) throw new EnrichedClaimIntegrityError("claim_integrity_policy_mismatch", claim.claimId, GOVERNED_ENRICHED_CLAIM_INTEGRITY_POLICY_ID, String(policy));
+    if (typeof published !== "string" || !isClaimIntegrityDigest(published)) throw new EnrichedClaimIntegrityError("claim_integrity_digest_malformed", claim.claimId, undefined, typeof published === "string" ? published : undefined);
+    const recomputed = recomputeEnrichedClaimIntegrityDigest(claim, { enrichmentEvaluationId: claimSet.enrichmentEvaluationId, threadId: claimSet.threadId, requestId: claimSet.requestId, exchangeId: claimSet.exchangeId, segmentIds: claimSet.segmentLinks.filter(link => link.claimId === claim.claimId).map(link => link.segmentId) });
+    if (recomputed !== published) throw new EnrichedClaimIntegrityError("published_claim_digest_mismatch", claim.claimId, recomputed, published);
+    const observations = input.observations.filter(observation => observation.affectedClaimId === claim.claimId);
+    const supplied = observations.map(observation => observation.evaluatedClaimIntegrityDigest).filter((digest): digest is NonNullable<typeof digest> => digest !== undefined);
+    if (new Set(supplied).size > 1) throw new EnrichedClaimIntegrityError("mixed_observation_claim_digests", claim.claimId, published, supplied.join(","));
+    for (const observation of observations) {
+      const digest = observation.evaluatedClaimIntegrityDigest;
+      if (digest === undefined) throw new EnrichedClaimIntegrityError("observation_digest_missing", claim.claimId, published);
+      if (!isClaimIntegrityDigest(digest)) throw new EnrichedClaimIntegrityError("claim_integrity_digest_malformed", claim.claimId, published, digest);
+      if (digest !== published) throw new EnrichedClaimIntegrityError("observation_claim_digest_mismatch", claim.claimId, published, digest);
+    }
+  }
+}
+
 export function evaluateGovernedConversationalConflicts(input: ConflictEngineInput): ConflictEngineResult {
   if (!input.claimSet) return Object.freeze({});
+  verifyClaimIntegrity(input);
   const requested = input.requestedConflictClasses[0] ?? "source_value_contradiction";
   if (!input.ruleset) return publishEvaluation(input, [], [reason(undefined, requested, "ruleset_unavailable")], []);
   if (input.requestedConflictClasses.length !== 1 || requested !== "source_value_contradiction") return publishEvaluation(input, [], input.claimSet.claims.map(claim => reason(claim.claimId, requested, "conflict_class_unsupported")), []);

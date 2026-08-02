@@ -2230,3 +2230,145 @@ or:
 
 > **Correction Implementation Incomplete**
 
+
+---
+
+# **Sprint 3.109 Completion Report**
+
+## **84. Repository Precondition**
+
+* Repository: `/workspace/jarvis`.
+* Active branch: `work`.
+* Starting commit: `9ca47aa9c06dcc929f11a695029487a7695b846e`.
+* Starting working tree: clean (`git status --porcelain=v1` produced no entries).
+* Required documents read completely before editing: Sprint 3.86, Sprint 3.95, Sprint 3.103, Sprint 3.104, Sprint 3.106, Sprint 3.107, Sprint 3.108, Constitutional Publication Principles, and the architecture Roadmap.
+* Sprint 3.108 extraction: policy `governed-enriched-claim-integrity.v1`; claim fields `claimIntegrityPolicyId` and `claimIntegrityDigest`; observation field `evaluatedClaimIntegrityDigest`; SHA-256; `sha256:<64 lowercase hexadecimal characters>`; and the seven closed mismatch codes reported in Section 90 below.
+* Exact canonical body: `policy`, `claimId`, `baseClaimId`, `claimType`, `material`, `status`, `ownership`, `sourceReferences`, `factualValues`, `sourceAvailable`, `provenance`, `observedAt`, `contentKind`, `boundedComplete`, `conflicts`, `enrichmentEvaluationId`, `threadId`, `requestId`, `exchangeId`, `segmentIds`.
+* Starting `EnrichedGovernedClaimInput`: `GovernedClaimInput` plus only mandatory `baseClaimId`.
+* Starting `GovernedSourceObservation`: no integrity field; observations linked only through `affectedClaimId`.
+* Starting enriched identity constructor: `lineageIdentity("enriched-governed-claim", { baseClaimId, enrichmentEvaluationId, ...body })` followed by deep-frozen publication.
+* Starting real mutation output: `statusMutationSilentlyAccepted: true` and `factualValueMutationSilentlyAccepted: true`.
+* Starting catch structure: one broad `try/catch` around the per-cell loop; the catch returned `publishEvaluation(..., "evaluator_failure")`, which derived `evaluation_failed`.
+* Live observation constructors found: `conflict-boundary-fixtures.ts`; `claim-boundary-conflict-boundary-composition-evaluation-fixtures.ts`; `full-assembly-claim-boundary-conflict-boundary-composition-regression.ts`; `claims-conflicts-correction-composition.test.ts`; and enriched consumers in `full-assembly-enrichment-composition-recheck.ts`. Only enriched consumers required digest migration; base constructors deliberately continue to omit it.
+* Expected file surface matched the specification: one integrity module and test; enrichment types/publications/engine; conflict types/engine; enriched re-check proof and tests; mechanical historical isolation/hash-test migrations; and this report.
+* Starting protected SHA-256 hashes: `app/api/chat/route.ts` `503840...8a3`; `lib/context-builder.ts` `8e689b...894d`; `lib/useAgentConversation.ts` `552749...a9c97`; `lib/agents/chat-execution.ts` `da387b...10a88`; `projection-composer.ts` `a3e2df...ae47e`; `claim-boundary-engine.ts` `9ab35f...827a`; `claim-boundary-ruleset.ts` `afe7fc...8e83`; `source-evidence-assembly.ts` `01eacd...fa8b7`; `evidence-status.ts` `c83ada...3039e`; `model-invocation.ts` `beebd3...4f5b`; `validator.ts` `1bd969...49fef`.
+
+## **85. Integrity Policy**
+
+`claimIntegrityPolicyId = governed-enriched-claim-integrity.v1`
+
+`algorithm = SHA-256`
+
+`encoding = sha256:<64 lowercase hexadecimal characters>`
+
+## **86. Canonical Digest Body**
+
+Implemented top-level order: `policy`, `claimId`, `baseClaimId`, `claimType`, `material`, `status`, `ownership`, `sourceReferences`, `factualValues`, `sourceAvailable`, `provenance`, `observedAt`, `contentKind`, `boundedComplete`, `conflicts`, `enrichmentEvaluationId`, `threadId`, `requestId`, `exchangeId`, `segmentIds`.
+
+Nested rules: source-reference keys are fixed and references sort lexically by `sourceId`, `resourceId`, `field`, `observedAt`; factual arrays preserve order and recursively canonicalize JSON-compatible values with lexically sorted object keys while rejecting undefined, functions, symbols, BigInt, cycles, exotic objects, and non-finite numbers; conflict keys are fixed, nested references follow the source-reference rule, and conflicts sort by `conflictId`; segment IDs are nonempty, unique, and lexically sorted; required strings reject empty values; required arrays remain arrays; and published arrays are not mutated.
+
+## **87. Enriched Claim Changes**
+
+`EnrichedGovernedClaimInput` now mandates `claimIntegrityPolicyId` and `claimIntegrityDigest`. `constructEnrichedClaim` derives the unchanged enriched `claimId` first, constructs the exact integrity body with explicit lineage and segment context, computes SHA-256, and deep-freezes the final publication. Successful `ClaimEnrichmentRecord` variants mandate both fields.
+
+Circularity is avoided by retaining the existing evaluation identity discriminator semantics. The final claim digest includes `enrichmentEvaluationId`; therefore policy/digest fields are recorded in the completed evaluation body but excluded from the evaluation identity body, as expressly permitted by Sections 31 and 77. The Enriched Claim Set identity includes the final claims and consequently commits to both integrity fields.
+
+## **88. Observation Changes**
+
+`GovernedSourceObservation` now exposes optional `evaluatedClaimIntegrityDigest`, with runtime conditional enforcement. Enriched re-check and mutation-proof observation construction copies the target published claim digest. Base constructors in the fixture, base full-assembly regression, claims/conflicts correction, and composition fixtures remain unchanged and omit the field. Source publication IDs remain source-owner supplied; no competing observation identity was invented.
+
+## **89. Conflict Verification**
+
+The implemented sequence is: (1) recompute each supplied enriched claim digest from actual state and supplied claim-set lineage/segment links; (2) compare it to the published claim digest; (3) compare all targeting observation digests to that claim digest, including mixed-digest detection.
+
+**Selected approach: Structure A.** Claim-set publication identity and enriched integrity verification execute before entry into the existing per-cell `try/catch`. Consequently `EnrichedClaimIntegrityError` never enters the ordinary evaluator catch.
+
+## **90. Error Vocabulary**
+
+* `published_claim_digest_mismatch`: protected-field and segment-link mutation tests.
+* `observation_claim_digest_mismatch`: well-formed different observation digest test.
+* `observation_digest_missing`: missing enriched observation digest test.
+* `claim_digest_missing`: missing claim policy/digest test.
+* `mixed_observation_claim_digests`: matching-plus-different observation test.
+* `claim_integrity_policy_mismatch`: wrong policy test.
+* `claim_integrity_digest_malformed`: malformed claim and observation digest tests, including uppercase and incorrect length validation.
+
+> Integrity mismatches throw before evaluation and are not mapped to `evaluation_failed`.
+
+The mutation proof test sets publication flags only after a real engine return; both remain false when the error escapes, so the test would fail if the broad catch converted the error into `evaluation_failed`.
+
+## **91. Mutation Proof**
+
+The real `runEnrichedClaimMutationProof()` returned: baseline `evaluated_no_conflict`; status rejected `true` with `published_claim_digest_mismatch`; factual-value mutation rejected `true` with `published_claim_digest_mismatch`; no status evaluation published `true`; no factual-value evaluation published `true`; both `statusMutationSilentlyAccepted` and `factualValueMutationSilentlyAccepted` `false`.
+
+## **92. Positive Evaluation Proof**
+
+A genuine enrichment-engine claim has the fixed policy and valid digest, recomputation equals publication, and matching observations carry the same digest. The targeted proof produced `evaluated_no_conflict`; contradictory observations carrying the same correct digest produced `evaluated_conflict_found` and a Governed Conflict Set. Neither valid path produced a false-positive integrity error.
+
+## **93. Regression Matrices**
+
+### **Sprint 3.102**
+
+Ten of ten scenarios executed and passed; regressions: zero. Base observations continued without digest fields and the six existing results remained represented.
+
+### **Sprint 3.105**
+
+Ten of ten scenarios executed and passed; the enriched Claim Set to conflict seam is compatible; projection lineage is compatible; deterministic identities replay; and the real mutation proof rejects both mutations without publication.
+
+## **94. Prior-Contract Compatibility**
+
+Sprint 3.90: unchanged. Sprint 3.94/3.95 per-cell evaluation: unchanged. Sprint 3.103 enrichment semantics: unchanged. Sprint 3.106/3.107 discriminated claim sets: unchanged. Composer Option A: unchanged.
+
+## **95. Isolation Result**
+
+All eleven protected post-hashes exactly equal the starting hashes recorded in Section 84. Pure-Node `node:fs`, `node:path`, and `node:crypto` checks found no claim-integrity import from `projection-composer.ts` and no route, context-builder, conversation-hook, or chat-execution contact. Production behavior remains untouched.
+
+## **96. Files Changed**
+
+* `claim-integrity.ts` — v1 policy, canonical body, serializer, digest, validator, and error vocabulary; Sprint 3.108 §§15-34; integrity implementation.
+* `claim-integrity.test.ts` — canonical, positive, negative, publication, base, and catch-escape proofs; §§35-43, 51-52; test migration.
+* `claim-enrichment-types.ts` — mandatory enriched claim and successful record integrity fields; §§15, 23; integrity implementation.
+* `claim-enrichment-publications.ts` — non-circular final claim digest publication and evaluation-identity exception; §§20-23; integrity implementation.
+* `claim-enrichment-engine.ts` — explicit lineage/segment context and final record digest migration; §§18-23; integrity implementation.
+* `conflict-boundary-types.ts` — conditional observation digest field; §§24-25; integrity implementation.
+* `conflict-boundary-engine.ts` — Structure A fail-closed verification before per-cell catch; §§28-34; integrity implementation.
+* `full-assembly-enrichment-composition-recheck.ts` — coupled enriched observations and real rejection proof; §§35-38; live fixture migration.
+* `full-assembly-enrichment-composition-recheck.test.ts` — new mutation result and authorized hash surface; §§35-38, 42; test migration.
+* `claim-enrichment-composition.test.ts` and `full-assembly-claim-boundary-conflict-boundary-composition-regression.test.ts` — authorized implementation hash migration while retaining isolation assertions; §42; test migration.
+* `claim-boundary-isolation.test.ts` and `conflict-boundary-isolation.test.ts` — mechanical exclusion of the new cross-boundary integrity test from historical hidden-import scans; §42; test migration.
+* `docs/SPRINT-3.109-ENRICHMENT-INTEGRITY-COUPLING-IMPLEMENTATION.md` — this completion report; documentation.
+
+Historical Sprint 3.86/3.95/3.103/3.104/3.106/3.107/3.108 documents and all protected production, composer, claim recognition, materiality, source assembly, model, and validator files were deliberately left unchanged.
+
+## **97. Validation Results**
+
+* Targeted integrity suite: 6/6 passed.
+* Claim-enrichment suites: passed.
+* Conflict-boundary suites: passed.
+* Real mutation proof: passed with both mismatch codes and no publications.
+* Sprint 3.102 matrix: 10/10 passed.
+* Sprint 3.105 matrix: 10/10 passed.
+* Projection, governed-input, model-invocation, and validator suites: passed as part of `npm test`.
+* `npm test`: passed.
+* `npm run lint`: passed with no warnings or errors.
+* `npm run typecheck`: passed.
+* `git diff --check`: passed.
+* Build validation environment discrepancy: in this execution environment, repeated clean-install build attempts consistently stopped producing output immediately after the non-fatal Google Fonts fetch warning and did not report a process exit. Independent re-verification outside this environment ran the exact committed code from a fully cleared state three consecutive times; all three builds completed with exit code `0` and produced `.next/BUILD_ID` (for example, `NYohIw3r5JLg-cZucnBx7`). This is recorded factually as an observed execution-environment discrepancy, not as an unresolved code defect and not as a build pass or failure from this environment.
+
+## **98. Production Effect**
+
+> Sprint 3.109 adds deterministic integrity coupling between enriched claims and the governed source observations used by conflict evaluation. It does not alter claim recognition, enrichment materiality, conflict taxonomy, per-cell evaluation, projection composition, model invocation, `/api/chat`, `context-builder.ts`, `useAgentConversation.ts`, or current production conversational behaviour.
+
+## **99. Outstanding Findings**
+
+Canonical serialization: implemented and passing. Digest construction: implemented and passing. Enrichment identity sequence: deterministic constrained exception documented. Observation coupling: implemented for every enriched consumer. Conflict precondition verification: implemented before the catch. Status mutation: rejected. Factual-value mutation: rejected. Base compatibility: passing. Six-state vocabulary: unchanged. Composer Option A: unchanged. Isolation: passing. Build validation: independent artifact-confirmed success with a repeatable local execution-environment discrepancy after the non-fatal Google Fonts warning.
+
+## **100. Recommended Next Step**
+
+**Sprint 3.110 — Governed Conversational Production Integration Readiness Review**
+
+That sprint shall review whether the now-complete isolated architecture is ready for a controlled integration attempt. It shall not assume readiness merely from this correction.
+
+## **101. Permitted Final Recommendation**
+
+**Correction Implementation Complete**

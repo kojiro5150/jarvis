@@ -2240,3 +2240,180 @@ or:
 
 > **Governance Review Incomplete**
 
+---
+
+# **Part XXIV — Completed Governance Record**
+
+## **117. Repository Precondition**
+
+* **Repository:** `/workspace/jarvis`
+* **Branch:** `work`
+* **Starting commit:** `f5403a484e7a44360e051f572031d2ebcf55f755`
+* **Starting working-tree state:** clean
+* **Main availability:** the repository has no local `main` ref and no configured remote. `HEAD` is the merge commit for pull request 189, `docs/sprint-3.108-spec`; therefore the merged Sprint 3.108 contract at `HEAD` is the available main-line repository state.
+* **Required documents read completely:** Sprint 3.85, Sprint 3.89, Sprint 3.90, Sprint 3.94, Sprint 3.103, Sprint 3.105, Sprint 3.106, Sprint 3.107, Constitutional Publication Principles, and the architecture Roadmap, at the exact paths listed in Section 5.
+* **Required source files read completely:** all ten files listed in Section 6.
+* **Current enriched-claim fields:** `claimId`, `baseClaimId`, `claimType`, `material`, `status`, `ownership`, `sourceReferences`, `factualValues`, `sourceAvailable`, `provenance`, `observedAt`, `contentKind`, `boundedComplete`, and `conflicts`. No claim-integrity policy or digest field exists.
+* **Current observation fields:** `sourcePublicationId`, `sourceOwnerId`, `sourceType`, `resourceEntityId`, `affectedClaimId`, `comparisonKey`, `canonicalFactualValue`, `originalFactualValue`, `observedAt`, `publishedAt`, `provenance`, `comparisonScope`, `availability`, `coverage`, `supersessionStatus`, `contentKind`, and `schemaVersion`. `affectedClaimId` proves membership only. No enriched-claim state digest exists.
+* **Current input shapes:** `ConflictEngineInput` accepts `claimSet` and `observations` as independent properties. `EnrichedGovernedClaimInput` extends `GovernedClaimInput` with only `baseClaimId`. The discriminated `base` and `enriched` conflict-evaluable Claim Set variants from Sprint 3.107 are present.
+* **Current mutation outputs:** `baselineOutcome = evaluated_no_conflict`, `statusMutationOutcome = evaluated_no_conflict`, `factualValueMutationOutcome = evaluated_no_conflict`, `metadataUnchanged = true`, `statusMutationSilentlyAccepted = true`, and `factualValueMutationSilentlyAccepted = true`.
+* **Current conflict-engine validation:** observation linkage checks that `affectedClaimId` occurs in `claimSet.claimIds`. The engine does not recompute enriched-claim body identity, compare a published claim-state digest, or bind observations to the exact enriched body.
+* **Current projection validation:** enriched publication lineage and exact enriched claim summaries are present. The projection remains downstream and does not own conflict-input integrity coupling.
+* **Repository-wide integrity search:** the sole `publicationDigest` field belongs to `ClaimEnrichmentRuleset` and identifies the ruleset publication. It does not identify an enriched claim body. No validator owns the coupling selected here.
+* **Files changed:** `docs/SPRINT-3.108-GOVERNED-ENRICHMENT-INTEGRITY-COUPLING-CONTRACT.md` only.
+
+The Repository Precondition passes. No inspected evidence contradicts a central premise.
+
+## **118. Options Decision**
+
+| Option | Decision | Structural reason |
+| ----- | ----- | ----- |
+| Option A — Canonical Claim-State Digest | **Selected** | It binds immutable enriched-claim identity to the exact body and binds every independently published observation to that body while preserving the existing owners and trust boundary. |
+| Option B — Derive Observations Internally From Claim Set | **Rejected** | Claims are bounded summaries, not source-owned observation publications. Derivation would conflate enrichment evidence with conflict evidence and reopen Sprint 3.90. |
+| Option C — Evaluated Claim Snapshot Only | **Rejected as primary correction** | A post-evaluation snapshot records an accepted input but does not prove publication integrity or observation coupling before evaluation. |
+| Option D — Projection Composer Integrity Check | **Rejected** | Projection is downstream, conflict evaluations have independent consumers, and Composer Option A does not repair malformed upstream publications. |
+
+Option A is recorded exactly as drafted: a canonical enriched-claim state digest is carried by the claim and every observation targeting it, and the conflict engine recomputes and verifies the digest before per-cell evaluation. A mismatch throws and does not expand the six-state outcome vocabulary.
+
+## **119. Selected Fields**
+
+| Field | Owner | Requiredness |
+| ----- | ----- | ----- |
+| `claimIntegrityPolicyId` | Evidence-to-Claim Enrichment Stage | Required for every enriched claim publication; fixed to `governed-enriched-claim-integrity.v1`. |
+| `claimIntegrityDigest` | Evidence-to-Claim Enrichment Stage | Required on every enriched claim and preserved without alteration by the enriched Claim Set. |
+| `evaluatedClaimIntegrityDigest` | Governed source-observation publisher | Required on every observation supplied with `claimSetKind = "enriched"`; absent for base observations under this contract. Its value equals the target claim's published `claimIntegrityDigest`. |
+
+## **120. Canonical Digest Body**
+
+The v1 canonical enriched-claim body includes every real field of `EnrichedGovernedClaimInput`:
+
+* `claimId`
+* `baseClaimId`
+* `claimType`
+* `material`
+* `status`
+* `ownership`
+* `sourceReferences`
+* `factualValues`
+* `sourceAvailable`
+* `provenance`
+* `observedAt`
+* `contentKind`
+* `boundedComplete`
+* `conflicts`
+
+The fixed policy discriminator and governing enrichment/publication context also participate: `claimIntegrityPolicyId`, `enrichmentEvaluationId`, `threadId`, `requestId`, `exchangeId`, and the canonical `segmentLinks` entry for the claim using its real `segmentId` and `claimId` fields. Collection canonicalization, governed absence, strings, and UTF-8 serialization follow Sections 26 through 34.
+
+## **121. Algorithm Decision**
+
+policy =
+`governed-enriched-claim-integrity.v1`
+
+algorithm =
+`SHA-256`
+
+encoding =
+`sha256:<64 lowercase hexadecimal characters>`
+
+## **122. Verification Decision**
+
+> Verification occurs inside the conflict engine before per-cell evaluation.
+
+The engine performs structural validation, recomputes the supplied enriched claim's v1 canonical digest, compares it with `claimIntegrityDigest`, and compares every targeting observation's `evaluatedClaimIntegrityDigest` with that same digest. No per-cell eligibility, source comparison, conflict derivation, or conflict publication begins until all comparisons pass.
+
+## **123. Mismatch Decision**
+
+> An integrity mismatch throws a deterministic pre-evaluation error. No Conflict Evaluation or Governed Conflict Set is published. Sprint 3.90’s six-state vocabulary remains unchanged.
+
+The mismatch is malformed or tampered publication input. It is not `evaluation_failed`, not partial evaluation, and not a seventh conflict outcome.
+
+## **124. Worked Mutation Example**
+
+### **Status mutation**
+
+1. Enrichment publishes the baseline claim with `status = available` and `claimIntegrityDigest = sha256:<baseline>`.
+2. Every unchanged targeting observation publishes `evaluatedClaimIntegrityDigest = sha256:<baseline>`.
+3. The supplied claim body is changed to `status = unsupported` while retaining its `claimId`, published `claimIntegrityDigest`, and observations.
+4. Before per-cell evaluation, the conflict engine serializes the actual supplied mutated body under `governed-enriched-claim-integrity.v1` and recomputes `sha256:<status-mutated>`.
+5. The engine compares recomputed `sha256:<status-mutated>` with published `sha256:<baseline>`.
+6. The values differ, producing `published_claim_digest_mismatch`.
+7. The engine throws before evaluation. No Conflict Evaluation or Governed Conflict Set is published.
+
+### **Factual-value mutation**
+
+1. Enrichment publishes the baseline claim with `factualValues = ["cassie@example.com"]` and `claimIntegrityDigest = sha256:<baseline>`.
+2. Every unchanged targeting observation publishes `evaluatedClaimIntegrityDigest = sha256:<baseline>`.
+3. The supplied claim body is changed to `factualValues = ["corrupt@example.invalid"]` while retaining its `claimId`, published `claimIntegrityDigest`, and observations.
+4. Before per-cell evaluation, the conflict engine serializes the actual supplied mutated body under `governed-enriched-claim-integrity.v1` and recomputes `sha256:<factual-value-mutated>`.
+5. The engine compares recomputed `sha256:<factual-value-mutated>` with published `sha256:<baseline>`.
+6. The values differ, producing `published_claim_digest_mismatch`.
+7. The engine throws before evaluation. The observations' unchanged `sha256:<baseline>` commitments additionally prove that they were not prepared for the mutated body. No Conflict Evaluation or Governed Conflict Set is published.
+
+Both Section 115 mutation cases fail through `published_claim_digest_mismatch` before evaluation exactly as governed.
+
+## **125. Prior-Contract Compatibility**
+
+* **Sprint 3.90:** preserved. Source-owned observations, the three-class taxonomy, strict claim linkage, restrict-don't-adjudicate, and the closed six-state vocabulary remain unchanged.
+* **Sprint 3.94:** preserved. Per-cell evaluation remains each eligible claim ID by each requested conflict class; integrity verification precedes those cells.
+* **Sprint 3.103:** preserved. Enrichment continues to own enriched state, evidence admission, factual values, status, source references, and publication.
+* **Sprint 3.106:** preserved. Publication identity and enrichment lineage remain governed independently of this explicit conflict-coupling commitment.
+* **Sprint 3.107:** preserved. Truthful discriminated base and enriched Claim Set variants remain intact; the requirement applies conditionally to the enriched variant.
+* **Composer Option A:** preserved. The composer validates and aggregates completed canonical upstream publications and does not author, repair, or primarily verify this digest.
+
+## **126. Responsibility Audit**
+
+| Question | Binding answer |
+| ----- | ----- |
+| Who creates `claimIntegrityDigest`? | Evidence-to-Claim Enrichment Stage |
+| What does it identify? | The immutable canonical enriched-claim state protected for conflict evaluation |
+| Who creates `evaluatedClaimIntegrityDigest`? | Governed source-observation publisher |
+| Where does its value come from? | The target enriched claim’s published `claimIntegrityDigest` |
+| Who verifies the digest? | Conflict engine |
+| When is it verified? | Before per-cell evaluation |
+| Does the digest replace `claimId`? | No |
+| Are both ID and digest required? | Yes, for enriched evaluation |
+| Is SHA-256 binding? | Yes |
+| Is the policy versioned? | Yes |
+| Does status participate? | Yes |
+| Do factual values participate? | Yes |
+| Do source references participate? | Yes |
+| Does provenance participate? | Yes |
+| Does source availability participate? | Yes |
+| Does bounded completeness participate? | Yes |
+| Does a mismatch create a conflict outcome? | No |
+| Does a mismatch throw? | Yes |
+| Is a Conflict Evaluation published after mismatch? | No |
+| Is the six-state vocabulary changed? | No |
+| Does conflict evaluation derive observations from claims? | No |
+| Does the composer own this check? | No |
+| Does this reopen per-cell evaluation? | No |
+| Does this reopen discriminated claim sets? | No |
+| Does this authorize implementation? | No |
+
+**Decision:** Responsibility Audit passes.
+
+## **127. No-Implementation Statement**
+
+> Sprint 3.108 authorizes no implementation or production integration.
+
+No code, type, test, runtime, production, or integration file changed.
+
+## **128. Validation Results**
+
+* `npm test` — passed
+* `npm run build` — passed
+* `npm run lint` — passed
+* `npm run typecheck` — passed
+* `git diff --check` — passed
+
+## **129. Files Changed**
+
+`docs/SPRINT-3.108-GOVERNED-ENRICHMENT-INTEGRITY-COUPLING-CONTRACT.md`
+
+only.
+
+## **130. Next Step**
+
+> **Sprint 3.109 — Enrichment Integrity-Coupling Implementation**
+
+> **Governed Contract Complete**

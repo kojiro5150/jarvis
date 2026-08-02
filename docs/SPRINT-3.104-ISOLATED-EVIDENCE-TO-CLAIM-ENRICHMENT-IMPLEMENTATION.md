@@ -1,6 +1,6 @@
 # **Sprint 3.104 — Isolated Evidence-to-Claim Enrichment Implementation**
 
-**Status:** Specification  
+**Status:** Implementation Complete
 **Sprint Type:** Isolated Governance-Correction Implementation  
 **Implementation Authority:** Sprint 3.103 — Governed Evidence-to-Claim Enrichment Contract  
 **Production Integration:** Prohibited  
@@ -2122,3 +2122,258 @@ or:
 
 > **Implementation Incomplete**
 
+---
+
+# **Sprint 3.104 Implementation Completion Report**
+
+## **89. Repository Precondition**
+
+* **Repository:** `/workspace/jarvis`, the intended JARVIS repository.
+* **Branch:** `work`.
+* **Starting commit:** `31991c78c6c5c88006b599f10e33cf384875b9fa` (`Merge pull request #181 from kojiro5150/docs/sprint-3.104-spec-v2`).
+* **Starting working-tree state:** clean.
+* **Sprint 3.103:** present with status `Governed Contract Complete`.
+* **Required document presence:** every document required by Section 5 was present before editing: Sprints 3.89, 3.91, 3.96, 3.97, 3.98, 3.99, 3.101, 3.102, and 3.103.
+* **Premise confirmation:** `GovernedClaimSet` has exactly `governedClaimSetId`, `schemaVersion`, `claimBoundaryEvaluationId`, `claimBoundaryRulesetId`, `threadId`, `requestId`, `exchangeId`, `referenceTime`, `claims`, `segmentLinks`, `claimIds`, and `createdAt`. `GovernedClaimInput` has exactly `claimId`, `claimType`, `material`, `status`, `ownership`, `sourceReferences`, `factualValues`, `sourceAvailable`, `provenance`, `observedAt`, `contentKind`, `boundedComplete`, and `conflicts`; it has no `baseClaimId`.
+* **Assembly premise:** `GovernedSourceEvidenceAssemblyResult` contains `communicationEvidence`, `calendarEvidence`, `memoryPriorityReferences`, `connectorAvailability`, and `sourceResults`.
+* **Resolution premise:** `GovernedCommunicationEvidenceInput` is reference-only and contains no canonical address value. The deterministic injected resolver port is therefore required.
+* **Existing-owner search:** no pre-sprint claim-enrichment engine or publication existed.
+* **Expected file list recorded before editing:** the five Section 83 modules, the five Section 84 tests, and this sprint document.
+
+### **Extracted Sprint 3.103 vocabulary**
+
+* **Outcomes:** `enriched_available`, `retained_insufficient_coverage`, `retained_unavailable`, `retained_unsupported`, `not_material`, `enrichment_failed`.
+* **Materiality:** contact × communication is material; contact × connector availability is conditionally material to source availability only; contact × Calendar and Memory Priority are not material. Message importance has no admitted factual evidence category; every importance evidentiary cell resolves to `not_material`, including connector availability, and importance remains unsupported.
+* **Identity:** every enriched claim receives a new `claimId` and mandatory `baseClaimId`; the base claim and base Claim Set remain immutable; the enriched set receives a new `enrichedGovernedClaimSetId`.
+* **Cassie:** contact changes from `insufficient_coverage` to `available` when complete governed Gmail evidence resolves; importance remains `unsupported`.
+* **Evidence status:** the existing four statuses remain authoritative and are computed from explicit support, availability, governance, identity, provenance, scope, coverage, freshness, pre-conflict value consistency, and content-completeness inputs.
+* **No reopening:** Sprint 3.89 recognition remains evidence-blind; Sprint 3.90 conflict ownership and Composer Option A remain unchanged; Sprint 3.94/3.95 per-cell conflict semantics remain unchanged; Sprints 3.96–3.99 source contracts remain unchanged.
+
+### **Protected starting hashes**
+
+| File | SHA-256 |
+| --- | --- |
+| `lib/governed-conversation/claim-boundary-engine.ts` | `9ab35f47190e803468003a9accd34e0cc613e9438c8077a882d0b108d22f827a` |
+| `lib/governed-conversation/claim-boundary-ruleset.ts` | `afe7fce7814b2d02da8e6ebecfbff2c721abf418bdfd426cf689340d898a8e83` |
+| `lib/governed-conversation/claim-boundary-publications.ts` | `ccd7caa39316eb2fce1c7c8c8eda3741d0182eb12a123de9f7860e8225aa7c95` |
+| `lib/governed-conversation/projection-composer.ts` | `d66c9dfccf98a428fb58e6db68af171751bfe2b56b602d028f9c212fee958355` |
+| `lib/governed-conversation/conflict-boundary-engine.ts` | `5b62297ed0d69a9f70bf6e82788cc996c37cb9bf733dded27876ae098e57e27d` |
+| `app/api/chat/route.ts` | `503840ffa6c17f52a049c1aaaad4e8402c000904dd3b7ce868104a10c6ba08a3` |
+| `lib/context-builder.ts` | `8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d` |
+| `lib/useAgentConversation.ts` | `55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97` |
+| `lib/agents/chat-execution.ts` | `da387b401acd4cc87609112e7b110451254af16bb33d8dd5224c4fb9aa210a88` |
+
+## **90. Governing Artefacts Reviewed**
+
+The following were read completely before implementation:
+
+* `docs/SPRINT-3.104-ISOLATED-EVIDENCE-TO-CLAIM-ENRICHMENT-IMPLEMENTATION.md`;
+* `docs/SPRINT-3.103-GOVERNED-EVIDENCE-TO-CLAIM-ENRICHMENT-CONTRACT.md`;
+* `lib/governed-conversation/claim-boundary-types.ts`;
+* `lib/governed-conversation/types.ts`;
+* `lib/governed-conversation/claim-boundary-engine.ts`;
+* `lib/governed-conversation/claim-boundary-publications.ts`;
+* `lib/governed-conversation/claim-boundary-ruleset.ts`;
+* `lib/governed-conversation/evidence-status.ts`;
+* `lib/governed-conversation/source-evidence-assembly.ts`;
+* `lib/governed-conversation/gmail-evidence-publisher.ts`;
+* `lib/governed-conversation/projection-composer.ts`.
+
+The other Section 5 governance documents were confirmed present. Sprint 3.103 was the sole semantic authority extracted for this implementation.
+
+## **91. Exact Contract Extraction**
+
+### **Outcome vocabulary**
+
+enriched_available
+retained_insufficient_coverage
+retained_unavailable
+retained_unsupported
+not_material
+enrichment_failed
+
+### **Evidence categories**
+
+communicationEvidence
+calendarEvidence
+memoryPriorityReferences
+connectorAvailability
+
+### **Identity fields**
+
+baseClaimId
+enrichedGovernedClaimSetId
+baseGovernedClaimSetId
+enrichmentEvaluationId
+enrichmentRulesetId
+
+### **Evaluation publication fields**
+
+`enrichmentRulesetId`, `enrichmentEvaluationId`, `baseGovernedClaimSetId`, `threadId`, `requestId`, `exchangeId`, `sourceAssemblyReference`, `referenceTime`, `evaluatedClaimIds`, `admittedEvidenceCategoryCells`, `sourceReferencesConsulted`, `sourceReferencesAdmitted`, `sourceReferencesRejected`, `claimOutcomes`, `createdAt`.
+
+### **Enriched Claim Set publication fields**
+
+`enrichedGovernedClaimSetId`, `baseGovernedClaimSetId`, `enrichmentEvaluationId`, `claimBoundaryRulesetId`, `claimBoundaryEvaluationId`, `threadId`, `requestId`, `exchangeId`, `referenceTime`, `claims`, `segmentLinks`, `claimIds`, `createdAt`.
+
+## **92. Module Results**
+
+* **`claim-enrichment-types.ts`:** defines the closed vocabularies, adjacent enriched claim type, resolver port, input/result unions, materiality cells, and immutable publication contracts.
+* **`claim-enrichment-ruleset.ts`:** publishes the deterministic v1 closed ruleset, its exact eight materiality cells, digest, and lineage identity.
+* **`claim-enrichment-publications.ts`:** constructs deep-frozen evaluations, enriched claims, and enriched Claim Sets with deterministic distinct identities.
+* **`claim-enrichment-engine.ts`:** validates base lineage, applies exact materiality, correlates only exact entity assertions, computes evidence status, distinguishes governed failure from programmer-contract errors, and never imports a connector.
+* **`claim-enrichment-fixtures.ts`:** supplies the deterministic real-assembly Cassie acquisition fixture and a reference-bound canonical resolver fixture.
+
+## **93. Cassie Result**
+
+### **Base**
+
+contact_address_lookup = insufficient_coverage
+message_importance = unsupported
+
+* **Base Claim Set ID:** `governed-claim-set:b26983dc276ddaa5c79540449c382392fb32b8db022b7ea35cd915b4d7ed866b`.
+* **Base contact claim ID:** `governed-claim:7c276ab86cf27e8d495404de0a870c658730553dbc88eb744ea0b882d63d5605`.
+* **Base importance claim ID:** `governed-claim:950fda67747a0912be5f975cbb7efadc00c8fb3dac485efabd2536b5676670de`.
+
+### **Enriched**
+
+contact_address_lookup = available
+message_importance = unsupported
+
+* **Enrichment evaluation ID:** `claim-enrichment-evaluation:3bdad5ee52ad6678fb17650d2eadd5d06b3af4dbf26a1fbd76eebee899ba9c28`.
+* **Enriched Claim Set ID:** `enriched-governed-claim-set:b3846b6ad44b7b539a4c7205dc1f94991504a765fa6e7d6776dd9d3682a02a45`.
+* **Enriched contact claim ID:** `enriched-governed-claim:03c0113f6b6ba7cb9870158f9d881c02b742bdf000f646646ec035b270d42e99`.
+* **Enriched importance claim ID:** `enriched-governed-claim:30cbd6f70cea82d596691f425150baed48794268fbac8f5a58e5349e4e36013a`.
+* **Admitted source reference:** `{ sourceId: "google-gmail", resourceId: "cassie-message-1", field: "communication_metadata", observedAt: "2026-08-01T12:00:00.000Z" }`.
+* **Factual address values:** `cassie@example.com`.
+* **Outcomes:** contact = `enriched_available`; importance = `retained_unsupported`.
+* **Central proof:** the serialized base Claim Set remained byte-for-byte structurally unchanged, while the enriched contact acquired the real resolved source reference and value and the importance claim acquired neither.
+
+## **94. Outcome Reachability**
+
+| Outcome | Test scenario | Observed canonical status | Passed |
+| --- | --- | --- | --- |
+| `enriched_available` | Exact Cassie entity, available Gmail, complete fresh assertion | `available` | Yes |
+| `retained_insufficient_coverage` | Available Gmail with no assertion, incomplete coverage, stale assertion, or insufficient scope | `insufficient_coverage` | Yes |
+| `retained_unavailable` | Gmail connector unavailable and no other admitted source | `unavailable` | Yes |
+| `retained_unsupported` | Recognised `message_importance` | `unsupported` | Yes |
+| `not_material` | Calendar/Memory cells and every importance evidence-category cell | Claim status unchanged; cell-only result | Yes |
+| `enrichment_failed` | Resolver throws or violates its deterministic contract | No enriched canonical Claim Set published | Yes |
+
+## **95. Identity Integrity**
+
+* Every enriched claim identity differs from its base identity.
+* Every enriched claim carries exactly one `baseClaimId`.
+* Every base claim maps to exactly one enriched claim, and enriched segment links reference only enriched identities.
+* The enriched Claim Set identity differs from the base Claim Set identity.
+* The base Claim Set remained structurally unchanged and retained its original object and IDs.
+* Identical replay produced identical evaluation, enriched-claim, and enriched-set identities and identical publication bodies.
+* Mutating only the canonical contact address changed the evaluation ID, enriched contact ID, and enriched set ID while leaving the base set unchanged. The implementation includes the enrichment-evaluation lineage in every enriched claim, so the importance enriched identity also changes when the evaluation identity changes; it does not claim claim-local independence across evaluation mutations.
+
+## **96. Materiality Result**
+
+| Claim type | Evidence category | Materiality/result | Consultation proof |
+| --- | --- | --- | --- |
+| `contact_address_lookup` | `communicationEvidence` | `material` | Exact assembled references were resolved and admitted only after entity and integrity checks. |
+| `contact_address_lookup` | `calendarEvidence` | `not_material` | Adding Calendar evidence left outcomes, status, facts, sources, and enriched claim identity unchanged. |
+| `contact_address_lookup` | `memoryPriorityReferences` | `not_material` | Adding Memory Priority evidence left outcomes, status, facts, sources, and enriched claim identity unchanged. |
+| `contact_address_lookup` | `connectorAvailability` | `conditionally_material` for source availability only | Changed only available/unavailable/insufficient source state and never entered factual values or factual source references. |
+| `message_importance` | `communicationEvidence` | `not_material` | No communication reference was consulted or admitted for importance. |
+| `message_importance` | `calendarEvidence` | `not_material` | No Calendar reference was consulted or admitted for importance. |
+| `message_importance` | `memoryPriorityReferences` | `not_material` | No Memory reference was consulted or admitted for importance. |
+| `message_importance` | `connectorAvailability` | `not_material` for evidentiary enrichment | Connector state never changed the importance outcome or status and was not consulted or admitted for importance. |
+
+The materiality proof records all eight cells. Every importance category, including connector availability, resolves to `not_material`; connector state has no path into importance status.
+
+## **97. Recognition Isolation**
+
+| File | Starting SHA-256 | Post-implementation SHA-256 |
+| --- | --- | --- |
+| `claim-boundary-engine.ts` | `9ab35f47190e803468003a9accd34e0cc613e9438c8077a882d0b108d22f827a` | `9ab35f47190e803468003a9accd34e0cc613e9438c8077a882d0b108d22f827a` |
+| `claim-boundary-ruleset.ts` | `afe7fce7814b2d02da8e6ebecfbff2c721abf418bdfd426cf689340d898a8e83` | `afe7fce7814b2d02da8e6ebecfbff2c721abf418bdfd426cf689340d898a8e83` |
+| `claim-boundary-publications.ts` | `ccd7caa39316eb2fce1c7c8c8eda3741d0182eb12a123de9f7860e8225aa7c95` | `ccd7caa39316eb2fce1c7c8c8eda3741d0182eb12a123de9f7860e8225aa7c95` |
+
+> The Claim Boundary remains evidence-blind and byte-identical.
+
+## **98. Composer Isolation**
+
+`projection-composer.ts` starting/post SHA-256: `d66c9dfccf98a428fb58e6db68af171751bfe2b56b602d028f9c212fee958355`.
+
+> The projection composer remains byte-identical and performs no evidence-to-claim enrichment.
+
+## **99. Conflict Isolation**
+
+`conflict-boundary-engine.ts` starting/post SHA-256: `5b62297ed0d69a9f70bf6e82788cc996c37cb9bf733dded27876ae098e57e27d`.
+
+> Conflict evaluation remains unchanged and is not wired to enrichment in Sprint 3.104.
+
+## **100. Production Isolation**
+
+| File | Starting/post SHA-256 | Enrichment import search |
+| --- | --- | --- |
+| `app/api/chat/route.ts` | `503840ffa6c17f52a049c1aaaad4e8402c000904dd3b7ce868104a10c6ba08a3` | None |
+| `lib/context-builder.ts` | `8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d` | None |
+| `lib/useAgentConversation.ts` | `55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97` | None |
+| `lib/agents/chat-execution.ts` | `da387b401acd4cc87609112e7b110451254af16bb33d8dd5224c4fb9aa210a88` | None |
+
+The committed pure-Node isolation test uses only `node:fs`, `node:path`, and `node:crypto` for traversal, import inspection, and hashes. It proves no production enrichment import; no enrichment import of a production route, context builder, conversation hook, model invocation, legacy OperationalState, legacy Gmail state, or connector; and no model, network, or Memory write path.
+
+## **101. Files Changed**
+
+* `lib/governed-conversation/claim-enrichment-types.ts` — new closed enrichment and resolver contracts.
+* `lib/governed-conversation/claim-enrichment-ruleset.ts` — new deterministic v1 materiality publication.
+* `lib/governed-conversation/claim-enrichment-publications.ts` — new immutable deterministic publication constructors.
+* `lib/governed-conversation/claim-enrichment-engine.ts` — new isolated enrichment engine.
+* `lib/governed-conversation/claim-enrichment-fixtures.ts` — new Cassie real-assembly and resolver fixtures.
+* `lib/governed-conversation/claim-enrichment-types.test.ts` — exact vocabulary and adjacent-type proofs.
+* `lib/governed-conversation/claim-enrichment-ruleset.test.ts` — exact closed ruleset and materiality proofs.
+* `lib/governed-conversation/claim-enrichment-engine.test.ts` — contact, importance, status, failure, and outcome reachability proofs.
+* `lib/governed-conversation/claim-enrichment-publications.test.ts` — publication fields, immutability, replay, and mutation identity proofs.
+* `lib/governed-conversation/claim-enrichment-composition.test.ts` — real Cassie composition, non-materiality, and pure-Node isolation proofs.
+* `docs/SPRINT-3.104-ISOLATED-EVIDENCE-TO-CLAIM-ENRICHMENT-IMPLEMENTATION.md` — this committed completion report.
+
+No existing production, recognition, publisher, acquisition, assembly, composer, conflict, route, hook, or agent file changed.
+
+## **102. Validation Results**
+
+| Command | Exact result |
+| --- | --- |
+| `npx vitest run lib/governed-conversation/claim-enrichment-types.test.ts` | Passed: 1 file, 2 tests. |
+| `npx vitest run lib/governed-conversation/claim-enrichment-ruleset.test.ts` | Passed: 1 file, 2 tests. |
+| `npx vitest run lib/governed-conversation/claim-enrichment-publications.test.ts` | Passed: 1 file, 2 tests. |
+| `npx vitest run lib/governed-conversation/claim-enrichment-engine.test.ts` | Passed: 1 file, 7 tests. |
+| `npx vitest run lib/governed-conversation/claim-enrichment-composition.test.ts` | Passed: 1 file, 4 tests. |
+| `npx vitest run lib/governed-conversation/claim-boundary-engine.test.ts` | Passed: 1 file, 18 tests. |
+| `npx vitest run lib/governed-conversation/source-evidence-assembly.test.ts` | Passed: 1 file, 4 tests. |
+| `npx vitest run lib/governed-conversation/evidence-status.test.ts` | Passed: 1 file, 2 tests. |
+| `npm test` | Passed: 160 files; 760 tests passed and 1 skipped. |
+| `npm run build` | Passed: optimized production build, type/lint validation, six static pages, and build traces completed. Google Fonts stylesheet optimization was skipped after its download failed. |
+| `npm run lint` | Passed: no ESLint warnings or errors. |
+| `npm run typecheck` | Passed: `tsc --noEmit` exited successfully. |
+| `git diff --check` | Passed: no whitespace errors. |
+
+## **103. Production Effect**
+
+> Sprint 3.104 introduces an isolated deterministic Evidence-to-Claim Enrichment Stage. It does not alter claim recognition, conflict evaluation, projection composition, model invocation, `/api/chat`, `context-builder.ts`, `useAgentConversation.ts`, or current production behaviour.
+
+## **104. Outstanding Findings**
+
+* **Enrichment types:** Complete; the base `GovernedClaimInput` is unchanged and the adjacent enriched type requires `baseClaimId`.
+* **Ruleset:** Complete; one immutable v1 ruleset exposes no generic extension point.
+* **Evidence resolver:** Complete; an injected bounded port resolves only admitted communication references and the engine imports no connector.
+* **Contact correlation:** Complete; the narrow immutable claim-parameter index is constructed from the existing Claim Boundary evaluation's extracted `entityId` parameter and exact segment linkage.
+* **Importance boundary:** Complete; every evidence category is non-material to importance and status remains `unsupported`.
+* **Identity:** Complete; deterministic, distinct, replay-stable lineage exists for evaluation, claims, and enriched set.
+* **Materiality:** Complete; every matrix cell is runtime-tested and connector availability cannot influence importance.
+* **Status computation:** Complete; existing `computeEvidenceStatus` expresses all canonical enrichment states without modification.
+* **Recognition isolation:** Complete; protected recognition files are byte-identical.
+* **Composer isolation:** Complete; the composer is byte-identical and unwired.
+* **Conflict isolation:** Complete; the conflict engine is byte-identical and unwired.
+* **Production isolation:** Complete; protected production files are byte-identical and pure-Node import searches pass.
+
+## **105. Recommended Next Step**
+
+> **Sprint 3.105 — Claims Enrichment and Conflict/Projection Wiring**
+
+That sprint shall wire the enriched Claim Set into conflict evaluation, projection construction, and the full isolated composition chain. It shall not yet modify `/api/chat`.
+
+> **Implementation Complete**

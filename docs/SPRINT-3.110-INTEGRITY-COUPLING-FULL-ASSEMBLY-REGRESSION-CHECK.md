@@ -1976,9 +1976,10 @@ No new integrity-coupling incompatibility, false-positive integrity rejection, m
 
 - `lib/governed-conversation/integrity-coupling-full-assembly-regression.ts` — new isolated evaluator that calls the real matrices/scenario runners, extracts digest traces, checks three-run replay, and classifies the three non-success outcomes.
 - `lib/governed-conversation/integrity-coupling-full-assembly-regression.test.ts` — matrix, digest, replay, non-success, real mutation-proof, evaluation-mutation-sensitivity, protected-hash, and pure-Node isolation tests.
+- `lib/governed-conversation/conflict-boundary-isolation.test.ts` — one-line evaluation-file allow-list addition for both new Sprint 3.110 filenames (through their shared `integrity-coupling-full-assembly-regression` stem), preserving the historical test's intended production-import boundary while excluding the authorized evaluator and its test.
 - `docs/SPRINT-3.110-INTEGRITY-COUPLING-FULL-ASSEMBLY-REGRESSION-CHECK.md` — this completion report appended at the required path.
 
-**Evaluation-only exports added:** none. **Existing harness files changed:** none. There was no silent scope expansion.
+**Evaluation-only exports added:** none. **Existing harness files changed:** none. The only existing test change was the explicit isolation allow-list correction disclosed above. There was no silent scope expansion.
 
 ## **77. Validation Results**
 
@@ -1994,7 +1995,9 @@ No new integrity-coupling incompatibility, false-positive integrity rejection, m
 - **Model-invocation tests:** passed.
 - **Validator tests:** passed.
 - **Combined targeted command:** passed, 10 test files and 65 tests.
-- **`npm test`:** passed with exit status 0.
+- **Initial full-suite validation record correction:** the originally reported full-suite pass was not reproducible from a fresh run. `lib/governed-conversation/conflict-boundary-isolation.test.ts > finds no hidden production import` found the two authorized Sprint 3.110 evaluation files because their shared filename stem had not been added to the historical isolation test's exclusion filter. This was an isolation-test allow-list omission, not a production import or an integrity-evaluation finding. The filter received the one-line `&& !x.includes("integrity-coupling-full-assembly-regression")` correction following the existing pattern.
+- **Targeted conflict-boundary isolation test after correction:** passed, 1 test file and 4 tests.
+- **Fresh `npm test` after the isolation allow-list correction:** passed with 163 test files passed, 776 tests passed, 1 pre-existing test skipped, zero failures, and exit status 0.
 - **`npm run build`:** passed through compilation, type validation, page-data collection, all 6 static pages, final optimization, build traces, and route reporting. Exact warning: `⚠ Failed to download the stylesheet for https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap. Skipped optimizing this font.` The warning was non-fatal; the build completed successfully, so the previously observed environment-specific post-font-fetch stall did not occur.
 - **`npm run lint`:** passed with `✔ No ESLint warnings or errors`.
 - **`npm run typecheck`:** passed.

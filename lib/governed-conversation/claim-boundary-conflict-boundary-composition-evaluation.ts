@@ -1,5 +1,6 @@
 import type { CanonicalGovernedConflict } from "./conflict-boundary-types";
 import { composeGovernedConversationalProjection, type GovernedConversationalProjectionInput } from "./projection-composer";
+import { publicationChainForClaims } from "./governed-publication-test-fixtures";
 import { CASSIE_QUESTION, COMPOSITION_LINEAGE, COMPOSITION_TIME, makeCompositionScenario } from "./claim-boundary-conflict-boundary-composition-evaluation-fixtures";
 
 export type CompositionStatus = "compatible" | "bounded-adapter-needed" | "semantic-incompatibility" | "unresolved";
@@ -31,7 +32,8 @@ export function runCompositionEvaluation() {
     finding("Projection → Governed Input", "GovernedConversationalProjection", "GovernedConversationalInput", "compatible", false, "current input uses threadId/requestId/exchangeId and run/session/interface fields are optional", "same conversational lineage", "same conversational lineage", "Sprint 3.85 correction is present"),
     finding("Conflict restriction → evidence/model", "statusRestriction", "claim.status/conflicts", "semantic-incompatibility", true, "model path reads claim-local legacy conflicts; no reducer owns post-conflict effective status", "restrict without adjudicating", "canonical restriction has no truthful input path", "downstream cannot consume the canonical restriction"),
   ] as const;
-  const projectionInput: GovernedConversationalProjectionInput = { schemaVersion: "1", evidenceRulesetId: "evaluation:existing-evidence-ruleset", compatibilityRulesetId: "evaluation:existing-compatibility-ruleset", claimClassificationRulesetId: "unresolved:claim-classification-ruleset", ...COMPOSITION_LINEAGE, referenceTime: COMPOSITION_TIME, createdAt: COMPOSITION_TIME, sourceEvidence: [], connectorAvailability: [], calendarEvidence: [], communicationEvidence: [], memoryPriorityReferences: [], compatibilityContext: [], conversationHistory: [], claims: centralSet.claims, conflicts: [] };
+  const publications = publicationChainForClaims(centralSet.claims, { ...COMPOSITION_LINEAGE, referenceTime: COMPOSITION_TIME }, "historical-live-attempt");
+  const projectionInput: GovernedConversationalProjectionInput = { ...publications, schemaVersion: "1", evidenceRulesetId: "evaluation:existing-evidence-ruleset", compatibilityRulesetId: "evaluation:existing-compatibility-ruleset", ...COMPOSITION_LINEAGE, referenceTime: COMPOSITION_TIME, createdAt: COMPOSITION_TIME, sourceEvidence: [], connectorAvailability: [], calendarEvidence: [], communicationEvidence: [], memoryPriorityReferences: [], compatibilityContext: [], conversationHistory: [], claims: centralSet.claims, conflicts: [] };
   const projectionAttempt = composeGovernedConversationalProjection(projectionInput);
   return Object.freeze({ question: CASSIE_QUESTION, scenario, centralConflictAttempt, findings, projectionInput, projectionAttempt, overall: "Composition blocked by semantic incompatibility" as const });
 }

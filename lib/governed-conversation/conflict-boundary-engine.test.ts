@@ -41,13 +41,16 @@ describe("Sprint 3.92 governed conflict engine", () => {
     }
   });
   it("returns unsupported for an ineligible claim and both deferred classes", () => {
-    expect(run({ claimSet: makeConflictClaimSet("message_importance") }).evaluation?.outcome).toBe("evaluation_unsupported");
+    expect(run({ claimSet: makeConflictClaimSet("message_importance"), observations: [] }).evaluation?.outcome).toBe("evaluation_unsupported");
     for (const conflictClass of ["policy_incompatibility", "temporal_commitment_incompatibility"] as const) { const result = run({ requestedConflictClasses: [conflictClass] }); expect(result.evaluation?.outcome).toBe("evaluation_unsupported"); expect(result.evaluation?.unevaluatedReasons[0].reason).toBe("conflict_class_unsupported"); expect(result.conflictSet).toBeUndefined(); }
   });
-  it("declares partially_evaluated but cannot produce it in Part 1's single cell", () => {
+  it("evaluates a supported cell without allowing an ineligible cell to reject the compound set", () => {
+    const contact = makeConflictClaimSet().claims[0], importance = makeConflictClaimSet("message_importance").claims[0];
+    const single = makeConflictClaimSet();
+    const claimSet = { ...single, claims: [contact, importance], claimIds: [contact.claimId, importance.claimId], segmentLinks: [{ segmentId: "segment:1", claimId: contact.claimId }, { segmentId: "segment:2", claimId: importance.claimId }] };
+    const result = run({ claimSet });
     expect(CONFLICT_EVALUATION_OUTCOMES).toContain("partially_evaluated");
-    // Section 18: one contact_address_lookup claim × one executable class is one cell; it cannot be partitioned into evaluated and unevaluated cells.
-    const representativePartOneResults = [run(), run({ observations: [makeObservation()] }), run({ observations: [makeObservation({ affectedClaimId: "unknown" }), makeObservation({ sourcePublicationId: "b" })] })];
-    expect(representativePartOneResults.every(result => result.evaluation?.outcome !== "partially_evaluated")).toBe(true);
+    expect(result.evaluation).toMatchObject({ governedClaimSetId: claimSet.governedClaimSetId, outcome: "partially_evaluated", cellEvaluations: [{ claimId: contact.claimId, result: "match" }], unevaluatedReasons: [{ claimId: importance.claimId, reason: "claim_type_outside_ruleset" }] });
+    expect(result.conflictSet).toMatchObject({ governedClaimSetId: claimSet.governedClaimSetId, evaluationCoverage: "partial" });
   });
 });

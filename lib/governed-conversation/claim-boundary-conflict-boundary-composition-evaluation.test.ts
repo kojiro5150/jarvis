@@ -17,8 +17,8 @@ describe("Sprint 3.93 claims/conflicts composition evaluation", () => {
 
   it("honestly detects that the real compound publication cannot enter the conflict scope", () => {
     expect(result.centralConflictAttempt.evaluation?.governedClaimSetId).toBe(central.claimSet?.governedClaimSetId);
-    expect(result.centralConflictAttempt.evaluation?.outcome).toBe("evaluation_unsupported");
-    expect(result.centralConflictAttempt.conflictSet).toBeUndefined();
+    expect(result.centralConflictAttempt.evaluation?.outcome).toBe("partially_evaluated");
+    expect(result.centralConflictAttempt.conflictSet).toBeDefined();
     expect(result.findings.find(x => x.seam === "Claim Set → Conflict engine")?.compositionStatus).toBe("semantic-incompatibility");
   });
 
@@ -48,7 +48,7 @@ describe("Sprint 3.93 claims/conflicts composition evaluation", () => {
     const unavailable = result.scenario.run([], "evaluation:unavailable");
     const unsupported = result.scenario.run(result.scenario.compatible, "evaluation:unsupported", central.claimSet!);
     expect(unavailable.evaluation?.outcome).toBe("evaluation_unavailable");
-    expect(unsupported.evaluation?.outcome).toBe("evaluation_unsupported");
+    expect(unsupported.evaluation?.outcome).toBe("partially_evaluated");
     expect(result.findings.find(x => x.seam === "Evaluation state → Projection")?.compositionStatus).toBe("semantic-incompatibility");
   });
 
@@ -56,7 +56,7 @@ describe("Sprint 3.93 claims/conflicts composition evaluation", () => {
     expect(result.projectionAttempt.threadId).toBe(central.claimSet!.threadId);
     expect(result.projectionAttempt.requestId).toBe(central.claimSet!.requestId);
     expect(result.projectionAttempt.exchangeId).toBe(central.claimSet!.exchangeId);
-    expect(() => composeGovernedConversationalProjection({ ...result.projectionInput, conflicts: [{ conflictId: "mutation", sourceOwners: [], affectedClaimIds: ["unknown"], statusRestriction: "insufficient_coverage", descriptionReference: "mutation" }] })).toThrow("conflict references unknown claim");
+    expect(() => composeGovernedConversationalProjection({ ...result.projectionInput, conflicts: [{ conflictId: "mutation", conflictClass: "source_value_contradiction", sourceOwnerIds: [], affectedClaimIds: ["unknown"], statusRestriction: "insufficient_coverage", descriptionReference: "mutation" }] })).toThrow("conflict summary does not match canonical conflict set");
   });
 
   it("is mutation-sensitive across linkage, exchange, restriction, and publication identity", () => {

@@ -46,14 +46,14 @@ export interface CanonicalGovernedConflict {
 export interface GovernedConflictSet {
   readonly governedConflictSetId: string; readonly schemaVersion: "1"; readonly conflictEvaluationId: string; readonly conflictEvaluationRulesetId: string;
   readonly governedClaimSetId: string; readonly evaluatedClaimIds: readonly string[]; readonly evaluatedClasses: readonly ["source_value_contradiction"];
-  readonly sourcePublicationReferences: readonly string[]; readonly evaluationCoverage: "complete"; readonly conflicts: readonly CanonicalGovernedConflict[]; readonly createdAt: string;
+  readonly sourcePublicationReferences: readonly string[]; readonly evaluationCoverage: "complete" | "partial"; readonly conflicts: readonly CanonicalGovernedConflict[]; readonly createdAt: string;
 }
 export interface ConflictEvaluation {
-  readonly conflictEvaluationId: string; readonly schemaVersion: "1"; readonly conflictEvaluationRulesetId: string; readonly governedClaimSetId?: string;
+  readonly conflictEvaluationId: string; readonly schemaVersion: "1"; readonly conflictEvaluationRulesetId: string; readonly governedClaimSetId: string;
   readonly evaluatedClaimIds: readonly string[]; readonly requestedConflictClasses: readonly ConversationalConflictClass[]; readonly executableConflictClasses: readonly ConversationalConflictClass[];
   readonly sourcePublicationReferences: readonly string[]; readonly sourceOwnerIds: readonly string[]; readonly sourceAvailabilityReferences: readonly string[]; readonly sourceCoverageReferences: readonly string[];
   readonly referenceTime: string; readonly cellEvaluations: readonly ConflictCellEvaluation[]; readonly outcome: ConflictEvaluationOutcome; readonly unevaluatedReasons: readonly UnevaluatedScope[];
-  readonly createdAt: string; readonly priorEvaluationId?: string; readonly threadId?: string; readonly requestId?: string; readonly exchangeId?: string; readonly conflictSetId?: string;
+  readonly createdAt: string; readonly priorEvaluationId?: string; readonly threadId: string; readonly requestId: string; readonly exchangeId: string; readonly conflictSetId?: string;
 }
 export interface ConflictEngineInput { readonly ruleset?: ConflictEvaluationRuleset; readonly claimSet?: GovernedClaimSet; readonly observations: readonly GovernedSourceObservation[]; readonly requestedConflictClasses: readonly ConversationalConflictClass[]; readonly referenceTime: string; readonly createdAt: string; readonly evaluationDiscriminator: string; readonly priorEvaluationId?: string }
 export interface ConflictEngineResult { readonly evaluation?: ConflictEvaluation; readonly conflictSet?: GovernedConflictSet }

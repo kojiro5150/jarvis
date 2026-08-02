@@ -45,7 +45,7 @@ describe("Sprint 3.84 composition diagnostic", () => {
 
   it("rejects malformed projection integrity cases with real composer checks", () => {
     const base = projectionInput();
-    expect(() => composeGovernedConversationalProjection({ ...base, claims: [...base.claims, base.claims[0]] })).toThrow("duplicate claim identity");
+    expect(() => composeGovernedConversationalProjection({ ...base, claims: [...base.claims, base.claims[0]] })).toThrow("claim summaries do not match governed claim set");
     expect(() => composeGovernedConversationalProjection({ ...base, conversationHistory: [{ ...base.conversationHistory[0], canonicalEvidence: true as never }] })).toThrow("conversation history is non-canonical");
     expect(() => composeGovernedConversationalProjection({ ...base, compatibilityContext: [{ ...base.compatibilityContext[0], authority: "evidence" as never }] })).toThrow("compatibility context has no evidence authority");
   });

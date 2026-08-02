@@ -1,6 +1,6 @@
 # **Sprint 3.106 — Governed Enrichment Composition Correction Contract**
 
-**Status:** Specification  
+**Status:** Governed contract complete
 **Sprint Type:** Governance Decision / Composition Correction Contract  
 **Implementation Authority:** None  
 **Production Integration:** Prohibited  
@@ -2178,3 +2178,148 @@ or:
 
 > **Governance Review Incomplete**
 
+---
+
+# **Part XXIV — Completed Governance Record**
+
+## **110\. Repository Precondition**
+
+* Repository: `/workspace/jarvis`.
+* Active branch at start: `work`.
+* Starting commit: `206e29a70a241cfc95785394f6458dd204785a27`.
+* Starting working tree: clean.
+* The repository has no local `main` ref. `git rev-parse main` returned `fatal: ambiguous argument 'main'`; the contract at `HEAD` was therefore read completely from the working tree before the decision was finalized.
+* Every required artefact in Section 5 and every required source in Section 6 exists and was read completely. Repository searches confirmed that no existing production discriminated claim-set type already owns this role, the Sprint 3.105 alias remains evaluation-only, the projection fields do not exist under other names, and the composer has no enrichment-publication-lineage validation.
+* `GovernedClaimSet` currently contains `governedClaimSetId`, `schemaVersion`, `claimBoundaryEvaluationId`, `claimBoundaryRulesetId`, `threadId`, `requestId`, `exchangeId`, `referenceTime`, `claims`, `segmentLinks`, `claimIds`, and `createdAt`.
+* `EnrichedGovernedClaimSet` currently contains `enrichedGovernedClaimSetId`, `baseGovernedClaimSetId`, `enrichmentEvaluationId`, `claimBoundaryRulesetId`, `claimBoundaryEvaluationId`, `threadId`, `requestId`, `exchangeId`, `referenceTime`, `claims`, `segmentLinks`, `claimIds`, and `createdAt`. Its claims are `EnrichedGovernedClaimInput` values carrying `baseClaimId`; it has no `schemaVersion` or `governedClaimSetId`.
+* `ConflictEngineInput` currently contains optional `ruleset`, optional `claimSet` typed as `GovernedClaimSet`, `observations`, `requestedConflictClasses`, `referenceTime`, `createdAt`, `evaluationDiscriminator`, and optional `priorEvaluationId`.
+* `ConflictEvaluation` and `GovernedConflictSet` each currently publish `governedClaimSetId` as the evaluated-set reference.
+* `GovernedConversationalProjectionInput` currently accepts `claimBoundaryEvaluation`, `governedClaimSet`, optional `conflictEvaluation`, and optional `governedConflictSet` alongside its projection evidence and summary fields. `GovernedConversationalProjection` currently publishes base Claim Boundary lineage through `claimBoundaryRulesetId`, `claimBoundaryEvaluationId`, and `governedClaimSetId`, but publishes none of `enrichmentRulesetId`, `enrichmentEvaluationId`, `enrichedGovernedClaimSetId`, or an enriched-to-base claim lineage collection.
+* The current composer checks that classification, boundary-evaluation, and Claim Set identities agree; that the conversational lineage agrees; and that supplied claims equal the Claim Set claims. It does not validate an enrichment evaluation or enriched Claim Set publication.
+* The exact Sprint 3.105 evaluation-only alias is confirmed as `{ ...set, schemaVersion: "1" as const, governedClaimSetId: set.enrichedGovernedClaimSetId }` in `conflictBoundaryView`. The mutation proof separately confirms that changed enriched status and changed factual values can leave conflict evaluation outcomes unchanged because observations are supplied independently.
+* Repository evidence supports every central premise. The only changed file is this document.
+
+## **111\. Findings Reconfirmed**
+
+### **Field-shape mismatch**
+
+> `GovernedClaimSet` and `EnrichedGovernedClaimSet` are distinct immutable publications and cannot be substituted through ID aliasing.
+
+The mismatch is exact: conflict input requires the base publication type, while enrichment publishes a distinct identity, lineage, and claim shape. The evaluation-only alias demonstrates the seam without establishing a production architecture.
+
+### **Lost lineage**
+
+> The current projection cannot first-class identify the enrichment ruleset, enrichment evaluation, enriched Claim Set, or enriched-to-base claim relationships.
+
+## **112\. Claim-Set Options Decision**
+
+* **Option A — Selected.** A closed base/enriched discriminator preserves truthful publication type and identity while allowing reuse of the conflict algorithm.
+* **Option B — Rejected.** An adapter to the base shape misrepresents publication ownership, aliases identity, and loses enrichment lineage or creates a competing publication.
+* **Option C — Rejected.** Enriched-only evaluation would invalidate legitimate base-only, failed-enrichment, and historical flows while coupling conflict evaluation unnecessarily to enrichment.
+
+No adapter forcing one publication shape into the other is authorized.
+
+## **113\. Projection Options Decision**
+
+* **Projection Lineage Option A — Selected.** Enrichment lineage is conditional but structurally complete.
+* **Projection Lineage Option B — Rejected.** Requiring enrichment fields for base-only projections would manufacture lineage that does not exist.
+* **Projection Lineage Option C — Rejected.** Independently optional fields permit partial, ambiguous lineage and fail structural completeness.
+
+## **114\. Exact New Fields**
+
+The future implementation shall add:
+
+* `claimPublicationStage`;
+* `baseGovernedClaimSetId`;
+* `enrichmentRulesetId`;
+* `enrichmentEvaluationId`;
+* `enrichedGovernedClaimSetId`; and
+* `enrichedClaimBaseReferences`.
+
+For a base variant, `claimPublicationStage` is `"base"`, `baseGovernedClaimSetId` is required and equals the actual base `governedClaimSetId`, and every enrichment-specific field is absent. For an enriched variant, `claimPublicationStage` is `"enriched"` and every listed lineage field is required; `enrichedClaimBaseReferences` contains the complete one-to-one enriched-claim-to-base-claim lineage. These fields are not independently optional.
+
+## **115\. Conflict Publication Decision**
+
+`ConflictEvaluation` and `GovernedConflictSet` shall publish the same `evaluatedClaimSetReference` and `baseGovernedClaimSetId`. For a base variant, the reference identifies the base publication, `baseGovernedClaimSetId` equals its publication ID, and `enrichmentEvaluationId` and `enrichedGovernedClaimSetId` are absent. For an enriched variant, the reference identifies the enriched publication, `baseGovernedClaimSetId` retains the recognition publication, and both `enrichmentEvaluationId` and `enrichedGovernedClaimSetId` are required and equal their validated upstream identities.
+
+## **116\. Identity Integrity**
+
+> `governedClaimSetId` continues to identify only the base Claim Boundary publication. It shall never contain or alias `enrichedGovernedClaimSetId`.
+
+The selected discriminated architecture carries the actual evaluated publication in `evaluatedClaimSetReference` and separately carries base and conditional enrichment lineage. Each immutable identity therefore continues to name exactly one canonical publication. The rejected adapter would violate Identity Integrity by relabeling the enriched object as a base Claim Set or by manufacturing a redundant third publication.
+
+## **117\. Composer Option A**
+
+> The composer remains validate/aggregate-only. The new behaviour validates and passes through already-published enrichment lineage; it does not derive enrichment.
+
+## **118\. Sprint 3.103 Compatibility**
+
+> Sprint 3.103’s base/enriched identity distinction remains fully binding. Base publications remain immutable, enriched publications retain distinct identities, and conflicts reference enriched claim IDs after enrichment.
+
+## **119\. Mutation Finding**
+
+> Sprint 3.106 does not claim to solve the Sprint 3.105 mutation-integrity finding. A future implementation must retest it and report whether separate integrity governance remains necessary.
+
+Lineage completeness enables later integrity work but does not prove claim-body consistency with independently supplied conflict observations. No mutation-integrity validator is authorized here.
+
+## **120\. Responsibility Audit**
+
+| Question | Binding answer |
+| ----- | ----- |
+| May the enriched Claim Set be passed as a false base Claim Set? | No |
+| Does the conflict engine accept base Claim Sets? | Yes |
+| Does the conflict engine accept enriched Claim Sets? | Yes |
+| How are they distinguished? | Closed `claimSetKind` discriminator |
+| Does one generic ID field identify both? | No |
+| Is the actual evaluated publication ID retained? | Yes |
+| Is the base Claim Set ID retained for enriched evaluation? | Yes |
+| Is enrichment evaluation identity retained in conflict publications? | Yes |
+| Are conflict cells linked to enriched claim IDs after enrichment? | Yes |
+| May base and enriched claims both be canonically evaluated in the same run? | No |
+| Does the projection always retain base recognition lineage? | Yes |
+| Does an enriched projection retain enrichment lineage? | Yes, completely |
+| Are enrichment fields required for base-only projection? | No |
+| Are enrichment fields independently optional? | No |
+| Is a stage discriminator required? | Yes |
+| Does the composer derive enrichment? | No |
+| Does the composer validate enrichment publication consistency? | Yes |
+| Does the composer pass enrichment lineage through? | Yes |
+| Does the composer still compute effective status? | Yes |
+| Does `governedClaimSetId` retain its base-publication meaning? | Yes |
+| May it alias `enrichedGovernedClaimSetId`? | No |
+| Is the Sprint 3.105 mutation gap solved by this contract? | No |
+| Does this contract authorize implementation? | No |
+
+**Decision:** Responsibility Audit passes.
+
+## **121\. No-Implementation Statement**
+
+> Sprint 3.106 authorizes no implementation or production integration.
+
+## **122\. Validation Results**
+
+* `npm test` — passed: 161 test files; 765 tests passed and 1 skipped (766 total).
+* `npm run build` — passed: optimized production build, type/lint validation, six static pages, and build traces completed. Google Fonts stylesheet optimization was skipped after a download failure without failing the build.
+* `npm run lint` — passed with no warnings or errors.
+* `npm run typecheck` — passed.
+* `git diff --check` — passed.
+
+## **123\. Files Changed**
+
+The only changed file is:
+
+```text
+docs/SPRINT-3.106-GOVERNED-ENRICHMENT-COMPOSITION-CORRECTION-CONTRACT.md
+```
+
+No code, type, or test file changed.
+
+## **124\. Next Step**
+
+> **Sprint 3.107 — Enrichment Composition Correction Implementation**
+
+## **125\. Final Recommendation**
+
+Both Sprint 3.105 composition findings are governed without claiming that lineage solves mutation integrity. Claim-Set Composition Option A and Projection Lineage Option A are selected exactly as drafted; all rejected options remain unavailable; identity meanings, structural optionality, Composer Option A, Sprint 3.103, and the no-implementation boundary remain intact; repository evidence is consistent; and the full validation suite passes.
+
+> **Governed Contract Complete**

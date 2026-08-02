@@ -23,8 +23,12 @@ export function deriveConflictEvaluationOutcome(cells: readonly ConflictCellEval
 function publishEvaluation(input: ConflictEngineInput, cells: readonly ConflictCellEvaluation[], unevaluated: readonly UnevaluatedScope[], conflicts: readonly CanonicalGovernedConflict[]): ConflictEngineResult {
   const claimSet = input.claimSet!;
   const outcome = deriveConflictEvaluationOutcome(cells, unevaluated);
+  const baseGovernedClaimSetId = claimSet.claimSetKind === "base" ? claimSet.governedClaimSetId : claimSet.baseGovernedClaimSetId;
+  const evaluatedClaimSetReference = { publicationId: claimSet.claimSetPublicationId, publicationType: claimSet.claimSetPublicationType, claimSetKind: claimSet.claimSetKind, schemaVersion: "1" as const };
+  if (claimSet.claimSetPublicationId !== (claimSet.claimSetKind === "base" ? claimSet.governedClaimSetId : claimSet.enrichedGovernedClaimSetId)) throw new Error("claim-set publication identity mismatch");
+  const enrichmentLineage = claimSet.claimSetKind === "enriched" ? { enrichmentEvaluationId: claimSet.enrichmentEvaluationId, enrichedGovernedClaimSetId: claimSet.enrichedGovernedClaimSetId } : {};
   const body: Omit<ConflictEvaluation, "conflictEvaluationId"> = {
-    schemaVersion: "1", conflictEvaluationRulesetId: input.ruleset?.conflictEvaluationRulesetId ?? "ruleset:unavailable", governedClaimSetId: claimSet.governedClaimSetId,
+    schemaVersion: "1", conflictEvaluationRulesetId: input.ruleset?.conflictEvaluationRulesetId ?? "ruleset:unavailable", governedClaimSetId: baseGovernedClaimSetId, baseGovernedClaimSetId, evaluatedClaimSetReference, ...enrichmentLineage,
     evaluatedClaimIds: cells.map(cell => cell.claimId), requestedConflictClasses: input.requestedConflictClasses, executableConflictClasses: input.ruleset?.executableClasses ?? [],
     sourcePublicationReferences: input.observations.map(item => item.sourcePublicationId).filter(Boolean).sort(), sourceOwnerIds: input.observations.map(item => item.sourceOwnerId).filter(Boolean).sort(),
     sourceAvailabilityReferences: input.observations.map(item => `${item.sourcePublicationId}:availability`).filter(item => !item.startsWith(":")).sort(), sourceCoverageReferences: input.observations.map(item => `${item.sourcePublicationId}:coverage`).filter(item => !item.startsWith(":")).sort(),
@@ -33,7 +37,7 @@ function publishEvaluation(input: ConflictEngineInput, cells: readonly ConflictC
   };
   const initial = constructConflictEvaluation(body, input.evaluationDiscriminator);
   if (!["evaluated_no_conflict", "evaluated_conflict_found", "partially_evaluated"].includes(outcome)) return Object.freeze({ evaluation: initial });
-  const conflictSet = constructGovernedConflictSet({ schemaVersion: "1", conflictEvaluationId: initial.conflictEvaluationId, conflictEvaluationRulesetId: body.conflictEvaluationRulesetId, governedClaimSetId: claimSet.governedClaimSetId, evaluatedClaimIds: cells.map(cell => cell.claimId), evaluatedClasses: ["source_value_contradiction"], sourcePublicationReferences: body.sourcePublicationReferences, evaluationCoverage: unevaluated.length ? "partial" : "complete", conflicts, createdAt: input.createdAt });
+  const conflictSet = constructGovernedConflictSet({ schemaVersion: "1", conflictEvaluationId: initial.conflictEvaluationId, conflictEvaluationRulesetId: body.conflictEvaluationRulesetId, governedClaimSetId: baseGovernedClaimSetId, baseGovernedClaimSetId, evaluatedClaimSetReference, ...enrichmentLineage, evaluatedClaimIds: cells.map(cell => cell.claimId), evaluatedClasses: ["source_value_contradiction"], sourcePublicationReferences: body.sourcePublicationReferences, evaluationCoverage: unevaluated.length ? "partial" : "complete", conflicts, createdAt: input.createdAt });
   return Object.freeze({ evaluation: constructConflictEvaluation({ ...body, conflictSetId: conflictSet.governedConflictSetId }, input.evaluationDiscriminator), conflictSet });
 }
 

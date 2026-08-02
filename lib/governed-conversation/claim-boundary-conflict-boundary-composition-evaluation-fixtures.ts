@@ -1,5 +1,6 @@
 import { evaluateClaimBoundary } from "./claim-boundary-engine";
 import { evaluateGovernedConversationalConflicts } from "./conflict-boundary-engine";
+import { constructBaseConflictEvaluableClaimSet } from "./conflict-boundary-publications";
 import { CONFLICT_EVALUATION_RULESET } from "./conflict-boundary-ruleset";
 import type { GovernedSourceObservation } from "./conflict-boundary-types";
 
@@ -30,6 +31,6 @@ export function makeCompositionScenario() {
   const contradictory = [observation("a", "cassie.primary@example.com"), observation("b", "cassie.hayward@example.org")];
   const compatible = [observation("a", "cassie.primary@example.com"), observation("b", "CASSIE.PRIMARY@example.com")];
   const run = (observations: readonly GovernedSourceObservation[], discriminator: string, claimSet = contactClaims.claimSet) =>
-    evaluateGovernedConversationalConflicts({ ruleset: CONFLICT_EVALUATION_RULESET, claimSet, observations, requestedConflictClasses: ["source_value_contradiction"], referenceTime: COMPOSITION_TIME, createdAt: COMPOSITION_TIME, evaluationDiscriminator: discriminator });
+    evaluateGovernedConversationalConflicts({ ruleset: CONFLICT_EVALUATION_RULESET, claimSet: constructBaseConflictEvaluableClaimSet(claimSet!), observations, requestedConflictClasses: ["source_value_contradiction"], referenceTime: COMPOSITION_TIME, createdAt: COMPOSITION_TIME, evaluationDiscriminator: discriminator });
   return Object.freeze({ centralClaims, contactClaims, contradictory, compatible, conflict: run(contradictory, "evaluation:contradiction"), noConflict: run(compatible, "evaluation:no-conflict"), run });
 }

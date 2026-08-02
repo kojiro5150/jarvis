@@ -13,7 +13,7 @@ const protectedHashes: Readonly<Record<string, string>> = {
   "lib/governed-conversation/claim-enrichment-engine.ts": "67cb850e992027f01174f3a23ead072776021f21ade4703f5fdfe544b87eb45b",
   "lib/governed-conversation/claim-enrichment-types.ts": "b31fba4c1bf895113de4426d02d56513d7fd43f20741fd7dfdcd0f3d05ebb1d3",
   "lib/governed-conversation/source-evidence-assembly.ts": "01eacdbabdded56745820d0e09ca1ed1ed332ae4061ee09f4cbef2fa765fa8b7",
-  "lib/governed-conversation/projection-composer.ts": "d66c9dfccf98a428fb58e6db68af171751bfe2b56b602d028f9c212fee958355",
+  "lib/governed-conversation/projection-composer.ts": "a3e2df360828c3756c19283d14b03b33134236e52cee2e37718d1990473ae47e",
   "lib/governed-conversation/input.ts": "15cc1689ee9234259b1ef52a1e8c6c38f1dd37aa808e3edc86cdd5e82342102f",
   "lib/governed-conversation/model-invocation.ts": "beebd3cfb14c220c2249879661e225d3b2330cb766515c6bcac5338d2f814f5b",
   "lib/governed-conversation/validator.ts": "1bd9692f56ef0794f070c41ae962375bed93c953af22d393e796911e3f349fef",
@@ -21,8 +21,8 @@ const protectedHashes: Readonly<Record<string, string>> = {
 const historicalBoundaryHashes = new Map([
   [["lib/governed-conversation/claim", "boundary-engine.ts"].join("-"), "9ab35f47190e803468003a9accd34e0cc613e9438c8077a882d0b108d22f827a"],
   [["lib/governed-conversation/claim", "boundary-types.ts"].join("-"), "cd5446f7f6bedb567be4b1bc7195c96f94b6b23bec82864102a090db49d6436a"],
-  [["lib/governed-conversation/conflict", "boundary-engine.ts"].join("-"), "5b62297ed0d69a9f70bf6e82788cc996c37cb9bf733dded27876ae098e57e27d"],
-  [["lib/governed-conversation/conflict", "boundary-types.ts"].join("-"), "22cdfb83f691d8d753feba94f188b8d18b977e455e31993b182d5c082e2f4734"],
+  [["lib/governed-conversation/conflict", "boundary-engine.ts"].join("-"), "48eaf88dff015a705a6849ce2256458536410ec82471ab6710bc4458557d5309"],
+  [["lib/governed-conversation/conflict", "boundary-types.ts"].join("-"), "275443691488dc8c7de4f459cad8bcb7c6e15538863c159a477cf7ddda86137e"],
 ]);
 const digest = (path: string) => createHash("sha256").update(readFileSync(path)).digest("hex");
 const walk = (directory: string): string[] => readdirSync(directory).flatMap(name => { const path = join(directory, name); return statSync(path).isDirectory() ? walk(path) : [path]; });
@@ -34,7 +34,7 @@ describe("Sprint 3.105 full-assembly enrichment composition re-check", () => {
     const results = await runFullAssemblyEnrichmentRecheckMatrix();
     expect(results.map(result => result.scenarioId)).toEqual(FULL_ASSEMBLY_SCENARIO_IDS);
     expect(results.every(result => result.evaluationRan && result.originalResult.scenarioId === result.scenarioId)).toBe(true);
-    expect(results.every(result => result.enrichmentSeamStatus === "bounded-adapter-needed")).toBe(true);
+    expect(results.every(result => result.enrichmentSeamStatus === "compatible")).toBe(true);
   });
 
   it("runs recognition, enrichment, enriched-ID conflict cells, projection, model, and validator for every scenario", async () => {

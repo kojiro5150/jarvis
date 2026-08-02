@@ -1,5 +1,6 @@
 import type { CommunicationClaimType } from "./types";
-import type { GovernedClaimSet } from "./claim-boundary-conflict-fixture-adapter";
+import type { GovernedClaimSet } from "./claim-boundary-types";
+import type { EnrichedGovernedClaimSet } from "./claim-enrichment-types";
 
 export const CONFLICT_CLASSES = ["source_value_contradiction", "policy_incompatibility", "temporal_commitment_incompatibility"] as const;
 export type ConversationalConflictClass = (typeof CONFLICT_CLASSES)[number];
@@ -33,6 +34,10 @@ export interface GovernedSourceObservation {
   readonly coverage: "complete" | "insufficient"; readonly supersessionStatus: "current" | "superseded";
   readonly contentKind: "contact_address" | "unavailable_marker"; readonly schemaVersion: "1";
 }
+export interface BaseConflictEvaluableClaimSet extends GovernedClaimSet { readonly claimSetKind: "base"; readonly claimSetPublicationId: string; readonly claimSetPublicationType: "governed_claim_set" }
+export interface EnrichedConflictEvaluableClaimSet extends EnrichedGovernedClaimSet { readonly claimSetKind: "enriched"; readonly claimSetPublicationId: string; readonly claimSetPublicationType: "enriched_governed_claim_set"; readonly schemaVersion: "1" }
+export type ConflictEvaluableClaimSet = BaseConflictEvaluableClaimSet | EnrichedConflictEvaluableClaimSet;
+export interface EvaluatedClaimSetReference { readonly publicationId: string; readonly publicationType: "governed_claim_set" | "enriched_governed_claim_set"; readonly claimSetKind: "base" | "enriched"; readonly schemaVersion: "1" }
 export interface UnevaluatedScope { readonly claimId?: string; readonly conflictClass: ConversationalConflictClass; readonly sourceRequirement: string; readonly comparisonScope: string; readonly reason: UnevaluatedReason; readonly explanationReference: string }
 export interface ConflictCellEvaluation { readonly claimId: string; readonly conflictClass: "source_value_contradiction"; readonly comparisonScope: string; readonly result: "match" | "no_match"; readonly coverage: "complete" }
 export interface CanonicalGovernedConflict {
@@ -45,16 +50,16 @@ export interface CanonicalGovernedConflict {
 }
 export interface GovernedConflictSet {
   readonly governedConflictSetId: string; readonly schemaVersion: "1"; readonly conflictEvaluationId: string; readonly conflictEvaluationRulesetId: string;
-  readonly governedClaimSetId: string; readonly evaluatedClaimIds: readonly string[]; readonly evaluatedClasses: readonly ["source_value_contradiction"];
+  readonly governedClaimSetId: string; readonly baseGovernedClaimSetId: string; readonly evaluatedClaimSetReference: EvaluatedClaimSetReference; readonly enrichmentEvaluationId?: string; readonly enrichedGovernedClaimSetId?: string; readonly evaluatedClaimIds: readonly string[]; readonly evaluatedClasses: readonly ["source_value_contradiction"];
   readonly sourcePublicationReferences: readonly string[]; readonly evaluationCoverage: "complete" | "partial"; readonly conflicts: readonly CanonicalGovernedConflict[]; readonly createdAt: string;
 }
 export interface ConflictEvaluation {
-  readonly conflictEvaluationId: string; readonly schemaVersion: "1"; readonly conflictEvaluationRulesetId: string; readonly governedClaimSetId: string;
+  readonly conflictEvaluationId: string; readonly schemaVersion: "1"; readonly conflictEvaluationRulesetId: string; readonly governedClaimSetId: string; readonly baseGovernedClaimSetId: string; readonly evaluatedClaimSetReference: EvaluatedClaimSetReference; readonly enrichmentEvaluationId?: string; readonly enrichedGovernedClaimSetId?: string;
   readonly evaluatedClaimIds: readonly string[]; readonly requestedConflictClasses: readonly ConversationalConflictClass[]; readonly executableConflictClasses: readonly ConversationalConflictClass[];
   readonly sourcePublicationReferences: readonly string[]; readonly sourceOwnerIds: readonly string[]; readonly sourceAvailabilityReferences: readonly string[]; readonly sourceCoverageReferences: readonly string[];
   readonly referenceTime: string; readonly cellEvaluations: readonly ConflictCellEvaluation[]; readonly outcome: ConflictEvaluationOutcome; readonly unevaluatedReasons: readonly UnevaluatedScope[];
   readonly createdAt: string; readonly priorEvaluationId?: string; readonly threadId: string; readonly requestId: string; readonly exchangeId: string; readonly conflictSetId?: string;
 }
-export interface ConflictEngineInput { readonly ruleset?: ConflictEvaluationRuleset; readonly claimSet?: GovernedClaimSet; readonly observations: readonly GovernedSourceObservation[]; readonly requestedConflictClasses: readonly ConversationalConflictClass[]; readonly referenceTime: string; readonly createdAt: string; readonly evaluationDiscriminator: string; readonly priorEvaluationId?: string }
+export interface ConflictEngineInput { readonly ruleset?: ConflictEvaluationRuleset; readonly claimSet?: ConflictEvaluableClaimSet; readonly observations: readonly GovernedSourceObservation[]; readonly requestedConflictClasses: readonly ConversationalConflictClass[]; readonly referenceTime: string; readonly createdAt: string; readonly evaluationDiscriminator: string; readonly priorEvaluationId?: string }
 export interface ConflictEngineResult { readonly evaluation?: ConflictEvaluation; readonly conflictSet?: GovernedConflictSet }
 export type EligibleConflictClaimType = Extract<CommunicationClaimType, "contact_address_lookup">;

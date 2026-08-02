@@ -1,4 +1,5 @@
 import { constructGovernedClaimSet } from "./claim-boundary-conflict-fixture-adapter";
+import { constructBaseConflictEvaluableClaimSet } from "./conflict-boundary-publications";
 import { lineageIdentity } from "./lineage-types";
 import type { GovernedClaimInput } from "./types";
 import type { GovernedSourceObservation } from "./conflict-boundary-types";
@@ -9,7 +10,7 @@ const makeClaim = (claimType: "contact_address_lookup" | "message_importance", s
 });
 export function makeConflictClaimSet(claimType: "contact_address_lookup" | "message_importance" = "contact_address_lookup") {
   const claim = makeClaim(claimType, "cassie");
-  return constructGovernedClaimSet({ schemaVersion: "1", claimBoundaryEvaluationId: "claims-evaluation:fixture", claimBoundaryRulesetId: "claims-ruleset:fixture", threadId: "thread:fixture", requestId: "request:fixture", exchangeId: "exchange:fixture", referenceTime: FIXTURE_TIME, claims: [claim], segmentLinks: [{ segmentId: "segment:1", claimId: claim.claimId }], createdAt: FIXTURE_TIME }, "claim-set-event:fixture");
+  return constructBaseConflictEvaluableClaimSet(constructGovernedClaimSet({ schemaVersion: "1", claimBoundaryEvaluationId: "claims-evaluation:fixture", claimBoundaryRulesetId: "claims-ruleset:fixture", threadId: "thread:fixture", requestId: "request:fixture", exchangeId: "exchange:fixture", referenceTime: FIXTURE_TIME, claims: [claim], segmentLinks: [{ segmentId: "segment:1", claimId: claim.claimId }], createdAt: FIXTURE_TIME }, "claim-set-event:fixture"));
 }
 export function makeObservation(overrides: Partial<GovernedSourceObservation> = {}): GovernedSourceObservation {
   const claimSet = makeConflictClaimSet();

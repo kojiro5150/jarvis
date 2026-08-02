@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { evaluateClaimBoundary } from "./claim-boundary-engine";
 import { evaluateGovernedConversationalConflicts } from "./conflict-boundary-engine";
+import { constructBaseConflictEvaluableClaimSet } from "./conflict-boundary-publications";
 import { CONFLICT_EVALUATION_RULESET } from "./conflict-boundary-ruleset";
 import { composeGovernedConversationalProjection, computeEffectiveClaimStatus, constructGovernedConflictSummary } from "./projection-composer";
 import type { GovernedSourceObservation } from "./conflict-boundary-types";
@@ -12,9 +13,9 @@ function chain() {
   if (!claims.claimSet) throw new Error("claim set required");
   const contactId = claims.claimSet.claims.find(claim => claim.claimType === "contact_address_lookup")!.claimId;
   const observation = (suffix: string, value: string): GovernedSourceObservation => ({ schemaVersion: "1", sourcePublicationId: `source:${suffix}`, sourceOwnerId: `owner:${suffix}`, sourceType: "governed_contact_observation", resourceEntityId: "person:cassie", affectedClaimId: contactId, comparisonKey: "resolved_contact_address", canonicalFactualValue: value, originalFactualValue: value, observedAt: time, publishedAt: time, provenance: `publisher:${suffix}`, comparisonScope: "current_primary_deliverable_address", availability: "available", coverage: "complete", supersessionStatus: "current", contentKind: "contact_address" });
-  const conflicts = evaluateGovernedConversationalConflicts({ ruleset: CONFLICT_EVALUATION_RULESET, claimSet: claims.claimSet, observations: [observation("a", "cassie.primary@example.com"), observation("b", "cassie.other@example.org")], requestedConflictClasses: ["source_value_contradiction"], referenceTime: time, createdAt: time, evaluationDiscriminator: "conflict:3.95:cassie" });
+  const conflicts = evaluateGovernedConversationalConflicts({ ruleset: CONFLICT_EVALUATION_RULESET, claimSet: constructBaseConflictEvaluableClaimSet(claims.claimSet), observations: [observation("a", "cassie.primary@example.com"), observation("b", "cassie.other@example.org")], requestedConflictClasses: ["source_value_contradiction"], referenceTime: time, createdAt: time, evaluationDiscriminator: "conflict:3.95:cassie" });
   const summaries = conflicts.conflictSet!.conflicts.map(constructGovernedConflictSummary);
-  const projectionInput = { schemaVersion: "1", evidenceRulesetId: "evidence:3.95", compatibilityRulesetId: "compatibility:3.95", claimClassificationRulesetId: claims.evaluation.claimBoundaryRulesetId, claimBoundaryEvaluation: claims.evaluation, governedClaimSet: claims.claimSet, conflictEvaluation: conflicts.evaluation, governedConflictSet: conflicts.conflictSet, ...lineage, referenceTime: time, createdAt: time, sourceEvidence: [], connectorAvailability: [], calendarEvidence: [], communicationEvidence: [], memoryPriorityReferences: [], compatibilityContext: [], conversationHistory: [], claims: claims.claimSet.claims, conflicts: summaries };
+  const projectionInput = { schemaVersion: "1", claimPublicationStage: "base" as const, evidenceRulesetId: "evidence:3.95", compatibilityRulesetId: "compatibility:3.95", claimClassificationRulesetId: claims.evaluation.claimBoundaryRulesetId, claimBoundaryEvaluation: claims.evaluation, governedClaimSet: claims.claimSet, conflictEvaluation: conflicts.evaluation, governedConflictSet: conflicts.conflictSet, ...lineage, referenceTime: time, createdAt: time, sourceEvidence: [], connectorAvailability: [], calendarEvidence: [], communicationEvidence: [], memoryPriorityReferences: [], compatibilityContext: [], conversationHistory: [], claims: claims.claimSet.claims, conflicts: summaries };
   return { claims, conflicts, summaries, projectionInput, projection: composeGovernedConversationalProjection(projectionInput) };
 }
 

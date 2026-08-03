@@ -1,6 +1,6 @@
 # **Sprint 3.117 — Governed Post-Identification Publication Lifecycle Contract**
 
-**Status:** Specification  
+**Status:** Complete
 **Sprint Type:** Governance Decision / Composition Correction Contract  
 **Implementation Authority:** None  
 **Production Integration:** Prohibited  
@@ -2280,3 +2280,120 @@ or:
 
 > **Governance Review Incomplete**
 
+---
+
+# **Completion Record**
+
+Status: Governed Contract Complete
+Sprint Type: Governance Decision / Composition Correction Contract
+Recommendation: Governed Contract Complete
+
+## **Repository Precondition Result**
+
+Repository: `/workspace/jarvis`
+Branch: `work`
+Starting commit: `b00ecb915c5279ef7a95aa1d3dcd453e3231077e`
+Ending commit: completion commit containing this record
+Working-tree state: clean at start; only this contract document changed for completion
+Real clone: Yes (`.git` is present and `git rev-parse --show-toplevel` resolved `/workspace/jarvis`)
+Required documents: Present and read completely
+Required source: Present and inspected directly
+Sprint 3.116 status and recommendation confirmed: `Complete` / **Evaluation Complete**
+Sprint 3.116 seam matrix confirmed: eight `semantic_incompatibility` rows, not the compressed seven-item summary in Section 1; all eight are independently and completely resolved by Section 45
+Current Claim Set ordering confirmed: `evaluateClaimBoundary` constructs and returns the `GovernedClaimSet` during Claim Boundary evaluation, before the separately invoked Entity Identification lifecycle
+Current Claim Set lineage gap confirmed: `GovernedClaimSet` contains no Entity Identification reference
+Current Enrichment lineage gap confirmed: `ClaimEnrichmentEngineInput` contains no Entity Identification evaluation publication, and `claimParametersByClaimId` carries only `Readonly<Record<string, { readonly entityId: string }>>`
+Resolver bounded-adapter finding confirmed: the existing resolver can mechanically correlate assertions against the runtime `resolvedEntityReference`
+Authoritative mapping owner confirmed absent: no production function owns the Entity Identification-result-to-claim association
+Non-resolved lifecycle stops confirmed absent: neither `ambiguous_multiple_matches` nor `unresolved_no_match` currently prevents the already-earlier Claim Set publication through a governed stop publication
+Existing implementation of this contract confirmed absent: no Claim–Entity Association publication, Parameter Resolution Stop publication, lineage-bearing parameter binding, deferred parameter-dependent Claim Set gate, or Entity Identification lineage propagation exists
+
+No repository premise materially differs from Sprint 3.116's evidence. The Repository Precondition is satisfied.
+
+## **Binding Decisions**
+
+Publication lifecycle:
+    Deferred Governed Claim Set publication (Option A selected; Option B's post-resolution wrapper remains rejected)
+
+Claim association owner:
+    Explicit Claim–Entity Association step (Option C)
+
+Non-resolved control flow:
+    Governed Parameter Resolution Stop (Option B)
+
+Enrichment handoff:
+    Lineage-bearing GovernedClaimParameterBinding
+
+Resolver owner:
+    Evidence-to-Claim Enrichment
+
+Projection lineage:
+    Explicit association and Entity Identification references
+
+Conflict architecture:
+    Unchanged
+
+Entity Identification outcomes:
+    Unchanged
+
+Claim Boundary vocabulary:
+    Unchanged
+
+Fail-closed lineage enforcement:
+    A lineage mismatch shall throw before enrichment evaluation. It shall not degrade to `retained_insufficient_coverage` or any other ordinary evidence outcome. This is the required direct reversal of Sprint 3.116's mutation finding.
+
+## **Seam Closure Matrix**
+
+| Sprint 3.116 seam | Confirmed finding | Final governed resolution |
+| ----- | ----- | ----- |
+| Extracted parameter → Entity Identification | `compatible` | Unchanged; no correction required |
+| Entity Identification → claim parameter | `semantic_incompatibility` | Explicit deterministic `GovernedClaimEntityAssociation` publication owns the mapping |
+| Entity Identification → Governed Claim Set | `semantic_incompatibility` | Defer parameter-dependent Claim Set publication until unique resolution and association publication |
+| Entity Identification → Enrichment | `semantic_incompatibility` | Supply and validate the lineage-bearing `GovernedClaimParameterBinding` |
+| Ambiguity → downstream chain | `semantic_incompatibility` | Publish `ParameterResolutionStop(clarification_required)`; publish no Claim Set and run no Enrichment |
+| Zero match → downstream chain | `semantic_incompatibility` | Publish `ParameterResolutionStop(unsupported_no_match)`; publish no Claim Set and run no Enrichment |
+| Entity lineage → projection | `semantic_incompatibility` | Preserve explicit association and Entity Identification references through Enrichment, the Enriched Claim Set, and projection |
+| Entity identity → resolver | `bounded_adapter_needed` | Enrichment owns resolver invocation, and the validated binding is its sole entity-reference authority |
+| Entity result → conflict evaluation | `semantic_incompatibility` | Valid Entity Identification lineage is a precondition of the enriched claim publication received by unchanged conflict evaluation |
+| Full result → validator | `semantic_incompatibility` | Propagate lineage through projection and governed input so the validator can validate its presence and consistency without redoing identification |
+
+The binding count is eight `semantic_incompatibility` findings plus one separately resolved `bounded_adapter_needed` finding. Section 1's seven-item prose summary compresses the last two semantic rows into one bullet; the real Sprint 3.116 matrix and Section 45 are the authoritative complete row-level accounting.
+
+## **Worked Examples**
+
+### **Cassie — unique match**
+
+Claim recognition publishes its evaluation but no parameter-dependent Claim Set. Unique Entity Identification publishes `resolved`; the explicit association step verifies common conversational, evaluation, segment, and parameter lineage and publishes `GovernedClaimEntityAssociation`. Only then is the fully parameterised `GovernedClaimSet` published. Enrichment validates its `GovernedClaimParameterBinding` before its resolver uses `resolvedEntityReference`; Enrichment and all later publications retain association and Entity Identification references. Conflict, projection, governed input, and validation may then proceed.
+
+### **Cassie — two matches**
+
+`ambiguous_multiple_matches` publishes `GovernedParameterResolutionStop` with `clarification_required` and the candidate references. No association or parameter-dependent Claim Set is published. Enrichment and conflict evaluation do not run for the claim, and no factual claim is projected. No candidate is ranked or selected.
+
+### **Cassie — zero match**
+
+`unresolved_no_match` publishes `GovernedParameterResolutionStop` with `unsupported_no_match` and an empty candidate collection. No association or parameter-dependent Claim Set is published. Enrichment and conflict evaluation do not run for the claim, and no entity or factual value is fabricated.
+
+### **Source unavailable**
+
+`entity_source_unavailable` publishes `GovernedParameterResolutionStop` with the distinct `entity_source_unavailable` reason. Claim Set publication remains prohibited, and Enrichment does not run. Source unavailability remains epistemically distinct from a completed search yielding zero matches.
+
+## **Compatibility Statement**
+
+Sprint 3.89 reopened: No — deterministic recognition, typed intent, closed claim vocabulary, clarification, unsupported handling, and model non-participation are preserved; only post-recognition publication sequencing is governed here.
+Sprint 3.90 reopened: No — the six-state conflict vocabulary, per-cell evaluation, Composer Option A, and restrict-don't-adjudicate remain binding.
+Sprint 3.103 reopened: No — its separate deterministic Enrichment stage, materiality rules, outcomes, evidence responsibilities, and immutable publications are preserved and extended with parameter lineage.
+Sprint 3.112 reopened: No — per-exchange deterministic resolution, four outcomes, unique-match requirement, bounded identity, evidence citation, and model non-participation are preserved; this contract governs the lifecycle after each outcome.
+Sprint 3.106 reopened: No — the discriminated base/enriched Claim Set composition architecture is preserved.
+Sprint 3.108 reopened: No — enriched-claim integrity coupling and canonical content-integrity discipline remain mandatory and are not bypassed.
+
+## **Validation Results**
+
+`npm test`: Passed
+`npm run build`: Passed
+`npm run lint`: Passed
+`npm run typecheck`: Passed
+`git diff --check`: Passed
+
+Files changed: exactly `docs/SPRINT-3.117-GOVERNED-POST-IDENTIFICATION-PUBLICATION-LIFECYCLE-CONTRACT.md`. No code, type, test, or production-integration change was made.
+
+> **Governed Contract Complete**

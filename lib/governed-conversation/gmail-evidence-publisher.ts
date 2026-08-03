@@ -2,7 +2,7 @@ import type { ProductionGmailRecipientEvidence } from "../executive-context/gmai
 import type { GovernedCommunicationEvidenceInput } from "./projection-composer";
 
 export const GMAIL_CONVERSATIONAL_COMPATIBILITY_BOUNDARY = "gmail_metadata_non_authoritative_conversation_context.v1";
-export const GMAIL_CONVERSATIONAL_DISCLOSURE_POLICY = "governed-gmail-conversational-metadata-disclosure.v1";
+export const GMAIL_CONVERSATIONAL_DISCLOSURE_POLICY = "governed-gmail-conversational-metadata-disclosure.v2";
 export const GMAIL_CONVERSATIONAL_CONTENT_KIND = "gmail_communication_metadata";
 export const GMAIL_CONVERSATIONAL_SOURCE_ID = "google-gmail";
 export const GMAIL_CONVERSATIONAL_SOURCE_FIELD = "communication_metadata";
@@ -24,6 +24,7 @@ export function publishGmailEvidence(input: ProductionGmailRecipientEvidence): r
       provenanceReference: `${communicationReference}#provenance`, retrievalTime: retrievedAt, available: true,
       contentKind: GMAIL_CONVERSATIONAL_CONTENT_KIND, compatibilityBoundary: GMAIL_CONVERSATIONAL_COMPATIBILITY_BOUNDARY,
       policyReference: GMAIL_CONVERSATIONAL_DISCLOSURE_POLICY,
+      ...(observation.senderDisplayName === undefined ? {} : { senderDisplayName: observation.senderDisplayName }),
     })];
   }));
 }

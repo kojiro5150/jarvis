@@ -24,6 +24,8 @@ function protocolId(value: string, name: string, gmailId: string): string {
 
 interface ParsedAddresses { readonly values: readonly string[]; readonly malformed: boolean }
 
+interface ParsedSenderMailbox { readonly displayName?: string }
+
 /**
  * Tokenises an RFC 5322 address-list at structural comma boundaries. The source-asserted spelling
  * is retained: this is deliberately not an identity or deliverability parser. Quoted strings,
@@ -73,6 +75,33 @@ function validAddressElement(value: string): boolean {
   return /^[^\s<>@,;:]+@[^\s<>@,;:]+$/.test(mailbox);
 }
 
+/** Extracts only an explicitly asserted phrase before a structurally valid angle mailbox. */
+function senderMailbox(value: string): ParsedSenderMailbox {
+  const parsed = addresses(value);
+  if (parsed.malformed || parsed.values.length !== 1) return {};
+  const unfolded = value.replace(/\r?\n[ \t]+/g, " ").trim();
+  let quote = false; let escaped = false; let commentDepth = 0; let leftAngle = -1;
+  for (let index = 0; index < unfolded.length; index += 1) {
+    const character = unfolded[index];
+    if (escaped) { escaped = false; continue; }
+    if ((quote || commentDepth > 0) && character === "\\") { escaped = true; continue; }
+    if (commentDepth > 0) {
+      if (character === "(") commentDepth += 1;
+      else if (character === ")") commentDepth -= 1;
+      continue;
+    }
+    if (!quote && character === "(") { commentDepth = 1; continue; }
+    if (character === '"') { quote = !quote; continue; }
+    if (!quote && character === "<") { leftAngle = index; break; }
+  }
+  if (leftAngle < 0) return {};
+  const phrase = unfolded.slice(0, leftAngle).replace(/\s*\([^()]*(?:\\.[^()]*)*\)\s*/g, " ").trim();
+  if (!phrase) return {};
+  const quoted = phrase.startsWith('"') && phrase.endsWith('"');
+  const displayName = (quoted ? phrase.slice(1, -1).replace(/\\(.)/g, "$1") : phrase).trim().normalize("NFC");
+  return displayName ? { displayName } : {};
+}
+
 function parts(part: GmailPartObservation | undefined): readonly GmailPartObservation[] {
   return part ? [part, ...(part.parts ?? []).flatMap(parts)] : [];
 }
@@ -82,6 +111,7 @@ export function normalizeGmailObservation(message: GmailMessageObservation): Nor
   if (!message.id) throw new Error("Gmail observation requires a connector message identifier for provenance");
   const messageId = protocolId(exactlyOne(message, "Message-ID", true) as string, "Message-ID", message.id);
   const sender = exactlyOne(message, "From", true) as string;
+  const { displayName: senderDisplayName } = senderMailbox(sender);
   const parsedRecipients = ["To", "Cc", "Bcc"].flatMap((name) => headers(message, name).map(addresses));
   const recipients = parsedRecipients.flatMap(({ values }) => values);
   const recipientEvidence = recipients.length > 0 && parsedRecipients.every(({ malformed }) => !malformed)
@@ -99,6 +129,7 @@ export function normalizeGmailObservation(message: GmailMessageObservation): Nor
   return Object.freeze({
     messageId,
     sender,
+    ...(senderDisplayName === undefined ? {} : { senderDisplayName }),
     recipients: Object.freeze(recipients),
     recipientEvidence,
     sentAt: sentAtDate.toISOString(),

@@ -18,6 +18,7 @@ export type GmailRecipientEvidenceState = "available" | "not_fetched" | "not_aut
 export interface NormalizedGmailObservation {
   readonly messageId: string;
   readonly sender: string;
+  readonly senderDisplayName?: string;
   readonly recipients: readonly string[];
   readonly recipientEvidence: GmailRecipientEvidenceState;
   readonly sentAt: OperationalTimestamp;

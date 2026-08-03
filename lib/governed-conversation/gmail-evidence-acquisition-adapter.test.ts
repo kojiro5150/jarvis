@@ -12,12 +12,20 @@ describe("Gmail acquisition adapter", () => {
     const value = acquisition(); const before = structuredClone(value); const acquireRecent = vi.fn().mockResolvedValue(value);
     const result = await acquireGovernedGmailEvidence({ connector: { acquireRecent }, limit: 5 });
     expect(acquireRecent).toHaveBeenCalledWith(5); expect(value).toEqual(before); expect(result.status).toBe("available");
-    expect(result.evidence[0]).toMatchObject({ communicationReference: "google-gmail:message:provider-1", retrievalTime: "2026-01-02T10:00:00.000Z", policyReference: "governed-gmail-conversational-metadata-disclosure.v1", compatibilityBoundary: "gmail_metadata_non_authoritative_conversation_context.v1" });
+    expect(result.evidence[0]).toMatchObject({ communicationReference: "google-gmail:message:provider-1", retrievalTime: "2026-01-02T10:00:00.000Z", senderDisplayName: "Sender", policyReference: "governed-gmail-conversational-metadata-disclosure.v2", compatibilityBoundary: "gmail_metadata_non_authoritative_conversation_context.v1" });
     expect(result.evidence[0]).not.toHaveProperty("contentDigest");
   });
   it("distinguishes successful emptiness from unavailable acquisition", async () => {
     expect((await acquireGovernedGmailEvidence({ connector: { acquireRecent: async () => acquisition([]) } })).status).toBe("available");
     const failed = await acquireGovernedGmailEvidence({ connector: { acquireRecent: async () => { throw new Error("provider secret"); } } });
     expect(failed).toEqual({ status: "unavailable", evidence: [], failureReason: "gmail_acquisition_unavailable" }); expect(JSON.stringify(failed)).not.toContain("secret");
+  });
+  it("keeps a bare mailbox display name absent through canonical acquisition and publication", async () => {
+    const bare = acquisition([{
+      ...acquisition().observations[0],
+      payload: { headers: acquisition().observations[0].payload?.headers?.map(header => header.name === "From" ? { ...header, value: "decision@substack.com" } : header) },
+    }]);
+    const result = await acquireGovernedGmailEvidence({ connector: { acquireRecent: async () => bare } });
+    expect(result.evidence[0]).not.toHaveProperty("senderDisplayName");
   });
 });

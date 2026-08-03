@@ -11,7 +11,7 @@ const protectedHashes: Readonly<Record<string, string>> = {
   "lib/useAgentConversation.ts": "55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97",
   "lib/agents/chat-execution.ts": "da387b401acd4cc87609112e7b110451254af16bb33d8dd5224c4fb9aa210a88",
   "lib/governed-conversation/source-evidence-assembly.ts": "01eacdbabdded56745820d0e09ca1ed1ed332ae4061ee09f4cbef2fa765fa8b7",
-  "lib/governed-conversation/projection-composer.ts": "a3e2df360828c3756c19283d14b03b33134236e52cee2e37718d1990473ae47e",
+  "lib/governed-conversation/projection-composer.ts": "51b58941273e2b6ac748ce94e54368020928a384074cd3f062bd8d9b2dcd6106",
   "lib/governed-conversation/input.ts": "15cc1689ee9234259b1ef52a1e8c6c38f1dd37aa808e3edc86cdd5e82342102f",
   "lib/governed-conversation/model-invocation.ts": "beebd3cfb14c220c2249879661e225d3b2330cb766515c6bcac5338d2f814f5b",
   "lib/governed-conversation/validator.ts": "1bd9692f56ef0794f070c41ae962375bed93c953af22d393e796911e3f349fef",

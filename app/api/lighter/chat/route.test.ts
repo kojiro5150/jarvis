@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createLighterChatHandler } from "./route";
+import { createLighterChatHandler } from "@/lib/lighter-jarvis/chat-handler";
 import type { ChatMessage } from "@/lib/agents/types";
 
 const request = (body: unknown) => new Request("http://localhost/api/lighter/chat", {

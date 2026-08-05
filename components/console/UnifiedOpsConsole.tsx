@@ -4,6 +4,8 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type Specialist = { id: string; name: string; purpose: string; invokedOnly: boolean };
 type Message = { role: "user" | "assistant"; content: string; error?: boolean };
+type ConnectorName = "calendar" | "gmail" | "drive";
+type ConnectorStatus = { name: ConnectorName; connected: boolean };
 
 const icons = ["◎", "◈", "✎", "◇", "⚑"];
 const colours = ["#a78bfa", "#34d399", "#f472b6", "#60a5fa", "#f59e0b"];
@@ -25,6 +27,7 @@ export default function UnifiedOpsConsole() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [listError, setListError] = useState("");
+  const [connectorStatuses, setConnectorStatuses] = useState<ConnectorStatus[] | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -39,6 +42,33 @@ export default function UnifiedOpsConsole() {
       .catch(error => { if (live) setListError(error instanceof Error ? error.message : "Unable to load specialists."); });
     return () => { live = false; };
   }, []);
+
+  useEffect(() => {
+    let live = true;
+    fetch("/api/operational-state")
+      .then(async response => {
+        const data = await response.json() as { connectorStatuses?: ConnectorStatus[]; error?: string };
+        if (!response.ok) throw new Error(data.error || `Unable to load connector status (${response.status}).`);
+        if (live) setConnectorStatuses(data.connectorStatuses ?? []);
+      })
+      .catch(() => { if (live) setConnectorStatuses([]); });
+    return () => { live = false; };
+  }, []);
+
+  const connectorStatusByName = useMemo(() => {
+    const statuses = new Map<ConnectorName, boolean>();
+    connectorStatuses?.forEach(status => statuses.set(status.name, status.connected));
+    return statuses;
+  }, [connectorStatuses]);
+  const totalConnectors = 3;
+  const connectedCount = connectorStatuses?.filter(status => status.connected).length ?? 0;
+  const connectorCountLabel = connectorStatuses === null ? "CONNECTORS: CHECKING…" : `CONNECTORS: ${connectedCount}/${totalConnectors} LIVE`;
+  const compactConnectorCountLabel = connectorStatuses === null ? "CONNECTORS · CHECKING…" : `CONNECTORS · ${connectedCount}/${totalConnectors} LIVE`;
+
+  const renderConnectorStatus = (name: ConnectorName) => {
+    if (connectorStatuses === null) return <span>○ CHECKING…</span>;
+    return connectorStatusByName.get(name) ? <em>● CONNECTED</em> : <i>○ NOT CONNECTED</i>;
+  };
 
   useEffect(() => {
     const updateJarvisMelbClock = () => {
@@ -111,16 +141,16 @@ export default function UnifiedOpsConsole() {
           {listError && <div className="sidebar-error">{listError}</div>}
           <div className="sidebar-spacer" />
           <div className="connectors">
-            <p><span>CALENDAR</span><u>DISCONNECT</u></p><p><span>GMAIL</span><u>DISCONNECT</u></p><p><span>DRIVE</span><u>DISCONNECT</u></p>
+            <p><span>CALENDAR</span>{renderConnectorStatus("calendar")}</p><p><span>GMAIL</span>{renderConnectorStatus("gmail")}</p><p><span>DRIVE</span>{renderConnectorStatus("drive")}</p>
             <p><span>MEMORY</span><em>● ONLINE</em></p><p><span>PROJECTS</span><span>● READY</span></p><p><span>GITHUB</span><i>NOT CONNECTED</i></p>
           </div>
           <div className="core">JARVIS CORE v2.0.0<br />BUILT FOR SAM HAYWARD<br />GOVERNANCE ENGINEERING</div>
-          <div className="online">● JARVIS STATUS — ONLINE</div><div className="connector-count">3/3 CONNECTORS LIVE</div>
+          <div className="online">● JARVIS STATUS — ONLINE</div><div className="connector-count">{connectorStatuses === null ? "CONNECTORS CHECKING…" : `${connectedCount}/${totalConnectors} CONNECTORS LIVE`}</div>
         </aside>
 
         <div className="command-area">
           <div className="mobile-header"><button type="button" aria-label="Open specialist navigation" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(true)}>☰</button><span className="brand-mark">J</span><b>J.A.R.V.I.S</b><small>{selected?.name ?? "ORCHESTRATOR"}</small></div>
-          <div className="statusbar"><span className="picture">● &nbsp; OPERATIONAL PICTURE · <span id="jarvis-melb-clock">AUG 03, 2026 · 11:51 AM</span></span><span className="status-items"><b>▷ EXECUTE</b><span>♬ VOICE: STANDBY</span><span>● SYSTEM: NOMINAL</span><span>◎ CONNECTORS: 3/3 LIVE</span><span>⌂ SESSION SECURE</span><span>⚙</span></span></div>
+          <div className="statusbar"><span className="picture">● &nbsp; OPERATIONAL PICTURE · <span id="jarvis-melb-clock">AUG 03, 2026 · 11:51 AM</span></span><span className="status-items"><b>▷ EXECUTE</b><span>♬ VOICE: STANDBY</span><span>● SYSTEM: NOMINAL</span><span>◎ {connectorCountLabel}</span><span>⌂ SESSION SECURE</span><span>⚙</span></span></div>
           <div className="workspace">
             <div className="grid" /><div className="amber-glow" /><div className="cyan-glow" /><div className="scanline" />
             <div className="stars"><i /><i /><i /><i /><i /><i /><b /><b /><b /></div>
@@ -138,7 +168,7 @@ export default function UnifiedOpsConsole() {
                 {messages.map((message, index) => <div key={`${message.role}-${index}`} className={`message ${message.role} ${message.error ? "error" : ""}`}><b>{message.role === "user" ? "YOU" : selected?.name}</b><p>{message.content}</p></div>)}
                 {loading && <div className="message assistant loading"><b>{selected?.name}</b><p>PROCESSING REQUEST<span>…</span></p></div>}
               </div>
-              <div className="marquee"><div><span>SIG RADAR · NOMINAL</span><span>MEMORY SYNC · OK</span><span>CONNECTORS · 3/3 LIVE</span><span>VOICE · STANDBY</span><span>SESSION · SECURE</span><span>SIG RADAR · NOMINAL</span><span>MEMORY SYNC · OK</span></div></div>
+              <div className="marquee"><div><span>SIG RADAR · NOMINAL</span><span>MEMORY SYNC · OK</span><span>{compactConnectorCountLabel}</span><span>VOICE · STANDBY</span><span>SESSION · SECURE</span><span>SIG RADAR · NOMINAL</span><span>MEMORY SYNC · OK</span></div></div>
               <div className="tools"><span>🎙<small>Voice</small></span><span>🔍<small>Search</small></span><span className="brief">▤<small>Brief Me</small></span><span>◎<small>Focus</small></span><button type="button" disabled={selectedId === null} onClick={() => setSelectedId(null)}>⬡<small>Ask JARVIS</small></button></div>
             </div></div>
           </div>

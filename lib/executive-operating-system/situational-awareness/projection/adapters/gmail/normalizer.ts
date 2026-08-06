@@ -111,6 +111,7 @@ export function normalizeGmailObservation(message: GmailMessageObservation): Nor
   if (!message.id) throw new Error("Gmail observation requires a connector message identifier for provenance");
   const messageId = protocolId(exactlyOne(message, "Message-ID", true) as string, "Message-ID", message.id);
   const sender = exactlyOne(message, "From", true) as string;
+  const subject = exactlyOne(message, "Subject", false);
   const { displayName: senderDisplayName } = senderMailbox(sender);
   const parsedRecipients = ["To", "Cc", "Bcc"].flatMap((name) => headers(message, name).map(addresses));
   const recipients = parsedRecipients.flatMap(({ values }) => values);
@@ -129,6 +130,7 @@ export function normalizeGmailObservation(message: GmailMessageObservation): Nor
   return Object.freeze({
     messageId,
     sender,
+    ...(subject === undefined ? {} : { subject }),
     ...(senderDisplayName === undefined ? {} : { senderDisplayName }),
     recipients: Object.freeze(recipients),
     recipientEvidence,

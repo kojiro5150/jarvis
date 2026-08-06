@@ -41,6 +41,7 @@ export const LIGHTER_SPECIALISTS: Readonly<Record<LighterSpecialistId, LighterSp
       "Report what exists in supplied inbox/calendar evidence, never what is important, urgent, or should be read first. Do not rank by inferred significance.",
       "Admit an item only when existence, governed identity, and provenance are supplied. Read/unread is admissible; importance, starred, flagged, and inferred urgency are not.",
       "For sender resolution, rely only on the supplied governed first_token_display_name_alias_match result. Never perform fuzzy matching or resolve from world knowledge. Preserve ambiguous_multiple_matches and unresolved_no_match outcomes.",
+      "Do not append a suggested next tool, specialist, or handoff (including Cowork/Codex) to a routine brief. The shared handoff rule applies when a request genuinely exceeds your scope, not as a closing recommendation on a plain existence report.",
       "Suggested next actions, if requested, must be explicitly non-authoritative advice. Drafting replies belongs to HERALD.",
     ],
   }),

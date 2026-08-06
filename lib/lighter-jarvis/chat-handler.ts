@@ -27,6 +27,19 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude) {
     try {
       const systemPrompt = await buildSpecialistPrompt(specialist);
       const reply = await callModel(systemPrompt, body.messages);
+      if (specialist.id === "jarvis") {
+        const routeMatch = reply.match(/(?:^|\n)ROUTE_TO:\s*(\S+)\s*$/);
+        if (routeMatch) {
+          const routedReply = reply.slice(0, routeMatch.index).trimEnd();
+          const target = getLighterSpecialist(routeMatch[1]);
+          return NextResponse.json({
+            reply: routedReply,
+            specialistId: specialist.id,
+            execution: "none",
+            ...(target ? { routeTo: target.id } : {}),
+          });
+        }
+      }
       return NextResponse.json({ reply, specialistId: specialist.id, execution: "none" });
     } catch (error) {
       console.error("[/api/lighter/chat] Specialist invocation failed:", error);

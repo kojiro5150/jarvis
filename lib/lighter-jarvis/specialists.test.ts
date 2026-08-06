@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import { ABSENCE_VOCABULARY, buildLighterSystemPrompt, getLighterSpecialist, LIGHTER_SPECIALISTS } from "./specialists";
 
 describe("Lighter JARVIS specialist governance", () => {
-  it("registers only the six active specialists", () => {
-    expect(Object.keys(LIGHTER_SPECIALISTS)).toEqual(["dawnwatch", "oracle", "herald", "steve", "marcus", "gecko"]);
+  it("registers JARVIS and the six active specialists", () => {
+    expect(Object.keys(LIGHTER_SPECIALISTS)).toEqual(["jarvis", "dawnwatch", "oracle", "herald", "steve", "marcus", "gecko"]);
     expect(getLighterSpecialist("phdss")).toBeUndefined();
+    expect(LIGHTER_SPECIALISTS.jarvis.instructions).toContain(
+      "Never claim a route has taken effect. You only propose one; whether it happens is decided outside your output.",
+    );
   });
 
   it("inherits shared governance and the closed absence vocabulary", () => {

@@ -120,7 +120,8 @@ export default function UnifiedOpsConsole() {
   }, []);
 
   const dawnwatch = specialists.find(item => item.id === "dawnwatch");
-  const intelligence = specialists.filter(item => item.id !== "dawnwatch");
+  const jarvis = specialists.find(item => item.id === "jarvis");
+  const intelligence = specialists.filter(item => item.id !== "dawnwatch" && item.id !== "jarvis");
   const selected = specialists.find(item => item.id === selectedId);
   const messages = useMemo(() => selectedId ? conversations[selectedId] ?? [] : [], [conversations, selectedId]);
 
@@ -138,8 +139,8 @@ export default function UnifiedOpsConsole() {
     setSidebarOpen(false);
   }
 
-  async function submitMessage(specialist: Specialist, content: string) {
-    if (!content || loading) return;
+  async function submitMessage(specialist: Specialist, content: string): Promise<string | undefined> {
+    if (!content) return;
     const existingMessages = conversations[specialist.id] ?? [];
     const nextMessages: Message[] = [...existingMessages, { role: "user", content }];
     setConversations(current => ({ ...current, [specialist.id]: nextMessages }));
@@ -151,9 +152,10 @@ export default function UnifiedOpsConsole() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ specialistId: specialist.id, messages: nextMessages.map(({ role, content: text }) => ({ role, content: text })) }),
       });
-      const data = await response.json() as { reply?: string; error?: string };
+      const data = await response.json() as { reply?: string; routeTo?: string; error?: string };
       if (!response.ok) throw new Error(data.error || `${response.status} ${response.statusText}`);
       setConversations(current => ({ ...current, [specialist.id]: [...(current[specialist.id] ?? nextMessages), { role: "assistant", content: data.reply ?? "" }] }));
+      return data.routeTo;
     } catch (error) {
       const detail = error instanceof Error ? error.message : "Unknown request error.";
       setConversations(current => ({ ...current, [specialist.id]: [...(current[specialist.id] ?? nextMessages), { role: "assistant", content: detail, error: true }] }));
@@ -163,14 +165,26 @@ export default function UnifiedOpsConsole() {
   async function send(event: FormEvent) {
     event.preventDefault();
     if (!selected) return;
-    await submitMessage(selected, input.trim());
+    const originalMessage = input.trim();
+    const routeTo = await submitMessage(selected, originalMessage);
+    const target = routeTo ? specialists.find(item => item.id === routeTo) : undefined;
+    if (target) {
+      setSelectedId(target.id);
+      await submitMessage(target, originalMessage);
+    }
   }
 
   async function briefMe() {
-    if (!dawnwatch || loading) return;
-    setSelectedId(dawnwatch.id);
+    if (!jarvis || loading) return;
+    setSelectedId(jarvis.id);
     setSidebarOpen(false);
-    await submitMessage(dawnwatch, "brief me on today");
+    const message = "brief me on today";
+    const routeTo = await submitMessage(jarvis, message);
+    const target = routeTo ? specialists.find(item => item.id === routeTo) : undefined;
+    if (target) {
+      setSelectedId(target.id);
+      await submitMessage(target, message);
+    }
   }
 
   return (
@@ -181,7 +195,7 @@ export default function UnifiedOpsConsole() {
           <button className="sidebar-close" type="button" aria-label="Close specialist navigation" onClick={() => setSidebarOpen(false)}>×</button>
           <header className="brand"><span className="brand-mark">J</span><span><b>J.A.R.V.I.S</b><small>Just A Very Intelligent System</small></span></header>
           <div className="label">EXECUTIVE OPERATIONS</div>
-          <button className={`executive ${selectedId === null ? "selected" : ""}`} type="button" onClick={() => selectSpecialist(null)}><span className="jarvis-icon">◎</span><span className="specialist-copy"><b>JARVIS</b><small>Orchestrator</small></span><span className="active">● ACTIVE</span></button>
+          <button className={`executive ${selectedId === jarvis?.id ? "selected" : ""}`} type="button" disabled={!jarvis} onClick={() => jarvis && selectSpecialist(jarvis.id)}><span className="jarvis-icon">◎</span><span className="specialist-copy"><b>JARVIS</b><small>Orchestrator</small></span><span className="active">● ACTIVE</span></button>
           {dawnwatch ? <button className={`dawnwatch ${selectedId === dawnwatch.id ? "selected" : ""}`} type="button" onClick={() => selectSpecialist(dawnwatch.id)}><span className="dawn-icon">☀</span><span className="specialist-copy"><b>DAWNWATCH</b><small>{dawnwatch.purpose}</small></span><span className="active">● ACTIVE</span></button> : <div className="dawnwatch loading-tile">Loading DAWNWATCH…</div>}
           <div className="label intelligence-label">SPECIALIST INTELLIGENCE</div>
           {intelligence.map((specialist, index) => <Tile key={specialist.id} specialist={specialist} active={selectedId === specialist.id} index={index} onSelect={() => selectSpecialist(specialist.id)} />)}
@@ -209,13 +223,13 @@ export default function UnifiedOpsConsole() {
             <div className="conversation-frame"><div className="spin-border" /><div className="conversation">
               <i className="corner tl" /><i className="corner tr" /><i className="corner bl" /><i className="corner br" />
               <div className="messages" ref={scrollRef}>
-                {!selected && <div className="home-state"><h2>JARVIS ORCHESTRATOR</h2><p>Select DAWNWATCH or a specialist intelligence unit to begin a governed conversation.</p></div>}
+                {!selected && <div className="home-state"><h2>JARVIS ORCHESTRATOR</h2><p>Select JARVIS, DAWNWATCH, or a specialist intelligence unit to begin a governed conversation.</p></div>}
                 {selected && messages.length === 0 && <div className="home-state"><h2>{selected.name}</h2><p>{selected.purpose}</p><small>READY FOR INVOCATION</small></div>}
                 {messages.map((message, index) => <div key={`${message.role}-${index}`} className={`message ${message.role} ${message.error ? "error" : ""}`}><b>{message.role === "user" ? "YOU" : selected?.name}</b><p>{message.content}</p></div>)}
                 {loading && <div className="message assistant loading"><b>{selected?.name}</b><p>PROCESSING REQUEST<span>…</span></p></div>}
               </div>
               <div className="marquee"><div><span>ORBITAL GRID · NOMINAL</span><span>MEMORY SYNC · OK</span><span>{compactConnectorCountLabel}</span><span>VOICE · STANDBY</span><span>SESSION · SECURE</span><span>ORBITAL GRID · NOMINAL</span><span>MEMORY SYNC · OK</span></div></div>
-              <div className="tools"><button type="button" disabled>🎙<small>Voice</small></button><button className="brief" type="button" disabled={!dawnwatch || loading} onClick={() => void briefMe()}>▤<small>Brief Me</small></button><button type="button" disabled={selectedId === null} onClick={() => setSelectedId(null)}>⬡<small>Ask JARVIS</small></button></div>
+              <div className="tools"><button type="button" disabled>🎙<small>Voice</small></button><button className="brief" type="button" disabled={!jarvis || loading} onClick={() => void briefMe()}>▤<small>Brief Me</small></button><button type="button" disabled={!jarvis} onClick={() => jarvis && setSelectedId(jarvis.id)}>⬡<small>Ask JARVIS</small></button></div>
             </div></div>
           </div>
           <form className="composer" onSubmit={send}><span>📎</span><input aria-label={selected ? `Ask ${selected.name} anything` : "Select a specialist"} disabled={!selected || loading} value={input} onChange={event => setInput(event.target.value)} placeholder={selected ? `Ask ${selected.name} anything...` : "Select a specialist to begin..."} /><span>🎙</span><button type="submit" disabled={!selected || loading || !input.trim()} aria-label="Send message">➤</button></form>

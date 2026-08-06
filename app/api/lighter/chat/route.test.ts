@@ -29,4 +29,38 @@ describe("POST /api/lighter/chat", () => {
     expect(response.status).toBe(400);
     expect(model).not.toHaveBeenCalled();
   });
+
+  it("returns a validated JARVIS route without exposing the control line", async () => {
+    const model = vi.fn(async () => "I'll hand this to DAWNWATCH.\nROUTE_TO: dawnwatch");
+    const response = await createLighterChatHandler(model)(request({
+      specialistId: "jarvis", messages: [{ role: "user", content: "Brief me" }],
+    }));
+
+    expect(await response.json()).toEqual({
+      reply: "I'll hand this to DAWNWATCH.", specialistId: "jarvis", execution: "none", routeTo: "dawnwatch",
+    });
+  });
+
+  it("fails closed and strips an invalid JARVIS route", async () => {
+    const model = vi.fn(async () => "I suggest a handoff.\nROUTE_TO: not-a-specialist");
+    const response = await createLighterChatHandler(model)(request({
+      specialistId: "jarvis", messages: [{ role: "user", content: "Do something" }],
+    }));
+
+    expect(await response.json()).toEqual({
+      reply: "I suggest a handoff.", specialistId: "jarvis", execution: "none",
+    });
+  });
+
+  it("leaves direct JARVIS and non-JARVIS replies unchanged", async () => {
+    const direct = await createLighterChatHandler(async () => "Direct answer")(request({
+      specialistId: "jarvis", messages: [{ role: "user", content: "Hello" }],
+    }));
+    const specialist = await createLighterChatHandler(async () => "Text\nROUTE_TO: oracle")(request({
+      specialistId: "steve", messages: [{ role: "user", content: "Hello" }],
+    }));
+
+    expect(await direct.json()).toEqual({ reply: "Direct answer", specialistId: "jarvis", execution: "none" });
+    expect(await specialist.json()).toEqual({ reply: "Text\nROUTE_TO: oracle", specialistId: "steve", execution: "none" });
+  });
 });

@@ -7,6 +7,7 @@ export const ABSENCE_VOCABULARY = [
 
 export type AbsenceState = (typeof ABSENCE_VOCABULARY)[number];
 export type LighterSpecialistId =
+  | "jarvis"
   | "dawnwatch"
   | "oracle"
   | "herald"
@@ -35,6 +36,14 @@ const specialist = (
 ): LighterSpecialist => ({ ...value, instructions: [...sharedInstructions, ...value.instructions] });
 
 export const LIGHTER_SPECIALISTS: Readonly<Record<LighterSpecialistId, LighterSpecialist>> = {
+  jarvis: specialist({
+    id: "jarvis", name: "JARVIS", purpose: "Conversational entry point and routing", invokedOnly: false,
+    instructions: [
+      "Answer directly when a query doesn't need a specialist's specific governed data or capability.",
+      "When it does, end your reply with exactly one line: ROUTE_TO: <specialist_id>, using the real lowercase id (dawnwatch, oracle, herald, steve, marcus, gecko). State the handoff in plain language in your conversational reply before that line, not instead of it. Never emit this line when answering directly.",
+      "Never claim a route has taken effect. You only propose one; whether it happens is decided outside your output.",
+    ],
+  }),
   dawnwatch: specialist({
     id: "dawnwatch", name: "DAWNWATCH", purpose: "Morning inbox and calendar briefs", invokedOnly: false,
     instructions: [

@@ -44,6 +44,7 @@ export function buildProductionDawnwatchInput(state: OperationalState): Dawnwatc
       return {
         id,
         sender: communication.sender,
+        subject: communication.subject,
         // Partial values remain canonical evidence, but cannot satisfy DAWNWATCH while coverage is unknown.
         recipients: communication.recipientEvidence === "available" ? communication.recipients : [],
         sentAt: communication.sentAt,

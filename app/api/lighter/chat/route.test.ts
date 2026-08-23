@@ -1,9 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 import { createLighterChatHandler } from "@/lib/lighter-jarvis/chat-handler";
 import type { ChatMessage } from "@/lib/agents/types";
+import type { ClaudeResult, ClaudeTool } from "@/lib/claude";
 
 const request = (body: unknown) => new Request("http://localhost/api/lighter/chat", {
   method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+});
+
+const handoffResult = (specialistId: unknown, text: string): ClaudeResult => ({
+  text,
+  content: [
+    ...(text ? [{ type: "text", text }] : []),
+    { type: "tool_use", name: "propose_handoff", input: { specialist_id: specialistId } },
+  ],
 });
 
 describe("POST /api/lighter/chat", () => {
@@ -30,8 +39,12 @@ describe("POST /api/lighter/chat", () => {
     expect(model).not.toHaveBeenCalled();
   });
 
-  it("returns a validated JARVIS route without exposing the control line", async () => {
-    const model = vi.fn(async () => "I'll hand this to DAWNWATCH.\nROUTE_TO: dawnwatch");
+  it("returns a validated JARVIS route from a tool call", async () => {
+    const model = vi.fn(async (
+      _systemPrompt: string,
+      _messages: ChatMessage[],
+      _tools?: ClaudeTool[],
+    ) => handoffResult("dawnwatch", "I'll hand this to DAWNWATCH."));
     const response = await createLighterChatHandler(model)(request({
       specialistId: "jarvis", messages: [{ role: "user", content: "Brief me" }],
     }));
@@ -39,10 +52,13 @@ describe("POST /api/lighter/chat", () => {
     expect(await response.json()).toEqual({
       reply: "I'll hand this to DAWNWATCH.", specialistId: "jarvis", execution: "none", routeTo: "dawnwatch",
     });
+    expect(model.mock.calls[0][2]).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: "propose_handoff" }),
+    ]));
   });
 
-  it("fails closed and strips an invalid JARVIS route", async () => {
-    const model = vi.fn(async () => "I suggest a handoff.\nROUTE_TO: not-a-specialist");
+  it("fails closed on an invalid JARVIS handoff tool call", async () => {
+    const model = vi.fn(async () => handoffResult("not-a-specialist", "I suggest a handoff."));
     const response = await createLighterChatHandler(model)(request({
       specialistId: "jarvis", messages: [{ role: "user", content: "Do something" }],
     }));
@@ -52,8 +68,8 @@ describe("POST /api/lighter/chat", () => {
     });
   });
 
-  it("supplies a non-empty fallback when a route marker is the entire reply", async () => {
-    const response = await createLighterChatHandler(async () => "ROUTE_TO: dawnwatch")(request({
+  it("supplies a non-empty fallback when a handoff tool call has no text", async () => {
+    const response = await createLighterChatHandler(async () => handoffResult("dawnwatch", ""))(request({
       specialistId: "jarvis", messages: [{ role: "user", content: "Brief me" }],
     }));
 
@@ -66,12 +82,12 @@ describe("POST /api/lighter/chat", () => {
     const direct = await createLighterChatHandler(async () => "Direct answer")(request({
       specialistId: "jarvis", messages: [{ role: "user", content: "Hello" }],
     }));
-    const specialist = await createLighterChatHandler(async () => "Text\nROUTE_TO: oracle")(request({
+    const specialist = await createLighterChatHandler(async () => handoffResult("oracle", "Text"))(request({
       specialistId: "steve", messages: [{ role: "user", content: "Hello" }],
     }));
 
     expect(await direct.json()).toEqual({ reply: "Direct answer", specialistId: "jarvis", execution: "none" });
-    expect(await specialist.json()).toEqual({ reply: "Text\nROUTE_TO: oracle", specialistId: "steve", execution: "none" });
+    expect(await specialist.json()).toEqual({ reply: "Text", specialistId: "steve", execution: "none" });
   });
 
   it("relays a specialist reply through JARVIS when it is preserved verbatim", async () => {

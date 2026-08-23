@@ -63,4 +63,68 @@ describe("POST /api/lighter/chat", () => {
     expect(await direct.json()).toEqual({ reply: "Direct answer", specialistId: "jarvis", execution: "none" });
     expect(await specialist.json()).toEqual({ reply: "Text\nROUTE_TO: oracle", specialistId: "steve", execution: "none" });
   });
+
+  it("relays a specialist reply through JARVIS when it is preserved verbatim", async () => {
+    const specialistReply = "Recalled: The exact specialist answer.\nNothing is omitted.";
+    const model = vi.fn(async (_systemPrompt: string, _messages: ChatMessage[]) => `ORACLE reports:\n\n${specialistReply}\n\nWould you like anything else?`);
+    const messages: ChatMessage[] = [
+      { role: "user", content: "Research this" },
+      { role: "assistant", content: "I propose ORACLE." },
+    ];
+    const response = await createLighterChatHandler(model)(request({
+      specialistId: "jarvis",
+      messages,
+      relaySpecialistReply: { specialistId: "oracle", reply: specialistReply },
+    }));
+
+    expect(await response.json()).toEqual({
+      reply: `ORACLE reports:\n\n${specialistReply}\n\nWould you like anything else?`,
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(model.mock.calls[0][0]).toContain('"contract":"governed_specialist_reply"');
+    expect(model.mock.calls[0][0]).toContain('"sourceSpecialistName":"ORACLE"');
+    expect(model.mock.calls[0][0]).toContain(`"reply":"Recalled: The exact specialist answer.\\nNothing is omitted."`);
+    expect(model.mock.calls[0][1]).toEqual(messages);
+  });
+
+  it("replaces a synthesis that fails the verbatim-preservation gate", async () => {
+    const specialistReply = "First exact sentence.\nSecond exact sentence.";
+    const response = await createLighterChatHandler(async () => "ORACLE says the first and second sentences.")(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Research this" }],
+      relaySpecialistReply: { specialistId: "oracle", reply: specialistReply },
+    }));
+
+    expect(await response.json()).toEqual({
+      reply: `ORACLE reports:\n\n${specialistReply}`,
+      specialistId: "jarvis",
+      execution: "none",
+    });
+  });
+
+  it("rejects the relay field for a non-JARVIS request", async () => {
+    const model = vi.fn();
+    const response = await createLighterChatHandler(model)(request({
+      specialistId: "herald",
+      messages: [{ role: "user", content: "Draft this" }],
+      relaySpecialistReply: { specialistId: "oracle", reply: "Research" },
+    }));
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "`relaySpecialistReply` is valid only for JARVIS." });
+    expect(model).not.toHaveBeenCalled();
+  });
+
+  it("rejects a malformed JARVIS relay field", async () => {
+    const model = vi.fn();
+    const response = await createLighterChatHandler(model)(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Research this" }],
+      relaySpecialistReply: { specialistId: "inactive", reply: "Research" },
+    }));
+
+    expect(response.status).toBe(400);
+    expect(model).not.toHaveBeenCalled();
+  });
 });

@@ -178,7 +178,7 @@ export default function UnifiedOpsConsole() {
   }
 
   async function confirmHandoff() {
-    if (!pendingHandoff || loading) return;
+    if (!pendingHandoff || loading || !jarvis) return;
     const target = specialists.find(item => item.id === pendingHandoff.targetId);
     if (!target) {
       setPendingHandoff(null);
@@ -186,8 +186,40 @@ export default function UnifiedOpsConsole() {
     }
     const originalMessage = pendingHandoff.originalMessage;
     setPendingHandoff(null);
-    setSelectedId(target.id);
-    await submitMessage(target, originalMessage);
+    setSelectedId(jarvis.id);
+    setLoading(true);
+    try {
+      const specialistResponse = await fetch("/api/lighter/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ specialistId: target.id, messages: [{ role: "user", content: originalMessage }] }),
+      });
+      const specialistData = await specialistResponse.json() as { reply?: string; error?: string };
+      if (!specialistResponse.ok) throw new Error(specialistData.error || `${specialistResponse.status} ${specialistResponse.statusText}`);
+
+      const jarvisMessages = conversations[jarvis.id] ?? [];
+      const synthesisResponse = await fetch("/api/lighter/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          specialistId: jarvis.id,
+          messages: jarvisMessages.map(({ role, content }) => ({ role, content })),
+          relaySpecialistReply: { specialistId: target.id, reply: specialistData.reply ?? "" },
+        }),
+      });
+      const synthesisData = await synthesisResponse.json() as { reply?: string; error?: string };
+      if (!synthesisResponse.ok) throw new Error(synthesisData.error || `${synthesisResponse.status} ${synthesisResponse.statusText}`);
+      setConversations(current => ({
+        ...current,
+        [jarvis.id]: [...(current[jarvis.id] ?? jarvisMessages), { role: "assistant", content: synthesisData.reply ?? "" }],
+      }));
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "Unknown request error.";
+      setConversations(current => ({
+        ...current,
+        [jarvis.id]: [...(current[jarvis.id] ?? []), { role: "assistant", content: detail, error: true }],
+      }));
+    } finally { setLoading(false); }
   }
 
   async function briefMe() {

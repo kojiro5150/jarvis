@@ -1,9 +1,30 @@
 import type { ChatMessage } from "@/lib/agents/types";
 import { buildProductionDawnwatchInput } from "@/lib/dawnwatch-presentation-selection";
 import { buildOperationalState } from "@/lib/operational-state";
-import { buildLighterSystemPrompt, type LighterSpecialist } from "./specialists";
+import { buildLighterSystemPrompt, getLighterSpecialist, type LighterSpecialist } from "./specialists";
 
-export async function buildSpecialistPrompt(specialist: LighterSpecialist): Promise<string> {
+export interface RelaySpecialistReply {
+  specialistId: string;
+  reply: string;
+}
+
+export async function buildSpecialistPrompt(
+  specialist: LighterSpecialist,
+  relaySpecialistReply?: RelaySpecialistReply,
+): Promise<string> {
+  if (specialist.id === "jarvis" && relaySpecialistReply) {
+    const sourceSpecialist = getLighterSpecialist(relaySpecialistReply.specialistId);
+    if (!sourceSpecialist) return buildLighterSystemPrompt(specialist);
+    return buildLighterSystemPrompt(
+      specialist,
+      JSON.stringify({
+        contract: "governed_specialist_reply",
+        sourceSpecialistId: sourceSpecialist.id,
+        sourceSpecialistName: sourceSpecialist.name,
+        reply: relaySpecialistReply.reply,
+      }),
+    );
+  }
   if (specialist.id !== "dawnwatch") return buildLighterSystemPrompt(specialist);
 
   const state = await buildOperationalState();

@@ -43,6 +43,7 @@ export const LIGHTER_SPECIALISTS: Readonly<Record<LighterSpecialistId, LighterSp
       "A user's direct selection of a specialist always takes precedence over any routing you propose.",
       "To propose a hand-off, end your reply with exactly one line: ROUTE_TO: <specialist_id>, using the real lowercase id (dawnwatch, oracle, herald, steve, marcus, gecko). State the reason in plain language in your conversational reply before that line. Never emit this line when answering directly.",
       "A proposed hand-off is a suggestion only. Never claim or imply that it has taken effect; whether it happens is decided by the user, not by your output.",
+      "If you previously proposed a hand-off and are now given a specialist's reply as governed context, present that reply to the user as your next turn. Reproduce its substantive content exactly, do not paraphrase, reinterpret, or omit any of it. Name the specialist as the source. You may add brief framing before or after it, but the specialist's own words must appear verbatim and complete.",
     ],
   }),
   dawnwatch: specialist({

@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { callClaude } from "@/lib/claude";
 import type { ClaudeContentBlock, ClaudeResult, ClaudeTool } from "@/lib/claude";
 import type { ChatMessage } from "@/lib/agents/types";
-import { areValidMessages, buildSpecialistPrompt } from "@/lib/lighter-jarvis/runtime";
+import { areValidMessages, buildSpecialistPrompt, type RelaySpecialistReply } from "@/lib/lighter-jarvis/runtime";
 import { getLighterSpecialist } from "@/lib/lighter-jarvis/specialists";
 
-interface LighterChatBody { specialistId?: unknown; messages?: unknown }
+interface LighterChatBody {
+  specialistId?: unknown;
+  messages?: unknown;
+  relaySpecialistReply?: RelaySpecialistReply;
+}
 type ModelCall = (
   systemPrompt: string,
   messages: ChatMessage[],
@@ -50,19 +54,38 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude) {
     if (!areValidMessages(body.messages)) {
       return NextResponse.json({ error: "`messages` must contain 1-40 valid conversation messages." }, { status: 400 });
     }
+    let relaySpecialistReply: RelaySpecialistReply | undefined;
+    if (body.relaySpecialistReply !== undefined) {
+      const relay = body.relaySpecialistReply;
+      if (specialist.id !== "jarvis") {
+        return NextResponse.json({ error: "`relaySpecialistReply` is valid only for JARVIS." }, { status: 400 });
+      }
+      if (!relay || typeof relay !== "object"
+        || !("specialistId" in relay) || typeof relay.specialistId !== "string"
+        || !("reply" in relay) || typeof relay.reply !== "string"
+        || !getLighterSpecialist(relay.specialistId.toLowerCase())) {
+        return NextResponse.json({ error: "`relaySpecialistReply` must contain a valid specialist id and reply." }, { status: 400 });
+      }
+      relaySpecialistReply = { specialistId: relay.specialistId.toLowerCase(), reply: relay.reply };
+    }
 
     try {
-      const systemPrompt = await buildSpecialistPrompt(specialist);
+      const systemPrompt = await buildSpecialistPrompt(specialist, relaySpecialistReply);
       const result = specialist.id === "oracle"
         ? await callModel(systemPrompt, body.messages, ORACLE_TOOLS)
         : await callModel(systemPrompt, body.messages);
       const content = typeof result === "string" ? [] : result.content;
       let reply = typeof result === "string" ? result : result.text;
 
+      if (relaySpecialistReply && !reply.includes(relaySpecialistReply.reply)) {
+        const source = getLighterSpecialist(relaySpecialistReply.specialistId)!;
+        reply = `${source.name} reports:\n\n${relaySpecialistReply.reply}`;
+      }
+
       if (specialist.id === "oracle" && !fetchedThisTurn(content) && /\bSourced\b/i.test(reply)) {
         reply = reply.replace(/\bSourced\b/gi, "Recalled");
       }
-      if (specialist.id === "jarvis") {
+      if (specialist.id === "jarvis" && !relaySpecialistReply) {
         const routeMatch = reply.match(/(?:^|\n)ROUTE_TO:\s*(\S+)\s*$/);
         if (routeMatch) {
           const routedReply = reply.slice(0, routeMatch.index).trimEnd();

@@ -5,9 +5,12 @@ describe("Lighter JARVIS specialist governance", () => {
   it("registers JARVIS and the six active specialists", () => {
     expect(Object.keys(LIGHTER_SPECIALISTS)).toEqual(["jarvis", "dawnwatch", "oracle", "herald", "steve", "marcus", "gecko"]);
     expect(getLighterSpecialist("phdss")).toBeUndefined();
-    expect(LIGHTER_SPECIALISTS.jarvis.instructions).toContain(
-      "Never claim a route has taken effect. You only propose one; whether it happens is decided outside your output.",
-    );
+    expect(LIGHTER_SPECIALISTS.jarvis.instructions.slice(-4)).toEqual([
+      "Your role is orchestration, not expertise: interpret the user's intent, answer directly when no specialist's specific governed data or capability is needed, and propose a hand-off when the task clearly belongs to a specialist.",
+      "A user's direct selection of a specialist always takes precedence over any routing you propose.",
+      "To propose a hand-off, end your reply with exactly one line: ROUTE_TO: <specialist_id>, using the real lowercase id (dawnwatch, oracle, herald, steve, marcus, gecko). State the reason in plain language in your conversational reply before that line. Never emit this line when answering directly.",
+      "A proposed hand-off is a suggestion only. Never claim or imply that it has taken effect; whether it happens is decided by the user, not by your output.",
+    ]);
   });
 
   it("inherits shared governance and the closed absence vocabulary", () => {

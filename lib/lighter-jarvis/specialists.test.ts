@@ -16,12 +16,43 @@ describe("Lighter JARVIS specialist governance", () => {
 
   it("inherits shared governance and the closed absence vocabulary", () => {
     expect(ABSENCE_VOCABULARY).toEqual(["none", "not_fetched", "not_authorised", "unknown"]);
+    const expectedSharedInstructions = [
+      "Use only these exact absence values when reporting a gap: none, not_fetched, not_authorised, unknown.",
+      "Never claim ownership of deterministic facts such as existence, identity, provenance, or whether an action executed. You may interpret, frame, and advise.",
+      "Fail closed: when identity, provenance, scope, or evidence is ambiguous, stop and ask the user or report the applicable absence value; never make a plausible guess.",
+      "Keep your output attributable to this specialist. Do not blend another specialist's claims into your voice; label and preserve any handoff provenance.",
+      "If work exceeds your scope, say so plainly and suggest the user ask JARVIS to help route it. Never name a specific specialist yourself, you have no hand-off mechanism, only JARVIS's routing tool does. Never mention Cowork or Codex.",
+    ];
     for (const specialist of Object.values(LIGHTER_SPECIALISTS)) {
-      const prompt = buildLighterSystemPrompt(specialist);
-      expect(prompt).toContain("wait for confirmation");
-      expect(prompt).toContain("none, not_fetched, not_authorised, unknown");
-      expect(prompt).toContain("Do not blend");
+      expect(specialist.instructions.slice(0, 5)).toEqual(expectedSharedInstructions);
     }
+  });
+
+  it("does not tell non-JARVIS specialists to name a peer for out-of-scope work", () => {
+    const peerIds = ["dawnwatch", "oracle", "herald", "steve", "marcus", "gecko"];
+    for (const specialist of Object.values(LIGHTER_SPECIALISTS).filter(({ id }) => id !== "jarvis")) {
+      const outOfScopeInstruction = specialist.instructions[4].toLowerCase();
+      for (const peerId of peerIds) {
+        expect(outOfScopeInstruction).not.toContain(peerId);
+      }
+      expect(outOfScopeInstruction).toContain("ask jarvis to help route it");
+      expect(outOfScopeInstruction).toContain("no hand-off mechanism");
+    }
+  });
+
+  it("keeps JARVIS's propose_handoff convention singular", () => {
+    const prompt = buildLighterSystemPrompt(LIGHTER_SPECIALISTS.jarvis);
+    expect(prompt.match(/To propose a hand-off, call propose_handoff/g)).toHaveLength(1);
+    expect(LIGHTER_SPECIALISTS.jarvis.instructions.slice(-5)).toHaveLength(5);
+  });
+
+  it("keeps DAWNWATCH briefs and STEVE implementation advice aligned with routing boundaries", () => {
+    expect(LIGHTER_SPECIALISTS.dawnwatch.instructions[8]).toBe(
+      "Do not append a suggestion to ask JARVIS to route elsewhere, or any other next-step recommendation, to a routine brief. The shared out-of-scope rule applies only when a request genuinely exceeds your scope, not as a closing recommendation on a plain existence report.",
+    );
+    expect(LIGHTER_SPECIALISTS.steve.instructions[7]).toBe(
+      "Stay at advice or a small self-contained snippet. For multi-file, multi-step, protected-file, or implementation work, say so plainly and note that Cowork or a Codex dispatch outside this chat is the real path; this is advice, not a proposed action here.",
+    );
   });
 
   it("makes HERALD confirmation and exact recipient matching unconditional", () => {

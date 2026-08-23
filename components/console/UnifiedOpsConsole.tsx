@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { handoffResponse } from "@/lib/lighter-jarvis/handoff-phrases";
 import { DIRECT_SPECIALIST_IDS } from "./head-mode-contract";
 
@@ -592,15 +593,19 @@ export default function UnifiedOpsConsole() {
             </div>
             <div className="head-chat-layout">
               <section className="head-zone" aria-label="JARVIS head area">
-                <div className="head-placeholder">
-                  <div className="orb">
-                    <i />
-                    <i />
-                    <b />
-                    <b />
-                    <em />
+                <div className="head-composite">
+                  <div className="head-halo" aria-hidden="true" />
+                  <div className="head-image-wrap">
+                    <Image
+                      className="jarvis-head"
+                      src="/jarvis-head.png"
+                      alt="JARVIS synthetic head"
+                      width={1268}
+                      height={1240}
+                      priority
+                    />
                   </div>
-                  <small>ORB · NOMINAL · REF-640</small>
+                  <small>JARVIS · NOMINAL · REF-640</small>
                 </div>
               </section>
               <section className="chat-zone" aria-label="Conversation">
@@ -1632,23 +1637,60 @@ export default function UnifiedOpsConsole() {
           place-items: center;
           min-width: 0;
         }
-        .head-placeholder {
+        .head-composite {
+          position: relative;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 28px;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+          gap: 12px;
           color: #5c6b82;
           font: 11px "IBM Plex Mono";
         }
-        .head-placeholder .orb {
-          width: clamp(180px, 24vw, 340px);
-          height: clamp(180px, 24vw, 340px);
+        .head-image-wrap {
+          position: relative;
+          display: grid;
+          place-items: center;
+          width: min(100%, 680px);
+          max-height: calc(100% - 34px);
+          isolation: isolate;
         }
-        .head-placeholder .orb i {
-          inset: -24px;
+        .head-image-wrap::before {
+          content: "";
+          position: absolute;
+          z-index: -1;
+          inset: 10% 17% 4%;
+          border-radius: 48%;
+          background: radial-gradient(circle, rgba(255, 42, 51, 0.3), transparent 68%);
+          filter: blur(22px);
         }
-        .head-placeholder .orb em {
-          inset: 28%;
+        .jarvis-head {
+          display: block;
+          width: 100%;
+          height: auto;
+          max-height: 72vh;
+          object-fit: contain;
+          filter: drop-shadow(0 0 18px rgba(255, 35, 46, 0.24))
+            drop-shadow(0 0 34px rgba(94, 231, 255, 0.1));
+          mask-image: linear-gradient(to bottom, #000 0%, #000 82%, transparent 100%);
+        }
+        .head-halo {
+          position: absolute;
+          width: min(86%, 610px);
+          aspect-ratio: 1;
+          border: 1px solid rgba(94, 231, 255, 0.12);
+          border-radius: 50%;
+          box-shadow:
+            0 0 70px rgba(94, 231, 255, 0.06),
+            inset 0 0 80px rgba(255, 38, 48, 0.04);
+          background: repeating-radial-gradient(
+            circle,
+            transparent 0 52px,
+            rgba(94, 231, 255, 0.035) 53px 54px
+          );
+          pointer-events: none;
         }
         .chat-zone {
           display: flex;
@@ -1735,9 +1777,8 @@ export default function UnifiedOpsConsole() {
             grid-template-columns: minmax(0, 1fr) minmax(330px, 1fr);
             gap: 14px;
           }
-          .head-placeholder .orb {
-            width: clamp(120px, 20vw, 210px);
-            height: clamp(120px, 20vw, 210px);
+          .head-image-wrap {
+            width: min(100%, 440px);
           }
           .console-page {
             padding: 0;
@@ -1809,14 +1850,20 @@ export default function UnifiedOpsConsole() {
             grid-template-rows: 110px minmax(0, 1fr);
             gap: 8px;
           }
-          .head-placeholder {
+          .head-composite {
             gap: 4px;
           }
-          .head-placeholder .orb {
-            width: 72px;
-            height: 72px;
+          .head-image-wrap {
+            width: 118px;
+            max-height: 100px;
           }
-          .head-placeholder small {
+          .jarvis-head {
+            max-height: 100px;
+          }
+          .head-halo {
+            width: 105px;
+          }
+          .head-composite small {
             display: none;
           }
           .jarvis-panel-header {

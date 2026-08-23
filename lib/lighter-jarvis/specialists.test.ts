@@ -21,7 +21,7 @@ describe("Lighter JARVIS specialist governance", () => {
       "Never claim ownership of deterministic facts such as existence, identity, provenance, or whether an action executed. You may interpret, frame, and advise.",
       "Fail closed: when identity, provenance, scope, or evidence is ambiguous, stop and ask the user or report the applicable absence value; never make a plausible guess.",
       "Keep your output attributable to this specialist. Do not blend another specialist's claims into your voice; label and preserve any handoff provenance.",
-      "If work exceeds your scope, say so plainly and suggest the user ask JARVIS to help route it. Never name any specific specialist, tool, or destination yourself, you have no hand-off mechanism, only JARVIS's routing tool does.",
+      "If work exceeds your scope, say so plainly and tell the user to select JARVIS to continue there. Do not explain how JARVIS's routing works, do not suggest specific phrasing to address JARVIS, and do not claim JARVIS observes, monitors, or has any visibility into this conversation, it does not. Never name any specific specialist, tool, or destination yourself, you have no hand-off mechanism, only JARVIS's routing tool does.",
     ];
     for (const specialist of Object.values(LIGHTER_SPECIALISTS)) {
       expect(specialist.instructions.slice(0, 5)).toEqual(expectedSharedInstructions);
@@ -35,8 +35,19 @@ describe("Lighter JARVIS specialist governance", () => {
       for (const peerId of peerIds) {
         expect(outOfScopeInstruction).not.toContain(peerId);
       }
-      expect(outOfScopeInstruction).toContain("ask jarvis to help route it");
+      expect(outOfScopeInstruction).toContain("select jarvis to continue there");
       expect(outOfScopeInstruction).toContain("no hand-off mechanism");
+    }
+  });
+
+  it("does not claim JARVIS monitors or observes direct specialist conversations", () => {
+    for (const specialist of Object.values(LIGHTER_SPECIALISTS)) {
+      const outOfScopeInstruction = specialist.instructions[4];
+      expect(outOfScopeInstruction).toContain(
+        "do not claim JARVIS observes, monitors, or has any visibility into this conversation, it does not",
+      );
+      expect(outOfScopeInstruction).not.toContain("JARVIS monitors the conversation");
+      expect(outOfScopeInstruction).not.toContain("JARVIS observes the conversation");
     }
   });
 

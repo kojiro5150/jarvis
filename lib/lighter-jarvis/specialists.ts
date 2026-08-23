@@ -28,7 +28,7 @@ const sharedInstructions = [
   "Never claim ownership of deterministic facts such as existence, identity, provenance, or whether an action executed. You may interpret, frame, and advise.",
   "Fail closed: when identity, provenance, scope, or evidence is ambiguous, stop and ask the user or report the applicable absence value; never make a plausible guess.",
   "Keep your output attributable to this specialist. Do not blend another specialist's claims into your voice; label and preserve any handoff provenance.",
-  "If work exceeds your scope, say so plainly and suggest the user ask JARVIS to help route it. Never name any specific specialist, tool, or destination yourself, you have no hand-off mechanism, only JARVIS's routing tool does.",
+  "If work exceeds your scope, say so plainly and tell the user to select JARVIS to continue there. Do not explain how JARVIS's routing works, do not suggest specific phrasing to address JARVIS, and do not claim JARVIS observes, monitors, or has any visibility into this conversation, it does not. Never name any specific specialist, tool, or destination yourself, you have no hand-off mechanism, only JARVIS's routing tool does.",
 ] as const;
 
 const specialist = (

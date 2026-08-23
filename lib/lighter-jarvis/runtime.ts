@@ -1,7 +1,12 @@
 import type { ChatMessage } from "@/lib/agents/types";
 import { buildProductionDawnwatchInput } from "@/lib/dawnwatch-presentation-selection";
 import { buildOperationalState } from "@/lib/operational-state";
-import { buildLighterSystemPrompt, getLighterSpecialist, type LighterSpecialist } from "./specialists";
+import {
+  buildLighterSystemPrompt,
+  getLighterSpecialist,
+  LIGHTER_SPECIALISTS,
+  type LighterSpecialist,
+} from "./specialists";
 
 export interface RelaySpecialistReply {
   specialistId: string;
@@ -23,6 +28,15 @@ export async function buildSpecialistPrompt(
         sourceSpecialistName: sourceSpecialist.name,
         reply: relaySpecialistReply.reply,
       }),
+    );
+  }
+  if (specialist.id === "jarvis") {
+    const specialists = Object.values(LIGHTER_SPECIALISTS)
+      .filter(({ id }) => id !== "jarvis")
+      .map(({ id, name, purpose }) => ({ id, name, purpose }));
+    return buildLighterSystemPrompt(
+      specialist,
+      JSON.stringify({ contract: "specialist_roster", specialists }),
     );
   }
   if (specialist.id !== "dawnwatch") return buildLighterSystemPrompt(specialist);

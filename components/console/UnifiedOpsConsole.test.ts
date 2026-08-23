@@ -38,4 +38,10 @@ describe("UnifiedOpsConsole head-mode contract", () => {
     expect(source).not.toContain('className="executive"');
     expect(source).not.toContain("Ask JARVIS");
   });
+
+  it("composites the supplied JARVIS head into the head zone", () => {
+    expect(source).toContain('src="/jarvis-head.png"');
+    expect(source).toContain('alt="JARVIS synthetic head"');
+    expect(source).not.toContain("head-placeholder");
+  });
 });

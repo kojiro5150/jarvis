@@ -21,6 +21,21 @@ const ORACLE_TOOLS: ClaudeTool[] = [
   { type: "web_fetch_20250910", name: "web_fetch", max_uses: 5 },
 ];
 
+const JARVIS_TOOLS: ClaudeTool[] = [{
+  name: "propose_handoff",
+  description: "Propose handing this conversation to a specialist. Call this only when the task clearly requires a specialist's governed data or capability. Explain the reason in your ordinary text response; this tool call carries only which specialist.",
+  input_schema: {
+    type: "object",
+    properties: {
+      specialist_id: {
+        type: "string",
+        enum: ["dawnwatch", "oracle", "herald", "steve", "marcus", "gecko"],
+      },
+    },
+    required: ["specialist_id"],
+  },
+}];
+
 const isFetchError = (value: unknown): boolean => {
   if (Array.isArray(value)) return value.some(isFetchError);
   if (typeof value !== "object" || value === null) return false;
@@ -71,8 +86,13 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude) {
 
     try {
       const systemPrompt = await buildSpecialistPrompt(specialist, relaySpecialistReply);
-      const result = specialist.id === "oracle"
-        ? await callModel(systemPrompt, body.messages, ORACLE_TOOLS)
+      const tools = specialist.id === "oracle"
+        ? ORACLE_TOOLS
+        : specialist.id === "jarvis" && !relaySpecialistReply
+          ? JARVIS_TOOLS
+          : undefined;
+      const result = tools
+        ? await callModel(systemPrompt, body.messages, tools)
         : await callModel(systemPrompt, body.messages);
       const content = typeof result === "string" ? [] : result.content;
       let reply = typeof result === "string" ? result : result.text;
@@ -86,19 +106,19 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude) {
         reply = reply.replace(/\bSourced\b/gi, "Recalled");
       }
       if (specialist.id === "jarvis" && !relaySpecialistReply) {
-        const routeMatch = reply.match(/(?:^|\n)ROUTE_TO:\s*(\S+)\s*$/);
-        if (routeMatch) {
-          const target = getLighterSpecialist(routeMatch[1]);
-          const routedReply = reply.slice(0, routeMatch.index).trimEnd()
-            || (target
-              ? `I'd recommend handing this to ${target.name}.`
-              : "I couldn't identify a valid specialist for that hand-off.");
-          return NextResponse.json({
-            reply: routedReply,
-            specialistId: specialist.id,
-            execution: "none",
-            ...(target ? { routeTo: target.id } : {}),
-          });
+        const handoff = content.find((block) => block.type === "tool_use" && block.name === "propose_handoff");
+        if (handoff && typeof handoff.input === "object" && handoff.input !== null && !Array.isArray(handoff.input)) {
+          const specialistId = "specialist_id" in handoff.input ? handoff.input.specialist_id : undefined;
+          const target = typeof specialistId === "string" ? getLighterSpecialist(specialistId) : undefined;
+          if (target) {
+            const routedReply = reply.trim() || `I'd recommend handing this to ${target.name}.`;
+            return NextResponse.json({
+              reply: routedReply,
+              specialistId: specialist.id,
+              execution: "none",
+              routeTo: target.id,
+            });
+          }
         }
       }
       return NextResponse.json({ reply, specialistId: specialist.id, execution: "none" });

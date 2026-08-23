@@ -11,7 +11,18 @@ export { CLAUDE_MODEL } from "./anthropic-client";
 
 export type ClaudeTool =
   | { type: "web_search_20250305"; name: "web_search" }
-  | { type: "web_fetch_20250910"; name: "web_fetch"; max_uses: number };
+  | { type: "web_fetch_20250910"; name: "web_fetch"; max_uses: number }
+  | {
+    name: "propose_handoff";
+    description: string;
+    input_schema: {
+      type: "object";
+      properties: {
+        specialist_id: { type: "string"; enum: string[] };
+      };
+      required: ["specialist_id"];
+    };
+  };
 
 export interface ClaudeContentBlock {
   type: string;
@@ -54,10 +65,10 @@ export async function callClaude(
     ...(tools ? { tools } : {}),
   };
 
-  // Web fetch is a beta API feature. Keeping this branch inside the tool-bearing
-  // overload leaves every specialist that uses the original two-argument call on
-  // the exact same stable Messages API path, without tools or beta headers.
-  const response = tools
+  // Only web fetch requires the beta API. Other client-defined and server tools
+  // stay on the stable Messages API even when a tools array is supplied.
+  const usesWebFetch = tools?.some((tool) => "type" in tool && tool.type === "web_fetch_20250910") ?? false;
+  const response = usesWebFetch
     ? await anthropic.beta.messages.create({
         ...request,
         betas: ["web-fetch-2025-09-10"],

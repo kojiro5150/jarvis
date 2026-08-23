@@ -455,8 +455,11 @@ export default function UnifiedOpsConsole() {
       ? specialists.find((item) => item.id === routeTo)
       : undefined;
     if (target) {
-      setSelectedId(target.id);
-      await submitMessage(target, message);
+      setPendingHandoff({
+        sourceId: jarvis.id,
+        targetId: target.id,
+        originalMessage: message,
+      });
     }
   }
 

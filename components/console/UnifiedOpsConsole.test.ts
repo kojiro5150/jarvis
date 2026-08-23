@@ -44,4 +44,13 @@ describe("UnifiedOpsConsole head-mode contract", () => {
     expect(source).toContain('alt="JARVIS synthetic head"');
     expect(source).not.toContain("head-placeholder");
   });
+
+  it("Brief Me proposes a hand-off instead of auto-continuing", () => {
+    const briefMeSource = source.slice(
+      source.indexOf("async function briefMe"),
+      source.indexOf("async function briefMe") + 400,
+    );
+    expect(briefMeSource).toContain("setPendingHandoff({");
+    expect(briefMeSource).not.toContain("setSelectedId(target.id)");
+  });
 });

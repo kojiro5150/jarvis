@@ -30,7 +30,7 @@ function Tile({ specialist, active, index, onSelect }: { specialist: Specialist;
 
 export default function UnifiedOpsConsole() {
   const [specialists, setSpecialists] = useState<Specialist[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>("jarvis");
   const [conversations, setConversations] = useState<Record<string, Message[]>>({});
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -271,7 +271,8 @@ export default function UnifiedOpsConsole() {
             <div className="conversation-frame"><div className="spin-border" /><div className="conversation">
               <i className="corner tl" /><i className="corner tr" /><i className="corner bl" /><i className="corner br" />
               <div className="messages" ref={scrollRef}>
-                {!selected && <div className="home-state"><h2>JARVIS ORCHESTRATOR</h2><p>Select JARVIS, DAWNWATCH, or a specialist intelligence unit to begin a governed conversation.</p></div>}
+                {!selected && specialists.length === 0 && !listError && <div className="home-state"><h2>JARVIS ORCHESTRATOR</h2><p>Loading JARVIS…</p></div>}
+                {!selected && (specialists.length > 0 || listError) && <div className="home-state"><h2>JARVIS ORCHESTRATOR</h2><p>Select JARVIS, DAWNWATCH, or a specialist intelligence unit to begin a governed conversation.</p></div>}
                 {selected && messages.length === 0 && <div className="home-state"><h2>{selected.name}</h2><p>{selected.purpose}</p><small>READY FOR INVOCATION</small></div>}
                 {messages.map((message, index) => <div key={`${message.role}-${index}`} className={`message ${message.role} ${message.error ? "error" : ""}`}><b>{message.role === "user" ? "YOU" : selected?.name}</b><p>{message.content}</p>{message.role === "assistant" && index === messages.length - 1 && pendingHandoff?.sourceId === selectedId && <div className="handoff-proposal" role="group" aria-label="Specialist hand-off proposal"><span>HAND-OFF PROPOSED · {specialists.find(item => item.id === pendingHandoff.targetId)?.name ?? pendingHandoff.targetId.toUpperCase()}</span><div><button type="button" disabled={loading} onClick={() => void confirmHandoff()}>CONFIRM</button><button type="button" disabled={loading} onClick={() => setPendingHandoff(null)}>DECLINE</button></div></div>}</div>)}
                 {loading && <div className="message assistant loading"><b>{selected?.name}</b><p>PROCESSING REQUEST<span>…</span></p></div>}

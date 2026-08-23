@@ -23,7 +23,7 @@ const ORACLE_TOOLS: ClaudeTool[] = [
 
 const JARVIS_TOOLS: ClaudeTool[] = [{
   name: "propose_handoff",
-  description: "Propose handing this conversation to a specialist. Call this only when the task clearly requires a specialist's governed data or capability. Explain the reason in your ordinary text response; this tool call carries only which specialist.",
+  description: "Propose handing this conversation to a specialist. Call this only when the task clearly requires a specialist's governed data or capability. Explain the reason in your ordinary text response; this tool call carries which specialist and a self-contained task_summary.",
   input_schema: {
     type: "object",
     properties: {
@@ -31,8 +31,12 @@ const JARVIS_TOOLS: ClaudeTool[] = [{
         type: "string",
         enum: ["dawnwatch", "oracle", "herald", "steve", "marcus", "gecko"],
       },
+      task_summary: {
+        type: "string",
+        description: "A self-contained restatement of what the specialist needs to do, written as if the specialist has seen none of this conversation. Never a bare acknowledgement like 'yes' or 'go ahead': if this is a follow-up hand-off, restate the actual task from earlier in the conversation, not just the message that triggered this call.",
+      },
     },
-    required: ["specialist_id"],
+    required: ["specialist_id", "task_summary"],
   },
 }];
 
@@ -110,13 +114,16 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude) {
         if (handoff && typeof handoff.input === "object" && handoff.input !== null && !Array.isArray(handoff.input)) {
           const specialistId = "specialist_id" in handoff.input ? handoff.input.specialist_id : undefined;
           const target = typeof specialistId === "string" ? getLighterSpecialist(specialistId) : undefined;
-          if (target) {
+          const taskSummary = "task_summary" in handoff.input ? handoff.input.task_summary : undefined;
+          const hasTaskSummary = typeof taskSummary === "string" && taskSummary.trim().length > 0;
+          if (target && hasTaskSummary) {
             const routedReply = reply.trim() || `I'd recommend handing this to ${target.name}.`;
             return NextResponse.json({
               reply: routedReply,
               specialistId: specialist.id,
               execution: "none",
               routeTo: target.id,
+              taskSummary: taskSummary.trim(),
             });
           }
         }

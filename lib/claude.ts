@@ -19,8 +19,9 @@ export type ClaudeTool =
       type: "object";
       properties: {
         specialist_id: { type: "string"; enum: string[] };
+        task_summary: { type: "string"; description: string };
       };
-      required: ["specialist_id"];
+      required: ["specialist_id", "task_summary"];
     };
   };
 

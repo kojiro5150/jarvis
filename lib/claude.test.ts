@@ -23,8 +23,9 @@ const handoffTool: ClaudeTool = {
     type: "object",
     properties: {
       specialist_id: { type: "string", enum: ["dawnwatch"] },
+      task_summary: { type: "string", description: "The task, self-contained." },
     },
-    required: ["specialist_id"],
+    required: ["specialist_id", "task_summary"],
   },
 };
 

@@ -15,7 +15,7 @@ type Message = { role: "user" | "assistant"; content: string; error?: boolean };
 type PendingHandoff = {
   sourceId: string;
   targetId: string;
-  originalMessage: string;
+  taskSummary: string;
 };
 type ConnectorName = "calendar" | "gmail" | "drive";
 type ConnectorServiceStatus =
@@ -275,7 +275,7 @@ export default function UnifiedOpsConsole() {
   async function submitMessage(
     specialist: Specialist,
     content: string,
-  ): Promise<string | undefined> {
+  ): Promise<{ routeTo?: string; taskSummary?: string } | undefined> {
     if (!content) return;
     const existingMessages = conversations[specialist.id] ?? [];
     const nextMessages: Message[] = [
@@ -303,6 +303,7 @@ export default function UnifiedOpsConsole() {
       const data = (await response.json()) as {
         reply?: string;
         routeTo?: string;
+        taskSummary?: string;
         error?: string;
       };
       if (!response.ok)
@@ -317,7 +318,7 @@ export default function UnifiedOpsConsole() {
           { role: "assistant", content: reply },
         ],
       }));
-      return data.routeTo;
+      return { routeTo: data.routeTo, taskSummary: data.taskSummary };
     } catch (error) {
       const detail =
         error instanceof Error ? error.message : "Unknown request error.";
@@ -351,15 +352,15 @@ export default function UnifiedOpsConsole() {
       }
     }
     setPendingHandoff(null);
-    const routeTo = await submitMessage(selected, originalMessage);
-    const target = routeTo
-      ? specialists.find((item) => item.id === routeTo)
+    const result = await submitMessage(selected, originalMessage);
+    const target = result?.routeTo
+      ? specialists.find((item) => item.id === result.routeTo)
       : undefined;
-    if (target) {
+    if (target && result?.taskSummary) {
       setPendingHandoff({
         sourceId: selected.id,
         targetId: target.id,
-        originalMessage,
+        taskSummary: result.taskSummary,
       });
     }
   }
@@ -373,7 +374,7 @@ export default function UnifiedOpsConsole() {
       setPendingHandoff(null);
       return;
     }
-    const originalMessage = pendingHandoff.originalMessage;
+    const taskSummary = pendingHandoff.taskSummary;
     setPendingHandoff(null);
     setSelectedId(jarvis.id);
     setLoading(true);
@@ -383,7 +384,7 @@ export default function UnifiedOpsConsole() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           specialistId: target.id,
-          messages: [{ role: "user", content: originalMessage }],
+          messages: [{ role: "user", content: taskSummary }],
         }),
       });
       const specialistData = (await specialistResponse.json()) as {
@@ -450,15 +451,15 @@ export default function UnifiedOpsConsole() {
     setSelectedId(jarvis.id);
     setSidebarOpen(false);
     const message = "brief me on today";
-    const routeTo = await submitMessage(jarvis, message);
-    const target = routeTo
-      ? specialists.find((item) => item.id === routeTo)
+    const result = await submitMessage(jarvis, message);
+    const target = result?.routeTo
+      ? specialists.find((item) => item.id === result.routeTo)
       : undefined;
-    if (target) {
+    if (target && result?.taskSummary) {
       setPendingHandoff({
         sourceId: jarvis.id,
         targetId: target.id,
-        originalMessage: message,
+        taskSummary: result.taskSummary,
       });
     }
   }

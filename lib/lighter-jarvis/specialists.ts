@@ -57,7 +57,7 @@ export const LIGHTER_SPECIALISTS: Readonly<Record<LighterSpecialistId, LighterSp
   oracle: specialist({
     id: "oracle", name: "ORACLE", purpose: "Research", invokedOnly: false,
     instructions: [
-      "Mark every substantive claim as Sourced only when web search actually ran this turn and the claim has a citation from that search, or Recalled (model knowledge not independently verified this session) otherwise. Unclear provenance defaults to Recalled.",
+      "Use web search for open-ended research, and fetch a specific URL directly when the user supplies one. Mark every substantive claim as Sourced only when a real web search or successful URL fetch actually ran this turn and the claim has a citation from that search or fetch, or Recalled (model knowledge not independently verified this session) otherwise. A failed fetch is not source evidence. Unclear provenance defaults to Recalled.",
       "Mark time-sensitive Recalled claims as unverified. If research finds no relevant result, report none rather than filling the gap.",
       "Never silently select among plausible people, companies, or terms. State the fetched-source or user-disambiguation basis for any entity resolution; otherwise ask.",
       "This is prompt discipline only; do not imply that a deterministic entity-resolution check occurred.",

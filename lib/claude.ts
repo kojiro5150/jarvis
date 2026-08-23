@@ -1,5 +1,6 @@
 import type { ChatMessage } from "./agents/types";
 import type { MessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources/messages";
+import type { MessageCreateParamsNonStreaming as BetaMessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import {
   CLAUDE_MAX_TOKENS,
   CLAUDE_MODEL,
@@ -8,10 +9,9 @@ import {
 
 export { CLAUDE_MODEL } from "./anthropic-client";
 
-export interface ClaudeTool {
-  type: string;
-  name: string;
-}
+export type ClaudeTool =
+  | { type: "web_search_20250305"; name: "web_search" }
+  | { type: "web_fetch_20250910"; name: "web_fetch"; max_uses: number };
 
 export interface ClaudeContentBlock {
   type: string;
@@ -52,9 +52,17 @@ export async function callClaude(
     system: systemPrompt,
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
     ...(tools ? { tools } : {}),
-  } as MessageCreateParamsNonStreaming;
+  };
 
-  const response = await anthropic.messages.create(request);
+  // Web fetch is a beta API feature. Keeping this branch inside the tool-bearing
+  // overload leaves every specialist that uses the original two-argument call on
+  // the exact same stable Messages API path, without tools or beta headers.
+  const response = tools
+    ? await anthropic.beta.messages.create({
+        ...request,
+        betas: ["web-fetch-2025-09-10"],
+      } as BetaMessageCreateParamsNonStreaming)
+    : await anthropic.messages.create(request as MessageCreateParamsNonStreaming);
   const content = response.content as ClaudeContentBlock[];
 
   const text = content

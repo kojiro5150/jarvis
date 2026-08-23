@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import GovernanceReticle, { ReticleSpecialist } from "./GovernanceReticle";
 
 type Specialist = { id: string; name: string; purpose: string; invokedOnly: boolean };
 type Message = { role: "user" | "assistant"; content: string; error?: boolean };
@@ -17,9 +18,9 @@ type OperationalStateResponse = {
 const icons = ["◎", "◈", "✎", "◇", "⚑"];
 const colours = ["#a78bfa", "#34d399", "#f472b6", "#60a5fa", "#f59e0b"];
 
-function Tile({ specialist, active, index, onSelect }: { specialist: Specialist; active: boolean; index: number; onSelect: () => void }) {
+function Tile({ specialist, active, index, state, onSelect }: { specialist: Specialist; active: boolean; index: number; state: ReticleSpecialist["state"]; onSelect: () => void }) {
   return (
-    <button className={`specialist ${active ? "selected" : ""}`} type="button" onClick={onSelect}>
+    <button className={`specialist hud-data-tile ${state === "invoked" ? "is-live" : ""} ${active ? "selected" : ""}`} type="button" onClick={onSelect}>
       <span className="specialist-icon" style={{ color: colours[index % colours.length] }}>{icons[index % icons.length]}</span>
       <span className="specialist-copy"><b>{specialist.name}</b><small>{specialist.purpose}</small></span>
       <span className="ready">● READY</span>
@@ -36,6 +37,7 @@ export default function UnifiedOpsConsole() {
   const [listError, setListError] = useState("");
   const [connectorStatuses, setConnectorStatuses] = useState<Record<ConnectorName, ConnectorServiceStatus> | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [clockReady, setClockReady] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -113,6 +115,7 @@ export default function UnifiedOpsConsole() {
       const datePart = new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Melbourne", month: "short", day: "2-digit", year: "numeric" }).format(now).toUpperCase().replace(",", "");
       const timePart = new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Melbourne", hour: "numeric", minute: "2-digit", hour12: true }).format(now).toUpperCase();
       el.textContent = `${datePart} · ${timePart}`;
+      setClockReady(true);
     };
     updateJarvisMelbClock();
     const timer = window.setInterval(updateJarvisMelbClock, 30000);
@@ -124,6 +127,13 @@ export default function UnifiedOpsConsole() {
   const intelligence = specialists.filter(item => item.id !== "dawnwatch" && item.id !== "jarvis");
   const selected = specialists.find(item => item.id === selectedId);
   const messages = useMemo(() => selectedId ? conversations[selectedId] ?? [] : [], [conversations, selectedId]);
+  const specialistState = (id: string): ReticleSpecialist["state"] => {
+    const history = conversations[id] ?? [];
+    if (history.some(message => message.error)) return "error";
+    if (selectedId === id && (loading || history.length > 0)) return "invoked";
+    return "idle";
+  };
+  const reticleSpecialists = specialists.map(({ id, name }) => ({ id, name, state: specialistState(id) }));
 
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages, loading]);
 
@@ -195,14 +205,14 @@ export default function UnifiedOpsConsole() {
           <button className="sidebar-close" type="button" aria-label="Close specialist navigation" onClick={() => setSidebarOpen(false)}>×</button>
           <header className="brand"><span className="brand-mark">J</span><span><b>J.A.R.V.I.S</b><small>Just A Very Intelligent System</small></span></header>
           <div className="label">EXECUTIVE OPERATIONS</div>
-          <button className={`executive ${selectedId === jarvis?.id ? "selected" : ""}`} type="button" disabled={!jarvis} onClick={() => jarvis && selectSpecialist(jarvis.id)}><span className="jarvis-icon">◎</span><span className="specialist-copy"><b>JARVIS</b><small>Orchestrator</small></span><span className="active">● ACTIVE</span></button>
-          {dawnwatch ? <button className={`dawnwatch ${selectedId === dawnwatch.id ? "selected" : ""}`} type="button" onClick={() => selectSpecialist(dawnwatch.id)}><span className="dawn-icon">☀</span><span className="specialist-copy"><b>DAWNWATCH</b><small>{dawnwatch.purpose}</small></span><span className="active">● ACTIVE</span></button> : <div className="dawnwatch loading-tile">Loading DAWNWATCH…</div>}
+          <button className={`executive hud-data-tile ${jarvis && specialistState(jarvis.id) === "invoked" ? "is-live" : ""} ${selectedId === jarvis?.id ? "selected" : ""}`} type="button" disabled={!jarvis} onClick={() => jarvis && selectSpecialist(jarvis.id)}><span className="jarvis-icon">◎</span><span className="specialist-copy"><b>JARVIS</b><small>Orchestrator</small></span><span className="active">● ACTIVE</span></button>
+          {dawnwatch ? <button className={`dawnwatch hud-data-tile ${specialistState(dawnwatch.id) === "invoked" ? "is-live" : ""} ${selectedId === dawnwatch.id ? "selected" : ""}`} type="button" onClick={() => selectSpecialist(dawnwatch.id)}><span className="dawn-icon">☀</span><span className="specialist-copy"><b>DAWNWATCH</b><small>{dawnwatch.purpose}</small></span><span className="active">● ACTIVE</span></button> : <div className="dawnwatch hud-data-tile is-pending loading-tile">Loading DAWNWATCH…</div>}
           <div className="label intelligence-label">SPECIALIST INTELLIGENCE</div>
-          {intelligence.map((specialist, index) => <Tile key={specialist.id} specialist={specialist} active={selectedId === specialist.id} index={index} onSelect={() => selectSpecialist(specialist.id)} />)}
+          {intelligence.map((specialist, index) => <Tile key={specialist.id} specialist={specialist} active={selectedId === specialist.id} state={specialistState(specialist.id)} index={index} onSelect={() => selectSpecialist(specialist.id)} />)}
           {listError && <div className="sidebar-error">{listError}</div>}
           <div className="sidebar-spacer" />
           <div className="connectors">
-            <p><span>CALENDAR</span>{renderConnectorStatus("calendar")}</p><p><span>GMAIL</span>{renderConnectorStatus("gmail")}</p><p><span>DRIVE</span>{renderConnectorStatus("drive")}</p>
+            <p className={`hud-data-tile ${connectorStatuses?.calendar === "online" ? "is-live" : connectorStatuses === null ? "is-pending" : ""}`}><span>CALENDAR</span>{renderConnectorStatus("calendar")}</p><p className={`hud-data-tile ${connectorStatuses?.gmail === "online" ? "is-live" : connectorStatuses === null ? "is-pending" : ""}`}><span>GMAIL</span>{renderConnectorStatus("gmail")}</p><p className={`hud-data-tile ${connectorStatuses?.drive === "online" ? "is-live" : connectorStatuses === null ? "is-pending" : ""}`}><span>DRIVE</span>{renderConnectorStatus("drive")}</p>
             <p><span>MEMORY</span><em>● ONLINE</em></p><p><span>PROJECTS</span><span>● READY</span></p><p><span>GITHUB</span><i>NOT CONNECTED</i></p>
           </div>
           <div className="core">JARVIS CORE v2.0.0<br />BUILT FOR SAM HAYWARD<br />GOVERNANCE ENGINEERING</div>
@@ -211,13 +221,13 @@ export default function UnifiedOpsConsole() {
 
         <div className="command-area">
           <div className="mobile-header"><button type="button" aria-label="Open specialist navigation" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(true)}>☰</button><span className="brand-mark">J</span><b>J.A.R.V.I.S</b><small>{selected?.name ?? "ORCHESTRATOR"}</small></div>
-          <div className="statusbar"><span className="picture">● &nbsp; OPERATIONAL PICTURE · <span id="jarvis-melb-clock">AUG 03, 2026 · 11:51 AM</span></span><span className="status-items"><span>♬ VOICE: STANDBY</span><span>● SYSTEM: NOMINAL</span><span>◎ {connectorCountLabel}</span><span>⌂ SESSION SECURE</span><span>⚙</span></span></div>
+          <div className="statusbar"><span className={`picture clock-panel hud-data-tile ${clockReady ? "is-live" : "is-pending"}`}>● &nbsp; OPERATIONAL PICTURE · <span id="jarvis-melb-clock">AUG 03, 2026 · 11:51 AM</span></span><span className="status-items"><span>♬ VOICE: STANDBY</span><span>● SYSTEM: NOMINAL</span><span>◎ {connectorCountLabel}</span><span>⌂ SESSION SECURE</span><span>⚙</span></span></div>
           <div className="workspace">
             <div className="grid" /><div className="amber-glow" /><div className="cyan-glow" /><div className="scanline" />
             <div className="stars"><i /><i /><i /><i /><i /><i /><b /><b /><b /></div>
             <div className="workspace-head">
               <div className="mission"><div className="orb"><i /><i /><b /><b /><em /></div><div><h1>MISSION WORKSPACE</h1><small>ORB · NOMINAL · REF-640</small></div></div>
-              <div className="tabs"><i className="reticle">⊙</i></div>
+              <div className="tabs"><GovernanceReticle specialists={reticleSpecialists} /></div>
             </div>
             <div className="shimmer" />
             <div className="conversation-frame"><div className="spin-border" /><div className="conversation">

@@ -7,11 +7,15 @@ const request = (body: unknown) => new Request("http://localhost/api/lighter/cha
   method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
 });
 
-const handoffResult = (specialistId: unknown, text: string): ClaudeResult => ({
+const handoffResult = (
+  specialistId: unknown,
+  text: string,
+  taskSummary: unknown = "A self-contained restatement of the task.",
+): ClaudeResult => ({
   text,
   content: [
     ...(text ? [{ type: "text", text }] : []),
-    { type: "tool_use", name: "propose_handoff", input: { specialist_id: specialistId } },
+    { type: "tool_use", name: "propose_handoff", input: { specialist_id: specialistId, task_summary: taskSummary } },
   ],
 });
 
@@ -51,6 +55,7 @@ describe("POST /api/lighter/chat", () => {
 
     expect(await response.json()).toEqual({
       reply: "I'll hand this to DAWNWATCH.", specialistId: "jarvis", execution: "none", routeTo: "dawnwatch",
+      taskSummary: "A self-contained restatement of the task.",
     });
     expect(model.mock.calls[0][2]).toEqual(expect.arrayContaining([
       expect.objectContaining({ name: "propose_handoff" }),
@@ -68,6 +73,34 @@ describe("POST /api/lighter/chat", () => {
     });
   });
 
+  it("fails closed on a handoff tool call missing a task_summary", async () => {
+    const model = vi.fn(async (): Promise<ClaudeResult> => ({
+      text: "I'll hand this to DAWNWATCH.",
+      content: [
+        { type: "text", text: "I'll hand this to DAWNWATCH." },
+        { type: "tool_use", name: "propose_handoff", input: { specialist_id: "dawnwatch" } },
+      ],
+    }));
+    const response = await createLighterChatHandler(model)(request({
+      specialistId: "jarvis", messages: [{ role: "user", content: "Brief me" }],
+    }));
+
+    expect(await response.json()).toEqual({
+      reply: "I'll hand this to DAWNWATCH.", specialistId: "jarvis", execution: "none",
+    });
+  });
+
+  it("fails closed on a handoff tool call with an empty task_summary", async () => {
+    const model = vi.fn(async () => handoffResult("dawnwatch", "I'll hand this to DAWNWATCH.", "   "));
+    const response = await createLighterChatHandler(model)(request({
+      specialistId: "jarvis", messages: [{ role: "user", content: "Brief me" }],
+    }));
+
+    expect(await response.json()).toEqual({
+      reply: "I'll hand this to DAWNWATCH.", specialistId: "jarvis", execution: "none",
+    });
+  });
+
   it("supplies a non-empty fallback when a handoff tool call has no text", async () => {
     const response = await createLighterChatHandler(async () => handoffResult("dawnwatch", ""))(request({
       specialistId: "jarvis", messages: [{ role: "user", content: "Brief me" }],
@@ -75,6 +108,7 @@ describe("POST /api/lighter/chat", () => {
 
     expect(await response.json()).toEqual({
       reply: "I'd recommend handing this to DAWNWATCH.", specialistId: "jarvis", execution: "none", routeTo: "dawnwatch",
+      taskSummary: "A self-contained restatement of the task.",
     });
   });
 

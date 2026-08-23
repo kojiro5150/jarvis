@@ -12,10 +12,27 @@ type ModelCall = (
   tools?: ClaudeTool[],
 ) => Promise<string | ClaudeResult>;
 
-const ORACLE_WEB_SEARCH: ClaudeTool[] = [{ type: "web_search_20250305", name: "web_search" }];
-const fetchedThisTurn = (content: ClaudeContentBlock[]) => content.some(
-  (block) => block.type === "server_tool_use" || block.type === "web_search_tool_result",
-);
+const ORACLE_TOOLS: ClaudeTool[] = [
+  { type: "web_search_20250305", name: "web_search" },
+  { type: "web_fetch_20250910", name: "web_fetch", max_uses: 5 },
+];
+
+const isFetchError = (value: unknown): boolean => {
+  if (Array.isArray(value)) return value.some(isFetchError);
+  if (typeof value !== "object" || value === null) return false;
+  if ("type" in value && value.type === "web_fetch_tool_error") return true;
+  return "content" in value && isFetchError(value.content);
+};
+
+const fetchedThisTurn = (content: ClaudeContentBlock[]) => {
+  const fetchErrored = content.some(isFetchError);
+  return content.some((block) =>
+    block.type === "web_search_tool_result"
+    || (block.type === "web_fetch_tool_result" && !isFetchError(block))
+    || (block.type === "server_tool_use"
+      && !(fetchErrored && block.name === "web_fetch")),
+  );
+};
 
 export function createLighterChatHandler(callModel: ModelCall = callClaude) {
   return async function POST(request: Request) {
@@ -37,7 +54,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude) {
     try {
       const systemPrompt = await buildSpecialistPrompt(specialist);
       const result = specialist.id === "oracle"
-        ? await callModel(systemPrompt, body.messages, ORACLE_WEB_SEARCH)
+        ? await callModel(systemPrompt, body.messages, ORACLE_TOOLS)
         : await callModel(systemPrompt, body.messages);
       const content = typeof result === "string" ? [] : result.content;
       let reply = typeof result === "string" ? result : result.text;

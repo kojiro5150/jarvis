@@ -1677,20 +1677,7 @@ export default function UnifiedOpsConsole() {
           mask-image: linear-gradient(to bottom, #000 0%, #000 82%, transparent 100%);
         }
         .head-halo {
-          position: absolute;
-          width: min(86%, 610px);
-          aspect-ratio: 1;
-          border: 1px solid rgba(94, 231, 255, 0.12);
-          border-radius: 50%;
-          box-shadow:
-            0 0 70px rgba(94, 231, 255, 0.06),
-            inset 0 0 80px rgba(255, 38, 48, 0.04);
-          background: repeating-radial-gradient(
-            circle,
-            transparent 0 52px,
-            rgba(94, 231, 255, 0.035) 53px 54px
-          );
-          pointer-events: none;
+          display: none;
         }
         .chat-zone {
           display: flex;

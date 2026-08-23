@@ -52,6 +52,16 @@ describe("POST /api/lighter/chat", () => {
     });
   });
 
+  it("supplies a non-empty fallback when a route marker is the entire reply", async () => {
+    const response = await createLighterChatHandler(async () => "ROUTE_TO: dawnwatch")(request({
+      specialistId: "jarvis", messages: [{ role: "user", content: "Brief me" }],
+    }));
+
+    expect(await response.json()).toEqual({
+      reply: "I'd recommend handing this to DAWNWATCH.", specialistId: "jarvis", execution: "none", routeTo: "dawnwatch",
+    });
+  });
+
   it("leaves direct JARVIS and non-JARVIS replies unchanged", async () => {
     const direct = await createLighterChatHandler(async () => "Direct answer")(request({
       specialistId: "jarvis", messages: [{ role: "user", content: "Hello" }],
@@ -125,6 +135,19 @@ describe("POST /api/lighter/chat", () => {
     }));
 
     expect(response.status).toBe(400);
+    expect(model).not.toHaveBeenCalled();
+  });
+
+  it("rejects an empty specialist reply in a JARVIS relay", async () => {
+    const model = vi.fn();
+    const response = await createLighterChatHandler(model)(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Research this" }],
+      relaySpecialistReply: { specialistId: "oracle", reply: "" },
+    }));
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "`relaySpecialistReply` must contain a valid specialist id and reply." });
     expect(model).not.toHaveBeenCalled();
   });
 });

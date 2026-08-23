@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { handoffResponse } from "@/lib/lighter-jarvis/handoff-phrases";
 
 type Specialist = { id: string; name: string; purpose: string; invokedOnly: boolean };
 type Message = { role: "user" | "assistant"; content: string; error?: boolean };
@@ -17,6 +18,11 @@ type OperationalStateResponse = {
 
 const icons = ["◎", "◈", "✎", "◇", "⚑"];
 const colours = ["#a78bfa", "#34d399", "#f472b6", "#60a5fa", "#f59e0b"];
+
+function requiredReply(reply: string | undefined): string {
+  if (!reply?.trim()) throw new Error("The specialist returned an empty reply.");
+  return reply;
+}
 
 function Tile({ specialist, active, index, onSelect }: { specialist: Specialist; active: boolean; index: number; onSelect: () => void }) {
   return (
@@ -157,7 +163,8 @@ export default function UnifiedOpsConsole() {
       });
       const data = await response.json() as { reply?: string; routeTo?: string; error?: string };
       if (!response.ok) throw new Error(data.error || `${response.status} ${response.statusText}`);
-      setConversations(current => ({ ...current, [specialist.id]: [...(current[specialist.id] ?? nextMessages), { role: "assistant", content: data.reply ?? "" }] }));
+      const reply = requiredReply(data.reply);
+      setConversations(current => ({ ...current, [specialist.id]: [...(current[specialist.id] ?? nextMessages), { role: "assistant", content: reply }] }));
       return data.routeTo;
     } catch (error) {
       const detail = error instanceof Error ? error.message : "Unknown request error.";
@@ -169,6 +176,19 @@ export default function UnifiedOpsConsole() {
     event.preventDefault();
     if (!selected) return;
     const originalMessage = input.trim();
+    if (pendingHandoff) {
+      const response = handoffResponse(input);
+      if (response === "confirm") {
+        setInput("");
+        await confirmHandoff();
+        return;
+      }
+      if (response === "decline") {
+        setInput("");
+        setPendingHandoff(null);
+        return;
+      }
+    }
     setPendingHandoff(null);
     const routeTo = await submitMessage(selected, originalMessage);
     const target = routeTo ? specialists.find(item => item.id === routeTo) : undefined;
@@ -196,6 +216,7 @@ export default function UnifiedOpsConsole() {
       });
       const specialistData = await specialistResponse.json() as { reply?: string; error?: string };
       if (!specialistResponse.ok) throw new Error(specialistData.error || `${specialistResponse.status} ${specialistResponse.statusText}`);
+      const specialistReply = requiredReply(specialistData.reply);
 
       const jarvisMessages = conversations[jarvis.id] ?? [];
       const synthesisResponse = await fetch("/api/lighter/chat", {
@@ -204,14 +225,15 @@ export default function UnifiedOpsConsole() {
         body: JSON.stringify({
           specialistId: jarvis.id,
           messages: jarvisMessages.map(({ role, content }) => ({ role, content })),
-          relaySpecialistReply: { specialistId: target.id, reply: specialistData.reply ?? "" },
+          relaySpecialistReply: { specialistId: target.id, reply: specialistReply },
         }),
       });
       const synthesisData = await synthesisResponse.json() as { reply?: string; error?: string };
       if (!synthesisResponse.ok) throw new Error(synthesisData.error || `${synthesisResponse.status} ${synthesisResponse.statusText}`);
+      const synthesisReply = requiredReply(synthesisData.reply);
       setConversations(current => ({
         ...current,
-        [jarvis.id]: [...(current[jarvis.id] ?? jarvisMessages), { role: "assistant", content: synthesisData.reply ?? "" }],
+        [jarvis.id]: [...(current[jarvis.id] ?? jarvisMessages), { role: "assistant", content: synthesisReply }],
       }));
     } catch (error) {
       const detail = error instanceof Error ? error.message : "Unknown request error.";

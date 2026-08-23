@@ -62,7 +62,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude) {
       }
       if (!relay || typeof relay !== "object"
         || !("specialistId" in relay) || typeof relay.specialistId !== "string"
-        || !("reply" in relay) || typeof relay.reply !== "string"
+        || !("reply" in relay) || typeof relay.reply !== "string" || !relay.reply.trim()
         || !getLighterSpecialist(relay.specialistId.toLowerCase())) {
         return NextResponse.json({ error: "`relaySpecialistReply` must contain a valid specialist id and reply." }, { status: 400 });
       }
@@ -88,8 +88,11 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude) {
       if (specialist.id === "jarvis" && !relaySpecialistReply) {
         const routeMatch = reply.match(/(?:^|\n)ROUTE_TO:\s*(\S+)\s*$/);
         if (routeMatch) {
-          const routedReply = reply.slice(0, routeMatch.index).trimEnd();
           const target = getLighterSpecialist(routeMatch[1]);
+          const routedReply = reply.slice(0, routeMatch.index).trimEnd()
+            || (target
+              ? `I'd recommend handing this to ${target.name}.`
+              : "I couldn't identify a valid specialist for that hand-off.");
           return NextResponse.json({
             reply: routedReply,
             specialistId: specialist.id,

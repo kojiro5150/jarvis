@@ -610,7 +610,10 @@ export default function UnifiedOpsConsole() {
                   disabled={!jarvis}
                   onClick={() => jarvis && selectSpecialist(jarvis.id)}
                 >
-                  <span>J.A.R.V.I.S.</span>
+                  <span className="jarvis-panel-title">
+                    <b>J.A.R.V.I.S.</b>
+                    <small>Just A Very Intelligent System</small>
+                  </span>
                   <small>RETURN TO ORCHESTRATOR</small>
                 </button>
                 <div className="shimmer" />
@@ -632,8 +635,8 @@ export default function UnifiedOpsConsole() {
                         <div className="home-state">
                           <h2>JARVIS ORCHESTRATOR</h2>
                           <p>
-                            Select JARVIS, DAWNWATCH, or a specialist
-                            intelligence unit to begin a governed conversation.
+                            Select a specialist from the drawer to begin a
+                            governed conversation, or return to JARVIS above.
                           </p>
                         </div>
                       )}
@@ -1228,43 +1231,10 @@ export default function UnifiedOpsConsole() {
         .stars b:nth-of-type(3) {
           left: 85%;
         }
-        .workspace-head,
         .shimmer,
         .conversation-frame {
           position: relative;
           z-index: 1;
-        }
-        .workspace-head {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 14px;
-        }
-        .mission {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-        }
-        .mission h1 {
-          margin: 0;
-          font-size: 19px;
-          letter-spacing: 1.5px;
-          background: linear-gradient(
-            90deg,
-            #e8edf5,
-            #5ee7ff,
-            #e8edf5,
-            #f0a83c,
-            #e8edf5
-          );
-          background-size: 200%;
-          background-clip: text;
-          color: transparent;
-          animation: textShimmer 5s linear infinite;
-        }
-        .mission small {
-          color: #5c6b82;
-          font: 11px "IBM Plex Mono";
         }
         .orb {
           position: relative;
@@ -1306,27 +1276,6 @@ export default function UnifiedOpsConsole() {
           );
           animation: orbPulse 4s infinite;
           box-shadow: 0 0 18px #f0a83c80;
-        }
-        .tabs {
-          display: flex;
-          align-items: center;
-          gap: 22px;
-          font: 12px "IBM Plex Mono";
-          color: #5c6b82;
-        }
-        .tabs small {
-          font-size: 9px;
-          color: #3a4a5e;
-          border-left: 1px solid #1e293b;
-          padding-left: 16px;
-        }
-        .tabs small b {
-          color: #5ee7ff;
-        }
-        .reticle {
-          font-size: 26px;
-          color: #5ee7ff;
-          animation: ringSpin 12s linear infinite;
         }
         .shimmer {
           height: 1px;
@@ -1718,10 +1667,19 @@ export default function UnifiedOpsConsole() {
           text-align: left;
           cursor: pointer;
         }
-        .jarvis-panel-header span {
+        .jarvis-panel-title {
+          display: flex;
+          flex-direction: column;
+        }
+        .jarvis-panel-title b {
           color: #e8edf5;
           font: 700 17px "IBM Plex Mono";
           letter-spacing: 2px;
+        }
+        .jarvis-panel-header .jarvis-panel-title small {
+          color: #5c6b82;
+          font-size: 8px;
+          letter-spacing: 0.5px;
         }
         .jarvis-panel-header small {
           color: #5ee7ff;
@@ -1770,9 +1728,6 @@ export default function UnifiedOpsConsole() {
           .status-items span:nth-of-type(2),
           .status-items span:nth-of-type(3) {
             display: none;
-          }
-          .tabs {
-            gap: 12px;
           }
         }
         @media (max-width: 1024px) {
@@ -1841,9 +1796,6 @@ export default function UnifiedOpsConsole() {
           .workspace {
             padding: 16px;
           }
-          .workspace-head {
-            align-items: flex-start;
-          }
           .conversation-frame {
             min-height: 0;
           }
@@ -1879,31 +1831,9 @@ export default function UnifiedOpsConsole() {
           .workspace {
             padding: 12px;
           }
-          .workspace-head {
-            margin-bottom: 10px;
-          }
-          .mission {
-            gap: 10px;
-          }
-          .mission h1 {
-            font-size: 15px;
-            letter-spacing: 1px;
-          }
-          .mission small {
-            font-size: 9px;
-          }
           .orb {
             width: 42px;
             height: 42px;
-          }
-          .tabs {
-            gap: 8px;
-          }
-          .tabs small {
-            display: none;
-          }
-          .reticle {
-            font-size: 21px;
           }
           .messages {
             inset: 0 0 72px;
@@ -1961,12 +1891,6 @@ export default function UnifiedOpsConsole() {
           }
           .workspace {
             padding: 9px;
-          }
-          .mission h1 {
-            font-size: 13px;
-          }
-          .tabs .reticle {
-            display: none;
           }
           .tools button {
             padding-inline: 6px;

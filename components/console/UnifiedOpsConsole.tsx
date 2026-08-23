@@ -594,7 +594,6 @@ export default function UnifiedOpsConsole() {
             <div className="head-chat-layout">
               <section className="head-zone" aria-label="JARVIS head area">
                 <div className="head-composite">
-                  <div className="head-halo" aria-hidden="true" />
                   <div className="head-image-wrap">
                     <Image
                       className="jarvis-head"
@@ -1676,9 +1675,6 @@ export default function UnifiedOpsConsole() {
             drop-shadow(0 0 34px rgba(94, 231, 255, 0.1));
           mask-image: linear-gradient(to bottom, #000 0%, #000 82%, transparent 100%);
         }
-        .head-halo {
-          display: none;
-        }
         .chat-zone {
           display: flex;
           flex-direction: column;
@@ -1846,9 +1842,6 @@ export default function UnifiedOpsConsole() {
           }
           .jarvis-head {
             max-height: 100px;
-          }
-          .head-halo {
-            width: 105px;
           }
           .head-composite small {
             display: none;

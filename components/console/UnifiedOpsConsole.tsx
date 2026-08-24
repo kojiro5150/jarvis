@@ -20,6 +20,7 @@ type PendingHandoff = {
   sourceId: string;
   targetId: string;
   taskSummary: string;
+  marketScopes?: string[];
 };
 type ConnectorName = "calendar" | "gmail" | "drive";
 type ConnectorServiceStatus =
@@ -308,7 +309,7 @@ export default function UnifiedOpsConsole() {
   async function submitMessage(
     specialist: Specialist,
     content: string,
-  ): Promise<{ routeTo?: string; taskSummary?: string } | undefined> {
+  ): Promise<{ routeTo?: string; taskSummary?: string; marketScopes?: string[] } | undefined> {
     if (!content) return;
     const existingMessages = conversations[specialist.id] ?? [];
     const nextMessages: Message[] = [
@@ -337,6 +338,7 @@ export default function UnifiedOpsConsole() {
         reply?: string;
         routeTo?: string;
         taskSummary?: string;
+        marketScopes?: string[];
         error?: string;
       };
       if (!response.ok)
@@ -351,7 +353,7 @@ export default function UnifiedOpsConsole() {
           { role: "assistant", content: reply },
         ],
       }));
-      return { routeTo: data.routeTo, taskSummary: data.taskSummary };
+      return { routeTo: data.routeTo, taskSummary: data.taskSummary, marketScopes: data.marketScopes };
     } catch (error) {
       const detail =
         error instanceof Error ? error.message : "Unknown request error.";
@@ -394,6 +396,7 @@ export default function UnifiedOpsConsole() {
         sourceId: selected.id,
         targetId: target.id,
         taskSummary: result.taskSummary,
+        marketScopes: result.marketScopes,
       });
     }
   }
@@ -425,6 +428,7 @@ export default function UnifiedOpsConsole() {
           sourceId: source.id,
           targetId: target.id,
           taskSummary: result.taskSummary,
+          marketScopes: result.marketScopes,
         });
       }
     })();
@@ -443,6 +447,7 @@ export default function UnifiedOpsConsole() {
       return;
     }
     const taskSummary = pendingHandoff.taskSummary;
+    const marketScopes = pendingHandoff.marketScopes;
     setPendingHandoff(null);
     setSelectedId(jarvis.id);
     setLoading(true);
@@ -453,6 +458,7 @@ export default function UnifiedOpsConsole() {
         body: JSON.stringify({
           specialistId: target.id,
           messages: [{ role: "user", content: taskSummary }],
+          ...(target.id === "gecko" ? { marketScopes } : {}),
         }),
       });
       const specialistData = (await specialistResponse.json()) as {
@@ -528,6 +534,7 @@ export default function UnifiedOpsConsole() {
         sourceId: jarvis.id,
         targetId: target.id,
         taskSummary: result.taskSummary,
+        marketScopes: result.marketScopes,
       });
     }
   }

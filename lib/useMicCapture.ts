@@ -9,6 +9,8 @@ export interface MicCapture {
   amplitude: number;
   /** Set when getUserMedia/AudioContext setup actually failed (permission denied, no device, insecure context, etc). */
   error: string | null;
+  /** The same live stream used by the analyser, exposed for separate recording concerns. */
+  stream: MediaStream | null;
   toggle: () => void;
 };
 
@@ -35,6 +37,7 @@ export function useMicCapture(): MicCapture {
   const [active, setActive] = useState(false);
   const [amplitude, setAmplitude] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
   const streamRef = useRef<MediaStream | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
@@ -48,6 +51,7 @@ export function useMicCapture(): MicCapture {
     rafRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+    setStream(null);
     if (ctxRef.current) {
       ctxRef.current.close().catch(() => {});
     }
@@ -88,6 +92,7 @@ export function useMicCapture(): MicCapture {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
+      setStream(stream);
       const AudioCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const ctx = new AudioCtx();
       ctxRef.current = ctx;
@@ -117,5 +122,5 @@ export function useMicCapture(): MicCapture {
   // Real cleanup on unmount — never leave a live mic stream open.
   useEffect(() => stop, [stop]);
 
-  return { active, amplitude, error, toggle };
+  return { active, amplitude, error, stream, toggle };
 }

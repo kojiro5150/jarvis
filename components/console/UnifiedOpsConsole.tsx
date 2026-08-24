@@ -79,11 +79,9 @@ function Tile({
 function HeadComposite({
   voiceState,
   amplitude,
-  onToggleVoice,
 }: {
   voiceState: VoiceState;
   amplitude: number;
-  onToggleVoice: () => void;
 }) {
   return (
     <div className="head-composite" data-voice-state={voiceState}>
@@ -98,13 +96,9 @@ function HeadComposite({
         />
       </div>
       <small>JARVIS · NOMINAL · REF-640</small>
-      <button
-        type="button"
-        onClick={onToggleVoice}
-        aria-pressed={voiceState === "listening"}
-      >
+      <span aria-live="polite">
         VOICE · {voiceState.toUpperCase()} · {amplitude.toFixed(2)}
-      </button>
+      </span>
     </div>
   );
 }
@@ -677,7 +671,6 @@ export default function UnifiedOpsConsole() {
                 <HeadComposite
                   voiceState={voiceSession.state}
                   amplitude={voiceSession.amplitude}
-                  onToggleVoice={voiceSession.toggle}
                 />
               </section>
               <section className="chat-zone" aria-label="Conversation">
@@ -793,7 +786,12 @@ export default function UnifiedOpsConsole() {
                       </div>
                     </div>
                     <div className="tools">
-                      <button type="button" disabled>
+                      <button
+                        type="button"
+                        onClick={voiceSession.toggle}
+                        aria-pressed={voiceSession.state === "listening"}
+                        aria-label={`Voice — ${voiceSession.state}`}
+                      >
                         🎙<small>Voice</small>
                       </button>
                       {/* Product decision pending: retain Brief Me until its composer-area value is decided. */}
@@ -828,7 +826,6 @@ export default function UnifiedOpsConsole() {
                   : "Select a specialist to begin..."
               }
             />
-            <span>🎙</span>
             <button
               type="submit"
               disabled={!selected || loading || !input.trim()}

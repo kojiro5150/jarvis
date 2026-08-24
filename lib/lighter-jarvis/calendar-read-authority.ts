@@ -1,49 +1,55 @@
 export const CALENDAR_READ_CAPABILITY = "calendar.read" as const;
 
 export interface CalendarReadAuthorityRequest {
-  readonly capability: string;
-  readonly userInitiated: boolean;
+  readonly currentUserUtterance: string;
 }
 
 export type CalendarReadAuthorityDecision = Readonly<{
   capability: typeof CALENDAR_READ_CAPABILITY;
-  decision: "within_authority" | "outside_authority";
-  reason: "explicit_user_calendar_read" | "not_user_initiated" | "capability_not_permitted";
+  decision: "ALLOW" | "ASK" | "DENY";
+  reason: "explicit_calendar_read" | "ambiguous_current_request" | "calendar_read_not_requested";
   readOnly: true;
 }>;
+
+const CALENDAR_REFERENCE = /\b(?:my\s+)?calendars?\b/i;
+const EXPLICIT_READ = /(?:\b(?:show|check|view|see|list|read|open)\b[\s\S]*\b(?:my\s+)?calendars?\b|\bwhat(?:'s|\s+is|\s+are)?\b[\s\S]*\b(?:on|in)\s+(?:my\s+)?calendars?\b|\bdo\s+i\s+have\b[\s\S]*\b(?:on|in)\s+(?:my\s+)?calendars?\b)/i;
+const CALENDAR_MUTATION = /\b(?:add|book|cancel|create|delete|edit|invite|move|remove|reschedule|schedule|update)\b/i;
 
 /**
  * Evaluates the complete isolated authority policy for Calendar reads.
  *
  * This is an eligibility decision, not a grant or an execution instruction.
- * Only an explicit, user-initiated request for the exact `calendar.read`
- * capability is within authority. Everything else fails closed.
+ * It derives authority from the current utterance itself; callers cannot
+ * attest that a request was user initiated or carry authority forward from
+ * prior Calendar context.
  */
 export function evaluateCalendarReadAuthority(
   request: CalendarReadAuthorityRequest,
 ): CalendarReadAuthorityDecision {
-  if (request.capability !== CALENDAR_READ_CAPABILITY) {
+  const utterance = request.currentUserUtterance.trim();
+
+  if (CALENDAR_MUTATION.test(utterance)) {
     return Object.freeze({
       capability: CALENDAR_READ_CAPABILITY,
-      decision: "outside_authority",
-      reason: "capability_not_permitted",
+      decision: "DENY",
+      reason: "calendar_read_not_requested",
       readOnly: true,
     });
   }
 
-  if (!request.userInitiated) {
+  if (CALENDAR_REFERENCE.test(utterance) && EXPLICIT_READ.test(utterance)) {
     return Object.freeze({
       capability: CALENDAR_READ_CAPABILITY,
-      decision: "outside_authority",
-      reason: "not_user_initiated",
+      decision: "ALLOW",
+      reason: "explicit_calendar_read",
       readOnly: true,
     });
   }
 
   return Object.freeze({
     capability: CALENDAR_READ_CAPABILITY,
-    decision: "within_authority",
-    reason: "explicit_user_calendar_read",
+    decision: utterance.length === 0 ? "DENY" : "ASK",
+    reason: utterance.length === 0 ? "calendar_read_not_requested" : "ambiguous_current_request",
     readOnly: true,
   });
 }

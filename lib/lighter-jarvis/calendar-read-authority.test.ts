@@ -1,50 +1,61 @@
 import { describe, expect, it } from "vitest";
 import {
-  CALENDAR_READ_CAPABILITY,
   evaluateCalendarReadAuthority,
 } from "./calendar-read-authority";
 
 describe("calendar.read authority", () => {
-  it("places an explicit user-initiated calendar read within authority", () => {
+  it("ALLOW: accepts the canonical explicit Calendar read", () => {
     const decision = evaluateCalendarReadAuthority({
-      capability: CALENDAR_READ_CAPABILITY,
-      userInitiated: true,
+      currentUserUtterance: "What's on my calendar tomorrow?",
     });
 
     expect(decision).toEqual({
       capability: "calendar.read",
-      decision: "within_authority",
-      reason: "explicit_user_calendar_read",
+      decision: "ALLOW",
+      reason: "explicit_calendar_read",
       readOnly: true,
     });
     expect(Object.isFrozen(decision)).toBe(true);
   });
 
-  it("fails closed when the read was not initiated by the user", () => {
+  it("DENY: rejects the canonical Calendar mutation request", () => {
     expect(evaluateCalendarReadAuthority({
-      capability: CALENDAR_READ_CAPABILITY,
-      userInitiated: false,
+      currentUserUtterance: "Add lunch to my calendar tomorrow.",
     })).toEqual({
       capability: "calendar.read",
-      decision: "outside_authority",
-      reason: "not_user_initiated",
+      decision: "DENY",
+      reason: "calendar_read_not_requested",
+      readOnly: true,
+    });
+  });
+
+  it("ASK: does not inherit authority for an ambiguous current request from prior Calendar context", () => {
+    // A previous turn may have discussed the Calendar. It is deliberately not
+    // an evaluator input and cannot make this follow-up an explicit read.
+    expect(evaluateCalendarReadAuthority({
+      currentUserUtterance: "What about tomorrow?",
+    })).toEqual({
+      capability: "calendar.read",
+      decision: "ASK",
+      reason: "ambiguous_current_request",
       readOnly: true,
     });
   });
 
   it.each([
-    "calendar.write",
-    "calendar.create",
-    "calendar.readwrite",
-    "calendar.read ",
-    "",
-  ])("fails closed for non-calendar.read capability %j", (capability) => {
-    expect(evaluateCalendarReadAuthority({
-      capability,
-      userInitiated: true,
-    })).toMatchObject({
-      decision: "outside_authority",
-      reason: "capability_not_permitted",
+    "Show my calendar.",
+    "Can you check my calendar for Friday?",
+    "Do I have anything on my calendar today?",
+  ])("allows another explicit read: %j", (currentUserUtterance) => {
+    expect(evaluateCalendarReadAuthority({ currentUserUtterance })).toMatchObject({
+      decision: "ALLOW",
+      reason: "explicit_calendar_read",
     });
+  });
+
+  it("does not let a read phrase override a mutation", () => {
+    expect(evaluateCalendarReadAuthority({
+      currentUserUtterance: "Check my calendar and then add lunch.",
+    })).toMatchObject({ decision: "DENY" });
   });
 });

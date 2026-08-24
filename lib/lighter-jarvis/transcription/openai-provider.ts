@@ -25,11 +25,24 @@ export class OpenAITranscriptionProvider implements TranscriptionProvider {
     const form = new FormData();
     form.append("model", MODEL);
     form.append("file", audio.blob, `recording.${extensionFor(audio.mimeType)}`);
-    const response = await this.request(ENDPOINT, {
-      method: "POST",
-      headers: { authorization: `Bearer ${this.apiKey}` },
-      body: form,
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15_000);
+    let response: Response;
+    try {
+      response = await this.request(ENDPOINT, {
+        method: "POST",
+        headers: { authorization: `Bearer ${this.apiKey}` },
+        body: form,
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        throw new TranscriptionProviderError("OpenAI transcription request timed out.");
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
     const data = await response.json().catch(() => null) as {
       text?: unknown;
       language?: unknown;

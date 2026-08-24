@@ -28,18 +28,28 @@ export function useVoiceSession(): VoiceSession {
   const transcribe = useCallback(async (artifact: AudioCaptureArtifact) => {
     setTranscribing(true);
     setSessionError(null);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20_000);
     try {
       const form = new FormData();
       form.append("audio", artifact.blob, "recording.webm");
       form.append("durationMs", String(artifact.durationMs));
-      const response = await fetch("/api/lighter/transcribe", { method: "POST", body: form });
+      const response = await fetch("/api/lighter/transcribe", {
+        method: "POST",
+        body: form,
+        signal: controller.signal,
+      });
       const data = await response.json() as Partial<TranscriptionResult> & { error?: string };
       if (!response.ok) throw new Error(data.error || `Transcription request failed (${response.status}).`);
       if (typeof data.text !== "string" || !data.text.trim()) throw new Error("Transcription returned no text.");
       if (mountedRef.current) setTranscript(data.text.trim());
     } catch (error) {
-      if (mountedRef.current) setSessionError(error instanceof Error ? error.message : "Unknown transcription error.");
+      const message = error instanceof DOMException && error.name === "AbortError"
+        ? "Transcription timed out after 20 seconds."
+        : error instanceof Error ? error.message : "Unknown transcription error.";
+      if (mountedRef.current) setSessionError(message);
     } finally {
+      clearTimeout(timeout);
       if (mountedRef.current) setTranscribing(false);
     }
   }, []);
@@ -88,13 +98,16 @@ export function useVoiceSession(): VoiceSession {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mic.stream, mic.toggle, transcribe]);
 
-  useEffect(() => () => {
-    mountedRef.current = false;
-    const recorder = recorderRef.current;
-    if (recorder?.state === "recording") {
-      recorder.onstop = null;
-      recorder.stop();
-    }
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      const recorder = recorderRef.current;
+      if (recorder?.state === "recording") {
+        recorder.onstop = null;
+        recorder.stop();
+      }
+    };
   }, []);
 
   const toggle = useCallback(() => {

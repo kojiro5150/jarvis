@@ -57,9 +57,19 @@ describe("UnifiedOpsConsole head-mode contract", () => {
   it("a voice transcript that triggers a hand-off proposes it instead of discarding it", () => {
     const effectSource = source.slice(
       source.indexOf("voiceSession.transcript;"),
-      source.indexOf("voiceSession.transcript;") + 700,
+      source.indexOf("voiceSession.transcript;") + 1300,
     );
     expect(effectSource).toContain("setPendingHandoff({");
     expect(effectSource).not.toContain("void submitMessage(selected, transcript)");
+  });
+
+  it("a voice transcript confirms or declines a pending hand-off instead of re-proposing it", () => {
+    const effectSource = source.slice(
+      source.indexOf("voiceSession.transcript;"),
+      source.indexOf("voiceSession.transcript;") + 1300,
+    );
+    expect(effectSource).toContain("if (pendingHandoff) {");
+    expect(effectSource).toContain("handoffResponse(transcript)");
+    expect(effectSource).toContain("void confirmHandoff()");
   });
 });

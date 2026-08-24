@@ -408,6 +408,18 @@ export default function UnifiedOpsConsole() {
     const transcript = voiceSession.transcript;
     if (!transcript || transcript === submittedTranscriptRef.current || !selected) return;
     submittedTranscriptRef.current = transcript;
+    if (pendingHandoff) {
+      const response = handoffResponse(transcript);
+      if (response === "confirm") {
+        void confirmHandoff();
+        return;
+      }
+      if (response === "decline") {
+        setPendingHandoff(null);
+        return;
+      }
+    }
+    setPendingHandoff(null);
     const source = selected;
     void (async () => {
       const result = await submitMessage(source, transcript);
@@ -423,7 +435,7 @@ export default function UnifiedOpsConsole() {
       }
     })();
     // A transcript enters the same canonical path as typed input exactly once,
-    // including the same confirmation-required hand-off flow.
+    // including the same confirmation-required hand-off flow as send().
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceSession.transcript]);
 

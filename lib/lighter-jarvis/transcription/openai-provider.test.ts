@@ -26,4 +26,25 @@ describe("OpenAITranscriptionProvider", () => {
     await expect(new OpenAITranscriptionProvider("secret", request as typeof fetch).transcribe(artifact))
       .rejects.toEqual(expect.objectContaining<Partial<TranscriptionProviderError>>({ message: "Billing required", status: 429 }));
   });
+
+  it("fails closed with a clear message when the request hangs past the timeout", async () => {
+    vi.useFakeTimers();
+    try {
+      const request = vi.fn((..._args: Parameters<typeof fetch>) =>
+        new Promise<Response>((_resolve, reject) => {
+          const signal = _args[1]?.signal;
+          signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+        }));
+      const pending = new OpenAITranscriptionProvider("secret", request as typeof fetch).transcribe(artifact);
+      const assertion = expect(pending).rejects.toEqual(
+        expect.objectContaining<Partial<TranscriptionProviderError>>({
+          message: "OpenAI transcription request timed out.",
+        }),
+      );
+      await vi.advanceTimersByTimeAsync(15_000);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

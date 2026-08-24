@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, renderHook, waitFor, type RenderHookResult } from "@testing-library/react";
+import { StrictMode, createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useVoiceSession, type VoiceSession } from "./useVoiceSession";
 
@@ -133,5 +134,21 @@ describe("useVoiceSession", () => {
     expect(stop).toHaveBeenCalledOnce();
     expect(close).toHaveBeenCalledOnce();
     expect(cancelAnimationFrameMock).toHaveBeenCalledOnce();
+  });
+
+  it("still delivers a transcript under StrictMode's dev-only double mount/unmount cycle", async () => {
+    // Matches this project's real reactStrictMode: true config. React deliberately
+    // mounts, unmounts, and remounts once in development; a mount-tracking ref
+    // that only ever gets set false in cleanup, and never reset true on mount,
+    // stays permanently false after that first simulated unmount, silently
+    // dropping every guarded state update for the rest of the component's life.
+    const { result } = renderHook(() => useVoiceSession(), {
+      wrapper: ({ children }) => createElement(StrictMode, null, children),
+    });
+
+    await start(result);
+    act(() => result.current.toggle());
+    await waitFor(() => expect(result.current.transcript).toBe("Turn on the lights"));
+    expect(result.current.state).toBe("standby");
   });
 });

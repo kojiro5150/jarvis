@@ -111,6 +111,7 @@ function HeadComposite({
 
 export default function UnifiedOpsConsole() {
   const voiceSession = useVoiceSession();
+  const submittedTranscriptRef = useRef<string | null>(null);
   const [specialists, setSpecialists] = useState<Specialist[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>("jarvis");
   const [conversations, setConversations] = useState<Record<string, Message[]>>(
@@ -403,6 +404,15 @@ export default function UnifiedOpsConsole() {
     }
   }
 
+  useEffect(() => {
+    const transcript = voiceSession.transcript;
+    if (!transcript || transcript === submittedTranscriptRef.current || !selected) return;
+    submittedTranscriptRef.current = transcript;
+    void submitMessage(selected, transcript);
+    // A transcript enters the same canonical path as typed input exactly once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceSession.transcript]);
+
   async function confirmHandoff() {
     if (!pendingHandoff || loading || !jarvis) return;
     const target = specialists.find(
@@ -602,7 +612,10 @@ export default function UnifiedOpsConsole() {
               <span id="jarvis-melb-clock">AUG 03, 2026 · 11:51 AM</span>
             </span>
             <span className="status-items">
-              <span>♬ VOICE: {voiceSession.state.toUpperCase()}</span>
+              <span>
+                ♬ VOICE: {voiceSession.state.toUpperCase()}
+                {voiceSession.error ? ` · ${voiceSession.error}` : ""}
+              </span>
               <span>● SYSTEM: NOMINAL</span>
               <span>◎ {connectorCountLabel}</span>
               <span>⌂ SESSION SECURE</span>

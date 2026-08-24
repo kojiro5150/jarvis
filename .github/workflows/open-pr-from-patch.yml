@@ -37,6 +37,13 @@ jobs:
           echo "${{ inputs.patch_b64 }}" | base64 -d > change.patch
           git apply --index change.patch
 
+      - name: Regenerate lockfile if package.json changed
+        run: |
+          if git diff --cached --name-only | grep -qx "package.json"; then
+            npm install --package-lock-only
+            git add package-lock.json
+          fi
+
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"

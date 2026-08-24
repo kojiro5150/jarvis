@@ -72,4 +72,27 @@ describe("UnifiedOpsConsole head-mode contract", () => {
     expect(effectSource).toContain("handoffResponse(transcript)");
     expect(effectSource).toContain("void confirmHandoff()");
   });
+
+  it("the head-composite status is display-only, not a toggle control", () => {
+    const headSource = source.slice(
+      source.indexOf("function HeadComposite"),
+      source.indexOf("function HeadComposite") + 700,
+    );
+    expect(headSource).not.toContain("onToggleVoice");
+    expect(headSource).not.toContain("<button");
+    expect(headSource).toContain("<span aria-live=\"polite\">");
+  });
+
+  it("the toolbar mic next to Brief Me is the real, wired voice toggle", () => {
+    const toolsSource = source.slice(
+      source.indexOf("<div className=\"tools\">"),
+      source.indexOf("<div className=\"tools\">") + 400,
+    );
+    expect(toolsSource).toContain("onClick={voiceSession.toggle}");
+    expect(toolsSource).not.toContain("disabled>\n                      <button");
+  });
+
+  it("removes the decorative, non-functional mic icon from the composer bar", () => {
+    expect(source).not.toContain("<span>🎙</span>");
+  });
 });

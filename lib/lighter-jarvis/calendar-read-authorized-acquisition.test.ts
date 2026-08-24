@@ -1,10 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { CalendarEvent } from "../connectors/calendar-event";
-import {
-  acquireAuthorizedCalendarEvidence,
-  acquireCalendarEvidenceForAuthorityDecision,
-} from "./calendar-read-authorized-acquisition";
-import type { CalendarReadAuthorityDecision } from "./calendar-read-authority";
+import { acquireAuthorizedCalendarEvidence } from "./calendar-read-authorized-acquisition";
 
 const event: CalendarEvent = {
   id: "provider-event",
@@ -58,22 +54,80 @@ describe("authority-gated governed Calendar acquisition", () => {
     expect(listUpcoming).not.toHaveBeenCalled();
   });
 
-  it("does not enter governed acquisition or call the connector after DENY", async () => {
-    const listUpcoming = vi.fn().mockResolvedValue([event]);
-    const denied: CalendarReadAuthorityDecision = Object.freeze({
-      capability: "calendar.read",
-      decision: "DENY",
-      reason: "explicit_calendar_read_not_established",
-      readOnly: true,
-      authorityEvidence: Object.freeze([]),
+  it("contains an authorized provider failure on the composed path", async () => {
+    const listUpcoming = vi.fn().mockRejectedValue(new Error("provider unavailable"));
+
+    const result = await acquireAuthorizedCalendarEvidence({
+      authority: {
+        proposedOperation: { capability: "calendar.read" },
+        currentUserUtterance: "Check my calendar for tomorrow.",
+      },
+      acquisition: acquisition(listUpcoming),
     });
 
-    const result = await acquireCalendarEvidenceForAuthorityDecision(
-      denied,
-      acquisition(listUpcoming),
-    );
+    expect(result.authority.decision).toBe("ALLOW");
+    expect(listUpcoming).toHaveBeenCalledOnce();
+    expect(result.evidence).toMatchObject({
+      status: "unavailable",
+      evidence: [],
+      failureReason: "calendar_acquisition_unavailable",
+    });
+  });
 
-    expect(result.authority.decision).toBe("DENY");
+  it("preserves governed non-Google refusal on the composed path", async () => {
+    const listUpcoming = vi.fn().mockResolvedValue([event]);
+
+    const result = await acquireAuthorizedCalendarEvidence({
+      authority: {
+        proposedOperation: { capability: "calendar.read" },
+        currentUserUtterance: "Show my calendar.",
+      },
+      acquisition: {
+        ...acquisition(listUpcoming),
+        connector: { source: "local", listUpcoming },
+      },
+    });
+
+    expect(result.authority.decision).toBe("ALLOW");
+    expect(listUpcoming).not.toHaveBeenCalled();
+    expect(result.evidence).toMatchObject({
+      status: "unavailable",
+      evidence: [],
+      failureReason: "calendar_governed_source_unavailable",
+    });
+  });
+
+  it("does not acquire when only prior Calendar context could imply authority", async () => {
+    const listUpcoming = vi.fn().mockResolvedValue([event]);
+
+    const result = await acquireAuthorizedCalendarEvidence({
+      authority: {
+        proposedOperation: { capability: "calendar.read" },
+        currentUserUtterance: "What should I do?",
+      },
+      acquisition: acquisition(listUpcoming),
+    });
+
+    expect(result.authority.decision).toBe("ASK");
+    expect(result.evidence).toBeNull();
+    expect(listUpcoming).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "Don't show my calendar.",
+    "Check my calendar and then add lunch.",
+  ])("does not acquire for negated or mixed wording: %j", async (currentUserUtterance) => {
+    const listUpcoming = vi.fn().mockResolvedValue([event]);
+
+    const result = await acquireAuthorizedCalendarEvidence({
+      authority: {
+        proposedOperation: { capability: "calendar.read" },
+        currentUserUtterance,
+      },
+      acquisition: acquisition(listUpcoming),
+    });
+
+    expect(result.authority.decision).toBe("ASK");
     expect(result.evidence).toBeNull();
     expect(listUpcoming).not.toHaveBeenCalled();
   });

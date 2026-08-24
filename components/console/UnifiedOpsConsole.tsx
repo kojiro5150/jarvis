@@ -3,6 +3,10 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { handoffResponse } from "@/lib/lighter-jarvis/handoff-phrases";
+import {
+  useVoiceSession,
+  type VoiceState,
+} from "@/lib/lighter-jarvis/useVoiceSession";
 import { DIRECT_SPECIALIST_IDS } from "./head-mode-contract";
 
 type Specialist = {
@@ -72,7 +76,41 @@ function Tile({
   );
 }
 
+function HeadComposite({
+  voiceState,
+  amplitude,
+  onToggleVoice,
+}: {
+  voiceState: VoiceState;
+  amplitude: number;
+  onToggleVoice: () => void;
+}) {
+  return (
+    <div className="head-composite" data-voice-state={voiceState}>
+      <div className="head-image-wrap">
+        <Image
+          className="jarvis-head"
+          src="/jarvis-head.png"
+          alt="JARVIS synthetic head"
+          width={1268}
+          height={1240}
+          priority
+        />
+      </div>
+      <small>JARVIS · NOMINAL · REF-640</small>
+      <button
+        type="button"
+        onClick={onToggleVoice}
+        aria-pressed={voiceState === "listening"}
+      >
+        VOICE · {voiceState.toUpperCase()} · {amplitude.toFixed(2)}
+      </button>
+    </div>
+  );
+}
+
 export default function UnifiedOpsConsole() {
+  const voiceSession = useVoiceSession();
   const [specialists, setSpecialists] = useState<Specialist[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>("jarvis");
   const [conversations, setConversations] = useState<Record<string, Message[]>>(
@@ -564,7 +602,7 @@ export default function UnifiedOpsConsole() {
               <span id="jarvis-melb-clock">AUG 03, 2026 · 11:51 AM</span>
             </span>
             <span className="status-items">
-              <span>♬ VOICE: STANDBY</span>
+              <span>♬ VOICE: {voiceSession.state.toUpperCase()}</span>
               <span>● SYSTEM: NOMINAL</span>
               <span>◎ {connectorCountLabel}</span>
               <span>⌂ SESSION SECURE</span>
@@ -597,19 +635,11 @@ export default function UnifiedOpsConsole() {
             </div>
             <div className="head-chat-layout">
               <section className="head-zone" aria-label="JARVIS head area">
-                <div className="head-composite">
-                  <div className="head-image-wrap">
-                    <Image
-                      className="jarvis-head"
-                      src="/jarvis-head.png"
-                      alt="JARVIS synthetic head"
-                      width={1268}
-                      height={1240}
-                      priority
-                    />
-                  </div>
-                  <small>JARVIS · NOMINAL · REF-640</small>
-                </div>
+                <HeadComposite
+                  voiceState={voiceSession.state}
+                  amplitude={voiceSession.amplitude}
+                  onToggleVoice={voiceSession.toggle}
+                />
               </section>
               <section className="chat-zone" aria-label="Conversation">
                 <button
@@ -1659,6 +1689,23 @@ export default function UnifiedOpsConsole() {
           width: min(100%, 680px);
           max-height: calc(100% - 34px);
           isolation: isolate;
+        }
+        .head-composite > button {
+          border: 1px solid #26364d;
+          background: #07101c;
+          padding: 5px 9px;
+          color: #7f91ab;
+          font: 10px "IBM Plex Mono";
+          letter-spacing: 0.5px;
+          cursor: pointer;
+        }
+        .head-composite[data-voice-state="listening"] > button {
+          border-color: #34d399;
+          color: #34d399;
+        }
+        .head-composite[data-voice-state="error"] > button {
+          border-color: #f87171;
+          color: #f87171;
         }
         .head-image-wrap::before {
           content: "";

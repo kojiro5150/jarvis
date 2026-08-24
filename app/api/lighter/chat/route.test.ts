@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createLighterChatHandler } from "@/lib/lighter-jarvis/chat-handler";
+import { createLighterChatHandler, resolveMarketScopeDomains } from "@/lib/lighter-jarvis/chat-handler";
 import type { ChatMessage } from "@/lib/agents/types";
 import type { ClaudeResult, ClaudeTool } from "@/lib/claude";
 
@@ -11,15 +11,80 @@ const handoffResult = (
   specialistId: unknown,
   text: string,
   taskSummary: unknown = "A self-contained restatement of the task.",
+  marketScopes?: unknown,
 ): ClaudeResult => ({
   text,
   content: [
     ...(text ? [{ type: "text", text }] : []),
-    { type: "tool_use", name: "propose_handoff", input: { specialist_id: specialistId, task_summary: taskSummary } },
+    { type: "tool_use", name: "propose_handoff", input: { specialist_id: specialistId, task_summary: taskSummary, ...(marketScopes === undefined ? {} : { market_scopes: marketScopes }) } },
   ],
 });
 
 describe("POST /api/lighter/chat", () => {
+  it("resolves market scope domains deterministically with union and deduplication", () => {
+    expect(resolveMarketScopeDomains(["fx", "australia"])).toEqual([
+      "federalreserve.gov", "ecb.europa.eu", "bankofengland.co.uk", "rba.gov.au", "reuters.com",
+      "asx.com.au", "asic.gov.au", "abs.gov.au", "apra.gov.au", "treasury.gov.au",
+    ]);
+    expect(resolveMarketScopeDomains([])).toBeUndefined();
+    expect(resolveMarketScopeDomains(["f\u00f8x"])).toBeUndefined();
+    expect(resolveMarketScopeDomains(["toString"])).toBeUndefined();
+  });
+
+  it.each([undefined, [], ["crypto"]])("fails GECKO closed for invalid market scopes: %j", async (marketScopes) => {
+    const model = vi.fn();
+    const response = await createLighterChatHandler(model)(request({
+      specialistId: "gecko", marketScopes, messages: [{ role: "user", content: "Scan markets" }],
+    }));
+    expect(response.status).toBe(400);
+    expect(model).not.toHaveBeenCalled();
+  });
+
+  it("restricts GECKO search to the resolved server-side domain union", async () => {
+    const model = vi.fn(async (
+      _systemPrompt: string,
+      _messages: ChatMessage[],
+      _tools?: ClaudeTool[],
+    ) => "Recalled: not_fetched");
+    const response = await createLighterChatHandler(model)(request({
+      specialistId: "gecko", marketScopes: ["us_equities", "fx"], messages: [{ role: "user", content: "Scan markets" }],
+    }));
+    expect(response.status).toBe(200);
+    expect(model.mock.calls[0][2]).toEqual([{ type: "web_search_20250305", name: "web_search", allowed_domains: [
+      "nasdaq.com", "sec.gov", "federalreserve.gov", "reuters.com", "ecb.europa.eu", "bankofengland.co.uk", "rba.gov.au",
+    ] }]);
+  });
+
+  it.each([
+    ["oracle", undefined],
+    ["gecko", ["australia"]],
+  ])("downgrades %s Sourced claims when no cited evidence survives", async (specialistId, marketScopes) => {
+    const response = await createLighterChatHandler(async () => ({ text: "Sourced: claim", content: [{ type: "text", text: "Sourced: claim" }] }))(request({
+      specialistId, marketScopes, messages: [{ role: "user", content: "Research" }],
+    }));
+    expect((await response.json()).reply).toBe("Recalled: claim");
+  });
+
+  it("retains GECKO Sourced labeling only for cited in-domain search evidence", async () => {
+    const response = await createLighterChatHandler(async () => ({
+      text: "Sourced: filing", content: [
+        { type: "web_search_tool_result", content: [{ url: "https://www.sec.gov/filing" }] },
+        { type: "text", text: "Sourced: filing", citations: [{ type: "web_search_result_location", url: "https://www.sec.gov/filing" }] },
+      ],
+    }))(request({ specialistId: "gecko", marketScopes: ["us_equities"], messages: [{ role: "user", content: "Research" }] }));
+    expect((await response.json()).reply).toBe("Sourced: filing");
+  });
+
+  it("downgrades GECKO when a search result is outside its declared domains", async () => {
+    const response = await createLighterChatHandler(async () => ({
+      text: "Sourced: claim", content: [
+        { type: "web_search_tool_result", content: [{ url: "https://example.com/claim" }] },
+        { type: "text", text: "Sourced: claim", citations: [{ type: "web_search_result_location", url: "https://example.com/claim" }] },
+      ],
+    }))(request({ specialistId: "gecko", marketScopes: ["us_equities"], messages: [{ role: "user", content: "Research" }] }));
+    expect((await response.json()).reply).toBe("Recalled: claim");
+  });
+
   it("invokes an active specialist with its governed prompt", async () => {
     const model = vi.fn(async (_systemPrompt: string, _messages: ChatMessage[]) => "A researched response");
     const response = await createLighterChatHandler(model)(request({
@@ -99,6 +164,20 @@ describe("POST /api/lighter/chat", () => {
     expect(await response.json()).toEqual({
       reply: "I'll hand this to DAWNWATCH.", specialistId: "jarvis", execution: "none",
     });
+  });
+
+  it.each([undefined, [], ["crypto"]])("fails a GECKO handoff closed for invalid market_scopes: %j", async (marketScopes) => {
+    const response = await createLighterChatHandler(async () => handoffResult("gecko", "I suggest GECKO.", undefined, marketScopes))(request({
+      specialistId: "jarvis", messages: [{ role: "user", content: "Scan markets" }],
+    }));
+    expect((await response.json()).routeTo).toBeUndefined();
+  });
+
+  it("returns declared scopes with a valid GECKO handoff", async () => {
+    const response = await createLighterChatHandler(async () => handoffResult("gecko", "I suggest GECKO.", undefined, ["fx", "global_macro"]))(request({
+      specialistId: "jarvis", messages: [{ role: "user", content: "Scan currencies" }],
+    }));
+    expect(await response.json()).toMatchObject({ routeTo: "gecko", marketScopes: ["fx", "global_macro"] });
   });
 
   it("supplies a non-empty fallback when a handoff tool call has no text", async () => {

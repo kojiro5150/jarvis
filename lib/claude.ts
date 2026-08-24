@@ -10,7 +10,7 @@ import {
 export { CLAUDE_MODEL } from "./anthropic-client";
 
 export type ClaudeTool =
-  | { type: "web_search_20250305"; name: "web_search" }
+  | { type: "web_search_20250305"; name: "web_search"; allowed_domains?: string[] }
   | { type: "web_fetch_20250910"; name: "web_fetch"; max_uses: number }
   | {
     name: "propose_handoff";
@@ -20,6 +20,7 @@ export type ClaudeTool =
       properties: {
         specialist_id: { type: "string"; enum: string[] };
         task_summary: { type: "string"; description: string };
+        market_scopes?: { type: "array"; items: { type: "string"; enum?: string[] }; description: string };
       };
       required: ["specialist_id", "task_summary"];
     };

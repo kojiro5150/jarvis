@@ -9,6 +9,7 @@ interface LighterChatBody {
   specialistId?: unknown;
   messages?: unknown;
   relaySpecialistReply?: RelaySpecialistReply;
+  marketScopes?: unknown;
 }
 type ModelCall = (
   systemPrompt: string,
@@ -20,6 +21,30 @@ const ORACLE_TOOLS: ClaudeTool[] = [
   { type: "web_search_20250305", name: "web_search" },
   { type: "web_fetch_20250910", name: "web_fetch", max_uses: 5 },
 ];
+
+export type MarketScope = "australia" | "us_equities" | "fx" | "global_macro";
+
+export const MARKET_SCOPE_DOMAINS: Readonly<Record<MarketScope, readonly string[]>> = {
+  australia: ["asx.com.au", "asic.gov.au", "rba.gov.au", "abs.gov.au", "apra.gov.au", "treasury.gov.au", "reuters.com"],
+  us_equities: ["nasdaq.com", "sec.gov", "federalreserve.gov", "reuters.com"],
+  fx: ["federalreserve.gov", "ecb.europa.eu", "bankofengland.co.uk", "rba.gov.au", "reuters.com"],
+  global_macro: ["imf.org", "worldbank.org", "bis.org", "federalreserve.gov", "ecb.europa.eu", "bankofengland.co.uk", "rba.gov.au", "reuters.com"],
+};
+
+const DOMAIN_PATTERN = /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/;
+
+export function resolveMarketScopeDomains(value: unknown): string[] | undefined {
+  if (!Array.isArray(value) || value.length === 0) return undefined;
+  const domains = new Set<string>();
+  for (const scope of value) {
+    if (typeof scope !== "string" || !Object.hasOwn(MARKET_SCOPE_DOMAINS, scope)) return undefined;
+    for (const domain of MARKET_SCOPE_DOMAINS[scope as MarketScope]) {
+      if (!DOMAIN_PATTERN.test(domain) || !/^[\x00-\x7F]+$/.test(domain)) return undefined;
+      domains.add(domain);
+    }
+  }
+  return [...domains];
+}
 
 const JARVIS_TOOLS: ClaudeTool[] = [{
   name: "propose_handoff",
@@ -34,6 +59,11 @@ const JARVIS_TOOLS: ClaudeTool[] = [{
       task_summary: {
         type: "string",
         description: "A self-contained restatement of what the specialist needs to do, written as if the specialist has seen none of this conversation. Never a bare acknowledgement like 'yes' or 'go ahead': if this is a follow-up hand-off, restate the actual task from earlier in the conversation, not just the message that triggered this call.",
+      },
+      market_scopes: {
+        type: "array",
+        items: { type: "string", enum: ["australia", "us_equities", "fx", "global_macro"] },
+        description: "Required for GECKO only: one or more of australia, us_equities, fx, global_macro.",
       },
     },
     required: ["specialist_id", "task_summary"],
@@ -57,6 +87,34 @@ const fetchedThisTurn = (content: ClaudeContentBlock[]) => {
   );
 };
 
+const citationUrls = (value: unknown): string[] => {
+  if (Array.isArray(value)) return value.flatMap(citationUrls);
+  if (typeof value !== "object" || value === null) return [];
+  const record = value as Record<string, unknown>;
+  return [typeof record.url === "string" ? record.url : [], ...Object.values(record).map(citationUrls)].flat();
+};
+
+export function hasVerifiableExternalEvidence(content: ClaudeContentBlock[], allowedDomains?: readonly string[]): boolean {
+  if (!fetchedThisTurn(content)) return false;
+  const allowed = allowedDomains && new Set(allowedDomains);
+  const isAdmissibleUrl = (rawUrl: string): boolean => {
+    try {
+      const url = new URL(rawUrl);
+      if (url.protocol !== "https:" && url.protocol !== "http:") return false;
+      return !allowed || [...allowed].some((domain) => url.hostname === domain || url.hostname.endsWith(`.${domain}`));
+    } catch { return false; }
+  };
+  const evidenceUrls = content
+    .filter((block) => block.type === "web_search_tool_result" || block.type === "web_fetch_tool_result")
+    .flatMap(citationUrls);
+  if (evidenceUrls.length === 0 || evidenceUrls.some((url) => !isAdmissibleUrl(url))) return false;
+  const evidence = new Set(evidenceUrls);
+  return content.some((block) => {
+    if (block.type !== "text" || !Array.isArray(block.citations)) return false;
+    return citationUrls(block.citations).some((url) => isAdmissibleUrl(url) && evidence.has(url));
+  });
+}
+
 export function createLighterChatHandler(callModel: ModelCall = callClaude) {
   return async function POST(request: Request) {
     let body: LighterChatBody;
@@ -72,6 +130,12 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude) {
     }
     if (!areValidMessages(body.messages)) {
       return NextResponse.json({ error: "`messages` must contain 1-40 valid conversation messages." }, { status: 400 });
+    }
+    const marketDomains = specialist.id === "gecko"
+      ? resolveMarketScopeDomains(body.marketScopes)
+      : undefined;
+    if (specialist.id === "gecko" && !marketDomains) {
+      return NextResponse.json({ error: "`marketScopes` must contain one or more valid GECKO market scopes.", state: "not_authorised" }, { status: 400 });
     }
     let relaySpecialistReply: RelaySpecialistReply | undefined;
     if (body.relaySpecialistReply !== undefined) {
@@ -92,6 +156,8 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude) {
       const systemPrompt = await buildSpecialistPrompt(specialist, relaySpecialistReply);
       const tools = specialist.id === "oracle"
         ? ORACLE_TOOLS
+        : specialist.id === "gecko"
+          ? [{ type: "web_search_20250305", name: "web_search", allowed_domains: marketDomains }] as ClaudeTool[]
         : specialist.id === "jarvis" && !relaySpecialistReply
           ? JARVIS_TOOLS
           : undefined;
@@ -106,7 +172,8 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude) {
         reply = `${source.name} reports:\n\n${relaySpecialistReply.reply}`;
       }
 
-      if (specialist.id === "oracle" && !fetchedThisTurn(content) && /\bSourced\b/i.test(reply)) {
+      const evidenceCapable = specialist.id === "oracle" || specialist.id === "gecko";
+      if (evidenceCapable && !hasVerifiableExternalEvidence(content, specialist.id === "gecko" ? marketDomains : undefined) && /\bSourced\b/i.test(reply)) {
         reply = reply.replace(/\bSourced\b/gi, "Recalled");
       }
       if (specialist.id === "jarvis" && !relaySpecialistReply) {
@@ -116,7 +183,10 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude) {
           const target = typeof specialistId === "string" ? getLighterSpecialist(specialistId) : undefined;
           const taskSummary = "task_summary" in handoff.input ? handoff.input.task_summary : undefined;
           const hasTaskSummary = typeof taskSummary === "string" && taskSummary.trim().length > 0;
-          if (target && hasTaskSummary) {
+          const marketScopes = "market_scopes" in handoff.input ? handoff.input.market_scopes : undefined;
+          const resolvedMarketDomains = target?.id === "gecko" ? resolveMarketScopeDomains(marketScopes) : undefined;
+          const hasValidMarketScopes = target?.id !== "gecko" || Boolean(resolvedMarketDomains);
+          if (target && hasTaskSummary && hasValidMarketScopes) {
             const routedReply = reply.trim() || `I'd recommend handing this to ${target.name}.`;
             return NextResponse.json({
               reply: routedReply,
@@ -124,6 +194,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude) {
               execution: "none",
               routeTo: target.id,
               taskSummary: taskSummary.trim(),
+              ...(target.id === "gecko" ? { marketScopes } : {}),
             });
           }
         }

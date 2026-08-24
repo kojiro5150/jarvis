@@ -1,43 +1,43 @@
 export const CALENDAR_READ_CAPABILITY = "calendar.read" as const;
+export type ProposedOperation = Readonly<{
+  capability: typeof CALENDAR_READ_CAPABILITY;
+}>;
 
 export interface CalendarReadAuthorityRequest {
+  readonly proposedOperation: ProposedOperation;
   readonly currentUserUtterance: string;
 }
 
 export type CalendarReadAuthorityDecision = Readonly<{
   capability: typeof CALENDAR_READ_CAPABILITY;
   decision: "ALLOW" | "ASK" | "DENY";
-  reason: "explicit_calendar_read" | "ambiguous_current_request" | "calendar_read_not_requested";
+  reason: "explicit_calendar_read" | "explicit_calendar_read_not_established";
   readOnly: true;
 }>;
 
 const CALENDAR_REFERENCE = /\b(?:my\s+)?calendars?\b/i;
 const EXPLICIT_READ = /(?:\b(?:show|check|view|see|list|read|open)\b[\s\S]*\b(?:my\s+)?calendars?\b|\bwhat(?:'s|\s+is|\s+are)?\b[\s\S]*\b(?:on|in)\s+(?:my\s+)?calendars?\b|\bdo\s+i\s+have\b[\s\S]*\b(?:on|in)\s+(?:my\s+)?calendars?\b)/i;
-const CALENDAR_MUTATION = /\b(?:add|book|cancel|create|delete|edit|invite|move|remove|reschedule|schedule|update)\b/i;
+const NEGATED_READ = /\b(?:do\s+not|don't)\s+(?:show|check|view|see|list|read|open)\b/i;
+const NON_READ_ONLY_WORDING = /\b(?:add|book|cancel|create|delete|edit|invite|move|remove|reschedule|schedule|update|write)\b/i;
 
 /**
  * Evaluates the complete isolated authority policy for Calendar reads.
  *
  * This is an eligibility decision, not a grant or an execution instruction.
- * It derives authority from the current utterance itself; callers cannot
- * attest that a request was user initiated or carry authority forward from
- * prior Calendar context.
+ * The proposed operation is non-authoritative. Only an applicable explicit
+ * statement in the current utterance can establish authority; prior context,
+ * ambiguous wording and read-write wording cannot.
  */
 export function evaluateCalendarReadAuthority(
   request: CalendarReadAuthorityRequest,
 ): CalendarReadAuthorityDecision {
-  const utterance = request.currentUserUtterance.trim();
+  const utterance = request.currentUserUtterance.trim().replace(/[‘’]/g, "'");
 
-  if (CALENDAR_MUTATION.test(utterance)) {
-    return Object.freeze({
-      capability: CALENDAR_READ_CAPABILITY,
-      decision: "DENY",
-      reason: "calendar_read_not_requested",
-      readOnly: true,
-    });
-  }
-
-  if (CALENDAR_REFERENCE.test(utterance) && EXPLICIT_READ.test(utterance)) {
+  if (request.proposedOperation.capability === CALENDAR_READ_CAPABILITY &&
+      CALENDAR_REFERENCE.test(utterance) &&
+      EXPLICIT_READ.test(utterance) &&
+      !NEGATED_READ.test(utterance) &&
+      !NON_READ_ONLY_WORDING.test(utterance)) {
     return Object.freeze({
       capability: CALENDAR_READ_CAPABILITY,
       decision: "ALLOW",
@@ -48,8 +48,8 @@ export function evaluateCalendarReadAuthority(
 
   return Object.freeze({
     capability: CALENDAR_READ_CAPABILITY,
-    decision: utterance.length === 0 ? "DENY" : "ASK",
-    reason: utterance.length === 0 ? "calendar_read_not_requested" : "ambiguous_current_request",
+    decision: "ASK",
+    reason: "explicit_calendar_read_not_established",
     readOnly: true,
   });
 }

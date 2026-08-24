@@ -15,8 +15,15 @@ describe("calendar.read authority", () => {
       decision: "ALLOW",
       reason: "explicit_calendar_read",
       readOnly: true,
+      authorityEvidence: [{
+        source: "current_user_utterance",
+        utterance: "What’s on my calendar tomorrow?",
+        basis: "explicit_calendar_read",
+      }],
     });
     expect(Object.isFrozen(decision)).toBe(true);
+    expect(Object.isFrozen(decision.authorityEvidence)).toBe(true);
+    expect(Object.isFrozen(decision.authorityEvidence[0])).toBe(true);
   });
 
   it("ASK: the proposed operation does not authorise an ambiguous current utterance", () => {
@@ -28,6 +35,7 @@ describe("calendar.read authority", () => {
       decision: "ASK",
       reason: "explicit_calendar_read_not_established",
       readOnly: true,
+      authorityEvidence: [],
     });
   });
 
@@ -42,6 +50,7 @@ describe("calendar.read authority", () => {
       decision: "ASK",
       reason: "explicit_calendar_read_not_established",
       readOnly: true,
+      authorityEvidence: [],
     });
   });
 
@@ -60,6 +69,14 @@ describe("calendar.read authority", () => {
     "don't show my calendar",
     "do not check my calendar",
     "don't read my calendar",
+    "please don't show my calendar",
+    "I don't want you to check my calendar",
+    "do not ever read my calendar",
+    "never show my calendar",
+    "please do not open my calendar",
+    "Can you not show my calendar?",
+    "I don’t want you to read my calendar.",
+    "Never, under any circumstances, check my calendar.",
   ])("never treats a negated read as explicit authority: %j", (currentUserUtterance) => {
     expect(evaluateCalendarReadAuthority({
       proposedOperation: { capability: "calendar.read" },
@@ -67,6 +84,7 @@ describe("calendar.read authority", () => {
     })).toMatchObject({
       decision: "ASK",
       reason: "explicit_calendar_read_not_established",
+      authorityEvidence: [],
     });
   });
 

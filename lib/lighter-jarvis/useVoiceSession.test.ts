@@ -14,6 +14,22 @@ describe("useVoiceSession", () => {
   let nextFrame = 1;
   let getUserMedia: ReturnType<typeof vi.fn>;
   let cancelAnimationFrameMock: ReturnType<typeof vi.fn>;
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  class MediaRecorderMock {
+    state: RecordingState = "inactive";
+    mimeType = "audio/webm";
+    ondataavailable: ((event: BlobEvent) => void) | null = null;
+    onstop: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    constructor(readonly stream: MediaStream) {}
+    start() { this.state = "recording"; }
+    stop() {
+      this.state = "inactive";
+      this.ondataavailable?.({ data: new Blob(["voice"], { type: this.mimeType }) } as BlobEvent);
+      this.onstop?.();
+    }
+  }
 
   const stream = {
     getTracks: () => [{ stop }],
@@ -45,6 +61,9 @@ describe("useVoiceSession", () => {
       configurable: true,
       value: AudioContextMock,
     });
+    vi.stubGlobal("MediaRecorder", MediaRecorderMock);
+    fetchMock = vi.fn().mockResolvedValue(Response.json({ text: "Turn on the lights", provider: "mock", model: "mock" }));
+    vi.stubGlobal("fetch", fetchMock);
     vi.stubGlobal(
       "requestAnimationFrame",
       vi.fn((callback: FrameCallback) => {
@@ -76,7 +95,9 @@ describe("useVoiceSession", () => {
     expect(result.current.amplitude).toBe(0.5);
 
     act(() => result.current.toggle());
-    expect(result.current).toMatchObject({ state: "standby", amplitude: 0 });
+    await waitFor(() => expect(result.current.transcript).toBe("Turn on the lights"));
+    expect(result.current).toMatchObject({ state: "standby", amplitude: 0, error: null });
+    expect(fetchMock).toHaveBeenCalledWith("/api/lighter/transcribe", expect.objectContaining({ method: "POST" }));
     expect(stop).toHaveBeenCalledOnce();
     expect(close).toHaveBeenCalledOnce();
     expect(cancelAnimationFrameMock).toHaveBeenCalledOnce();
@@ -90,6 +111,17 @@ describe("useVoiceSession", () => {
 
     await waitFor(() => expect(result.current.state).toBe("error"));
     expect(result.current.amplitude).toBe(0);
+    expect(result.current.error).toBe("Permission denied");
+  });
+
+  it("surfaces transcription failures without fallback", async () => {
+    fetchMock.mockResolvedValueOnce(Response.json({ error: "Provider unavailable" }, { status: 502 }));
+    const { result } = renderHook(() => useVoiceSession());
+    await start(result);
+    act(() => result.current.toggle());
+    await waitFor(() => expect(result.current.state).toBe("error"));
+    expect(result.current.error).toBe("Provider unavailable");
+    expect(result.current.transcript).toBeNull();
   });
 
   it("releases every active capture resource on unmount", async () => {

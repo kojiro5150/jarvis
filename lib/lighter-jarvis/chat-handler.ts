@@ -25,10 +25,10 @@ const ORACLE_TOOLS: ClaudeTool[] = [
 export type MarketScope = "australia" | "us_equities" | "fx" | "global_macro";
 
 export const MARKET_SCOPE_DOMAINS: Readonly<Record<MarketScope, readonly string[]>> = {
-  australia: ["asx.com.au", "asic.gov.au", "rba.gov.au", "abs.gov.au", "apra.gov.au", "treasury.gov.au", "reuters.com"],
-  us_equities: ["nasdaq.com", "sec.gov", "federalreserve.gov", "reuters.com"],
-  fx: ["federalreserve.gov", "ecb.europa.eu", "bankofengland.co.uk", "rba.gov.au", "reuters.com"],
-  global_macro: ["imf.org", "worldbank.org", "bis.org", "federalreserve.gov", "ecb.europa.eu", "bankofengland.co.uk", "rba.gov.au", "reuters.com"],
+  australia: ["asx.com.au", "asic.gov.au", "rba.gov.au", "abs.gov.au", "apra.gov.au", "treasury.gov.au"],
+  us_equities: ["nasdaq.com", "sec.gov", "federalreserve.gov"],
+  fx: ["federalreserve.gov", "ecb.europa.eu", "bankofengland.co.uk", "rba.gov.au"],
+  global_macro: ["imf.org", "worldbank.org", "bis.org", "federalreserve.gov", "ecb.europa.eu", "bankofengland.co.uk", "rba.gov.au"],
 };
 
 const DOMAIN_PATTERN = /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/;

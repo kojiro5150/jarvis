@@ -23,12 +23,18 @@ const handoffResult = (
 describe("POST /api/lighter/chat", () => {
   it("resolves market scope domains deterministically with union and deduplication", () => {
     expect(resolveMarketScopeDomains(["fx", "australia"])).toEqual([
-      "federalreserve.gov", "ecb.europa.eu", "bankofengland.co.uk", "rba.gov.au", "reuters.com",
+      "federalreserve.gov", "ecb.europa.eu", "bankofengland.co.uk", "rba.gov.au",
       "asx.com.au", "asic.gov.au", "abs.gov.au", "apra.gov.au", "treasury.gov.au",
     ]);
     expect(resolveMarketScopeDomains([])).toBeUndefined();
     expect(resolveMarketScopeDomains(["f\u00f8x"])).toBeUndefined();
     expect(resolveMarketScopeDomains(["toString"])).toBeUndefined();
+  });
+
+  it("excludes reuters.com from every market scope, Anthropic's web_search crawler cannot access it", () => {
+    for (const scope of ["australia", "us_equities", "fx", "global_macro"] as const) {
+      expect(resolveMarketScopeDomains([scope])).not.toContain("reuters.com");
+    }
   });
 
   it.each([undefined, [], ["crypto"]])("fails GECKO closed for invalid market scopes: %j", async (marketScopes) => {
@@ -51,7 +57,7 @@ describe("POST /api/lighter/chat", () => {
     }));
     expect(response.status).toBe(200);
     expect(model.mock.calls[0][2]).toEqual([{ type: "web_search_20250305", name: "web_search", allowed_domains: [
-      "nasdaq.com", "sec.gov", "federalreserve.gov", "reuters.com", "ecb.europa.eu", "bankofengland.co.uk", "rba.gov.au",
+      "nasdaq.com", "sec.gov", "federalreserve.gov", "ecb.europa.eu", "bankofengland.co.uk", "rba.gov.au",
     ] }]);
   });
 

@@ -98,7 +98,7 @@ export const LIGHTER_SPECIALISTS: Readonly<Record<LighterSpecialistId, LighterSp
     instructions: [
       "Your scope is market and financial data only. Use web search only within the server-supplied domain restriction for the market scopes JARVIS declared; this prompt is defense in depth, not a guarantee of enforcement.",
       "Mark substantive claims as Sourced only when valid external evidence is retained with a citation in this turn's output; otherwise mark them Recalled. If no admissible evidence is available, report not_fetched rather than presenting remembered information as sourced.",
-      "Primary institutional sources carry the evidence weight; Reuters is a contextual and news layer, not a substitute for primary sources. The Federal Reserve H.10 series updates weekly on Monday through the prior Friday, not intraday; these sources are authoritative, not a live market-data feed.",
+      "Primary institutional sources carry the evidence weight for this scope; treat them as authoritative, not a live market-data feed. The Federal Reserve H.10 series updates weekly on Monday through the prior Friday, not intraday.",
       "Every market figure must state what it is, its source, and its fetch timestamp using 'as of [time]'. Never present remembered data as current.",
       "Report signals and clearly labeled informational commentary only. Never use buy, sell, or hold recommendations and never present a forecast as fact.",
       "Do not resolve ambiguous tickers, exchanges, or company names by best guess; ask the user. This is prompt discipline, not deterministic entity resolution.",

@@ -17,6 +17,8 @@ describe("calendar.read proposal boundary", () => {
     "What is on this afternoon?",
     "What do I have tomorrow?",
     "What do I have for this morning?",
+    "What have I got tomorrow?",
+    "What appointments do I have tomorrow?",
     "What's scheduled tomorrow?",
     "What is scheduled for this evening?",
   ])("proposes a high-precision schedule question without granting authority: %s", (utterance) => {
@@ -33,6 +35,8 @@ describe("calendar.read proposal boundary", () => {
   });
 
   it.each([
+    // Deliberately excluded: "happening" can ask about public/general events
+    // and does not establish the bounded personal-schedule proposal precisely.
     "What's happening tomorrow?",
     "What should I do today?",
     "Are we on for tomorrow?",

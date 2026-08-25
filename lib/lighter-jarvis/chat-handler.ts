@@ -6,6 +6,7 @@ import { areValidMessages, buildSpecialistPrompt, type RelaySpecialistReply } fr
 import { getLighterSpecialist } from "@/lib/lighter-jarvis/specialists";
 import { resolveProductionCalendarRead, type ProductionCalendarDependencies } from "@/lib/lighter-jarvis/production-calendar-read";
 import { CALENDAR_TIME_ZONE } from "@/lib/lighter-jarvis/calendar-read-window";
+import { resolveProductionGmailRead, type ProductionGmailDependencies } from "@/lib/lighter-jarvis/production-gmail-read";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -179,7 +180,8 @@ function formatMelbourne(value: string): string {
 function formatMelbourneTime(value: string): string { return upperCaseMeridiem(melbourneTimePresentation.format(new Date(value))); }
 function formatMelbourneDate(value: string): string { return melbourneDatePresentation.format(new Date(value)); }
 
-export function createLighterChatHandler(callModel: ModelCall = callClaude, calendarDependencies?: ProductionCalendarDependencies) {
+export function createLighterChatHandler(callModel: ModelCall = callClaude, calendarDependencies?: ProductionCalendarDependencies,
+  gmailDependencies?: ProductionGmailDependencies) {
   return async function POST(request: Request) {
     let body: LighterChatBody;
     try { body = await request.json() as LighterChatBody; }
@@ -196,6 +198,13 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       return NextResponse.json({ error: "`messages` must contain 1-40 valid conversation messages." }, { status: 400 });
     }
     const currentUserUtterance = [...body.messages].reverse().find(({ role }) => role === "user")?.content;
+    const gmail = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
+      ? await resolveProductionGmailRead(currentUserUtterance, gmailDependencies)
+      : null;
+    if (gmail?.handled) {
+      return NextResponse.json({ reply: gmail.reply, specialistId: specialist.id, execution: "none",
+        gmailAuthority: { ...(gmail.decision ? { decision: gmail.decision } : {}), reason: gmail.reason } });
+    }
     const calendar = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
       ? await resolveProductionCalendarRead({
           currentUserUtterance,

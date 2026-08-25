@@ -21,6 +21,30 @@ const handoffResult = (
 });
 
 describe("POST /api/lighter/chat", () => {
+  it("intercepts exact Gmail reads before model and specialist routing", async () => {
+    const model = vi.fn(async () => handoffResult("dawnwatch", "handoff"));
+    const createConnector = vi.fn(() => ({ retrieveMessage: vi.fn(async () => ({ subject: "Actual governed subject" })) }));
+    const response = await createLighterChatHandler(model, undefined, {
+      createConnector,
+      loadPolicy: vi.fn(async () => ({ policyVersion: "test-v1", rules: [{ id: "email", match: { connectorType: "email" as const },
+        processing: "external_processing_permitted" as const, admissibleFields: ["subject"] }] })),
+    })(request({ specialistId: "jarvis", messages: [{ role: "user", content: "gmail.read message-1 [subject]" }] }));
+    expect(await response.json()).toEqual({ reply: "Subject: Actual governed subject", specialistId: "jarvis", execution: "none",
+      gmailAuthority: { decision: "ALLOW", reason: "explicit_gmail_read" } });
+    expect(model).not.toHaveBeenCalled(); expect(createConnector).toHaveBeenCalledOnce();
+  });
+
+  it("returns Gmail syntax guidance without model, Calendar, connector, or handoff execution", async () => {
+    const model = vi.fn(async () => handoffResult("dawnwatch", "handoff"));
+    const calendarConnector = vi.fn(); const gmailConnector = vi.fn();
+    const response = await createLighterChatHandler(model, { createConnector: calendarConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") }, { createConnector: gmailConnector, loadPolicy: vi.fn() })(request({
+      specialistId: "jarvis", messages: [{ role: "user", content: "gmail.read message-1 subject" }],
+    }));
+    const body = await response.json();
+    expect(body.reply).toContain("Invalid gmail.read syntax"); expect(body.routeTo).toBeUndefined();
+    expect(model).not.toHaveBeenCalled(); expect(calendarConnector).not.toHaveBeenCalled(); expect(gmailConnector).not.toHaveBeenCalled();
+  });
   it.each(["yes", "no"])("keeps bare %s outside Calendar confirmation without a pending reference", async (utterance) => {
     const model = vi.fn(async () => `Normal response to ${utterance}`);
     const connector = vi.fn();

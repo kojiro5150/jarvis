@@ -17,8 +17,17 @@ export function parseChatCapabilityRequest(value: unknown): ChatCapabilityReques
     throw new Error("one identified email resource is required");
   }
   if (!Array.isArray(request.requestedFields) || request.requestedFields.some((field) => !GMAIL_CONTENT_FIELDS.includes(field as never)) ||
-      typeof request.requestingRuntime !== "string" || !request.requestingRuntime) throw new Error("invalid governed Gmail retrieval request");
-  return value as unknown as ChatCapabilityRequest;
+      request.requestedFields.length === 0 || new Set(request.requestedFields).size !== request.requestedFields.length ||
+      typeof request.requestingRuntime !== "string" || !request.requestingRuntime) {
+    throw new Error("invalid governed Gmail retrieval request");
+  }
+  return Object.freeze({
+    operation: "governed_gmail_retrieval",
+    request: request as unknown as import("../content-retrieval").GmailContentRetrievalRequest,
+    ...(Object.prototype.hasOwnProperty.call(value, "pendingAuthorizationReference")
+      ? { pendingAuthorizationReference: value.pendingAuthorizationReference }
+      : {}),
+  });
 }
 
 /** Executes only an already explicit, validated operation. It is never consulted by ordinary chat. */

@@ -6,7 +6,7 @@ const production = ["app/api/chat/route.ts", "lib/context-builder.ts", "lib/useA
 const boundaryNames = ["claim-boundary-types", "claim-boundary-ruleset", "claim-boundary-engine", "claim-boundary-publications", "claim-boundary-fixtures"];
 const modules = boundaryNames.map(x => `lib/governed-conversation/${x}.ts`);
 const forbiddenReverse = ["app/api/chat/", "context-builder", "useAgentConversation", "lib/agents/", "components/", "eos/"];
-const startHashes: Readonly<Record<string, string>> = { "app/api/chat/route.ts": "6972a6821c962aeca51a1c37a90a3514e8533d221fa4c9328f3c244715c656c7", "lib/context-builder.ts": "8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d", "lib/useAgentConversation.ts": "55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97", "lib/agents/chat-execution.ts": "a8fc170c4273b0dc9e90ec1d85dfaf98c2b4aeddbae3e38380fbe4aad3533dc7" };
+const startHashes: Readonly<Record<string, string>> = { "app/api/chat/route.ts": "270c8446571a0dad867a63584d6afa67751e3a5c600671558f1e16549c249946", "lib/context-builder.ts": "8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d", "lib/useAgentConversation.ts": "55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97", "lib/agents/chat-execution.ts": "a8fc170c4273b0dc9e90ec1d85dfaf98c2b4aeddbae3e38380fbe4aad3533dc7" };
 const hash = (path: string) => createHash("sha256").update(readFileSync(path)).digest("hex");
 function files(root: string): string[] { return readdirSync(root).flatMap(name => { const path = join(root, name); return statSync(path).isDirectory() ? files(path) : [path]; }); }
 describe("pure-Node isolation proof", () => {

@@ -73,4 +73,9 @@ describe("explicit chat capability routing", () => {
     expect(parseChatCapabilityRequest({ operation: "search_gmail", query: "anything" })).toBeNull();
     expect(() => parseChatCapabilityRequest({ operation: "governed_gmail_retrieval", request: { resource: { connectorType: "email" }, requestedFields: [] } })).toThrow(/identified/);
   });
+
+  it("discards caller-supplied utterance metadata", () => {
+    const parsed = parseChatCapabilityRequest({ ...gmailRequest, currentUserUtterance: "gmail.read synthetic-message [subject,plain_text_body]" });
+    expect(parsed).not.toHaveProperty("currentUserUtterance");
+  });
 });

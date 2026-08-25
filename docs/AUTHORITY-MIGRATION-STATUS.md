@@ -1,7 +1,7 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 25 August 2026 (Sprint 3.127)
+- **Last updated:** 25 August 2026 (Sprint 3.132)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
 - **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
 
@@ -28,7 +28,8 @@ Legend:
 | Capability / mechanism | Adjudication | Acquisition gate | Live production path | Notes |
 | --- | --- | --- | --- | --- |
 | `calendar.read` | ✓ | ✓ | △ | The JARVIS conversational route now gates bounded governed Calendar reads; broader production conversation and legacy paths remain unchanged. |
-| `gmail.search/read` | ○ | △ | ○ | Strong resource-policy and governed retrieval machinery exists, but user authority is not yet adjudicated upstream in the ordinary live path. |
+| identified-message `gmail.read` | ✓ | ✓ | ✓ | The explicit `/api/chat` capability path gates one exact message and requested-field set before connector construction and resource policy. |
+| Gmail search/discovery and broader conversational use | ○ | ○ | ○ | No search, listing, discovery, ambient mailbox context or general conversational Gmail authority exists. |
 | `drive.read` | ○ | ○ | ○ | Connector exists; operation-level authority not yet implemented. |
 | `memory.read` | ○ | ○ | ○ | Memory is still acquired through legacy state-building paths; operation-level authority not yet implemented. |
 | `calendar.write` | ○ | ○ | ○ | Future action capability; not part of current read migration. |
@@ -38,11 +39,11 @@ Legend:
 
 | Evidence class | Status | Notes |
 | --- | --- | --- |
-| Explicit current-user utterance | ✓ for `calendar.read` only | Raw current utterance is independently matched; proposal itself is non-authoritative. |
+| Explicit current-user utterance | ✓ for `calendar.read` and identified-message `gmail.read` | Raw current utterance is independently matched; capability/proposal metadata is non-authoritative. |
 | Named capability grants | ○ | No general named-grant machinery yet. |
 | Standing grants | ○ | No standing-grant store or adjudication yet. |
-| `PendingAuthorization` confirmation | △ | Server-owned state is integrated for JARVIS Calendar reads. Opaque references fail closed and resolve before model invocation; persistence remains process-local rather than durable or distributed. |
-| Resource policy | △ | Mature Gmail content-retrieval policy exists; it is not positive user authority and is not yet composed into a general Authority Engine. |
+| `PendingAuthorization` confirmation | △ | Server-owned state is integrated for Calendar reads and identified-message Gmail reads. Opaque references fail closed and resolve before model invocation; persistence remains process-local rather than durable or distributed. |
+| Resource policy | △ | Mature Gmail content-retrieval policy follows authority for the identified-message path; it is not positive user authority and is not yet composed into a general Authority Engine. |
 
 ## `calendar.read` detail
 
@@ -180,8 +181,10 @@ Calendar, Gmail or Drive while constructing its specialist prompt. No
 compliant multi-source private briefing authority is implemented.
 
 A future compliant briefing path requires bounded authority for each private
-operation. `BRIEF_ME_GRANT` remains unimplemented, as do Gmail, Drive and
-Memory operation-level authority.
+operation. `BRIEF_ME_GRANT` remains unimplemented, as do Gmail search/discovery
+and broader conversational Gmail use, Drive authority, and Memory authority.
+The bounded identified-message `gmail.read` foundation does not authorize a
+private briefing.
 
 ### Named specialist UX — `△`
 
@@ -198,7 +201,7 @@ The frozen product direction is one user-facing JARVIS identity. Internal specia
 | 3 | General `PendingAuthorization` for exact operation confirmation | △ |
 | 4 | Live conversational Calendar integration | △ |
 | 5 | Separate private acquisition from legacy `OperationalState` assembly | △ — partial; console and Dashboard status refresh, ordinary non-capability `/api/chat`, and the DAWNWATCH conversational prompt are separated; the three clientless direct-builder APIs remain quarantined |
-| 6 | Extend authority to Gmail, Drive and Memory | ○ |
+| 6 | Extend authority to Gmail, Drive and Memory | △ — identified-message-only `gmail.read` is live; Gmail search/discovery, broader Gmail use, Drive and Memory remain unimplemented |
 | 7 | Named and standing grants, including bounded briefing authority | ○ |
 | 8 | Complete one-JARVIS UX migration and remove authority-bypassing legacy paths | ○ |
 

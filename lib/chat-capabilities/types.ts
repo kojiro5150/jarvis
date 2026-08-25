@@ -10,6 +10,7 @@ export type ExecutiveContextCapabilityRequest = Readonly<{
 export type GovernedGmailCapabilityRequest = Readonly<{
   operation: "governed_gmail_retrieval";
   request: GmailContentRetrievalRequest;
+  pendingAuthorizationReference?: unknown;
 }>;
 
 export type ChatCapabilityRequest = ExecutiveContextCapabilityRequest | GovernedGmailCapabilityRequest;

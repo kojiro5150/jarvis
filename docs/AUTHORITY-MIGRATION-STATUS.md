@@ -1,7 +1,7 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 25 August 2026 (Sprint 3.136)
+- **Last updated:** 25 August 2026 (Sprint 3.137)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
 - **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
 
@@ -29,7 +29,7 @@ Legend:
 | --- | --- | --- | --- | --- |
 | `calendar.read` | ✓ | ✓ | △ | The JARVIS conversational route now gates bounded governed Calendar reads; broader production conversation and legacy paths remain unchanged. |
 | identified-message `gmail.read` | ✓ | ✓ | ✓ — frozen baseline | The explicit `/api/chat` capability path and exact `/api/lighter/chat` command path gate one exact message and requested-field set before resource-policy evaluation and acquisition. The development/demo runtime is explicitly wired to a subject-only policy; the lighter path returns deterministic presentation with no model or specialist handoff. |
-| bounded `gmail.search` discovery | ✓ | ✓ | ✓ — frozen baseline | The exact `1d`/`7d` command path releases at most five message IDs without content reads, model calls, specialist handoff, or automatic read chaining. Search followed by a separate explicit identified-message read is frozen as an end-to-end regression baseline. Broader Gmail discovery remains unimplemented. |
+| bounded `gmail.search` discovery | ✓ | ✓ | ✓ — exact baseline frozen; NL proposal live | The unchanged exact `1d`/`7d` command path directly allows at most five message IDs. Sprint 3.137 also deterministically proposes those same bounded operations from high-precision natural language, but proposal recognition confers no execution authority: explicit confirmation of server-owned pending state is required. Broader Gmail discovery remains unimplemented. |
 | `drive.read` | ○ | ○ | ○ | Connector exists; operation-level authority not yet implemented. |
 | `memory.read` | ○ | ○ | ○ | Memory is still acquired through legacy state-building paths; operation-level authority not yet implemented. |
 | `calendar.write` | ○ | ○ | ○ | Future action capability; not part of current read migration. |
@@ -42,7 +42,7 @@ Legend:
 | Explicit current-user utterance | ✓ for `calendar.read`, identified-message `gmail.read`, and bounded `gmail.search` | Raw current utterance is independently matched; capability/proposal metadata is non-authoritative. |
 | Named capability grants | ○ | No general named-grant machinery yet. |
 | Standing grants | ○ | No standing-grant store or adjudication yet. |
-| `PendingAuthorization` confirmation | △ | Server-owned state is integrated for Calendar reads and identified-message Gmail reads. Opaque references fail closed and resolve before model invocation; persistence remains process-local rather than durable or distributed. |
+| `PendingAuthorization` confirmation | △ | Server-owned state is integrated for Calendar reads, identified-message Gmail reads, and natural-language bounded Gmail search proposals. Opaque references fail closed and resolve before model invocation; persistence remains process-local rather than durable or distributed. |
 | Resource policy | △ | Mature Gmail content-retrieval policy follows authority for the identified-message path; it is not positive user authority and is not yet composed into a general Authority Engine. |
 
 Sprint 3.133 wires the closed identified-message operation into the live JARVIS lighter route.
@@ -68,6 +68,14 @@ requests: search returns at most five data-only IDs, and only a later exact `gma
 [subject]` utterance may proceed through the subject-only development/demo policy to deterministic
 subject release. The baseline also locks zero model calls and zero specialist handoffs for both
 governed operations while preserving the existing Calendar authority regressions.
+
+Sprint 3.137 leaves that frozen exact search/read baseline unchanged and adds only deterministic,
+high-precision natural-language proposal generation for the existing bounded `gmail.search`
+operation. Recognition proposes `1d` or `7d`; it does not confer execution authority. The proposal
+must pass through server-owned `PendingAuthorization` and a separate explicit confirmation before
+the bounded ID-only search may run. Natural-language `gmail.read`, sender/subject/content search,
+arbitrary Gmail queries, and all broader Gmail discovery remain unimplemented. Search authority
+still cannot authorize or chain into read authority.
 
 ## `calendar.read` detail
 

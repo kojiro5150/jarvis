@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { resolveProductionGmailSearch } from "./production-gmail-search";
+import { createPendingAuthorization, resolvePendingAuthorization } from "./pending-authorization";
+import { proposeGmailRead } from "./gmail-read-authority";
+import { proposeGmailSearch } from "./gmail-search-authority";
 
 describe("production gmail.search", () => {
   it.each(["1d", "7d"] as const)("performs bounded ID-only discovery for %s", async newerThan => {
@@ -36,5 +39,48 @@ describe("production gmail.search", () => {
       pendingAuthorizationReference: proposed.pendingAuthorizationReference }, { createConnector }))
       .toMatchObject({ handled: true, decision: "DENY", reason: "pending_authorization_declined" });
     expect(createConnector).not.toHaveBeenCalled();
+  });
+
+  it("fails closed on replay and never repeats search acquisition", async () => {
+    const search = vi.fn(async () => ["one"]); const createConnector = vi.fn(() => ({ search }));
+    const reference = createPendingAuthorization(proposeGmailSearch("1d"));
+    expect(await resolveProductionGmailSearch({ currentUserUtterance: "confirm", pendingAuthorizationReference: reference }, { createConnector }))
+      .toMatchObject({ decision: "ALLOW", messageIds: ["one"] });
+    expect(await resolveProductionGmailSearch({ currentUserUtterance: "confirm", pendingAuthorizationReference: reference }, { createConnector }))
+      .toMatchObject({ decision: "ASK", reason: "pending_authorization_already_consumed" });
+    expect(createConnector).toHaveBeenCalledOnce(); expect(search).toHaveBeenCalledOnce();
+  });
+
+  it("fails closed on a fabricated reference without acquisition", async () => {
+    const createConnector = vi.fn();
+    expect(await resolveProductionGmailSearch({ currentUserUtterance: "yes",
+      pendingAuthorizationReference: { pendingAuthorizationId: "fabricated" } }, { createConnector }))
+      .toMatchObject({ handled: true, decision: "ASK", reason: "pending_authorization_not_found" });
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["gmail.read", () => createPendingAuthorization(proposeGmailRead({ resource: { resourceId: "message", connectorType: "email" },
+      requestedFields: ["subject"], requestingRuntime: "test" }))],
+    ["calendar.read", () => createPendingAuthorization(Object.freeze({ capability: "calendar.read", window: Object.freeze({
+      start: "2026-08-25T00:00:00.000Z", end: "2026-09-01T00:00:00.000Z", timeZone: "Australia/Melbourne", period: "default" as const,
+    }) }))],
+  ] as const)("does not authorize or consume a pending %s operation", async (capability, makeReference) => {
+    const createConnector = vi.fn(); const reference = makeReference();
+    expect(await resolveProductionGmailSearch({ currentUserUtterance: "yes", pendingAuthorizationReference: reference }, { createConnector }))
+      .toEqual({ handled: false });
+    expect(createConnector).not.toHaveBeenCalled();
+    expect(resolvePendingAuthorization({ currentUserUtterance: "yes", pendingAuthorizationReference: reference,
+      expectedCapability: capability })).toMatchObject({ decision: "ALLOW", proposedOperation: { capability } });
+  });
+
+  it("does not let a search pending operation authorize Gmail read and leaves it available for search", async () => {
+    const reference = createPendingAuthorization(proposeGmailSearch("7d"));
+    expect(resolvePendingAuthorization({ currentUserUtterance: "yes", pendingAuthorizationReference: reference,
+      expectedCapability: "gmail.read" })).toMatchObject({ decision: "ASK", reason: "pending_authorization_capability_mismatch" });
+    const search = vi.fn(async () => []); const createConnector = vi.fn(() => ({ search }));
+    expect(await resolveProductionGmailSearch({ currentUserUtterance: "yes", pendingAuthorizationReference: reference }, { createConnector }))
+      .toMatchObject({ decision: "ALLOW", reason: "pending_authorization_confirmed" });
+    expect(search).toHaveBeenCalledWith("7d", 5);
   });
 });

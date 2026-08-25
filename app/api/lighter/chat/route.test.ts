@@ -24,6 +24,50 @@ const handoffResult = (
 });
 
 describe("POST /api/lighter/chat", () => {
+  it.each([
+    ["Search my Gmail from the last day.", "1d"],
+    ["Search my Gmail from the last week.", "7d"],
+  ] as const)("asks, then restores and executes the bounded natural-language Gmail search: %s", async (utterance, newerThan) => {
+    const model = vi.fn(async () => handoffResult("dawnwatch", "handoff must not run"));
+    const calendarConnector = vi.fn();
+    const readConnector = vi.fn();
+    const search = vi.fn(async () => ["id-1", "id-2", "id-3", "id-4", "id-5", "id-6"]);
+    const searchConnector = vi.fn(() => ({ search }));
+    const handler = createLighterChatHandler(
+      model,
+      { createConnector: calendarConnector, clock: () => new Date("2026-08-25T00:00:00Z") },
+      { createConnector: readConnector, loadPolicy: vi.fn() },
+      { createConnector: searchConnector },
+    );
+
+    const askResponse = await handler(request({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }));
+    const ask = await askResponse.json();
+    expect(ask).toEqual({
+      reply: "Please explicitly confirm that I may search Gmail.", specialistId: "jarvis", execution: "none",
+      gmailSearchAuthority: { decision: "ASK", reason: "explicit_gmail_search_not_established" },
+      pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) },
+    });
+    expect(Object.keys(ask.pendingAuthorizationReference)).toEqual(["pendingAuthorizationId"]);
+    expect(ask).not.toHaveProperty("routeTo");
+    expect(searchConnector).not.toHaveBeenCalled(); expect(search).not.toHaveBeenCalled();
+    expect(readConnector).not.toHaveBeenCalled(); expect(calendarConnector).not.toHaveBeenCalled();
+    expect(model).not.toHaveBeenCalled();
+
+    const allowResponse = await handler(request({ specialistId: "jarvis", messages: [{ role: "user", content: "Yes" }],
+      pendingAuthorizationReference: ask.pendingAuthorizationReference }));
+    const allow = await allowResponse.json();
+    expect(allow).toEqual({
+      reply: "Gmail message IDs:\n- id-1\n- id-2\n- id-3\n- id-4\n- id-5", specialistId: "jarvis", execution: "none",
+      gmailSearchAuthority: { decision: "ALLOW", reason: "pending_authorization_confirmed" },
+      messageIds: ["id-1", "id-2", "id-3", "id-4", "id-5"],
+    });
+    expect(JSON.stringify(allow)).not.toMatch(/subject|snippet|body/i);
+    expect(searchConnector).toHaveBeenCalledOnce(); expect(search).toHaveBeenCalledOnce();
+    expect(search).toHaveBeenCalledWith(newerThan, 5);
+    expect(readConnector).not.toHaveBeenCalled(); expect(calendarConnector).not.toHaveBeenCalled();
+    expect(model).not.toHaveBeenCalled(); expect(allow).not.toHaveProperty("routeTo");
+  });
+
   it("freezes explicit Gmail search followed by a separate explicit, policy-gated read", async () => {
     const model = vi.fn(async () => "A message ID alone is not read authority.");
     const calendarConnector = vi.fn();

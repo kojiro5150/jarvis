@@ -1,7 +1,7 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 25 August 2026 (Sprint 3.135)
+- **Last updated:** 25 August 2026 (Sprint 3.136)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
 - **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
 
@@ -28,8 +28,8 @@ Legend:
 | Capability / mechanism | Adjudication | Acquisition gate | Live production path | Notes |
 | --- | --- | --- | --- | --- |
 | `calendar.read` | ✓ | ✓ | △ | The JARVIS conversational route now gates bounded governed Calendar reads; broader production conversation and legacy paths remain unchanged. |
-| identified-message `gmail.read` | ✓ | ✓ | ✓ | The explicit `/api/chat` capability path and exact `/api/lighter/chat` command path gate one exact message and requested-field set before resource-policy evaluation and acquisition. The development/demo runtime is explicitly wired to a subject-only policy; the lighter path returns deterministic presentation with no model or specialist handoff. |
-| bounded `gmail.search` discovery | ✓ | ✓ | ✓ | The exact `1d`/`7d` command path releases at most five message IDs without content reads, model calls, specialist handoff, or automatic read chaining. Broader Gmail discovery remains unimplemented. |
+| identified-message `gmail.read` | ✓ | ✓ | ✓ — frozen baseline | The explicit `/api/chat` capability path and exact `/api/lighter/chat` command path gate one exact message and requested-field set before resource-policy evaluation and acquisition. The development/demo runtime is explicitly wired to a subject-only policy; the lighter path returns deterministic presentation with no model or specialist handoff. |
+| bounded `gmail.search` discovery | ✓ | ✓ | ✓ — frozen baseline | The exact `1d`/`7d` command path releases at most five message IDs without content reads, model calls, specialist handoff, or automatic read chaining. Search followed by a separate explicit identified-message read is frozen as an end-to-end regression baseline. Broader Gmail discovery remains unimplemented. |
 | `drive.read` | ○ | ○ | ○ | Connector exists; operation-level authority not yet implemented. |
 | `memory.read` | ○ | ○ | ○ | Memory is still acquired through legacy state-building paths; operation-level authority not yet implemented. |
 | `calendar.write` | ○ | ○ | ○ | Future action capability; not part of current read migration. |
@@ -61,6 +61,13 @@ policy-admissible, and adapter-supported fields.
 ## `gmail.search` detail
 
 Sprint 3.135 adds a separate closed `gmail.search [newer_than:1d|7d]` capability. Exact raw current-utterance authority is adjudicated before connector construction. Its deterministic provider request is limited to five `messages.list` results, and only provider message IDs are released. Search neither reads message content nor grants or invokes `gmail.read`; handled and malformed searches make no model call or specialist handoff. Returned IDs remain non-authoritative data.
+
+Sprint 3.136 freezes the proven Gmail vertical as a durable end-to-end regression baseline without
+adding capability or changing architecture. Search and read remain two separately authorized
+requests: search returns at most five data-only IDs, and only a later exact `gmail.read <id>
+[subject]` utterance may proceed through the subject-only development/demo policy to deterministic
+subject release. The baseline also locks zero model calls and zero specialist handoffs for both
+governed operations while preserving the existing Calendar authority regressions.
 
 ## `calendar.read` detail
 

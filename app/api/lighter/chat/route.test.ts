@@ -4,6 +4,7 @@ import type { ChatMessage } from "@/lib/agents/types";
 import type { ClaudeResult, ClaudeTool } from "@/lib/claude";
 import { createPendingAuthorization } from "@/lib/lighter-jarvis/pending-authorization";
 import { proposeGmailRead } from "@/lib/lighter-jarvis/gmail-read-authority";
+import { loadContentRetrievalPolicy } from "@/lib/content-retrieval-policy";
 
 const request = (body: unknown) => new Request("http://localhost/api/lighter/chat", {
   method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
@@ -23,6 +24,77 @@ const handoffResult = (
 });
 
 describe("POST /api/lighter/chat", () => {
+  it("freezes explicit Gmail search followed by a separate explicit, policy-gated read", async () => {
+    const model = vi.fn(async () => "A message ID alone is not read authority.");
+    const calendarConnector = vi.fn();
+    const search = vi.fn(async () => ["live-message-1", "data-2", "data-3", "data-4", "data-5", "data-6"]);
+    const retrieveMessage = vi.fn(async () => ({
+      subject: "Your Google Account was recovered successfully",
+      snippet: "Private content must not be released",
+    }));
+    const readConnector = vi.fn(() => ({ retrieveMessage }));
+    const loadPolicy = vi.fn(() => loadContentRetrievalPolicy("config/content-retrieval-policy.dev.json"));
+    const handler = createLighterChatHandler(
+      model,
+      { createConnector: calendarConnector, clock: () => new Date("2026-08-25T00:00:00Z") },
+      { createConnector: readConnector, loadPolicy },
+      { createConnector: () => ({ search }) },
+    );
+
+    const searchResponse = await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "gmail.search [newer_than:1d]" }],
+    }));
+    expect(await searchResponse.json()).toEqual({
+      reply: "Gmail message IDs:\n- live-message-1\n- data-2\n- data-3\n- data-4\n- data-5",
+      specialistId: "jarvis",
+      execution: "none",
+      gmailSearchAuthority: { decision: "ALLOW", reason: "explicit_gmail_search" },
+      messageIds: ["live-message-1", "data-2", "data-3", "data-4", "data-5"],
+    });
+    expect(search).toHaveBeenCalledWith("1d", 5);
+    expect(readConnector).not.toHaveBeenCalled();
+    expect(loadPolicy).not.toHaveBeenCalled();
+    expect(calendarConnector).not.toHaveBeenCalled();
+    expect(model).not.toHaveBeenCalled();
+
+    // Even when copied verbatim from discovery, an ID is data, not inherited read authority.
+    const idOnlyResponse = await handler(request({
+      specialistId: "jarvis",
+      messages: [
+        { role: "user", content: "gmail.search [newer_than:1d]" },
+        { role: "assistant", content: "Gmail message IDs:\n- live-message-1" },
+        { role: "user", content: "live-message-1" },
+      ],
+    }));
+    expect(await idOnlyResponse.json()).toEqual({
+      reply: "A message ID alone is not read authority.", specialistId: "jarvis", execution: "none",
+    });
+    expect(readConnector).not.toHaveBeenCalled();
+    expect(loadPolicy).not.toHaveBeenCalled();
+
+    const readResponse = await handler(request({
+      specialistId: "jarvis",
+      messages: [
+        { role: "user", content: "gmail.search [newer_than:1d]" },
+        { role: "assistant", content: "Gmail message IDs:\n- live-message-1" },
+        { role: "user", content: "gmail.read live-message-1 [subject]" },
+      ],
+    }));
+    const readBody = await readResponse.json();
+    expect(readBody).toEqual({
+      reply: "Subject: Your Google Account was recovered successfully",
+      specialistId: "jarvis",
+      execution: "none",
+      gmailAuthority: { decision: "ALLOW", reason: "explicit_gmail_read" },
+    });
+    expect(loadPolicy).toHaveBeenCalledOnce();
+    expect(retrieveMessage).toHaveBeenCalledWith("live-message-1");
+    expect(JSON.stringify(readBody)).not.toContain("Private content");
+    expect(model).toHaveBeenCalledOnce();
+    expect(calendarConnector).not.toHaveBeenCalled();
+  });
+
   it("intercepts exact Gmail searches before read, model, Calendar, and specialist routing", async () => {
     const model = vi.fn(); const readConnector = vi.fn(); const calendarConnector = vi.fn();
     const search = vi.fn(async () => ["message-1", "message-2"]);

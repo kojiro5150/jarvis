@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "asOfSprint": "3.126",
+  "asOfSprint": "3.127",
   "step5Status": "partial",
   "surfaces": [
     {
@@ -16,11 +16,11 @@
     },
     {
       "id": "dawnwatch",
-      "classification": "legacy-specialist-prompt-surface",
+      "classification": "ordinary-non-private-specialist-prompt-surface",
       "entryPoint": "lib/lighter-jarvis/runtime.ts",
       "dependencies": [],
-      "acquisition": "direct-builder",
-      "disposition": "quarantined-explicitly-not-migrated-in-sprint-3.126"
+      "acquisition": "none",
+      "disposition": "direct-builder-path-removed-in-sprint-3.127"
     },
     {
       "id": "operational-state-api",

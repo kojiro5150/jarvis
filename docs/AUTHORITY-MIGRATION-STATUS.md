@@ -77,6 +77,13 @@ the bounded ID-only search may run. Natural-language `gmail.read`, sender/subjec
 arbitrary Gmail queries, and all broader Gmail discovery remain unimplemented. Search authority
 still cannot authorize or chain into read authority.
 
+Live Sprint 3.137 validation subsequently completed the governed natural-language Gmail sequence:
+proposal → `ASK` → explicit confirmation → bounded ID-only search, followed by a separate exact,
+policy-gated subject read. An earlier live attempt repeated the confirmation prompt after `Yes`, so
+the `PendingAuthorization` continuation has an intermittent reliability observation. Its cause is
+unknown; the evidence does not confirm process-local state as the cause. See
+`docs/SPRINT-3.137-LIVE-GMAIL-VALIDATION.md` for the verbatim transcripts and evidence boundaries.
+
 ## `calendar.read` detail
 
 ### Implemented

@@ -24,20 +24,21 @@ function filesMatching(pattern: RegExp): string[] {
 
 describe("legacy OperationalState production quarantine", () => {
   it("keeps the complete direct builder inventory closed", () => {
-    expect(filesMatching(/import\s*\{[^}]*\bbuildOperationalState\b[^}]*\}\s*from\s*["'][^"']*operational-state["']/s)).toEqual([
+    expect(filesMatching(/import\s*\{[\s\S]*?\bbuildOperationalState\b[\s\S]*?\}\s*from\s*["'][^"']*operational-state["']/)).toEqual([
       "app/api/operational-picture/route.ts",
       "app/api/operational-state/evaluation/route.ts",
       "app/api/operational-state/route.ts",
     ]);
   });
 
-  it("keeps the operational-state API client and hook entry point closed", () => {
-    expect(filesMatching(/fetch\(\s*["']\/api\/operational-state["']/)).toEqual([
-      "lib/useOperationalState.ts",
-    ]);
-    expect(filesMatching(/import\s*\{[^}]*\buseOperationalState\b[^}]*\}\s*from\s*["'][^"']*useOperationalState["']/s)).toEqual([
+  it("keeps the operational-state APIs clientless and the compatibility hook status-only", () => {
+    expect(filesMatching(/fetch\(\s*["']\/api\/operational-state["']/)).toEqual([]);
+    expect(filesMatching(/import\s*\{[\s\S]*?\buseOperationalState\b[\s\S]*?\}\s*from\s*["'][^"']*useOperationalState["']/)).toEqual([
       "components/dashboard/DashboardShell.tsx",
     ]);
+    const hook = readFileSync(join(ROOT, "lib/useOperationalState.ts"), "utf8");
+    expect(hook).toContain('fetch("/api/connector-status")');
+    expect(hook).not.toContain("SEED_MEMORY");
   });
 
   it("keeps the machine-readable surface inventory complete and explicitly partial", () => {

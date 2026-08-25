@@ -149,6 +149,13 @@ unchanged. The next live migration is the Dashboard's ambient
 deprecated operational-picture alias and evidence-only evaluation endpoint
 also remain quarantined direct-builder callers.
 
+Sprint 3.128 removes the Dashboard's automatic operational-state acquisition.
+Its compatibility hook now starts from explicitly empty, non-private content
+collections and fetches only connector configuration/token metadata from
+`/api/connector-status`. The Dashboard shell is unchanged. The legacy
+operational-state, operational-picture, and evaluation APIs remain quarantined
+direct-builder surfaces with no known in-repository clients.
+
 ### Local fallback acquisition — `!` for future authority architecture
 
 Legacy Calendar, Gmail and Drive loaders can fall back to local data after source failures. This behaviour is historically intentional for dashboard continuity, but it must not become an authority bypass in the governed production path.
@@ -177,7 +184,7 @@ The frozen product direction is one user-facing JARVIS identity. Internal specia
 | 2 | Authority-gated governed Calendar acquisition | ✓ |
 | 3 | General `PendingAuthorization` for exact operation confirmation | △ |
 | 4 | Live conversational Calendar integration | △ |
-| 5 | Separate private acquisition from legacy `OperationalState` assembly | △ — partial; console status refresh, ordinary non-capability `/api/chat`, and the DAWNWATCH conversational prompt are separated; the Dashboard `useOperationalState()` → `/api/operational-state` ambient acquisition chain is the next live migration, while the remaining direct-builder APIs stay quarantined |
+| 5 | Separate private acquisition from legacy `OperationalState` assembly | △ — partial; console and Dashboard status refresh, ordinary non-capability `/api/chat`, and the DAWNWATCH conversational prompt are separated; the three clientless direct-builder APIs remain quarantined |
 | 6 | Extend authority to Gmail, Drive and Memory | ○ |
 | 7 | Named and standing grants, including bounded briefing authority | ○ |
 | 8 | Complete one-JARVIS UX migration and remove authority-bypassing legacy paths | ○ |

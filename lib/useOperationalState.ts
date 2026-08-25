@@ -1,67 +1,78 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { SEED_MEMORY } from "./memory/seed";
-import { normalizeLocalRecord } from "./connectors/calendar-event";
-import { normalizeLocalEmailRecord } from "./connectors/email-message";
+import type { ConnectorStatusSnapshot } from "./connectors/status";
+import type { ConnectorStatus } from "./connectors/types";
 import type { OperationalState } from "./operational-state";
 
-const FALLBACK: OperationalState = {
-  priorities: SEED_MEMORY.priorities,
-  projects: SEED_MEMORY.projects,
-  signals: SEED_MEMORY.signals,
-  blockers: SEED_MEMORY.signals.filter((s) => s.kind === "deadline" || s.kind === "note"),
-  // Same normalizers the connectors use, so the instant-render fallback
-  // carries the identical canonical shape as a real fetch would.
-  calendar: SEED_MEMORY.calendar.map(normalizeLocalRecord),
+/**
+ * Non-private compatibility state for the legacy Dashboard component contract.
+ *
+ * The Dashboard still expects an OperationalState-shaped value, but mounting it
+ * must not imply authority to acquire Memory, Calendar, Gmail or Drive content.
+ * Keep every content collection explicitly empty. Only connector service
+ * statuses are overlaid from the metadata-only connector-status endpoint.
+ */
+export const EMPTY_DASHBOARD_COMPATIBILITY_STATE: OperationalState = {
+  priorities: [],
+  projects: [],
+  signals: [],
+  blockers: [],
+  calendar: [],
   calendarStatus: "unavailable",
-  gmailThreads: SEED_MEMORY.gmailThreads.map(normalizeLocalEmailRecord),
+  gmailThreads: [],
   gmailStatus: "unavailable",
-  driveFiles: SEED_MEMORY.driveFiles,
+  driveFiles: [],
   driveStatus: "unavailable",
-  // Every connector defaults to local until the real fetch resolves and
-  // reports what's actually configured server-side.
   connectorStatuses: [
     { name: "calendar", source: "local", connected: false },
     { name: "gmail", source: "local", connected: false },
     { name: "drive", source: "local", connected: false },
   ],
-  updatedAt: SEED_MEMORY.updatedAt,
+  updatedAt: "1970-01-01T00:00:00.000Z",
 };
 
+function connectorStatuses(snapshot: ConnectorStatusSnapshot): ConnectorStatus[] {
+  return (["calendar", "gmail", "drive"] as const).map((name) => {
+    const status = snapshot[`${name}Status`];
+    return {
+      name,
+      // OperationalState requires this legacy field. It is synthesized only
+      // for Dashboard compatibility and is not observed provider provenance.
+      source: status === "unavailable" ? "local" : "google",
+      connected: status === "online",
+    };
+  });
+}
+
 /**
- * Fetches /api/operational-state on mount (and again on demand via
- * `refresh()` — used after Sprint 2.5's memory editor saves a change, so
- * the dashboard reflects an edit without a manual page reload). Starts
- * from the same seed data the server falls back to, so the dashboard
- * renders immediately instead of showing an empty state while the
- * request is in flight — and stays on the last-good data if a refresh
- * fails, rather than surfacing an error for what's meant to be a quiet
- * background refresh.
- *
- * This is the ONE OperationalState the dashboard uses — the same object
- * the conversational agents receive via /api/chat's server-side
- * buildOperationalState() call (lib/operational-state.ts). See Sprint 2.4.
+ * Preserves the Dashboard's legacy hook contract without acquiring operational
+ * content. Refreshes read only connector configuration/token metadata through
+ * `/api/connector-status`; private content arrays always remain empty.
  */
 export function useOperationalState() {
-  const [data, setData] = useState<OperationalState>(FALLBACK);
+  const [data, setData] = useState<OperationalState>(EMPTY_DASHBOARD_COMPATIBILITY_STATE);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch("/api/operational-state");
-      if (!res.ok) return;
-      const json = (await res.json()) as OperationalState;
-      setData(json);
+      const response = await fetch("/api/connector-status");
+      if (!response.ok) return;
+      const snapshot = (await response.json()) as ConnectorStatusSnapshot;
+      setData({
+        ...EMPTY_DASHBOARD_COMPATIBILITY_STATE,
+        ...snapshot,
+        connectorStatuses: connectorStatuses(snapshot),
+      });
     } catch {
-      // Keep whatever's currently displayed — this is a quiet refresh, not a user-facing action.
+      // Metadata status is quiet UI chrome; retain the explicit empty fallback.
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    refresh();
+    void refresh();
   }, [refresh]);
 
   return { data, loading, refresh };

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "asOfSprint": "3.127",
+  "asOfSprint": "3.128",
   "step5Status": "partial",
   "surfaces": [
     {
@@ -9,10 +9,10 @@
       "entryPoint": "components/dashboard/DashboardShell.tsx",
       "dependencies": [
         "lib/useOperationalState.ts",
-        "app/api/operational-state/route.ts"
+        "app/api/connector-status/route.ts"
       ],
-      "acquisition": "api-client",
-      "disposition": "quarantined-pending-authorized-source-by-source-replacement"
+      "acquisition": "metadata-only",
+      "disposition": "operational-state-dependency-removed-in-sprint-3.128"
     },
     {
       "id": "dawnwatch",
@@ -28,7 +28,7 @@
       "entryPoint": "app/api/operational-state/route.ts",
       "dependencies": [],
       "acquisition": "direct-builder",
-      "disposition": "quarantined-dashboard-dependency"
+      "disposition": "quarantined-no-known-in-repository-client"
     },
     {
       "id": "operational-picture-alias",

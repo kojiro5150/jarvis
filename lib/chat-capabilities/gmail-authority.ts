@@ -19,6 +19,7 @@ export function authorizeGmailCapability(input: {
     const resolution = resolvePendingAuthorization({
       currentUserUtterance: input.currentUserUtterance,
       pendingAuthorizationReference: input.capability.pendingAuthorizationReference,
+      expectedCapability: "gmail.read",
     });
     const operation = resolution.proposedOperation?.capability === "gmail.read" ? resolution.proposedOperation : null;
     return Object.freeze({ decision: operation ? "ALLOW" : resolution.decision === "ALLOW" ? "ASK" : resolution.decision, reason: resolution.reason,

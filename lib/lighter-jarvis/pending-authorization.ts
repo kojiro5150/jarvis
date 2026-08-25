@@ -36,7 +36,8 @@ export type PendingAuthorizationResolution = Readonly<{
     | "pending_authorization_not_confirmed"
     | "pending_authorization_already_consumed"
     | "pending_authorization_reference_invalid"
-    | "pending_authorization_not_found";
+    | "pending_authorization_not_found"
+    | "pending_authorization_capability_mismatch";
   proposedOperation: ProposedOperation | null;
   authorityEvidence: readonly PendingAuthorizationConfirmationEvidence[];
   pendingAuthorizationReference: PendingAuthorizationReference | null;
@@ -65,6 +66,7 @@ export function createPendingAuthorization(
 export function resolvePendingAuthorization(input: {
   readonly currentUserUtterance: string;
   readonly pendingAuthorizationReference?: unknown;
+  readonly expectedCapability?: ProposedOperation["capability"];
 }): PendingAuthorizationResolution {
   const suppliedReference = input.pendingAuthorizationReference;
   if (suppliedReference === null) {
@@ -77,6 +79,9 @@ export function resolvePendingAuthorization(input: {
   const pending = pendingAuthorizations.get(suppliedReference.pendingAuthorizationId);
   if (pending === undefined) {
     return resolution("ASK", "pending_authorization_not_found", null);
+  }
+  if (input.expectedCapability !== undefined && pending.proposedOperation.capability !== input.expectedCapability) {
+    return resolution("ASK", "pending_authorization_capability_mismatch", pending.reference);
   }
   if (pending.status === "consumed") {
     return resolution("ASK", "pending_authorization_already_consumed", null);

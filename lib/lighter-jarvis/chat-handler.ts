@@ -9,6 +9,7 @@ import { CALENDAR_TIME_ZONE } from "@/lib/lighter-jarvis/calendar-read-window";
 import { resolveProductionGmailRead, type ProductionGmailDependencies } from "@/lib/lighter-jarvis/production-gmail-read";
 import { resolveProductionGmailSearch, type ProductionGmailSearchDependencies } from "@/lib/lighter-jarvis/production-gmail-search";
 import { sanitizeModelHistory } from "@/lib/lighter-jarvis/model-history-boundary";
+import { isPrivateAcquisitionHandoffRequest } from "@/lib/lighter-jarvis/private-capability-handoff-guard";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -310,7 +311,11 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           const marketScopes = "market_scopes" in handoff.input ? handoff.input.market_scopes : undefined;
           const resolvedMarketDomains = target?.id === "gecko" ? resolveMarketScopeDomains(marketScopes) : undefined;
           const hasValidMarketScopes = target?.id !== "gecko" || Boolean(resolvedMarketDomains);
-          if (target && hasTaskSummary && hasValidMarketScopes) {
+          // The model may suggest expertise, but it cannot manufacture a
+          // substitute route around JARVIS's private-source authority paths.
+          const privateAcquisition = currentUserUtterance !== undefined
+            && isPrivateAcquisitionHandoffRequest(currentUserUtterance);
+          if (target && hasTaskSummary && hasValidMarketScopes && !privateAcquisition) {
             const routedReply = reply.trim() || `I'd recommend handing this to ${target.name}.`;
             return NextResponse.json({
               reply: routedReply,

@@ -72,9 +72,11 @@ describe("Lighter JARVIS specialist governance", () => {
   });
 
   it("keeps DAWNWATCH briefs and STEVE implementation advice aligned with routing boundaries", () => {
-    expect(LIGHTER_SPECIALISTS.dawnwatch.instructions[9]).toBe(
+    expect(LIGHTER_SPECIALISTS.dawnwatch.instructions[10]).toBe(
       "Do not append a suggestion to ask JARVIS to route elsewhere, or any other next-step recommendation, to a routine brief. The shared out-of-scope rule applies only when a request genuinely exceeds your scope, not as a closing recommendation on a plain existence report.",
     );
+    expect(LIGHTER_SPECIALISTS.dawnwatch.purpose).toBe("Briefing presentation from supplied governed evidence");
+    expect(LIGHTER_SPECIALISTS.dawnwatch.instructions[6]).toContain("no Calendar or Gmail acquisition capability");
     expect(LIGHTER_SPECIALISTS.steve.instructions[8]).toBe(
       "Stay at advice or a small self-contained snippet. For multi-file, multi-step, protected-file, or implementation work, say so plainly and note that a separate, dedicated tool for larger engineering work exists outside this chat; this is advice, not a proposed action here.",
     );

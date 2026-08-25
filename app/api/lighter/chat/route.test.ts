@@ -553,6 +553,64 @@ describe("POST /api/lighter/chat", () => {
     ]));
   });
 
+  it.each([
+    "Show my calendar Monday",
+    "Retrieve my calendar",
+    "What did my calendar just say?",
+  ])("blocks a model-generated Calendar acquisition handoff without creating authority or running connectors: %s", async (utterance) => {
+    const calendarConnector = vi.fn();
+    const gmailReadConnector = vi.fn();
+    const gmailSearchConnector = vi.fn();
+    const response = await createLighterChatHandler(
+      async () => handoffResult("dawnwatch", "I'll hand this to DAWNWATCH."),
+      { createConnector: calendarConnector, clock: () => new Date("2026-08-25T00:00:00Z") },
+      { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
+      { createConnector: gmailSearchConnector },
+    )(request({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }));
+
+    const body = await response.json();
+    expect(body).not.toHaveProperty("routeTo");
+    expect(body).not.toHaveProperty("pendingAuthorizationReference");
+    expect(calendarConnector).not.toHaveBeenCalled();
+    expect(gmailReadConnector).not.toHaveBeenCalled();
+    expect(gmailSearchConnector).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "Check my Gmail",
+    "Show me my emails",
+    "Read my latest email",
+    "Get my inbox",
+  ])("blocks a model-generated Gmail acquisition handoff without creating authority or running connectors: %s", async (utterance) => {
+    const calendarConnector = vi.fn();
+    const gmailReadConnector = vi.fn();
+    const gmailSearchConnector = vi.fn();
+    const response = await createLighterChatHandler(
+      async () => handoffResult("dawnwatch", "I'll hand this to DAWNWATCH."),
+      { createConnector: calendarConnector, clock: () => new Date("2026-08-25T00:00:00Z") },
+      { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
+      { createConnector: gmailSearchConnector },
+    )(request({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }));
+
+    const body = await response.json();
+    expect(body).not.toHaveProperty("routeTo");
+    expect(body).not.toHaveProperty("pendingAuthorizationReference");
+    expect(calendarConnector).not.toHaveBeenCalled();
+    expect(gmailReadConnector).not.toHaveBeenCalled();
+    expect(gmailSearchConnector).not.toHaveBeenCalled();
+  });
+
+  it("preserves a legitimate non-private specialist handoff", async () => {
+    const response = await createLighterChatHandler(async () => handoffResult(
+      "herald", "HERALD can draft that.", "Draft a product announcement from the user's supplied notes.",
+    ))(request({ specialistId: "jarvis", messages: [{ role: "user", content: "Draft a product announcement from these notes" }] }));
+
+    expect(await response.json()).toMatchObject({
+      routeTo: "herald",
+      taskSummary: "Draft a product announcement from the user's supplied notes.",
+    });
+  });
+
   it("fails closed on an invalid JARVIS handoff tool call", async () => {
     const model = vi.fn(async () => handoffResult("not-a-specialist", "I suggest a handoff."));
     const response = await createLighterChatHandler(model)(request({

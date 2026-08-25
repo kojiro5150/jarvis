@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAgent } from "@/lib/agents";
 import { callClaude } from "@/lib/claude";
-import { buildOperationalState } from "@/lib/operational-state";
-import { buildContextBlock } from "@/lib/context-builder";
 import { executeAuditedChat } from "@/lib/agents/chat-execution";
 import { createExecutionAuditStore } from "@/lib/agents/execution-audit-store-factory";
 import { assembleAgentSystemPrompt } from "@/lib/agents/boa-instructions";
@@ -77,12 +75,9 @@ export async function POST(req: NextRequest) {
   const agent = getAgent(agentId ?? "jarvis");
 
   try {
-    const state = await buildOperationalState();
-    const contextBlock = buildContextBlock(state, agent.contextScope);
     const systemPrompt = assembleAgentSystemPrompt(
       agent,
-      getBoaInstruction(agent.id),
-      contextBlock
+      getBoaInstruction(agent.id)
     );
 
     const reply = await executeAuditedChat(

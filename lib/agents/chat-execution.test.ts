@@ -53,6 +53,10 @@ describe("executeAuditedChat", () => {
         requestedAuthority: "advise",
         grantedAuthority: "advise",
         task: "Assess the governance software market.",
+        constraints: [
+          "Conversational execution with 1 message",
+          "Agent and BOA instructions assembled server-side",
+        ],
         preparationStatus: "prepared",
         executionStatus: "completed",
       }),

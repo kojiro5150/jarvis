@@ -131,8 +131,7 @@ Sprint 3.125 removes the ordinary non-capability `/api/chat` caller. That path
 no longer builds `OperationalState` or injects its implicit Memory, Calendar,
 Gmail or Drive-derived prompt context. Agent and BOA instructions, audited
 execution and the explicit capability branch remain in place. Other
-`OperationalState` callers, including `/api/lighter/chat`, remain unchanged and
-still require migration.
+legacy `OperationalState` callers remain unresolved.
 
 ### Local fallback acquisition — `!` for future authority architecture
 

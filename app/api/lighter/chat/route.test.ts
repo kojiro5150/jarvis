@@ -23,6 +23,27 @@ const handoffResult = (
 });
 
 describe("POST /api/lighter/chat", () => {
+  it("intercepts exact Gmail searches before read, model, Calendar, and specialist routing", async () => {
+    const model = vi.fn(); const readConnector = vi.fn(); const calendarConnector = vi.fn();
+    const search = vi.fn(async () => ["message-1", "message-2"]);
+    const response = await createLighterChatHandler(model, { createConnector: calendarConnector, clock: () => new Date() },
+      { createConnector: readConnector, loadPolicy: vi.fn() }, { createConnector: () => ({ search }) })(request({
+        specialistId: "jarvis", messages: [{ role: "user", content: "gmail.search [newer_than:1d]" }],
+      }));
+    expect(await response.json()).toEqual({ reply: "Gmail message IDs:\n- message-1\n- message-2", specialistId: "jarvis", execution: "none",
+      gmailSearchAuthority: { decision: "ALLOW", reason: "explicit_gmail_search" }, messageIds: ["message-1", "message-2"] });
+    expect(search).toHaveBeenCalledWith("1d", 5); expect(readConnector).not.toHaveBeenCalled();
+    expect(calendarConnector).not.toHaveBeenCalled(); expect(model).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed Gmail searches before constructing any connector", async () => {
+    const model = vi.fn(); const searchConnector = vi.fn(); const readConnector = vi.fn();
+    const response = await createLighterChatHandler(model, undefined, { createConnector: readConnector, loadPolicy: vi.fn() },
+      { createConnector: searchConnector })(request({ specialistId: "jarvis", messages: [{ role: "user", content: "gmail.search [q:anything]" }] }));
+    expect(await response.json()).toMatchObject({ gmailSearchAuthority: { reason: "invalid_gmail_search_syntax" } });
+    expect(searchConnector).not.toHaveBeenCalled(); expect(readConnector).not.toHaveBeenCalled(); expect(model).not.toHaveBeenCalled();
+  });
+
   it("intercepts exact Gmail reads before model and specialist routing", async () => {
     const model = vi.fn(async () => handoffResult("dawnwatch", "handoff"));
     const createConnector = vi.fn(() => ({ retrieveMessage: vi.fn(async () => ({ subject: "Actual governed subject" })) }));

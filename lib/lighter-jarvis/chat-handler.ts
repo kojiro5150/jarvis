@@ -7,6 +7,7 @@ import { getLighterSpecialist } from "@/lib/lighter-jarvis/specialists";
 import { resolveProductionCalendarRead, type ProductionCalendarDependencies } from "@/lib/lighter-jarvis/production-calendar-read";
 import { CALENDAR_TIME_ZONE } from "@/lib/lighter-jarvis/calendar-read-window";
 import { resolveProductionGmailRead, type ProductionGmailDependencies } from "@/lib/lighter-jarvis/production-gmail-read";
+import { resolveProductionGmailSearch, type ProductionGmailSearchDependencies } from "@/lib/lighter-jarvis/production-gmail-search";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -181,7 +182,7 @@ function formatMelbourneTime(value: string): string { return upperCaseMeridiem(m
 function formatMelbourneDate(value: string): string { return melbourneDatePresentation.format(new Date(value)); }
 
 export function createLighterChatHandler(callModel: ModelCall = callClaude, calendarDependencies?: ProductionCalendarDependencies,
-  gmailDependencies?: ProductionGmailDependencies) {
+  gmailDependencies?: ProductionGmailDependencies, gmailSearchDependencies?: ProductionGmailSearchDependencies) {
   return async function POST(request: Request) {
     let body: LighterChatBody;
     try { body = await request.json() as LighterChatBody; }
@@ -198,6 +199,13 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       return NextResponse.json({ error: "`messages` must contain 1-40 valid conversation messages." }, { status: 400 });
     }
     const currentUserUtterance = [...body.messages].reverse().find(({ role }) => role === "user")?.content;
+    const gmailSearch = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
+      ? await resolveProductionGmailSearch({ currentUserUtterance }, gmailSearchDependencies) : null;
+    if (gmailSearch?.handled) {
+      return NextResponse.json({ reply: gmailSearch.reply, specialistId: specialist.id, execution: "none",
+        gmailSearchAuthority: { ...(gmailSearch.decision ? { decision: gmailSearch.decision } : {}), reason: gmailSearch.reason },
+        ...(gmailSearch.messageIds ? { messageIds: gmailSearch.messageIds } : {}) });
+    }
     const gmail = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
       ? await resolveProductionGmailRead({ currentUserUtterance,
           ...(Object.hasOwn(body, "pendingAuthorizationReference")

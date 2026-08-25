@@ -66,7 +66,7 @@ describe("POST /api/lighter/chat", () => {
       clock: () => new Date("2026-08-25T00:00:00Z"),
     })(request({ specialistId: "jarvis", messages: [{ role: "user", content: "Show my calendar" }] }));
     const body = await response.json();
-    expect(body.reply).toBe("Next seven days:\n- Wed, 26 Aug, 7:00 PM – 8:00 PM");
+    expect(body.reply).toBe("Next seven days you have 1 commitment:\n- Wed, 26 Aug, 7:00 PM – 8:00 PM");
     expect(body.reply).not.toContain("2026-08-26T09:00:00Z");
     expect(body.reply).not.toContain("Private title");
     expect(model).not.toHaveBeenCalled();

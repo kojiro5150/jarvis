@@ -127,7 +127,8 @@ export function formatCalendarReadResponse(calendar: NonNullable<Awaited<ReturnT
     const commitments = calendar.evidence.map(({ start, end }) =>
       `- ${includeDate ? `${formatMelbourneDate(start)}, ` : ""}${formatMelbourneTime(start)} – ${formatMelbourneTime(end)}`,
     ).join("\n");
-    return `${calendarPeriodHeading(window.period)}:\n${commitments}`;
+    const count = calendar.evidence.length;
+    return `${calendarPeriodHeading(window.period)} you have ${count} commitment${count === 1 ? "" : "s"}:\n${commitments}`;
   }
   const coverage = calendar.evidence[0]?.coverageLimit.match(/^window=([^/]+)\/([^;]+);/) ?? null;
   const bounds = window ? [window.start, window.end] : coverage?.slice(1);

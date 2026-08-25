@@ -16,6 +16,11 @@ const populated = Object.freeze({ status: "available" as const, evidence: Object
     policyReference: "calendar-policy",
   }),
 ]) });
+const populatedPlural = Object.freeze({ status: "available" as const, evidence: Object.freeze([
+  ...populated.evidence,
+  Object.freeze({ ...populated.evidence[0], commitmentReference: "event:two",
+    start: "2026-08-26T11:30:00.000Z", end: "2026-08-26T12:00:00.000Z" }),
+]) });
 const window = (period: CalendarReadPeriod): CalendarReadWindow => Object.freeze({
   start: "2026-08-25T14:00:00.000Z",
   end: "2026-08-26T14:00:00.000Z",
@@ -37,19 +42,25 @@ describe("deterministic Calendar period presentation", () => {
   });
 
   it.each([
-    ["today", "Today:\n- 7:00 PM – 8:00 PM"],
-    ["tomorrow", "Tomorrow:\n- 7:00 PM – 8:00 PM"],
-    ["this_morning", "This morning:\n- 7:00 PM – 8:00 PM"],
-    ["this_afternoon", "This afternoon:\n- 7:00 PM – 8:00 PM"],
-    ["this_evening", "This evening:\n- 7:00 PM – 8:00 PM"],
+    ["today", "Today you have 1 commitment:\n- 7:00 PM – 8:00 PM"],
+    ["tomorrow", "Tomorrow you have 1 commitment:\n- 7:00 PM – 8:00 PM"],
+    ["this_morning", "This morning you have 1 commitment:\n- 7:00 PM – 8:00 PM"],
+    ["this_afternoon", "This afternoon you have 1 commitment:\n- 7:00 PM – 8:00 PM"],
+    ["this_evening", "This evening you have 1 commitment:\n- 7:00 PM – 8:00 PM"],
   ] as const)("uses a period heading and time-only lines for a populated %s window", (period, expected) => {
     expect(formatCalendarReadResponse(populated, window(period))).toBe(expected);
   });
 
   it.each([
-    ["this_week", "This week:\n- Wed, 26 Aug, 7:00 PM – 8:00 PM"],
-    ["default", "Next seven days:\n- Wed, 26 Aug, 7:00 PM – 8:00 PM"],
+    ["this_week", "This week you have 1 commitment:\n- Wed, 26 Aug, 7:00 PM – 8:00 PM"],
+    ["default", "Next seven days you have 1 commitment:\n- Wed, 26 Aug, 7:00 PM – 8:00 PM"],
   ] as const)("retains concise date context for a populated %s window", (period, expected) => {
     expect(formatCalendarReadResponse(populated, window(period))).toBe(expected);
+  });
+
+  it("uses plural grammar for multiple commitments", () => {
+    expect(formatCalendarReadResponse(populatedPlural, window("tomorrow"))).toBe(
+      "Tomorrow you have 2 commitments:\n- 7:00 PM – 8:00 PM\n- 9:30 PM – 10:00 PM",
+    );
   });
 });

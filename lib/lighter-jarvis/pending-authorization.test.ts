@@ -5,7 +5,8 @@ import {
   type PendingAuthorizationReference,
 } from "./pending-authorization";
 
-const operation = Object.freeze({ capability: "calendar.read" } as const);
+const TEST_WINDOW = Object.freeze({ start: "2026-08-25T00:00:00.000Z", end: "2026-09-01T00:00:00.000Z", timeZone: "Australia/Melbourne", period: "default" as const });
+const operation = Object.freeze({ capability: "calendar.read", window: TEST_WINDOW } as const);
 const create = () => createPendingAuthorization(operation);
 const resolve = (currentUserUtterance: string, pendingAuthorizationReference: unknown) =>
   resolvePendingAuthorization({ currentUserUtterance, pendingAuthorizationReference });
@@ -21,7 +22,7 @@ describe("server-authoritative PendingAuthorization confirmation", () => {
     expect(result).toMatchObject({
       decision: "ALLOW",
       reason: "pending_authorization_confirmed",
-      proposedOperation: { capability: "calendar.read" },
+      proposedOperation: { capability: "calendar.read", window: TEST_WINDOW },
       pendingAuthorizationReference: null,
     });
     expect(result.proposedOperation).toBe(operation);
@@ -36,7 +37,7 @@ describe("server-authoritative PendingAuthorization confirmation", () => {
   it("rejects a client-manufactured record and never trusts its operation", () => {
     const manufactured = {
       pendingAuthorizationId: "client-chosen-id",
-      proposedOperation: { capability: "calendar.read" },
+      proposedOperation: { capability: "calendar.read", window: TEST_WINDOW },
     } as unknown as PendingAuthorizationReference;
     expect(resolve("yes", manufactured)).toEqual({
       decision: "ASK",

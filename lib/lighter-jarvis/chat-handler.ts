@@ -5,6 +5,7 @@ import type { ChatMessage } from "@/lib/agents/types";
 import { areValidMessages, buildSpecialistPrompt, type RelaySpecialistReply } from "@/lib/lighter-jarvis/runtime";
 import { getLighterSpecialist } from "@/lib/lighter-jarvis/specialists";
 import { resolveProductionCalendarRead, type ProductionCalendarDependencies } from "@/lib/lighter-jarvis/production-calendar-read";
+import { CALENDAR_TIME_ZONE } from "@/lib/lighter-jarvis/calendar-read-window";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -117,11 +118,35 @@ export function hasVerifiableExternalEvidence(content: ClaudeContentBlock[], all
   });
 }
 
-export function formatCalendarReadResponse(calendar: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["evidence"]>): string {
+export function formatCalendarReadResponse(calendar: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["evidence"]>,
+  window?: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["window"]>): string {
   if (calendar.status !== "available") return "I couldn't access your Calendar right now.";
-  if (calendar.evidence.length === 0) return "Your Calendar has no commitments in the next seven days (up to five events checked).";
-  const commitments = calendar.evidence.map(({ start, end }) => `- ${start} – ${end}`).join("\n");
-  return `Your Calendar has ${calendar.evidence.length} upcoming commitment${calendar.evidence.length === 1 ? "" : "s"} in the next seven days (up to five events):\n${commitments}`;
+  if (calendar.evidence.length === 0 && window) return clearCalendarPeriod(window.period);
+  const coverage = calendar.evidence[0]?.coverageLimit.match(/^window=([^/]+)\/([^;]+);/) ?? null;
+  const bounds = window ? [window.start, window.end] : coverage?.slice(1);
+  const range = bounds ? `${formatMelbourne(bounds[0])} to ${formatMelbourne(bounds[1])}` : "the requested period";
+  if (calendar.evidence.length === 0) return `Your Calendar has no commitments in ${range} (up to five events checked).`;
+  const commitments = calendar.evidence.map(({ start, end }) => `- ${formatMelbourne(start)} – ${formatMelbourne(end)}`).join("\n");
+  return `Your Calendar has ${calendar.evidence.length} commitment${calendar.evidence.length === 1 ? "" : "s"} in ${range} (up to five events):\n${commitments}`;
+}
+
+function clearCalendarPeriod(period: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["window"]>["period"]): string {
+  const copy = {
+    today: "Today is clear.",
+    tomorrow: "Tomorrow is clear.",
+    this_morning: "This morning is clear.",
+    this_afternoon: "This afternoon is clear.",
+    this_evening: "This evening is clear.",
+    this_week: "This week is clear.",
+    default: "Your Calendar is clear for the next seven days.",
+  } as const;
+  return copy[period];
+}
+
+const melbournePresentation = new Intl.DateTimeFormat("en-AU", { timeZone: CALENDAR_TIME_ZONE,
+  weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
+function formatMelbourne(value: string): string {
+  return melbournePresentation.format(new Date(value)).replace(/\s(am|pm)$/i, " $1").replace(/\b(am|pm)\b/gi, match => match.toUpperCase());
 }
 
 export function createLighterChatHandler(callModel: ModelCall = callClaude, calendarDependencies?: ProductionCalendarDependencies) {
@@ -159,7 +184,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
     if (calendar?.decision === "ALLOW") {
       return NextResponse.json({
-        reply: formatCalendarReadResponse(calendar.evidence!),
+        reply: formatCalendarReadResponse(calendar.evidence!, calendar.window ?? undefined),
         specialistId: specialist.id,
         execution: "none",
         calendarAuthority: { decision: "ALLOW", reason: calendar.reason },

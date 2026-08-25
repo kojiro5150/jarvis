@@ -13,12 +13,22 @@ import {
   resolvePendingAuthorization,
   type PendingAuthorizationResolution,
 } from "./pending-authorization";
+import { acquireScopedCalendarEvidence, type ScopedCalendarAcquisitionPort } from "../governed-conversation/scoped-calendar-evidence-acquisition-adapter";
+import type { CalendarReadWindow } from "./calendar-read-window";
 
 export interface GovernedCalendarAcquisitionRequest {
-  readonly connector: CalendarAcquisitionPort;
+  readonly connector: CalendarAcquisitionPort | ScopedCalendarAcquisitionPort;
   readonly clock: () => Date;
   readonly requestedLimit: number;
   readonly horizonDays: number;
+  readonly window?: CalendarReadWindow;
+}
+
+function acquire(request: GovernedCalendarAcquisitionRequest) {
+  return request.window
+    ? acquireScopedCalendarEvidence({ connector: request.connector as ScopedCalendarAcquisitionPort,
+        clock: request.clock, requestedLimit: request.requestedLimit, window: request.window })
+    : acquireGovernedCalendarEvidence({ ...request, connector: request.connector as CalendarAcquisitionPort });
 }
 
 export type AuthorizedCalendarAcquisitionResult = Readonly<{
@@ -38,7 +48,7 @@ async function acquireCalendarEvidenceForAuthorityDecision(
     return Object.freeze({ authority, evidence: null });
   }
 
-  const evidence = await acquireGovernedCalendarEvidence(acquisition);
+  const evidence = await acquire(acquisition);
   return Object.freeze({ authority, evidence });
 }
 
@@ -51,14 +61,14 @@ export type PendingAuthorizedCalendarAcquisitionResult = Readonly<{
 export async function acquirePendingAuthorizedCalendarEvidence(input: {
   readonly currentUserUtterance: string;
   readonly pendingAuthorizationReference?: unknown;
-  readonly acquisition: () => GovernedCalendarAcquisitionRequest;
+  readonly acquisition: (operation: NonNullable<PendingAuthorizationResolution["proposedOperation"]>) => GovernedCalendarAcquisitionRequest;
 }): Promise<PendingAuthorizedCalendarAcquisitionResult> {
   const authority = resolvePendingAuthorization(input);
   if (authority.decision !== "ALLOW" ||
       authority.proposedOperation?.capability !== "calendar.read") {
     return Object.freeze({ authority, evidence: null });
   }
-  const evidence = await acquireGovernedCalendarEvidence(input.acquisition());
+  const evidence = await acquire(input.acquisition(authority.proposedOperation));
   return Object.freeze({ authority, evidence });
 }
 

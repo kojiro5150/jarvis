@@ -62,11 +62,13 @@ describe("POST /api/lighter/chat", () => {
       start: "2026-08-26T09:00:00Z", end: "2026-08-26T10:00:00Z", day: "WED", time: "09:00",
       source: "google" as const, calendarId: "primary", calendarName: "Private" }]);
     const response = await createLighterChatHandler(model, {
-      createConnector: () => ({ source: "google", listUpcoming }),
+      createConnector: () => ({ source: "google", listUpcoming, listBetween: vi.fn(async () => listUpcoming()) }),
       clock: () => new Date("2026-08-25T00:00:00Z"),
     })(request({ specialistId: "jarvis", messages: [{ role: "user", content: "Show my calendar" }] }));
     const body = await response.json();
-    expect(body.reply).toContain("1 upcoming commitment");
+    expect(body.reply).toContain("1 commitment");
+    expect(body.reply).toContain("Wed, 26 Aug 2026, 7:00 PM");
+    expect(body.reply).not.toContain("2026-08-26T09:00:00Z");
     expect(body.reply).not.toContain("Private title");
     expect(model).not.toHaveBeenCalled();
   });
@@ -108,7 +110,8 @@ describe("POST /api/lighter/chat", () => {
   it("acquires Calendar only after yes confirms the exact schedule-question reference, then consumes it", async () => {
     const model = vi.fn();
     const listUpcoming = vi.fn(async () => []);
-    const createConnector = vi.fn(() => ({ source: "google" as const, listUpcoming }));
+    const listBetween = vi.fn(async () => []);
+    const createConnector = vi.fn(() => ({ source: "google" as const, listUpcoming, listBetween }));
     const handler = createLighterChatHandler(model, {
       createConnector,
       clock: () => new Date("2026-08-25T00:00:00Z"),
@@ -130,7 +133,7 @@ describe("POST /api/lighter/chat", () => {
       pendingAuthorizationReference: exactReference,
     }));
     expect(await allowedResponse.json()).toEqual({
-      reply: "Your Calendar has no commitments in the next seven days (up to five events checked).",
+      reply: "Tomorrow is clear.",
       specialistId: "jarvis",
       execution: "none",
       calendarAuthority: {
@@ -139,7 +142,7 @@ describe("POST /api/lighter/chat", () => {
       },
     });
     expect(createConnector).toHaveBeenCalledOnce();
-    expect(listUpcoming).toHaveBeenCalledOnce();
+    expect(listBetween).toHaveBeenCalledOnce();
     expect(model).not.toHaveBeenCalled();
 
     const consumedResponse = await handler(request({
@@ -155,7 +158,7 @@ describe("POST /api/lighter/chat", () => {
       pendingAuthorizationReference: null,
     });
     expect(createConnector).toHaveBeenCalledOnce();
-    expect(listUpcoming).toHaveBeenCalledOnce();
+    expect(listBetween).toHaveBeenCalledOnce();
     expect(model).not.toHaveBeenCalled();
   });
   it("resolves market scope domains deterministically with union and deduplication", () => {

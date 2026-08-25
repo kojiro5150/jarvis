@@ -69,13 +69,13 @@ export class GoogleCalendarConnector implements CalendarConnector {
   private async listEventsForCalendar(
     accessToken: string,
     calendar: GoogleCalendarListEntry,
-    limit: number
+    limit: number,
+    start: string,
+    end: string,
   ): Promise<CalendarEvent[]> {
-    const now = new Date();
-    const sevenDaysOut = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     const params = new URLSearchParams({
-      timeMin: now.toISOString(),
-      timeMax: sevenDaysOut.toISOString(),
+      timeMin: start,
+      timeMax: end,
       singleEvents: "true",
       orderBy: "startTime",
       maxResults: String(limit),
@@ -114,6 +114,12 @@ export class GoogleCalendarConnector implements CalendarConnector {
    * no calendar-source filter yet (a later, explicitly deferred sprint).
    */
   async listUpcoming(limit = 5): Promise<CalendarEvent[]> {
+    const now = new Date();
+    return this.listBetween(now.toISOString(), new Date(now.getTime() + 7 * 86_400_000).toISOString(), limit);
+  }
+
+  /** Fetches only the caller-authorized half-open interval. */
+  async listBetween(start: string, end: string, limit = 5): Promise<CalendarEvent[]> {
     const accessToken = await getValidGoogleAccessToken();
     const calendars = await this.listCalendars(accessToken);
 
@@ -123,7 +129,7 @@ export class GoogleCalendarConnector implements CalendarConnector {
       calendars.length > 0 ? calendars : [{ id: "primary" }];
 
     const perCalendar = await Promise.all(
-      targets.map((cal) => this.listEventsForCalendar(accessToken, cal, limit))
+      targets.map((cal) => this.listEventsForCalendar(accessToken, cal, limit, start, end))
     );
 
     return perCalendar

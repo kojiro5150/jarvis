@@ -3,10 +3,11 @@ import {
   evaluateCalendarReadAuthority,
 } from "./calendar-read-authority";
 
+const TEST_WINDOW = Object.freeze({ start: "2026-08-25T00:00:00.000Z", end: "2026-09-01T00:00:00.000Z", timeZone: "Australia/Melbourne", period: "default" as const });
 describe("calendar.read authority", () => {
   it("ALLOW: accepts the canonical explicit Calendar read", () => {
     const decision = evaluateCalendarReadAuthority({
-      proposedOperation: { capability: "calendar.read" },
+      proposedOperation: { capability: "calendar.read", window: TEST_WINDOW },
       currentUserUtterance: "What’s on my calendar tomorrow?",
     });
 
@@ -28,7 +29,7 @@ describe("calendar.read authority", () => {
 
   it("ASK: the proposed operation does not authorise an ambiguous current utterance", () => {
     expect(evaluateCalendarReadAuthority({
-      proposedOperation: { capability: "calendar.read" },
+      proposedOperation: { capability: "calendar.read", window: TEST_WINDOW },
       currentUserUtterance: "How does tomorrow look?",
     })).toEqual({
       capability: "calendar.read",
@@ -43,7 +44,7 @@ describe("calendar.read authority", () => {
     // A previous turn may have discussed the Calendar. It is deliberately not
     // an evaluator input and cannot make this follow-up an explicit read.
     expect(evaluateCalendarReadAuthority({
-      proposedOperation: { capability: "calendar.read" },
+      proposedOperation: { capability: "calendar.read", window: TEST_WINDOW },
       currentUserUtterance: "What should I do?",
     })).toEqual({
       capability: "calendar.read",
@@ -59,7 +60,7 @@ describe("calendar.read authority", () => {
     "Can you check my calendar for Friday?",
     "Do I have anything on my calendar today?",
   ])("allows another explicit read: %j", (currentUserUtterance) => {
-    expect(evaluateCalendarReadAuthority({ proposedOperation: { capability: "calendar.read" }, currentUserUtterance })).toMatchObject({
+    expect(evaluateCalendarReadAuthority({ proposedOperation: { capability: "calendar.read", window: TEST_WINDOW }, currentUserUtterance })).toMatchObject({
       decision: "ALLOW",
       reason: "explicit_calendar_read",
     });
@@ -79,7 +80,7 @@ describe("calendar.read authority", () => {
     "Never, under any circumstances, check my calendar.",
   ])("never treats a negated read as explicit authority: %j", (currentUserUtterance) => {
     expect(evaluateCalendarReadAuthority({
-      proposedOperation: { capability: "calendar.read" },
+      proposedOperation: { capability: "calendar.read", window: TEST_WINDOW },
       currentUserUtterance,
     })).toMatchObject({
       decision: "ASK",
@@ -90,7 +91,7 @@ describe("calendar.read authority", () => {
 
   it("does not let mutation wording establish read authority", () => {
     expect(evaluateCalendarReadAuthority({
-      proposedOperation: { capability: "calendar.read" },
+      proposedOperation: { capability: "calendar.read", window: TEST_WINDOW },
       currentUserUtterance: "Check my calendar and then add lunch.",
     })).toMatchObject({ decision: "ASK" });
   });

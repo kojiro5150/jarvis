@@ -47,7 +47,14 @@ export async function POST(req: NextRequest) {
       const capability = parseChatCapabilityRequest(body.capability);
       if (!capability) return NextResponse.json({ error: "Unknown capability operation." }, { status: 400 });
       if (capability.operation === "governed_gmail_retrieval") {
-        const authority = authorizeGmailCapability(capability);
+        if (!isValidMessages(body.messages)) {
+          return NextResponse.json({ error: "Gmail authority requires valid chat messages." }, { status: 400 });
+        }
+        const currentUserUtterance = [...body.messages].reverse().find(({ role }) => role === "user")?.content;
+        if (currentUserUtterance === undefined) {
+          return NextResponse.json({ error: "Gmail authority requires a current user message." }, { status: 400 });
+        }
+        const authority = authorizeGmailCapability({ capability, currentUserUtterance });
         if (authority.decision !== "ALLOW" || authority.operation === null) {
           return NextResponse.json({ capability: { operation: capability.operation, decision: authority.decision,
             reason: authority.reason, pendingAuthorizationReference: authority.pendingAuthorizationReference } });

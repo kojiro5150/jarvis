@@ -6,7 +6,7 @@ import { FULL_ASSEMBLY_SCENARIO_IDS } from "./full-assembly-claim-boundary-confl
 import { runEnrichedClaimMutationProof, runFullAssemblyEnrichmentRecheckMatrix, runFullAssemblyEnrichmentRecheckScenario } from "./full-assembly-enrichment-composition-recheck";
 
 const protectedHashes: Readonly<Record<string, string>> = {
-  "app/api/chat/route.ts": "8fa36884a15158aa04e84ae53d3b8796499d4a2d4f6d74a08a8363aefb8a776d",
+  "app/api/chat/route.ts": "270c8446571a0dad867a63584d6afa67751e3a5c600671558f1e16549c249946",
   "lib/context-builder.ts": "8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d",
   "lib/useAgentConversation.ts": "55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97",
   "lib/agents/chat-execution.ts": "a8fc170c4273b0dc9e90ec1d85dfaf98c2b4aeddbae3e38380fbe4aad3533dc7",

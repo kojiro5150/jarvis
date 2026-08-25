@@ -133,7 +133,7 @@ describe("POST /api/lighter/chat", () => {
       pendingAuthorizationReference: exactReference,
     }));
     expect(await allowedResponse.json()).toEqual({
-      reply: "Your Calendar has no commitments in Wed, 26 Aug 2026, 12:00 AM to Thu, 27 Aug 2026, 12:00 AM (up to five events checked).",
+      reply: "Tomorrow is clear.",
       specialistId: "jarvis",
       execution: "none",
       calendarAuthority: {

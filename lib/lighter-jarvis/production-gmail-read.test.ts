@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ContentRetrievalPolicy } from "../content-retrieval-policy";
+import { loadContentRetrievalPolicy, type ContentRetrievalPolicy } from "../content-retrieval-policy";
 import { resolveProductionGmailRead } from "./production-gmail-read";
 import { createPendingAuthorization } from "./pending-authorization";
 import { proposeGmailRead } from "./gmail-read-authority";
@@ -11,6 +11,19 @@ const policy: ContentRetrievalPolicy = { policyVersion: "test-v1", rules: [{
 }] };
 
 describe("production identified-message Gmail read", () => {
+  it("uses the real development/demo policy to release an identified message subject", async () => {
+    const retrieveMessage = vi.fn(async () => ({ subject: "Released subject", snippet: "Not released" }));
+    const result = await resolveProductionGmailRead({
+      currentUserUtterance: "gmail.read message-1 [subject]",
+    }, {
+      loadPolicy: () => loadContentRetrievalPolicy("config/content-retrieval-policy.dev.json"),
+      createConnector: () => ({ retrieveMessage }),
+    });
+    expect(result).toMatchObject({ reply: "Subject: Released subject" });
+    expect(result.reply).not.toContain("Not released");
+    expect(retrieveMessage).toHaveBeenCalledWith("message-1");
+  });
+
   it("preserves the exact field binding and presents governed content deterministically", async () => {
     const retrieveMessage = vi.fn(async () => ({ subject: "Actual governed subject", snippet: "Private snippet" }));
     const createConnector = vi.fn(() => ({ retrieveMessage }));

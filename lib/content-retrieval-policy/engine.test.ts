@@ -88,6 +88,20 @@ describe("content retrieval policy boundary", () => {
 });
 
 describe("deployment configuration", () => {
+  it("loads the real bounded development/demo Gmail policy", async () => {
+    const configured = await loadContentRetrievalPolicy("config/content-retrieval-policy.dev.json");
+    expect(configured).not.toBeNull();
+    expect(evaluateContentRetrievalPolicy(resource, configured)).toMatchObject({
+      policyVersion: "dev-demo-2026-08-25.1",
+      decision: "external_processing_permitted",
+      matchedRuleId: "dev-demo-identified-gmail-subject",
+      admissibleFields: ["subject"],
+    });
+    expect(resolveReleasedFields(evaluateContentRetrievalPolicy(resource, configured), [
+      "plain_text_body", "subject", "snippet",
+    ])).toEqual(["subject"]);
+  });
+
   it("loads explicit configuration and returns null for absent or malformed configuration", async () => {
     const directory = await mkdtemp(join(tmpdir(), "retrieval-policy-"));
     const valid = join(directory, "policy.json");

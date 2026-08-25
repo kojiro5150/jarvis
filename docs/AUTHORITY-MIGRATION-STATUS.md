@@ -1,7 +1,7 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 25 August 2026
+- **Last updated:** 25 August 2026 (Sprint 3.121)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
 - **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
 
@@ -41,7 +41,7 @@ Legend:
 | Explicit current-user utterance | ✓ for `calendar.read` only | Raw current utterance is independently matched; proposal itself is non-authoritative. |
 | Named capability grants | ○ | No general named-grant machinery yet. |
 | Standing grants | ○ | No standing-grant store or adjudication yet. |
-| `PendingAuthorization` confirmation | ○ | Existing handoff confirmation is only a precedent, not the general operation-level mechanism. |
+| `PendingAuthorization` confirmation | △ | An isolated public resolver binds deterministic confirmation to the exact existing `ProposedOperation`, makes confirmation and explicit decline one-shot by pending-authorization ID, and gives bare confirmation no authority. Production conversation state is not yet integrated. |
 | Resource policy | △ | Mature Gmail content-retrieval policy exists; it is not positive user authority and is not yet composed into a general Authority Engine. |
 
 ## `calendar.read` detail
@@ -65,7 +65,7 @@ Legend:
 ### Not yet implemented
 
 - production conversational routing through the authority gate;
-- `PendingAuthorization` for ambiguous Calendar requests;
+- production creation and conversation-state persistence of `PendingAuthorization` for ambiguous Calendar requests;
 - standing Calendar-awareness grants.
 
 ## Existing governed machinery that is reusable but not equivalent to the Authority Engine
@@ -141,7 +141,7 @@ The frozen product direction is one user-facing JARVIS identity. Internal specia
 | --- | --- | --- |
 | 1 | Isolated deterministic `calendar.read` adjudication | ✓ |
 | 2 | Authority-gated governed Calendar acquisition | ✓ |
-| 3 | General `PendingAuthorization` for exact operation confirmation | ○ |
+| 3 | General `PendingAuthorization` for exact operation confirmation | △ |
 | 4 | Live conversational Calendar integration | ○ |
 | 5 | Separate private acquisition from legacy `OperationalState` assembly | ○ |
 | 6 | Extend authority to Gmail, Drive and Memory | ○ |

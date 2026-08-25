@@ -21,8 +21,10 @@ bounds are not caller-controlled operation parameters.
 
 An ambiguous Calendar reference creates server-owned pending state and returns
 only its opaque reference. `ASK`, `DENY`, malformed or unknown references, and
-a standalone confirmation without a valid active reference return before
-connector construction, Calendar acquisition, and model invocation. Governed
+an invalid supplied reference return before connector construction, Calendar
+acquisition, and model invocation. Standalone confirmation or decline wording
+without a supplied pending reference remains ordinary conversation and does
+not enter the Calendar authority flow. Governed
 Calendar evidence is rendered by a bounded deterministic server response after
 `ALLOW`; it is not supplied to a model in this sprint. The proposal boundary
 can identify a temporal schedule question such as `How does tomorrow look?`
@@ -36,7 +38,7 @@ constructs the bound operation.
 ## Verification
 
 Tests establish direct explicit acquisition, pending confirmation acquisition,
-and zero acquisition for `ASK`, `DENY`, invalid references, and bare `yes`.
+and zero acquisition for `ASK`, `DENY`, invalid references, and bare confirmation.
 Route coverage separately proves pending resolution precedes the model call.
 
 ## Explicit non-scope

@@ -13,8 +13,6 @@ import {
 } from "./pending-authorization";
 import { proposeCalendarRead } from "./calendar-read-proposal";
 
-const STANDALONE_CONFIRMATION_OR_DECLINE = /^(?:yes|yes,?\s+please|confirm|confirmed|proceed|go\s+ahead|no|no,?\s+thanks|decline|cancel|never\s+mind)[.!]?$/i;
-
 export interface ProductionCalendarDependencies {
   readonly createConnector: () => CalendarAcquisitionPort;
   readonly clock: () => Date;
@@ -43,9 +41,8 @@ export async function resolveProductionCalendarRead(input: {
   readonly pendingAuthorizationReference?: unknown;
 }, dependencies: ProductionCalendarDependencies = defaults): Promise<ProductionCalendarReadResult> {
   const hasTransportReference = input.pendingAuthorizationReference !== undefined;
-  const isBareResolution = STANDALONE_CONFIRMATION_OR_DECLINE.test(input.currentUserUtterance.trim());
 
-  if (hasTransportReference || isBareResolution) {
+  if (hasTransportReference) {
     const acquired = await acquirePendingAuthorizedCalendarEvidence({
       ...input,
       acquisition: () => ({ connector: dependencies.createConnector(), clock: dependencies.clock,

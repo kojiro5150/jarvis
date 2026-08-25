@@ -21,6 +21,22 @@ const handoffResult = (
 });
 
 describe("POST /api/lighter/chat", () => {
+  it.each(["yes", "no"])("keeps bare %s outside Calendar confirmation without a pending reference", async (utterance) => {
+    const model = vi.fn(async () => `Normal response to ${utterance}`);
+    const connector = vi.fn();
+    const response = await createLighterChatHandler(model, {
+      createConnector: connector,
+      clock: () => new Date("2026-08-25T00:00:00Z"),
+    })(request({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }));
+    expect(await response.json()).toEqual({
+      reply: `Normal response to ${utterance}`,
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(model).toHaveBeenCalledOnce();
+    expect(connector).not.toHaveBeenCalled();
+  });
+
   it("resolves pending Calendar authority before any model call", async () => {
     const model = vi.fn();
     const connector = vi.fn();

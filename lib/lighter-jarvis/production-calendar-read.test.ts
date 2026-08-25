@@ -50,12 +50,17 @@ describe("production calendar.read authority ordering", () => {
     expect(deps.createConnector).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ["bare yes", { currentUserUtterance: "yes" }],
-    ["invalid reference", { currentUserUtterance: "yes", pendingAuthorizationReference: { pendingAuthorizationId: "invented" } }],
-  ])("does zero acquisition for %s", async (_name, input) => {
+  it("leaves bare confirmation outside the Calendar authority flow", async () => {
     const deps = dependencies();
-    expect((await resolveProductionCalendarRead(input, deps.value)).decision).toBe("ASK");
+    expect(await resolveProductionCalendarRead({ currentUserUtterance: "yes" }, deps.value))
+      .toMatchObject({ handled: false, decision: null });
+    expect(deps.createConnector).not.toHaveBeenCalled();
+  });
+
+  it("does zero acquisition for an invalid reference", async () => {
+    const deps = dependencies();
+    expect((await resolveProductionCalendarRead({ currentUserUtterance: "yes",
+      pendingAuthorizationReference: { pendingAuthorizationId: "invented" } }, deps.value)).decision).toBe("ASK");
     expect(deps.createConnector).not.toHaveBeenCalled();
     expect(deps.listUpcoming).not.toHaveBeenCalled();
   });

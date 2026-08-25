@@ -1,7 +1,7 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 25 August 2026 (Sprint 3.133)
+- **Last updated:** 25 August 2026 (Sprint 3.134)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
 - **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
 
@@ -28,7 +28,7 @@ Legend:
 | Capability / mechanism | Adjudication | Acquisition gate | Live production path | Notes |
 | --- | --- | --- | --- | --- |
 | `calendar.read` | ✓ | ✓ | △ | The JARVIS conversational route now gates bounded governed Calendar reads; broader production conversation and legacy paths remain unchanged. |
-| identified-message `gmail.read` | ✓ | ✓ | ✓ | The explicit `/api/chat` capability path and exact `/api/lighter/chat` command path gate one exact message and requested-field set before connector construction and resource policy. The lighter path returns deterministic presentation with no model or specialist handoff. |
+| identified-message `gmail.read` | ✓ | ✓ | ✓ | The explicit `/api/chat` capability path and exact `/api/lighter/chat` command path gate one exact message and requested-field set before resource-policy evaluation and acquisition. The development/demo runtime is explicitly wired to a subject-only policy; the lighter path returns deterministic presentation with no model or specialist handoff. |
 | Gmail search/discovery and broader conversational use | ○ | ○ | ○ | No search, listing, discovery, ambient mailbox context or general conversational Gmail authority exists. |
 | `drive.read` | ○ | ○ | ○ | Connector exists; operation-level authority not yet implemented. |
 | `memory.read` | ○ | ○ | ○ | Memory is still acquired through legacy state-building paths; operation-level authority not yet implemented. |
@@ -51,6 +51,12 @@ resource policy, one identified-message retrieval, and deterministic server pres
 commands stop with syntax guidance. Neither handled case invokes a conversational model or
 specialist routing, and the connector is not constructed before authority `ALLOW`. Search,
 discovery, and natural-language Gmail requests remain outside the operation.
+
+Sprint 3.134 supplies the concrete bounded development/demo resource policy and wires the local
+live runtime to it with `CONTENT_RETRIEVAL_POLICY_PATH`. The policy permits only `subject` for the
+already-authorized identified-message operation. Missing, malformed, unreadable, invalid, or
+unmatched policy remains fail-closed, and released content remains the intersection of requested,
+policy-admissible, and adapter-supported fields.
 
 ## `calendar.read` detail
 

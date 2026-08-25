@@ -32,6 +32,7 @@ export type PendingAuthorizationResolution = Readonly<{
     | "pending_authorization_declined"
     | "pending_authorization_not_confirmed"
     | "pending_authorization_already_consumed"
+    | "pending_authorization_reference_invalid"
     | "pending_authorization_not_found";
   proposedOperation: ProposedOperation | null;
   authorityEvidence: readonly PendingAuthorizationConfirmationEvidence[];
@@ -60,11 +61,14 @@ export function createPendingAuthorization(
  */
 export function resolvePendingAuthorization(input: {
   readonly currentUserUtterance: string;
-  readonly pendingAuthorizationReference: PendingAuthorizationReference | null;
+  readonly pendingAuthorizationReference?: unknown;
 }): PendingAuthorizationResolution {
   const suppliedReference = input.pendingAuthorizationReference;
   if (suppliedReference === null) {
     return resolution("ASK", "pending_authorization_not_confirmed", null);
+  }
+  if (!isPendingAuthorizationReference(suppliedReference)) {
+    return resolution("ASK", "pending_authorization_reference_invalid", null);
   }
 
   const pending = pendingAuthorizations.get(suppliedReference.pendingAuthorizationId);
@@ -100,6 +104,12 @@ export function resolvePendingAuthorization(input: {
   }
 
   return resolution("ASK", "pending_authorization_not_confirmed", pending.reference);
+}
+
+function isPendingAuthorizationReference(value: unknown): value is PendingAuthorizationReference {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const id = Object.getOwnPropertyDescriptor(value, "pendingAuthorizationId");
+  return id !== undefined && "value" in id && typeof id.value === "string" && id.value.trim().length > 0;
 }
 
 function consume(pending: PendingAuthorization): void {

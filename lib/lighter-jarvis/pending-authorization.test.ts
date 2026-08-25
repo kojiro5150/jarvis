@@ -7,7 +7,7 @@ import {
 
 const operation = Object.freeze({ capability: "calendar.read" } as const);
 const create = () => createPendingAuthorization(operation);
-const resolve = (currentUserUtterance: string, pendingAuthorizationReference: PendingAuthorizationReference | null) =>
+const resolve = (currentUserUtterance: string, pendingAuthorizationReference: unknown) =>
   resolvePendingAuthorization({ currentUserUtterance, pendingAuthorizationReference });
 
 describe("server-authoritative PendingAuthorization confirmation", () => {
@@ -45,6 +45,34 @@ describe("server-authoritative PendingAuthorization confirmation", () => {
       authorityEvidence: [],
       pendingAuthorizationReference: null,
     });
+  });
+
+  it.each([
+    ["missing", undefined],
+    ["object without an identifier", {}],
+    ["empty identifier", { pendingAuthorizationId: "" }],
+    ["blank identifier", { pendingAuthorizationId: "   " }],
+    ["non-string identifier", { pendingAuthorizationId: 42 }],
+    ["string transport value", "pending-id"],
+    ["numeric transport value", 42],
+    ["array transport value", []],
+  ])("fails closed for a malformed %s reference", (_description, pendingAuthorizationReference) => {
+    expect(() => resolve("yes", pendingAuthorizationReference)).not.toThrow();
+    expect(resolve("yes", pendingAuthorizationReference)).toEqual({
+      decision: "ASK",
+      reason: "pending_authorization_reference_invalid",
+      proposedOperation: null,
+      authorityEvidence: [],
+      pendingAuthorizationReference: null,
+    });
+  });
+
+  it("does not invoke an accessor supplied in place of a transport identifier", () => {
+    const reference = Object.defineProperty({}, "pendingAuthorizationId", {
+      get: () => { throw new Error("client accessor must not run"); },
+    });
+    expect(() => resolve("yes", reference)).not.toThrow();
+    expect(resolve("yes", reference).reason).toBe("pending_authorization_reference_invalid");
   });
 
   it("makes confirmation one-shot in authoritative state", () => {

@@ -199,11 +199,18 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
     const currentUserUtterance = [...body.messages].reverse().find(({ role }) => role === "user")?.content;
     const gmail = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
-      ? await resolveProductionGmailRead(currentUserUtterance, gmailDependencies)
+      ? await resolveProductionGmailRead({ currentUserUtterance,
+          ...(Object.hasOwn(body, "pendingAuthorizationReference")
+            ? { pendingAuthorizationReference: body.pendingAuthorizationReference }
+            : {}),
+        }, gmailDependencies)
       : null;
     if (gmail?.handled) {
       return NextResponse.json({ reply: gmail.reply, specialistId: specialist.id, execution: "none",
-        gmailAuthority: { ...(gmail.decision ? { decision: gmail.decision } : {}), reason: gmail.reason } });
+        gmailAuthority: { ...(gmail.decision ? { decision: gmail.decision } : {}), reason: gmail.reason },
+        ...(gmail.pendingAuthorizationReference !== undefined
+          ? { pendingAuthorizationReference: gmail.pendingAuthorizationReference }
+          : {}) });
     }
     const calendar = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
       ? await resolveProductionCalendarRead({

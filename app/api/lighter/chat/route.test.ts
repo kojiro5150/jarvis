@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import { createLighterChatHandler, resolveMarketScopeDomains } from "@/lib/lighter-jarvis/chat-handler";
 import type { ChatMessage } from "@/lib/agents/types";
 import type { ClaudeResult, ClaudeTool } from "@/lib/claude";
+import { createPendingAuthorization } from "@/lib/lighter-jarvis/pending-authorization";
+import { proposeGmailRead } from "@/lib/lighter-jarvis/gmail-read-authority";
 
 const request = (body: unknown) => new Request("http://localhost/api/lighter/chat", {
   method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
@@ -44,6 +46,32 @@ describe("POST /api/lighter/chat", () => {
     const body = await response.json();
     expect(body.reply).toContain("Invalid gmail.read syntax"); expect(body.routeTo).toBeUndefined();
     expect(model).not.toHaveBeenCalled(); expect(calendarConnector).not.toHaveBeenCalled(); expect(gmailConnector).not.toHaveBeenCalled();
+  });
+  it("rejects angle-bracketed Gmail resource IDs with no connector, model, or handoff", async () => {
+    const model = vi.fn(async () => handoffResult("dawnwatch", "handoff")); const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, undefined, { createConnector, loadPolicy: vi.fn() })(request({
+      specialistId: "jarvis", messages: [{ role: "user", content: "gmail.read <message-1> [subject]" }],
+    }));
+    const body = await response.json();
+    expect(body).toMatchObject({ gmailAuthority: { reason: "invalid_gmail_read_syntax" } });
+    expect(body.reply).toContain("Invalid gmail.read syntax"); expect(body.routeTo).toBeUndefined();
+    expect(createConnector).not.toHaveBeenCalled(); expect(model).not.toHaveBeenCalled();
+  });
+
+  it("resolves an opaque Gmail confirmation through the stored operation without model or handoff", async () => {
+    const model = vi.fn(async () => handoffResult("dawnwatch", "handoff"));
+    const pendingAuthorizationReference = createPendingAuthorization(proposeGmailRead({
+      resource: { resourceId: "stored-message", connectorType: "email" }, requestedFields: ["subject"], requestingRuntime: "api-chat",
+    }));
+    const retrieveMessage = vi.fn(async () => ({ subject: "Stored subject" }));
+    const response = await createLighterChatHandler(model, undefined, { createConnector: () => ({ retrieveMessage }),
+      loadPolicy: vi.fn(async () => ({ policyVersion: "test-v1", rules: [{ id: "email", match: { connectorType: "email" as const },
+        processing: "external_processing_permitted" as const, admissibleFields: ["subject"] }] })) })(request({
+      specialistId: "jarvis", messages: [{ role: "user", content: "confirm" }], pendingAuthorizationReference,
+    }));
+    expect(await response.json()).toMatchObject({ reply: "Subject: Stored subject",
+      gmailAuthority: { decision: "ALLOW", reason: "pending_authorization_confirmed" } });
+    expect(retrieveMessage).toHaveBeenCalledWith("stored-message"); expect(model).not.toHaveBeenCalled();
   });
   it.each(["yes", "no"])("keeps bare %s outside Calendar confirmation without a pending reference", async (utterance) => {
     const model = vi.fn(async () => `Normal response to ${utterance}`);

@@ -5,7 +5,7 @@ import { loadContentRetrievalPolicy, type ContentRetrievalPolicy } from "../cont
 
 const SYNTAX = "gmail.read <message-id> [subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata]";
 const COMMAND_PREFIX = /^gmail\.read(?:\s|$)/;
-const EXACT_COMMAND = /^gmail\.read ([^\s\[\],]+) \[([^\]]+)\]$/;
+const EXACT_COMMAND = /^gmail\.read ([^\s\[\],<>]+) \[([^\]]+)\]$/;
 
 export type ProductionGmailDependencies = Readonly<{
   createConnector: () => GmailContentConnector;
@@ -14,9 +14,10 @@ export type ProductionGmailDependencies = Readonly<{
 
 export type ProductionGmailReadResult = Readonly<{
   handled: boolean;
-  decision?: "ALLOW";
+  decision?: "ALLOW" | "ASK" | "DENY";
   reason?: string;
   reply?: string;
+  pendingAuthorizationReference?: import("./pending-authorization").PendingAuthorizationReference | null;
 }>;
 
 const defaults: ProductionGmailDependencies = {
@@ -42,11 +43,31 @@ function present(content: GmailReleasedContent, requestedFields: readonly GmailC
 
 /** Intercepts only the closed, identified-message grammar. It never searches or interprets Gmail. */
 export async function resolveProductionGmailRead(
-  currentUserUtterance: string,
+  input: { readonly currentUserUtterance: string; readonly pendingAuthorizationReference?: unknown },
   dependencies: ProductionGmailDependencies = defaults,
 ): Promise<ProductionGmailReadResult> {
+  const currentUserUtterance = input.currentUserUtterance;
   const utterance = currentUserUtterance.trim();
-  if (!COMMAND_PREFIX.test(utterance)) return Object.freeze({ handled: false });
+  const hasPendingReference = input.pendingAuthorizationReference !== undefined;
+  if (!hasPendingReference && !COMMAND_PREFIX.test(utterance)) return Object.freeze({ handled: false });
+
+  if (hasPendingReference) {
+    const placeholderRequest = Object.freeze({ resource: Object.freeze({ resourceId: "pending-server-operation", connectorType: "email" as const }),
+      requestedFields: Object.freeze(["subject"] as GmailContentField[]), requestingRuntime: "api-lighter-chat" });
+    const authority = authorizeGmailCapability({ currentUserUtterance, capability: Object.freeze({
+      operation: "governed_gmail_retrieval", request: placeholderRequest,
+      pendingAuthorizationReference: input.pendingAuthorizationReference,
+    }) });
+    if (authority.reason === "pending_authorization_capability_mismatch") return Object.freeze({ handled: false });
+    if (authority.decision !== "ALLOW" || !authority.operation) {
+      const reply = authority.decision === "DENY"
+        ? "Understood. I won't read that Gmail message."
+        : "Please explicitly confirm that I may read that Gmail message.";
+      return Object.freeze({ handled: true, decision: authority.decision, reason: authority.reason, reply,
+        pendingAuthorizationReference: authority.pendingAuthorizationReference });
+    }
+    return retrieveAuthorized(authority.operation, authority.reason, dependencies);
+  }
 
   const match = utterance.match(EXACT_COMMAND);
   if (!match) return Object.freeze({ handled: true, reason: "invalid_gmail_read_syntax", reply: syntaxReply() });
@@ -69,17 +90,22 @@ export async function resolveProductionGmailRead(
     return Object.freeze({ handled: true, reason: authority.reason, reply: syntaxReply() });
   }
 
+  return retrieveAuthorized(authority.operation, authority.reason, dependencies);
+}
+
+async function retrieveAuthorized(operation: NonNullable<ReturnType<typeof authorizeGmailCapability>["operation"]>, reason: string,
+  dependencies: ProductionGmailDependencies): Promise<ProductionGmailReadResult> {
   // Both dependency calls deliberately occur after the exact authority ALLOW.
   let retrieval;
   try {
     const policy = await dependencies.loadPolicy();
     const adapter = new GmailContentRetrievalAdapter({ connector: dependencies.createConnector() });
-    retrieval = await adapter.retrieve(authority.operation.request, policy);
+    retrieval = await adapter.retrieve(operation.request, policy);
   } catch {
     return Object.freeze({ handled: true, decision: "ALLOW", reason: "gmail_retrieval_failed", reply: "I couldn't retrieve that Gmail message right now." });
   }
   if (retrieval.outcome === "denied") return Object.freeze({ handled: true, decision: "ALLOW", reason: "resource_policy_denied", reply: "I can't release that Gmail message under the current resource policy." });
   if (retrieval.outcome === "failed" || !retrieval.content) return Object.freeze({ handled: true, decision: "ALLOW", reason: "gmail_retrieval_failed", reply: "I couldn't retrieve that Gmail message right now." });
-  return Object.freeze({ handled: true, decision: "ALLOW", reason: authority.reason,
-    reply: present(retrieval.content, authority.operation.requestedFields) });
+  return Object.freeze({ handled: true, decision: "ALLOW", reason,
+    reply: present(retrieval.content, operation.requestedFields) });
 }

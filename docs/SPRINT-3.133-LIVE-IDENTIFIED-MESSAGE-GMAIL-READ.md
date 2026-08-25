@@ -19,6 +19,12 @@ field order, and field set are bound exactly from the raw current user utterance
 unknown, empty, spaced, or otherwise malformed field lists return fixed syntax guidance and do not
 fall through to conversational interpretation.
 
+The route also accepts the existing opaque `pendingAuthorizationReference`. Confirmation and
+decline are resolved from the current raw utterance against server-owned state; confirmation uses
+the stored Gmail operation rather than any replacement client parameters. Consumed and fabricated
+references fail closed. Capability matching occurs before consumption, so a Calendar reference is
+left untouched for the existing Calendar interceptor.
+
 ## Execution order
 
 The production path is:

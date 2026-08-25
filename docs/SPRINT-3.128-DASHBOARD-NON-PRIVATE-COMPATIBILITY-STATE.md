@@ -17,6 +17,16 @@ derives service availability from connector selection, OAuth configuration, and
 stored-token metadata without acquiring Calendar, Gmail, Drive, or Memory
 content. The returned three service statuses are overlaid on the empty state so
 existing Dashboard status chrome continues to work without a visual redesign.
+The legacy `connectorStatuses[].source` value synthesized for that component
+contract is compatibility-only; it is not observed provider provenance.
+
+## Memory editor isolation
+
+Dashboard Memory editing is temporarily unavailable. The rail entry point is
+disabled and the editor is not mounted by `DashboardShell`, so its empty
+compatibility arrays cannot be submitted to `PATCH /api/memory` and erase
+stored Memory. Editing remains unavailable until explicit Memory read and write
+authority is defined; this sprint does not add an ambient read as a workaround.
 
 ## Quarantine update
 

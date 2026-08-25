@@ -17,13 +17,6 @@ interface AgentRailProps {
   /** Real connector states — footer shows how many are actually live, never a fabricated "100%" readout. */
   connectorStatuses: ConnectorStatus[];
   /**
-   * v29 (Sprint 11, Section 3): the memory editor's click trigger moved
-   * here from the Orb panel's now-removed MEMORY STATUS block — the
-   * compact Memory row below (Sprint 9) is the natural place for it,
-   * since it's already the one row on the page specifically about memory.
-   */
-  onOpenMemoryEditor?: () => void;
-  /**
    * v43: fires after a real connect/disconnect action so the caller can
    * re-fetch operational state (same `refresh()` DashboardShell already
    * passes to the memory editor's `onSaved`) — Connect itself is a full
@@ -257,11 +250,9 @@ function googleConnectAction(state: DotState): { label: string; title: string; n
 
 function CompactSystemStatus({
   operationalState,
-  onOpenMemoryEditor,
   onConnectorsChanged,
 }: {
   operationalState: OperationalState;
-  onOpenMemoryEditor?: () => void;
   onConnectorsChanged?: () => void;
 }) {
   const { calendarStatus, gmailStatus, driveStatus } = operationalState;
@@ -319,9 +310,8 @@ function CompactSystemStatus({
       <CompactStatusRow
         icon={Database}
         label="Memory"
-        state="live"
-        statusLabel="ONLINE"
-        onClick={onOpenMemoryEditor}
+        state="offline"
+        statusLabel="UNAVAILABLE"
       />
       <CompactStatusRow icon={BookOpen} label="Knowledge" state="live" statusLabel="READY" />
       <CompactStatusRow icon={Github} label="GitHub" state="offline" statusLabel="NOT CONNECTED" />
@@ -335,7 +325,6 @@ export default function AgentRail({
   operationalState,
   activeLoading,
   connectorStatuses,
-  onOpenMemoryEditor,
   onConnectorsChanged,
 }: AgentRailProps) {
   const liveCount = connectorStatuses.filter((s) => s.connected).length;
@@ -403,7 +392,6 @@ export default function AgentRail({
 
       <CompactSystemStatus
         operationalState={operationalState}
-        onOpenMemoryEditor={onOpenMemoryEditor}
         onConnectorsChanged={onConnectorsChanged}
       />
 

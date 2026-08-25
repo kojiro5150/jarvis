@@ -37,6 +37,8 @@ function connectorStatuses(snapshot: ConnectorStatusSnapshot): ConnectorStatus[]
     const status = snapshot[`${name}Status`];
     return {
       name,
+      // OperationalState requires this legacy field. It is synthesized only
+      // for Dashboard compatibility and is not observed provider provenance.
       source: status === "unavailable" ? "local" : "google",
       connected: status === "online",
     };

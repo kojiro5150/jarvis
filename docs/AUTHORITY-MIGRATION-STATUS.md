@@ -155,6 +155,11 @@ collections and fetches only connector configuration/token metadata from
 `/api/connector-status`. The Dashboard shell is unchanged. The legacy
 operational-state, operational-picture, and evaluation APIs remain quarantined
 direct-builder surfaces with no known in-repository clients.
+Dashboard Memory editing is temporarily unavailable: its editor entry point is
+isolated so the empty compatibility state cannot overwrite stored Memory. It
+must remain unavailable until explicit Memory read/write authority exists. Any
+connector `source` synthesized for the legacy Dashboard contract is
+compatibility-only and is not observed provider provenance.
 
 ### Local fallback acquisition — `!` for future authority architecture
 

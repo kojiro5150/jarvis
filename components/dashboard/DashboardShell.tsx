@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import AgentRail from "@/components/AgentRail";
 import TopBar from "@/components/TopBar";
-import MemoryEditor from "@/components/MemoryEditor";
 import OrbCenterpiece from "@/components/dashboard/OrbCenterpiece";
 import ConversationDock from "@/components/dashboard/ConversationDock";
 import StatusStrip from "@/components/dashboard/StatusStrip";
@@ -53,7 +52,6 @@ export default function DashboardShell({
   const [selectedId, setSelectedId] = useState("jarvis");
   const [presetText, setPresetText] = useState("");
   const [presetNonce, setPresetNonce] = useState(0);
-  const [editorOpen, setEditorOpen] = useState(false);
   const [booting, setBooting] = useState(true);
   // v33 (Sprint 15): renamed from `listening` — this is specifically the
   // "conversation input is focused" signal (unchanged from every prior
@@ -202,12 +200,10 @@ export default function DashboardShell({
         operationalState={operationalState}
         activeLoading={loading}
         connectorStatuses={operationalState.connectorStatuses}
-        onOpenMemoryEditor={() => setEditorOpen(true)}
         // v43: Disconnect is a real state change (deletes the stored
         // Google token file server-side) — this re-runs the same
-        // `refresh()` the memory editor already uses after a save, so
-        // Calendar/Gmail/Drive's rows update immediately instead of
-        // waiting for whatever triggers the next natural refresh.
+        // metadata-only `refresh()`, so Calendar/Gmail/Drive's rows update
+        // immediately instead of waiting for the next natural refresh.
         onConnectorsChanged={refresh}
       />
 
@@ -305,13 +301,6 @@ export default function DashboardShell({
           presetNonce={presetNonce}
         />
       </div>
-
-      <MemoryEditor
-        open={editorOpen}
-        operationalState={operationalState}
-        onClose={() => setEditorOpen(false)}
-        onSaved={refresh}
-      />
     </div>
   );
 }

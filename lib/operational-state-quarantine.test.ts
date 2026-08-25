@@ -41,6 +41,17 @@ describe("legacy OperationalState production quarantine", () => {
     expect(hook).not.toContain("SEED_MEMORY");
   });
 
+  it("isolates the Memory editor from the empty Dashboard compatibility state", () => {
+    const shell = readFileSync(join(ROOT, "components/dashboard/DashboardShell.tsx"), "utf8");
+    const rail = readFileSync(join(ROOT, "components/AgentRail.tsx"), "utf8");
+
+    expect(shell).not.toContain("MemoryEditor");
+    expect(shell).not.toContain("onOpenMemoryEditor");
+    expect(rail).not.toContain("onOpenMemoryEditor");
+    expect(rail).toContain('label="Memory"');
+    expect(rail).toContain('statusLabel="UNAVAILABLE"');
+  });
+
   it("keeps the machine-readable surface inventory complete and explicitly partial", () => {
     const inventoryPath = join(ROOT, "docs/operational-state-production-inventory.json");
     const inventory = JSON.parse(readFileSync(inventoryPath, "utf8")) as {

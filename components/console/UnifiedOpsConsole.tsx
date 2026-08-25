@@ -29,7 +29,7 @@ type ConnectorServiceStatus =
   | "refresh_required"
   | "unavailable"
   | string;
-type OperationalStateResponse = {
+type ConnectorStatusResponse = {
   calendarStatus?: ConnectorServiceStatus;
   gmailStatus?: ConnectorServiceStatus;
   driveStatus?: ConnectorServiceStatus;
@@ -155,10 +155,10 @@ export default function UnifiedOpsConsole() {
     };
   }, []);
 
-  const fetchOperationalState = async (live = true) => {
+  const fetchConnectorStatus = async (live = true) => {
     try {
-      const response = await fetch("/api/operational-state");
-      const data = (await response.json()) as OperationalStateResponse;
+      const response = await fetch("/api/connector-status");
+      const data = (await response.json()) as ConnectorStatusResponse;
       if (!response.ok)
         throw new Error(
           data.error || `Unable to load connector status (${response.status}).`,
@@ -182,7 +182,7 @@ export default function UnifiedOpsConsole() {
 
   useEffect(() => {
     let live = true;
-    void fetchOperationalState(live);
+    void fetchConnectorStatus(live);
     return () => {
       live = false;
     };
@@ -230,7 +230,7 @@ export default function UnifiedOpsConsole() {
       return;
     }
     await fetch("/api/auth/google/disconnect", { method: "POST" });
-    await fetchOperationalState();
+    await fetchConnectorStatus();
   }
 
   const renderConnectorStatus = (name: ConnectorName) => {

@@ -1,6 +1,4 @@
 import type { ChatMessage } from "@/lib/agents/types";
-import { buildProductionDawnwatchInput } from "@/lib/dawnwatch-presentation-selection";
-import { buildOperationalState } from "@/lib/operational-state";
 import {
   buildLighterSystemPrompt,
   getLighterSpecialist,
@@ -39,18 +37,7 @@ export async function buildSpecialistPrompt(
       JSON.stringify({ contract: "specialist_roster", specialists }),
     );
   }
-  if (specialist.id !== "dawnwatch") return buildLighterSystemPrompt(specialist);
-
-  const state = await buildOperationalState();
-  const governedInput = buildProductionDawnwatchInput(state);
-  return buildLighterSystemPrompt(
-    specialist,
-    JSON.stringify({
-      contract: "governed_dawnwatch_presentation_input",
-      notice: "Identity and provenance fields are deterministic evidence. Do not reconstruct missing values.",
-      input: governedInput,
-    }),
-  );
+  return buildLighterSystemPrompt(specialist);
 }
 
 export function areValidMessages(messages: unknown): messages is ChatMessage[] {

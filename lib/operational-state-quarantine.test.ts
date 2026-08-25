@@ -28,7 +28,6 @@ describe("legacy OperationalState production quarantine", () => {
       "app/api/operational-picture/route.ts",
       "app/api/operational-state/evaluation/route.ts",
       "app/api/operational-state/route.ts",
-      "lib/lighter-jarvis/runtime.ts",
     ]);
   });
 
@@ -57,7 +56,6 @@ describe("legacy OperationalState production quarantine", () => {
       "app/api/operational-picture/route.ts",
       "app/api/operational-state/evaluation/route.ts",
       "app/api/operational-state/route.ts",
-      "lib/lighter-jarvis/runtime.ts",
     ]);
     for (const surface of inventory.surfaces) {
       expect(relative(ROOT, join(ROOT, surface.entryPoint))).toBe(surface.entryPoint);

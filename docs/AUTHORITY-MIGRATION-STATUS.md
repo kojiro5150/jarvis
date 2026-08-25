@@ -1,7 +1,7 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 25 August 2026 (Sprint 3.126)
+- **Last updated:** 25 August 2026 (Sprint 3.127)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
 - **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
 
@@ -138,17 +138,30 @@ migrating it. The machine-readable inventory and regression guard quarantine
 the Dashboard/API chain, DAWNWATCH, the deprecated operational-picture alias,
 and the evidence-only evaluation endpoint. New direct builder callers, API
 clients, or Dashboard hook entry points fail the guard. This is containment,
-not authorization; all inventoried legacy surfaces remain unresolved.
+not authorization.
+
+Sprint 3.127 migrates the DAWNWATCH conversational prompt. DAWNWATCH now uses
+the ordinary non-private specialist prompt by default and no longer calls
+`buildOperationalState()` or `buildProductionDawnwatchInput()` during prompt
+construction. DAWNWATCH routing and the JARVIS relay/roster contracts remain
+unchanged. The next live migration is the Dashboard's ambient
+`useOperationalState()` → `/api/operational-state` acquisition chain. The
+deprecated operational-picture alias and evidence-only evaluation endpoint
+also remain quarantined direct-builder callers.
 
 ### Local fallback acquisition — `!` for future authority architecture
 
 Legacy Calendar, Gmail and Drive loaders can fall back to local data after source failures. This behaviour is historically intentional for dashboard continuity, but it must not become an authority bypass in the governed production path.
 
-### Briefing path — `!`
+### Briefing authority — `○`
 
-The current live `brief me on today` experience can retrieve Memory, Calendar, Gmail and Drive together through legacy briefing/state machinery.
+DAWNWATCH conversation is non-private by default and does not acquire Memory,
+Calendar, Gmail or Drive while constructing its specialist prompt. No
+compliant multi-source private briefing authority is implemented.
 
-A future compliant briefing path requires bounded authority for each private operation, most likely through an explicit named grant such as `BRIEF_ME_GRANT`.
+A future compliant briefing path requires bounded authority for each private
+operation. `BRIEF_ME_GRANT` remains unimplemented, as do Gmail, Drive and
+Memory operation-level authority.
 
 ### Named specialist UX — `△`
 
@@ -164,7 +177,7 @@ The frozen product direction is one user-facing JARVIS identity. Internal specia
 | 2 | Authority-gated governed Calendar acquisition | ✓ |
 | 3 | General `PendingAuthorization` for exact operation confirmation | △ |
 | 4 | Live conversational Calendar integration | △ |
-| 5 | Separate private acquisition from legacy `OperationalState` assembly | △ — partial; console status refresh and ordinary non-capability `/api/chat` are separated, while all remaining production callers are inventoried and quarantined but not migrated |
+| 5 | Separate private acquisition from legacy `OperationalState` assembly | △ — partial; console status refresh, ordinary non-capability `/api/chat`, and the DAWNWATCH conversational prompt are separated; the Dashboard `useOperationalState()` → `/api/operational-state` ambient acquisition chain is the next live migration, while the remaining direct-builder APIs stay quarantined |
 | 6 | Extend authority to Gmail, Drive and Memory | ○ |
 | 7 | Named and standing grants, including bounded briefing authority | ○ |
 | 8 | Complete one-JARVIS UX migration and remove authority-bypassing legacy paths | ○ |

@@ -105,4 +105,9 @@ describe("UnifiedOpsConsole head-mode contract", () => {
   it("removes the decorative, non-functional mic icon from the composer bar", () => {
     expect(source).not.toContain("<span>🎙</span>");
   });
+
+  it("refreshes connector chrome through the status-only server path", () => {
+    expect(source).toContain('fetch("/api/connector-status")');
+    expect(source).not.toContain('fetch("/api/operational-state")');
+  });
 });

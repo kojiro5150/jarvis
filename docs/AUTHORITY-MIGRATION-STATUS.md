@@ -27,7 +27,7 @@ Legend:
 
 | Capability / mechanism | Adjudication | Acquisition gate | Live production path | Notes |
 | --- | --- | --- | --- | --- |
-| `calendar.read` | ✓ | ○ | ○ | Isolated deterministic authority core exists on `main`; production Calendar reads are not yet gated by it. |
+| `calendar.read` | ✓ | ✓ | ○ | The isolated path gates the existing governed Calendar acquisition seam; production conversational routing is still unchanged. |
 | `gmail.search/read` | ○ | △ | ○ | Strong resource-policy and governed retrieval machinery exists, but user authority is not yet adjudicated upstream in the ordinary live path. |
 | `drive.read` | ○ | ○ | ○ | Connector exists; operation-level authority not yet implemented. |
 | `memory.read` | ○ | ○ | ○ | Memory is still acquired through legacy state-building paths; operation-level authority not yet implemented. |
@@ -55,10 +55,15 @@ Legend:
 - `ASK` for ambiguity, prior-context-only cases, negated reads and mixed read/write wording;
 - no connector invocation inside authority adjudication.
 
+### Authority-gated acquisition implemented
+
+- the PR1 evaluator is composed with the existing `acquireGovernedCalendarEvidence()` seam;
+- only `ALLOW` enters governed Calendar acquisition;
+- `ASK` and `DENY` return without evidence and without calling `CalendarAcquisitionPort.listUpcoming()`;
+- the authority decision remains separate from acquisition availability and evidence.
+
 ### Not yet implemented
 
-- invoking `acquireGovernedCalendarEvidence()` only after `ALLOW`;
-- proving `ASK/DENY` prevents `CalendarAcquisitionPort.listUpcoming()` from being called;
 - production conversational routing through the authority gate;
 - `PendingAuthorization` for ambiguous Calendar requests;
 - standing Calendar-awareness grants.
@@ -135,7 +140,7 @@ The frozen product direction is one user-facing JARVIS identity. Internal specia
 | Step | Deliverable | Status |
 | --- | --- | --- |
 | 1 | Isolated deterministic `calendar.read` adjudication | ✓ |
-| 2 | Authority-gated governed Calendar acquisition | ○ |
+| 2 | Authority-gated governed Calendar acquisition | ✓ |
 | 3 | General `PendingAuthorization` for exact operation confirmation | ○ |
 | 4 | Live conversational Calendar integration | ○ |
 | 5 | Separate private acquisition from legacy `OperationalState` assembly | ○ |

@@ -127,6 +127,12 @@ AuthorityDecision = ALLOW
 → governed Calendar acquisition may run
 ```
 
+This isolated gate is now implemented in
+`lib/lighter-jarvis/calendar-read-authorized-acquisition.ts`. It composes the
+PR1 evaluator with the existing acquisition function. It does not change the
+production conversational path or `OperationalState`; those migrations remain
+future work.
+
 ## OperationalState migration
 
 `OperationalState` may remain temporarily as a legacy presentation/acquisition aggregate while migration proceeds.

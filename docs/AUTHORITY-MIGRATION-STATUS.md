@@ -1,7 +1,7 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 25 August 2026 (Sprint 3.121)
+- **Last updated:** 25 August 2026 (Sprint 3.122)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
 - **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
 
@@ -41,7 +41,7 @@ Legend:
 | Explicit current-user utterance | ✓ for `calendar.read` only | Raw current utterance is independently matched; proposal itself is non-authoritative. |
 | Named capability grants | ○ | No general named-grant machinery yet. |
 | Standing grants | ○ | No standing-grant store or adjudication yet. |
-| `PendingAuthorization` confirmation | △ | An isolated public resolver binds deterministic confirmation to the exact existing `ProposedOperation`, makes confirmation and explicit decline one-shot by pending-authorization ID, and gives bare confirmation no authority. Production conversation state is not yet integrated. |
+| `PendingAuthorization` confirmation | △ | Isolated server-owned state binds deterministic confirmation to the exact existing `ProposedOperation`. The client receives only an opaque, non-authoritative reference; unknown references fail closed, confirmation and decline are one-shot, and bare confirmation has no authority. Production conversation state is not yet integrated. |
 | Resource policy | △ | Mature Gmail content-retrieval policy exists; it is not positive user authority and is not yet composed into a general Authority Engine. |
 
 ## `calendar.read` detail
@@ -65,7 +65,7 @@ Legend:
 ### Not yet implemented
 
 - production conversational routing through the authority gate;
-- production creation and conversation-state persistence of `PendingAuthorization` for ambiguous Calendar requests;
+- production creation and durable conversation-state persistence of `PendingAuthorization` references for ambiguous Calendar requests;
 - standing Calendar-awareness grants.
 
 ## Existing governed machinery that is reusable but not equivalent to the Authority Engine

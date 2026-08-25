@@ -1,7 +1,7 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 25 August 2026 (Sprint 3.137)
+- **Last updated:** 25 August 2026 (Sprint 3.138)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
 - **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
 
@@ -83,6 +83,14 @@ policy-gated subject read. An earlier live attempt repeated the confirmation pro
 the `PendingAuthorization` continuation has an intermittent reliability observation. Its cause is
 unknown; the evidence does not confirm process-local state as the cause. See
 `docs/SPRINT-3.137-LIVE-GMAIL-VALIDATION.md` for the verbatim transcripts and evidence boundaries.
+
+Sprint 3.138 adds the deterministic model-history boundary on `/api/lighter/chat`. Current-turn
+authority recognition still runs first against the untouched utterance. Before an ordinary model
+call, deterministic Gmail search, Gmail read, and Calendar read releases, plus prior exact Gmail
+read authority commands containing message IDs, are omitted from the model-only copy of
+client-carried history; visible responses remain unchanged. Client metadata is not accepted as
+authority or durable provenance, ordinary non-private history is retained, and no Gmail,
+Calendar, resource-policy, or `PendingAuthorization` scope is broadened.
 
 ## `calendar.read` detail
 

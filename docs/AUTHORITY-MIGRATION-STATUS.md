@@ -1,7 +1,7 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 25 August 2026 (Sprint 3.122)
+- **Last updated:** 25 August 2026 (Sprint 3.123)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
 - **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
 
@@ -27,7 +27,7 @@ Legend:
 
 | Capability / mechanism | Adjudication | Acquisition gate | Live production path | Notes |
 | --- | --- | --- | --- | --- |
-| `calendar.read` | ✓ | ✓ | ○ | The isolated path gates the existing governed Calendar acquisition seam; production conversational routing is still unchanged. |
+| `calendar.read` | ✓ | ✓ | △ | The JARVIS conversational route now gates bounded governed Calendar reads; broader production conversation and legacy paths remain unchanged. |
 | `gmail.search/read` | ○ | △ | ○ | Strong resource-policy and governed retrieval machinery exists, but user authority is not yet adjudicated upstream in the ordinary live path. |
 | `drive.read` | ○ | ○ | ○ | Connector exists; operation-level authority not yet implemented. |
 | `memory.read` | ○ | ○ | ○ | Memory is still acquired through legacy state-building paths; operation-level authority not yet implemented. |
@@ -41,7 +41,7 @@ Legend:
 | Explicit current-user utterance | ✓ for `calendar.read` only | Raw current utterance is independently matched; proposal itself is non-authoritative. |
 | Named capability grants | ○ | No general named-grant machinery yet. |
 | Standing grants | ○ | No standing-grant store or adjudication yet. |
-| `PendingAuthorization` confirmation | △ | Isolated server-owned state binds deterministic confirmation to the exact existing `ProposedOperation`. The client receives only an opaque, non-authoritative reference; unknown references fail closed, confirmation and decline are one-shot, and bare confirmation has no authority. Production conversation state is not yet integrated. |
+| `PendingAuthorization` confirmation | △ | Server-owned state is integrated for JARVIS Calendar reads. Opaque references fail closed and resolve before model invocation; persistence remains process-local rather than durable or distributed. |
 | Resource policy | △ | Mature Gmail content-retrieval policy exists; it is not positive user authority and is not yet composed into a general Authority Engine. |
 
 ## `calendar.read` detail
@@ -61,11 +61,13 @@ Legend:
 - only `ALLOW` enters governed Calendar acquisition;
 - `ASK` and `DENY` return without evidence and without calling `CalendarAcquisitionPort.listUpcoming()`;
 - the authority decision remains separate from acquisition availability and evidence.
+- live Calendar evidence is rendered deterministically server-side and is not disclosed to a conversational model in this slice;
+- operation proposal is distinct from authority, including temporal schedule questions that propose `calendar.read` and still resolve to `ASK`.
 
 ### Not yet implemented
 
-- production conversational routing through the authority gate;
-- production creation and durable conversation-state persistence of `PendingAuthorization` references for ambiguous Calendar requests;
+- conversational Calendar integration outside the bounded JARVIS route;
+- durable or distributed conversation-state persistence of `PendingAuthorization` references;
 - standing Calendar-awareness grants.
 
 ## Existing governed machinery that is reusable but not equivalent to the Authority Engine
@@ -142,7 +144,7 @@ The frozen product direction is one user-facing JARVIS identity. Internal specia
 | 1 | Isolated deterministic `calendar.read` adjudication | ✓ |
 | 2 | Authority-gated governed Calendar acquisition | ✓ |
 | 3 | General `PendingAuthorization` for exact operation confirmation | △ |
-| 4 | Live conversational Calendar integration | ○ |
+| 4 | Live conversational Calendar integration | △ |
 | 5 | Separate private acquisition from legacy `OperationalState` assembly | ○ |
 | 6 | Extend authority to Gmail, Drive and Memory | ○ |
 | 7 | Named and standing grants, including bounded briefing authority | ○ |

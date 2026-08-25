@@ -22,6 +22,7 @@ type PendingHandoff = {
   taskSummary: string;
   marketScopes?: string[];
 };
+type PendingAuthorizationReference = { pendingAuthorizationId: string };
 type ConnectorName = "calendar" | "gmail" | "drive";
 type ConnectorServiceStatus =
   | "online"
@@ -117,6 +118,8 @@ export default function UnifiedOpsConsole() {
   const [pendingHandoff, setPendingHandoff] = useState<PendingHandoff | null>(
     null,
   );
+  const [pendingAuthorizationReference, setPendingAuthorizationReference] =
+    useState<PendingAuthorizationReference | null>(null);
   const [listError, setListError] = useState("");
   const [connectorStatuses, setConnectorStatuses] = useState<Record<
     ConnectorName,
@@ -332,6 +335,9 @@ export default function UnifiedOpsConsole() {
             role,
             content: text,
           })),
+          ...(specialist.id === "jarvis" && pendingAuthorizationReference
+            ? { pendingAuthorizationReference }
+            : {}),
         }),
       });
       const data = (await response.json()) as {
@@ -339,6 +345,7 @@ export default function UnifiedOpsConsole() {
         routeTo?: string;
         taskSummary?: string;
         marketScopes?: string[];
+        pendingAuthorizationReference?: PendingAuthorizationReference | null;
         error?: string;
       };
       if (!response.ok)
@@ -346,6 +353,9 @@ export default function UnifiedOpsConsole() {
           data.error || `${response.status} ${response.statusText}`,
         );
       const reply = requiredReply(data.reply);
+      if (specialist.id === "jarvis") {
+        setPendingAuthorizationReference(data.pendingAuthorizationReference ?? null);
+      }
       setConversations((current) => ({
         ...current,
         [specialist.id]: [

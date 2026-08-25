@@ -4,12 +4,14 @@ import type { ClaudeContentBlock, ClaudeResult, ClaudeTool } from "@/lib/claude"
 import type { ChatMessage } from "@/lib/agents/types";
 import { areValidMessages, buildSpecialistPrompt, type RelaySpecialistReply } from "@/lib/lighter-jarvis/runtime";
 import { getLighterSpecialist } from "@/lib/lighter-jarvis/specialists";
+import { resolveProductionCalendarRead, type ProductionCalendarDependencies } from "@/lib/lighter-jarvis/production-calendar-read";
 
 interface LighterChatBody {
   specialistId?: unknown;
   messages?: unknown;
   relaySpecialistReply?: RelaySpecialistReply;
   marketScopes?: unknown;
+  pendingAuthorizationReference?: unknown;
 }
 type ModelCall = (
   systemPrompt: string,
@@ -115,7 +117,14 @@ export function hasVerifiableExternalEvidence(content: ClaudeContentBlock[], all
   });
 }
 
-export function createLighterChatHandler(callModel: ModelCall = callClaude) {
+export function formatCalendarReadResponse(calendar: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["evidence"]>): string {
+  if (calendar.status !== "available") return "I couldn't access your Calendar right now.";
+  if (calendar.evidence.length === 0) return "Your Calendar has no commitments in the next seven days (up to five events checked).";
+  const commitments = calendar.evidence.map(({ start, end }) => `- ${start} – ${end}`).join("\n");
+  return `Your Calendar has ${calendar.evidence.length} upcoming commitment${calendar.evidence.length === 1 ? "" : "s"} in the next seven days (up to five events):\n${commitments}`;
+}
+
+export function createLighterChatHandler(callModel: ModelCall = callClaude, calendarDependencies?: ProductionCalendarDependencies) {
   return async function POST(request: Request) {
     let body: LighterChatBody;
     try { body = await request.json() as LighterChatBody; }
@@ -130,6 +139,31 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude) {
     }
     if (!areValidMessages(body.messages)) {
       return NextResponse.json({ error: "`messages` must contain 1-40 valid conversation messages." }, { status: 400 });
+    }
+    const currentUserUtterance = [...body.messages].reverse().find(({ role }) => role === "user")?.content;
+    const calendar = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
+      ? await resolveProductionCalendarRead({
+          currentUserUtterance,
+          ...(Object.hasOwn(body, "pendingAuthorizationReference")
+            ? { pendingAuthorizationReference: body.pendingAuthorizationReference }
+            : {}),
+        }, calendarDependencies)
+      : null;
+    if (calendar?.handled && calendar.decision !== "ALLOW") {
+      const reply = calendar.decision === "DENY"
+        ? "Understood. I won't read your Calendar."
+        : "Please explicitly confirm that I may read your Calendar.";
+      return NextResponse.json({ reply, specialistId: specialist.id, execution: "none",
+        calendarAuthority: { decision: calendar.decision, reason: calendar.reason },
+        pendingAuthorizationReference: calendar.pendingAuthorizationReference });
+    }
+    if (calendar?.decision === "ALLOW") {
+      return NextResponse.json({
+        reply: formatCalendarReadResponse(calendar.evidence!),
+        specialistId: specialist.id,
+        execution: "none",
+        calendarAuthority: { decision: "ALLOW", reason: calendar.reason },
+      });
     }
     const marketDomains = specialist.id === "gecko"
       ? resolveMarketScopeDomains(body.marketScopes)

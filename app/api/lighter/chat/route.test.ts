@@ -39,6 +39,21 @@ describe("POST /api/lighter/chat", () => {
     expect(model).not.toHaveBeenCalled();
     expect(connector).not.toHaveBeenCalled();
   });
+
+  it("answers an authorized Calendar read deterministically without sending evidence to the model", async () => {
+    const model = vi.fn();
+    const listUpcoming = vi.fn(async () => [{ id: "event", title: "Private title",
+      start: "2026-08-26T09:00:00Z", end: "2026-08-26T10:00:00Z", day: "WED", time: "09:00",
+      source: "google" as const, calendarId: "primary", calendarName: "Private" }]);
+    const response = await createLighterChatHandler(model, {
+      createConnector: () => ({ source: "google", listUpcoming }),
+      clock: () => new Date("2026-08-25T00:00:00Z"),
+    })(request({ specialistId: "jarvis", messages: [{ role: "user", content: "Show my calendar" }] }));
+    const body = await response.json();
+    expect(body.reply).toContain("1 upcoming commitment");
+    expect(body.reply).not.toContain("Private title");
+    expect(model).not.toHaveBeenCalled();
+  });
   it("resolves market scope domains deterministically with union and deduplication", () => {
     expect(resolveMarketScopeDomains(["fx", "australia"])).toEqual([
       "federalreserve.gov", "ecb.europa.eu", "bankofengland.co.uk", "rba.gov.au",

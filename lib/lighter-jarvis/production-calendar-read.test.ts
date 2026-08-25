@@ -35,7 +35,19 @@ describe("production calendar.read authority ordering", () => {
     const confirmed = await resolveProductionCalendarRead({ currentUserUtterance: "Yes, please.",
       pendingAuthorizationReference: pending.pendingAuthorizationReference }, deps.value);
     expect(confirmed).toMatchObject({ decision: "ALLOW", reason: "pending_authorization_confirmed" });
+    expect(confirmed.authorityEvidence).toEqual([expect.objectContaining({
+      source: "pending_authorization_confirmation",
+      pendingAuthorizationId: pending.pendingAuthorizationReference!.pendingAuthorizationId,
+      utterance: "Yes, please.",
+    })]);
     expect(deps.listUpcoming).toHaveBeenCalledOnce();
+  });
+
+  it("proposes an implicit temporal read but asks rather than acquiring", async () => {
+    const deps = dependencies();
+    const result = await resolveProductionCalendarRead({ currentUserUtterance: "How does tomorrow look?" }, deps.value);
+    expect(result).toMatchObject({ decision: "ASK", authorityEvidence: [] });
+    expect(deps.createConnector).not.toHaveBeenCalled();
   });
 
   it.each([

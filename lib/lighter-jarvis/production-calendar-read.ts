@@ -2,21 +2,18 @@ import { getCalendarConnector } from "../connectors/calendar";
 import type { CalendarAcquisitionPort } from "../governed-conversation/calendar-evidence-acquisition-adapter";
 import type { GovernedCalendarEvidenceInput } from "../governed-conversation/projection-composer";
 import type { SourceAdapterResult } from "../governed-conversation/source-adapter-result";
-import { acquireCalendarEvidenceForAuthorityDecision } from "./calendar-read-authorized-acquisition";
 import {
-  CALENDAR_READ_CAPABILITY,
-  evaluateCalendarReadAuthority,
-  type CalendarReadAuthorityDecision,
-} from "./calendar-read-authority";
+  acquireAuthorizedCalendarEvidence,
+  acquirePendingAuthorizedCalendarEvidence,
+} from "./calendar-read-authorized-acquisition";
+import { evaluateCalendarReadAuthority } from "./calendar-read-authority";
 import {
   createPendingAuthorization,
-  resolvePendingAuthorization,
   type PendingAuthorizationReference,
 } from "./pending-authorization";
+import { proposeCalendarRead } from "./calendar-read-proposal";
 
-const CALENDAR_REFERENCE = /\b(?:my\s+)?calendars?\b/i;
 const STANDALONE_CONFIRMATION_OR_DECLINE = /^(?:yes|yes,?\s+please|confirm|confirmed|proceed|go\s+ahead|no|no,?\s+thanks|decline|cancel|never\s+mind)[.!]?$/i;
-const PROPOSED_CALENDAR_READ = Object.freeze({ capability: CALENDAR_READ_CAPABILITY });
 
 export interface ProductionCalendarDependencies {
   readonly createConnector: () => CalendarAcquisitionPort;
@@ -29,6 +26,7 @@ export type ProductionCalendarReadResult = Readonly<{
   reason: string | null;
   evidence: SourceAdapterResult<GovernedCalendarEvidenceInput> | null;
   pendingAuthorizationReference: PendingAuthorizationReference | null;
+  authorityEvidence: readonly unknown[];
 }>;
 
 const defaults: ProductionCalendarDependencies = {
@@ -48,49 +46,49 @@ export async function resolveProductionCalendarRead(input: {
   const isBareResolution = STANDALONE_CONFIRMATION_OR_DECLINE.test(input.currentUserUtterance.trim());
 
   if (hasTransportReference || isBareResolution) {
-    const resolution = resolvePendingAuthorization(input);
-    if (resolution.decision !== "ALLOW" || resolution.proposedOperation === null) {
+    const acquired = await acquirePendingAuthorizedCalendarEvidence({
+      ...input,
+      acquisition: () => ({ connector: dependencies.createConnector(), clock: dependencies.clock,
+        requestedLimit: 5, horizonDays: 7 }),
+    });
+    const resolution = acquired.authority;
+    if (resolution.decision !== "ALLOW") {
       return Object.freeze({
         handled: true,
         decision: resolution.decision,
         reason: resolution.reason,
         evidence: null,
         pendingAuthorizationReference: resolution.pendingAuthorizationReference,
+        authorityEvidence: resolution.authorityEvidence,
       });
     }
 
-    const authority: CalendarReadAuthorityDecision = Object.freeze({
-      capability: CALENDAR_READ_CAPABILITY,
-      decision: "ALLOW",
-      reason: "explicit_calendar_read",
-      readOnly: true,
-      authorityEvidence: Object.freeze([]),
-    });
-    const acquired = await acquireCalendarEvidenceForAuthorityDecision(authority, {
-      connector: dependencies.createConnector(), clock: dependencies.clock,
-      requestedLimit: 5, horizonDays: 7,
-    });
     return Object.freeze({ handled: true, decision: "ALLOW", reason: resolution.reason,
-      evidence: acquired.evidence, pendingAuthorizationReference: null });
+      evidence: acquired.evidence, pendingAuthorizationReference: null,
+      authorityEvidence: resolution.authorityEvidence });
   }
 
-  if (!CALENDAR_REFERENCE.test(input.currentUserUtterance)) {
+  const proposedOperation = proposeCalendarRead(input.currentUserUtterance);
+  if (proposedOperation === null) {
     return Object.freeze({ handled: false, decision: null, reason: null, evidence: null,
-      pendingAuthorizationReference: null });
+      pendingAuthorizationReference: null, authorityEvidence: Object.freeze([]) });
   }
 
   const authority = evaluateCalendarReadAuthority({
-    proposedOperation: PROPOSED_CALENDAR_READ,
+    proposedOperation,
     currentUserUtterance: input.currentUserUtterance,
   });
   if (authority.decision === "ALLOW") {
-    const acquired = await acquireCalendarEvidenceForAuthorityDecision(authority, {
-      connector: dependencies.createConnector(), clock: dependencies.clock,
-      requestedLimit: 5, horizonDays: 7,
+    const acquired = await acquireAuthorizedCalendarEvidence({
+      authority: { proposedOperation, currentUserUtterance: input.currentUserUtterance },
+      acquisition: { connector: dependencies.createConnector(), clock: dependencies.clock,
+        requestedLimit: 5, horizonDays: 7 },
     });
     return Object.freeze({ handled: true, decision: "ALLOW", reason: acquired.authority.reason,
-      evidence: acquired.evidence, pendingAuthorizationReference: null });
+      evidence: acquired.evidence, pendingAuthorizationReference: null,
+      authorityEvidence: acquired.authority.authorityEvidence });
   }
   return Object.freeze({ handled: true, decision: "ASK", reason: authority.reason,
-    evidence: null, pendingAuthorizationReference: createPendingAuthorization(PROPOSED_CALENDAR_READ) });
+    evidence: null, pendingAuthorizationReference: createPendingAuthorization(proposedOperation),
+    authorityEvidence: authority.authorityEvidence });
 }

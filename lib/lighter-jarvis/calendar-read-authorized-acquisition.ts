@@ -9,6 +9,10 @@ import {
   type CalendarReadAuthorityDecision,
   type CalendarReadAuthorityRequest,
 } from "./calendar-read-authority";
+import {
+  resolvePendingAuthorization,
+  type PendingAuthorizationResolution,
+} from "./pending-authorization";
 
 export interface GovernedCalendarAcquisitionRequest {
   readonly connector: CalendarAcquisitionPort;
@@ -26,7 +30,7 @@ export type AuthorizedCalendarAcquisitionResult = Readonly<{
  * Applies an already-evaluated authority decision immediately before the
  * existing governed Calendar acquisition seam.
  */
-export async function acquireCalendarEvidenceForAuthorityDecision(
+async function acquireCalendarEvidenceForAuthorityDecision(
   authority: CalendarReadAuthorityDecision,
   acquisition: GovernedCalendarAcquisitionRequest,
 ): Promise<AuthorizedCalendarAcquisitionResult> {
@@ -35,6 +39,26 @@ export async function acquireCalendarEvidenceForAuthorityDecision(
   }
 
   const evidence = await acquireGovernedCalendarEvidence(acquisition);
+  return Object.freeze({ authority, evidence });
+}
+
+export type PendingAuthorizedCalendarAcquisitionResult = Readonly<{
+  authority: PendingAuthorizationResolution;
+  evidence: SourceAdapterResult<GovernedCalendarEvidenceInput> | null;
+}>;
+
+/** Resolves trusted pending state and keeps its confirmation evidence attached to acquisition. */
+export async function acquirePendingAuthorizedCalendarEvidence(input: {
+  readonly currentUserUtterance: string;
+  readonly pendingAuthorizationReference?: unknown;
+  readonly acquisition: () => GovernedCalendarAcquisitionRequest;
+}): Promise<PendingAuthorizedCalendarAcquisitionResult> {
+  const authority = resolvePendingAuthorization(input);
+  if (authority.decision !== "ALLOW" ||
+      authority.proposedOperation?.capability !== "calendar.read") {
+    return Object.freeze({ authority, evidence: null });
+  }
+  const evidence = await acquireGovernedCalendarEvidence(input.acquisition());
   return Object.freeze({ authority, evidence });
 }
 

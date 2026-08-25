@@ -117,6 +117,13 @@ export function hasVerifiableExternalEvidence(content: ClaudeContentBlock[], all
   });
 }
 
+export function formatCalendarReadResponse(calendar: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["evidence"]>): string {
+  if (calendar.status !== "available") return "I couldn't access your Calendar right now.";
+  if (calendar.evidence.length === 0) return "Your Calendar has no commitments in the next seven days (up to five events checked).";
+  const commitments = calendar.evidence.map(({ start, end }) => `- ${start} – ${end}`).join("\n");
+  return `Your Calendar has ${calendar.evidence.length} upcoming commitment${calendar.evidence.length === 1 ? "" : "s"} in the next seven days (up to five events):\n${commitments}`;
+}
+
 export function createLighterChatHandler(callModel: ModelCall = callClaude, calendarDependencies?: ProductionCalendarDependencies) {
   return async function POST(request: Request) {
     let body: LighterChatBody;
@@ -150,6 +157,14 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         calendarAuthority: { decision: calendar.decision, reason: calendar.reason },
         pendingAuthorizationReference: calendar.pendingAuthorizationReference });
     }
+    if (calendar?.decision === "ALLOW") {
+      return NextResponse.json({
+        reply: formatCalendarReadResponse(calendar.evidence!),
+        specialistId: specialist.id,
+        execution: "none",
+        calendarAuthority: { decision: "ALLOW", reason: calendar.reason },
+      });
+    }
     const marketDomains = specialist.id === "gecko"
       ? resolveMarketScopeDomains(body.marketScopes)
       : undefined;
@@ -172,10 +187,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
 
     try {
-      let systemPrompt = await buildSpecialistPrompt(specialist, relaySpecialistReply);
-      if (calendar?.decision === "ALLOW") {
-        systemPrompt += `\n\n${JSON.stringify({ contract: "governed_calendar_evidence", acquisition: calendar.evidence })}`;
-      }
+      const systemPrompt = await buildSpecialistPrompt(specialist, relaySpecialistReply);
       const tools = specialist.id === "oracle"
         ? ORACLE_TOOLS
         : specialist.id === "gecko"
@@ -221,8 +233,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           }
         }
       }
-      return NextResponse.json({ reply, specialistId: specialist.id, execution: "none",
-        ...(calendar?.decision === "ALLOW" ? { calendarAuthority: { decision: "ALLOW", reason: calendar.reason } } : {}) });
+      return NextResponse.json({ reply, specialistId: specialist.id, execution: "none" });
     } catch (error) {
       console.error("[/api/lighter/chat] Specialist invocation failed:", error);
       return NextResponse.json({ error: "Specialist invocation failed.", state: "unknown" }, { status: 502 });

@@ -73,6 +73,16 @@ describe("UnifiedOpsConsole head-mode contract", () => {
     expect(effectSource).toContain("void confirmHandoff()");
   });
 
+  it("carries the opaque Calendar pending reference through the shared typed and voice submission path", () => {
+    const submission = source.slice(
+      source.indexOf("async function submitMessage"),
+      source.indexOf("async function send"),
+    );
+    expect(submission).toContain("pendingAuthorizationReference");
+    expect(submission).toContain("setPendingAuthorizationReference");
+    expect(submission).not.toContain("proposedOperation");
+  });
+
   it("the head-composite status is display-only, not a toggle control", () => {
     const headSource = source.slice(
       source.indexOf("function HeadComposite"),

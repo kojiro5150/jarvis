@@ -61,6 +61,8 @@ Legend:
 - only `ALLOW` enters governed Calendar acquisition;
 - `ASK` and `DENY` return without evidence and without calling `CalendarAcquisitionPort.listUpcoming()`;
 - the authority decision remains separate from acquisition availability and evidence.
+- live Calendar evidence is rendered deterministically server-side and is not disclosed to a conversational model in this slice;
+- operation proposal is distinct from authority, including temporal schedule questions that propose `calendar.read` and still resolve to `ASK`.
 
 ### Not yet implemented
 

@@ -23,7 +23,15 @@ An ambiguous Calendar reference creates server-owned pending state and returns
 only its opaque reference. `ASK`, `DENY`, malformed or unknown references, and
 a standalone confirmation without a valid active reference return before
 connector construction, Calendar acquisition, and model invocation. Governed
-Calendar evidence is supplied to the model only after `ALLOW`.
+Calendar evidence is rendered by a bounded deterministic server response after
+`ALLOW`; it is not supplied to a model in this sprint. The proposal boundary
+can identify a temporal schedule question such as `How does tomorrow look?`
+as a possible `calendar.read`, but that proposal supplies no authority and
+therefore produces `ASK`.
+
+The console retains only the opaque pending reference returned by the server
+and transports it across the next typed or voice turn. It never receives or
+constructs the bound operation.
 
 ## Verification
 

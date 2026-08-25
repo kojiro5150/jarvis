@@ -15,4 +15,26 @@ describe("production gmail.search", () => {
     expect(createConnector).not.toHaveBeenCalled();
   });
   it("does not intercept gmail.read", async () => expect(await resolveProductionGmailSearch({ currentUserUtterance: "gmail.read id [subject]" }, { createConnector: vi.fn() })).toEqual({ handled: false }));
+  it("requires confirmation before executing a natural-language proposal", async () => {
+    const search = vi.fn(async () => ["one"]);
+    const createConnector = vi.fn(() => ({ search }));
+    const proposed = await resolveProductionGmailSearch({ currentUserUtterance: "Search my Gmail from the last day" }, { createConnector });
+    expect(proposed).toMatchObject({ handled: true, decision: "ASK", reason: "explicit_gmail_search_not_established" });
+    expect(proposed.pendingAuthorizationReference).toBeDefined();
+    expect(createConnector).not.toHaveBeenCalled();
+
+    const allowed = await resolveProductionGmailSearch({ currentUserUtterance: "Yes, please",
+      pendingAuthorizationReference: proposed.pendingAuthorizationReference }, { createConnector });
+    expect(allowed).toMatchObject({ handled: true, decision: "ALLOW", reason: "pending_authorization_confirmed", messageIds: ["one"] });
+    expect(search).toHaveBeenCalledWith("1d", 5);
+  });
+
+  it("does not execute a declined proposal", async () => {
+    const createConnector = vi.fn();
+    const proposed = await resolveProductionGmailSearch({ currentUserUtterance: "Search my Gmail from the last week" }, { createConnector });
+    expect(await resolveProductionGmailSearch({ currentUserUtterance: "No, thanks",
+      pendingAuthorizationReference: proposed.pendingAuthorizationReference }, { createConnector }))
+      .toMatchObject({ handled: true, decision: "DENY", reason: "pending_authorization_declined" });
+    expect(createConnector).not.toHaveBeenCalled();
+  });
 });

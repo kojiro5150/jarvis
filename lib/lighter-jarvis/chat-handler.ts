@@ -200,11 +200,18 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
     const currentUserUtterance = [...body.messages].reverse().find(({ role }) => role === "user")?.content;
     const gmailSearch = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
-      ? await resolveProductionGmailSearch({ currentUserUtterance }, gmailSearchDependencies) : null;
+      ? await resolveProductionGmailSearch({ currentUserUtterance,
+          ...(Object.hasOwn(body, "pendingAuthorizationReference")
+            ? { pendingAuthorizationReference: body.pendingAuthorizationReference }
+            : {}),
+        }, gmailSearchDependencies) : null;
     if (gmailSearch?.handled) {
       return NextResponse.json({ reply: gmailSearch.reply, specialistId: specialist.id, execution: "none",
         gmailSearchAuthority: { ...(gmailSearch.decision ? { decision: gmailSearch.decision } : {}), reason: gmailSearch.reason },
-        ...(gmailSearch.messageIds ? { messageIds: gmailSearch.messageIds } : {}) });
+        ...(gmailSearch.messageIds ? { messageIds: gmailSearch.messageIds } : {}),
+        ...(gmailSearch.pendingAuthorizationReference !== undefined
+          ? { pendingAuthorizationReference: gmailSearch.pendingAuthorizationReference }
+          : {}) });
     }
     const gmail = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
       ? await resolveProductionGmailRead({ currentUserUtterance,

@@ -4,12 +4,14 @@ import type { ClaudeContentBlock, ClaudeResult, ClaudeTool } from "@/lib/claude"
 import type { ChatMessage } from "@/lib/agents/types";
 import { areValidMessages, buildSpecialistPrompt, type RelaySpecialistReply } from "@/lib/lighter-jarvis/runtime";
 import { getLighterSpecialist } from "@/lib/lighter-jarvis/specialists";
+import { resolveProductionCalendarRead, type ProductionCalendarDependencies } from "@/lib/lighter-jarvis/production-calendar-read";
 
 interface LighterChatBody {
   specialistId?: unknown;
   messages?: unknown;
   relaySpecialistReply?: RelaySpecialistReply;
   marketScopes?: unknown;
+  pendingAuthorizationReference?: unknown;
 }
 type ModelCall = (
   systemPrompt: string,
@@ -115,7 +117,7 @@ export function hasVerifiableExternalEvidence(content: ClaudeContentBlock[], all
   });
 }
 
-export function createLighterChatHandler(callModel: ModelCall = callClaude) {
+export function createLighterChatHandler(callModel: ModelCall = callClaude, calendarDependencies?: ProductionCalendarDependencies) {
   return async function POST(request: Request) {
     let body: LighterChatBody;
     try { body = await request.json() as LighterChatBody; }
@@ -130,6 +132,23 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude) {
     }
     if (!areValidMessages(body.messages)) {
       return NextResponse.json({ error: "`messages` must contain 1-40 valid conversation messages." }, { status: 400 });
+    }
+    const currentUserUtterance = [...body.messages].reverse().find(({ role }) => role === "user")?.content;
+    const calendar = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
+      ? await resolveProductionCalendarRead({
+          currentUserUtterance,
+          ...(Object.hasOwn(body, "pendingAuthorizationReference")
+            ? { pendingAuthorizationReference: body.pendingAuthorizationReference }
+            : {}),
+        }, calendarDependencies)
+      : null;
+    if (calendar?.handled && calendar.decision !== "ALLOW") {
+      const reply = calendar.decision === "DENY"
+        ? "Understood. I won't read your Calendar."
+        : "Please explicitly confirm that I may read your Calendar.";
+      return NextResponse.json({ reply, specialistId: specialist.id, execution: "none",
+        calendarAuthority: { decision: calendar.decision, reason: calendar.reason },
+        pendingAuthorizationReference: calendar.pendingAuthorizationReference });
     }
     const marketDomains = specialist.id === "gecko"
       ? resolveMarketScopeDomains(body.marketScopes)
@@ -153,7 +172,10 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude) {
     }
 
     try {
-      const systemPrompt = await buildSpecialistPrompt(specialist, relaySpecialistReply);
+      let systemPrompt = await buildSpecialistPrompt(specialist, relaySpecialistReply);
+      if (calendar?.decision === "ALLOW") {
+        systemPrompt += `\n\n${JSON.stringify({ contract: "governed_calendar_evidence", acquisition: calendar.evidence })}`;
+      }
       const tools = specialist.id === "oracle"
         ? ORACLE_TOOLS
         : specialist.id === "gecko"
@@ -199,7 +221,8 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude) {
           }
         }
       }
-      return NextResponse.json({ reply, specialistId: specialist.id, execution: "none" });
+      return NextResponse.json({ reply, specialistId: specialist.id, execution: "none",
+        ...(calendar?.decision === "ALLOW" ? { calendarAuthority: { decision: "ALLOW", reason: calendar.reason } } : {}) });
     } catch (error) {
       console.error("[/api/lighter/chat] Specialist invocation failed:", error);
       return NextResponse.json({ error: "Specialist invocation failed.", state: "unknown" }, { status: 502 });

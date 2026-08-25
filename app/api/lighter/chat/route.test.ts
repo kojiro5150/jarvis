@@ -21,6 +21,24 @@ const handoffResult = (
 });
 
 describe("POST /api/lighter/chat", () => {
+  it("resolves pending Calendar authority before any model call", async () => {
+    const model = vi.fn();
+    const connector = vi.fn();
+    const handler = createLighterChatHandler(model, {
+      createConnector: connector,
+      clock: () => new Date("2026-08-25T00:00:00Z"),
+    });
+    const ask = await handler(request({ specialistId: "jarvis", messages: [{ role: "user", content: "About my calendar" }] }));
+    const reference = (await ask.json()).pendingAuthorizationReference;
+    expect(model).not.toHaveBeenCalled();
+    expect(connector).not.toHaveBeenCalled();
+
+    const denied = await handler(request({ specialistId: "jarvis", messages: [{ role: "user", content: "no" }],
+      pendingAuthorizationReference: reference }));
+    expect((await denied.json()).calendarAuthority.decision).toBe("DENY");
+    expect(model).not.toHaveBeenCalled();
+    expect(connector).not.toHaveBeenCalled();
+  });
   it("resolves market scope domains deterministically with union and deduplication", () => {
     expect(resolveMarketScopeDomains(["fx", "australia"])).toEqual([
       "federalreserve.gov", "ecb.europa.eu", "bankofengland.co.uk", "rba.gov.au",

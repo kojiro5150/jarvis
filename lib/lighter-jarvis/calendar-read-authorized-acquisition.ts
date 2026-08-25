@@ -26,7 +26,7 @@ export type AuthorizedCalendarAcquisitionResult = Readonly<{
  * Applies an already-evaluated authority decision immediately before the
  * existing governed Calendar acquisition seam.
  */
-async function acquireCalendarEvidenceForAuthorityDecision(
+export async function acquireCalendarEvidenceForAuthorityDecision(
   authority: CalendarReadAuthorityDecision,
   acquisition: GovernedCalendarAcquisitionRequest,
 ): Promise<AuthorizedCalendarAcquisitionResult> {

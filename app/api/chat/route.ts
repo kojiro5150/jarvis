@@ -6,7 +6,7 @@ import { createExecutionAuditStore } from "@/lib/agents/execution-audit-store-fa
 import { assembleAgentSystemPrompt } from "@/lib/agents/boa-instructions";
 import { getBoaInstruction } from "@/lib/agents/boa-instruction-registry";
 import type { ChatMessage } from "@/lib/agents/types";
-import { parseChatCapabilityRequest, routeChatCapability } from "@/lib/chat-capabilities";
+import { authorizeGmailCapability, parseChatCapabilityRequest, routeChatCapability } from "@/lib/chat-capabilities";
 import { GoogleGmailContentConnector } from "@/lib/chat-capabilities/google-gmail-content";
 import { loadContentRetrievalPolicy } from "@/lib/content-retrieval-policy";
 
@@ -46,6 +46,18 @@ export async function POST(req: NextRequest) {
     try {
       const capability = parseChatCapabilityRequest(body.capability);
       if (!capability) return NextResponse.json({ error: "Unknown capability operation." }, { status: 400 });
+      if (capability.operation === "governed_gmail_retrieval") {
+        const authority = authorizeGmailCapability(capability);
+        if (authority.decision !== "ALLOW" || authority.operation === null) {
+          return NextResponse.json({ capability: { operation: capability.operation, decision: authority.decision,
+            reason: authority.reason, pendingAuthorizationReference: authority.pendingAuthorizationReference } });
+        }
+        const response = await routeChatCapability({ ...capability, request: authority.operation.request }, {
+          gmailConnector: new GoogleGmailContentConnector(),
+          loadPolicy: () => loadContentRetrievalPolicy(process.env.CONTENT_RETRIEVAL_POLICY_PATH),
+        });
+        return NextResponse.json({ capability: response });
+      }
       const response = await routeChatCapability(capability, {
         gmailConnector: new GoogleGmailContentConnector(),
         loadPolicy: () => loadContentRetrievalPolicy(process.env.CONTENT_RETRIEVAL_POLICY_PATH),

@@ -28,7 +28,7 @@ describe("Connector availability publisher", () => {
 const publisherNames = ["gmail-evidence-publisher", "calendar-evidence-publisher", "memory-priority-evidence-publisher", "connector-availability-publisher"];
 const publisherFiles = publisherNames.map(name => `lib/governed-conversation/${name}.ts`);
 const protectedHashes: Readonly<Record<string, string>> = {
-  "app/api/chat/route.ts": "6972a6821c962aeca51a1c37a90a3514e8533d221fa4c9328f3c244715c656c7",
+  "app/api/chat/route.ts": "8fa36884a15158aa04e84ae53d3b8796499d4a2d4f6d74a08a8363aefb8a776d",
   "lib/context-builder.ts": "8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d",
   "lib/useAgentConversation.ts": "55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97",
   "lib/agents/chat-execution.ts": "a8fc170c4273b0dc9e90ec1d85dfaf98c2b4aeddbae3e38380fbe4aad3533dc7",

@@ -30,7 +30,7 @@ const executiveRequest = {
 const gmailRequest = { operation: "governed_gmail_retrieval" as const, request: {
   resource: { resourceId: "synthetic-message", connectorType: "email" as const, senderDomain: "synthetic.invalid" },
   requestedFields: ["subject", "plain_text_body"] as const, requestingRuntime: "api-chat",
-} };
+}, currentUserUtterance: "gmail.read synthetic-message [subject,plain_text_body]" };
 
 describe("explicit chat capability routing", () => {
   it("derives immutable ExecutiveContext through AvailabilityEngine without Gmail content", async () => {

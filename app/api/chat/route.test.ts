@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
   executeAuditedChat: vi.fn(async () => "Audited reply"),
   assembleAgentSystemPrompt: vi.fn(() => "agent instructions\n\nBOA instructions"),
   routeChatCapability: vi.fn(async () => ({ operation: "gmail.get", result: "bounded" })),
+  authorizeGmailCapability: vi.fn((capability): any => ({ decision: "ALLOW", operation: { request: capability.request } })),
+  constructGmailConnector: vi.fn(),
 }));
 
 vi.mock("@/lib/agents", () => ({
@@ -26,9 +28,10 @@ vi.mock("@/lib/agents/execution-audit-store-factory", () => ({
 vi.mock("@/lib/chat-capabilities", () => ({
   parseChatCapabilityRequest: vi.fn((value) => value),
   routeChatCapability: mocks.routeChatCapability,
+  authorizeGmailCapability: mocks.authorizeGmailCapability,
 }));
 vi.mock("@/lib/chat-capabilities/google-gmail-content", () => ({
-  GoogleGmailContentConnector: class {},
+  GoogleGmailContentConnector: class { constructor() { mocks.constructGmailConnector(); } },
 }));
 vi.mock("@/lib/content-retrieval-policy", () => ({ loadContentRetrievalPolicy: vi.fn() }));
 
@@ -71,7 +74,8 @@ describe("POST /api/chat", () => {
   });
 
   it("preserves the explicit capability branch", async () => {
-    const capability = { operation: "gmail.get", messageId: "message-1" };
+    const capability = { operation: "governed_gmail_retrieval", currentUserUtterance: "gmail.read message-1 [subject]",
+      request: { resource: { connectorType: "email", resourceId: "message-1" }, requestedFields: ["subject"], requestingRuntime: "api-chat" } };
     const response = await POST(request({ capability }));
 
     expect(response.status).toBe(200);
@@ -80,5 +84,17 @@ describe("POST /api/chat", () => {
     });
     expect(mocks.routeChatCapability).toHaveBeenCalledOnce();
     expect(mocks.executeAuditedChat).not.toHaveBeenCalled();
+  });
+
+  it("returns ASK before constructing a Gmail connector", async () => {
+    mocks.authorizeGmailCapability.mockReturnValueOnce({ decision: "ASK", reason: "explicit_gmail_read_not_established",
+      operation: null, pendingAuthorizationReference: { pendingAuthorizationId: "opaque" } });
+    const response = await POST(request({ capability: { operation: "governed_gmail_retrieval", currentUserUtterance: "read it",
+      request: { resource: { connectorType: "email", resourceId: "message-1" }, requestedFields: ["subject"], requestingRuntime: "api-chat" } } }));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ capability: { decision: "ASK",
+      pendingAuthorizationReference: { pendingAuthorizationId: "opaque" } } });
+    expect(mocks.constructGmailConnector).not.toHaveBeenCalled();
+    expect(mocks.routeChatCapability).not.toHaveBeenCalled();
   });
 });

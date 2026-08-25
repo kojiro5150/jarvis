@@ -61,7 +61,7 @@ export type PendingAuthorizedCalendarAcquisitionResult = Readonly<{
 export async function acquirePendingAuthorizedCalendarEvidence(input: {
   readonly currentUserUtterance: string;
   readonly pendingAuthorizationReference?: unknown;
-  readonly acquisition: (operation: NonNullable<PendingAuthorizationResolution["proposedOperation"]>) => GovernedCalendarAcquisitionRequest;
+  readonly acquisition: (operation: Extract<NonNullable<PendingAuthorizationResolution["proposedOperation"]>, { capability: "calendar.read" }>) => GovernedCalendarAcquisitionRequest;
 }): Promise<PendingAuthorizedCalendarAcquisitionResult> {
   const authority = resolvePendingAuthorization(input);
   if (authority.decision !== "ALLOW" ||

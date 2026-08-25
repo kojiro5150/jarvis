@@ -50,21 +50,22 @@ export async function resolveProductionCalendarRead(input: {
         requestedLimit: 5, horizonDays: 7, window: operation.window }),
     });
     const resolution = acquired.authority;
-    if (resolution.decision !== "ALLOW") {
+    const operation = resolution.proposedOperation?.capability === "calendar.read" ? resolution.proposedOperation : null;
+    if (resolution.decision !== "ALLOW" || operation === null) {
       return Object.freeze({
         handled: true,
-        decision: resolution.decision,
+        decision: operation === null && resolution.decision === "ALLOW" ? "ASK" : resolution.decision,
         reason: resolution.reason,
         evidence: null,
         pendingAuthorizationReference: resolution.pendingAuthorizationReference,
         authorityEvidence: resolution.authorityEvidence,
-        window: resolution.proposedOperation?.window ?? null,
+        window: operation?.window ?? null,
       });
     }
 
     return Object.freeze({ handled: true, decision: "ALLOW", reason: resolution.reason,
       evidence: acquired.evidence, pendingAuthorizationReference: null,
-      authorityEvidence: resolution.authorityEvidence, window: resolution.proposedOperation!.window });
+      authorityEvidence: resolution.authorityEvidence, window: operation.window });
   }
 
   const proposedOperation = proposeCalendarRead(input.currentUserUtterance, dependencies.clock);

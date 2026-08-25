@@ -23,7 +23,7 @@ describe("production calendar.read authority ordering", () => {
 
   it("creates pending server state for ASK without constructing or calling a connector", async () => {
     const deps = dependencies();
-    const result = await resolveProductionCalendarRead({ currentUserUtterance: "Regarding my calendar" }, deps.value);
+    const result = await resolveProductionCalendarRead({ currentUserUtterance: "How does tomorrow look?" }, deps.value);
     expect(result).toMatchObject({ decision: "ASK", evidence: null,
       pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) } });
     expect(deps.createConnector).not.toHaveBeenCalled();
@@ -32,7 +32,7 @@ describe("production calendar.read authority ordering", () => {
 
   it("resolves the exact pending operation before acquiring", async () => {
     const deps = dependencies();
-    const pending = await resolveProductionCalendarRead({ currentUserUtterance: "Regarding my calendar" }, deps.value);
+    const pending = await resolveProductionCalendarRead({ currentUserUtterance: "How does tomorrow look?" }, deps.value);
     const confirmed = await resolveProductionCalendarRead({ currentUserUtterance: "Yes, please.",
       pendingAuthorizationReference: pending.pendingAuthorizationReference }, deps.value);
     expect(confirmed).toMatchObject({ decision: "ALLOW", reason: "pending_authorization_confirmed" });
@@ -81,7 +81,7 @@ describe("production calendar.read authority ordering", () => {
 
   it("does zero acquisition after DENY", async () => {
     const deps = dependencies();
-    const pending = await resolveProductionCalendarRead({ currentUserUtterance: "Regarding my calendar" }, deps.value);
+    const pending = await resolveProductionCalendarRead({ currentUserUtterance: "How does tomorrow look?" }, deps.value);
     expect((await resolveProductionCalendarRead({ currentUserUtterance: "no",
       pendingAuthorizationReference: pending.pendingAuthorizationReference }, deps.value)).decision).toBe("DENY");
     expect(deps.createConnector).not.toHaveBeenCalled();

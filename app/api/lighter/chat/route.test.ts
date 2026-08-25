@@ -216,6 +216,34 @@ describe("POST /api/lighter/chat", () => {
     expect((await response.json()).reply).toBe("ordinary reply");
   });
 
+  it("keeps Calendar-result recall on the sanitized ordinary model path", async () => {
+    const model = vi.fn(async (_prompt: string, messages: ChatMessage[]) => {
+      expect(messages).toEqual([
+        { role: "user", content: "Show my calendar" },
+        { role: "assistant", content: "[Governed private result omitted from ordinary model context.]" },
+        { role: "user", content: "What did my calendar just say?" },
+      ]);
+      return "I don't retain the governed Calendar result in ordinary model context.";
+    });
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, {
+      createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z"),
+    })(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "Show my calendar" },
+      { role: "assistant", content: "Tomorrow you have 1 commitment:\n- Wed, 26 Aug, 7:00 PM – 8:00 PM" },
+      { role: "user", content: "What did my calendar just say?" },
+    ] }));
+
+    expect(await response.json()).toEqual({
+      reply: "I don't retain the governed Calendar result in ordinary model context.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(model).toHaveBeenCalledOnce();
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
   it("rejects malformed Gmail searches before constructing any connector", async () => {
     const model = vi.fn(); const searchConnector = vi.fn(); const readConnector = vi.fn();
     const response = await createLighterChatHandler(model, undefined, { createConnector: readConnector, loadPolicy: vi.fn() },
@@ -297,7 +325,7 @@ describe("POST /api/lighter/chat", () => {
       createConnector: connector,
       clock: () => new Date("2026-08-25T00:00:00Z"),
     });
-    const ask = await handler(request({ specialistId: "jarvis", messages: [{ role: "user", content: "About my calendar" }] }));
+    const ask = await handler(request({ specialistId: "jarvis", messages: [{ role: "user", content: "How does tomorrow look?" }] }));
     const reference = (await ask.json()).pendingAuthorizationReference;
     expect(model).not.toHaveBeenCalled();
     expect(connector).not.toHaveBeenCalled();

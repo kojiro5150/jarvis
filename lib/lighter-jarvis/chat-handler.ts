@@ -8,6 +8,7 @@ import { resolveProductionCalendarRead, type ProductionCalendarDependencies } fr
 import { CALENDAR_TIME_ZONE } from "@/lib/lighter-jarvis/calendar-read-window";
 import { resolveProductionGmailRead, type ProductionGmailDependencies } from "@/lib/lighter-jarvis/production-gmail-read";
 import { resolveProductionGmailSearch, type ProductionGmailSearchDependencies } from "@/lib/lighter-jarvis/production-gmail-search";
+import { sanitizeModelHistory } from "@/lib/lighter-jarvis/model-history-boundary";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -281,9 +282,12 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         : specialist.id === "jarvis" && !relaySpecialistReply
           ? JARVIS_TOOLS
           : undefined;
+      // Authority above is resolved from the untouched current utterance first.
+      // Only the later, ordinary model call receives the private-release boundary.
+      const modelMessages = sanitizeModelHistory(body.messages);
       const result = tools
-        ? await callModel(systemPrompt, body.messages, tools)
-        : await callModel(systemPrompt, body.messages);
+        ? await callModel(systemPrompt, modelMessages, tools)
+        : await callModel(systemPrompt, modelMessages);
       const content = typeof result === "string" ? [] : result.content;
       let reply = typeof result === "string" ? result : result.text;
 

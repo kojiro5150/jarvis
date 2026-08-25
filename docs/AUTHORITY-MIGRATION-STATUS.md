@@ -237,6 +237,14 @@ private briefing.
 
 Named specialist language remains visible in some current surfaces, including DAWNWATCH briefing behaviour.
 
+Sprint 3.139 adds a deterministic server-side handoff guard: an ordinary fall-through
+Calendar/Gmail acquisition request cannot turn a model-generated `propose_handoff` into a
+`routeTo` or pending handoff. The untouched utterance and proposed task summary are both
+checked on this deny-only boundary, and rejected model handoff claims are replaced with a
+neutral server response. DAWNWATCH ordinary runtime has no Calendar/Gmail acquisition;
+it may only present governed evidence supplied to its turn. This guard does not change the
+existing JARVIS-only Calendar/Gmail authority or recognizer boundaries.
+
 The frozen product direction is one user-facing JARVIS identity. Internal specialist/capability machinery may remain, but should become an implementation detail rather than a user coordination requirement.
 
 ## Migration sequence

@@ -9,6 +9,7 @@ import { CALENDAR_TIME_ZONE } from "@/lib/lighter-jarvis/calendar-read-window";
 import { resolveProductionGmailRead, type ProductionGmailDependencies } from "@/lib/lighter-jarvis/production-gmail-read";
 import { resolveProductionGmailSearch, type ProductionGmailSearchDependencies } from "@/lib/lighter-jarvis/production-gmail-search";
 import { sanitizeModelHistory } from "@/lib/lighter-jarvis/model-history-boundary";
+import { isPrivateAcquisitionHandoffRequest } from "@/lib/lighter-jarvis/private-capability-handoff-guard";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -75,6 +76,8 @@ const JARVIS_TOOLS: ClaudeTool[] = [{
     required: ["specialist_id", "task_summary"],
   },
 }];
+
+const PRIVATE_CAPABILITY_HANDOFF_BLOCKED_REPLY = "That request cannot be handled through a specialist handoff.";
 
 const isFetchError = (value: unknown): boolean => {
   if (Array.isArray(value)) return value.some(isFetchError);
@@ -310,6 +313,18 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           const marketScopes = "market_scopes" in handoff.input ? handoff.input.market_scopes : undefined;
           const resolvedMarketDomains = target?.id === "gecko" ? resolveMarketScopeDomains(marketScopes) : undefined;
           const hasValidMarketScopes = target?.id !== "gecko" || Boolean(resolvedMarketDomains);
+          // The model may suggest expertise, but it cannot manufacture a
+          // substitute route around JARVIS's private-source authority paths.
+          const privateAcquisition = (currentUserUtterance !== undefined
+            && isPrivateAcquisitionHandoffRequest(currentUserUtterance))
+            || (typeof taskSummary === "string" && isPrivateAcquisitionHandoffRequest(taskSummary));
+          if (privateAcquisition) {
+            return NextResponse.json({
+              reply: PRIVATE_CAPABILITY_HANDOFF_BLOCKED_REPLY,
+              specialistId: specialist.id,
+              execution: "none",
+            });
+          }
           if (target && hasTaskSummary && hasValidMarketScopes) {
             const routedReply = reply.trim() || `I'd recommend handing this to ${target.name}.`;
             return NextResponse.json({

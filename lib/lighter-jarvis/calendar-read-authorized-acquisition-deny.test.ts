@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+const TEST_WINDOW = Object.freeze({ start: "2026-08-25T00:00:00.000Z", end: "2026-09-01T00:00:00.000Z", timeZone: "Australia/Melbourne", period: "default" as const });
 vi.mock("./calendar-read-authority", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./calendar-read-authority")>();
   return {
@@ -22,7 +23,7 @@ describe("authority-gated governed Calendar acquisition DENY handling", () => {
 
     const result = await acquireAuthorizedCalendarEvidence({
       authority: {
-        proposedOperation: { capability: "calendar.read" },
+        proposedOperation: { capability: "calendar.read", window: TEST_WINDOW },
         currentUserUtterance: "Show my calendar.",
       },
       acquisition: {

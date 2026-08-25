@@ -1,6 +1,7 @@
 export const CALENDAR_READ_CAPABILITY = "calendar.read" as const;
 export type ProposedOperation = Readonly<{
   capability: typeof CALENDAR_READ_CAPABILITY;
+  window: import("./calendar-read-window").CalendarReadWindow;
 }>;
 
 export interface CalendarReadAuthorityRequest {

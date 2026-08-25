@@ -6,7 +6,7 @@ describe("calendar.read proposal boundary", () => {
   it("proposes a temporal schedule question without treating the proposal as authority", () => {
     const utterance = "How does tomorrow look?";
     const proposedOperation = proposeCalendarRead(utterance);
-    expect(proposedOperation).toEqual({ capability: "calendar.read" });
+    expect(proposedOperation).toMatchObject({ capability: "calendar.read" });
     expect(evaluateCalendarReadAuthority({ proposedOperation: proposedOperation!, currentUserUtterance: utterance }))
       .toMatchObject({ decision: "ASK", authorityEvidence: [] });
   });
@@ -23,7 +23,7 @@ describe("calendar.read proposal boundary", () => {
     "What is scheduled for this evening?",
   ])("proposes a high-precision schedule question without granting authority: %s", (utterance) => {
     const proposedOperation = proposeCalendarRead(utterance);
-    expect(proposedOperation).toEqual({ capability: "calendar.read" });
+    expect(proposedOperation).toMatchObject({ capability: "calendar.read" });
     expect(evaluateCalendarReadAuthority({ proposedOperation: proposedOperation!, currentUserUtterance: utterance }))
       .toEqual({
         capability: "calendar.read",

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { CalendarEvent } from "../connectors/calendar-event";
 import { acquireAuthorizedCalendarEvidence } from "./calendar-read-authorized-acquisition";
 
+const TEST_WINDOW = Object.freeze({ start: "2026-08-25T00:00:00.000Z", end: "2026-09-01T00:00:00.000Z", timeZone: "Australia/Melbourne", period: "default" as const });
 const event: CalendarEvent = {
   id: "provider-event",
   title: "Private event",
@@ -27,7 +28,7 @@ describe("authority-gated governed Calendar acquisition", () => {
 
     const result = await acquireAuthorizedCalendarEvidence({
       authority: {
-        proposedOperation: { capability: "calendar.read" },
+        proposedOperation: { capability: "calendar.read", window: TEST_WINDOW },
         currentUserUtterance: "What's on my calendar tomorrow?",
       },
       acquisition: acquisition(listUpcoming),
@@ -43,7 +44,7 @@ describe("authority-gated governed Calendar acquisition", () => {
 
     const result = await acquireAuthorizedCalendarEvidence({
       authority: {
-        proposedOperation: { capability: "calendar.read" },
+        proposedOperation: { capability: "calendar.read", window: TEST_WINDOW },
         currentUserUtterance: "How does tomorrow look?",
       },
       acquisition: acquisition(listUpcoming),
@@ -59,7 +60,7 @@ describe("authority-gated governed Calendar acquisition", () => {
 
     const result = await acquireAuthorizedCalendarEvidence({
       authority: {
-        proposedOperation: { capability: "calendar.read" },
+        proposedOperation: { capability: "calendar.read", window: TEST_WINDOW },
         currentUserUtterance: "Check my calendar for tomorrow.",
       },
       acquisition: acquisition(listUpcoming),
@@ -79,7 +80,7 @@ describe("authority-gated governed Calendar acquisition", () => {
 
     const result = await acquireAuthorizedCalendarEvidence({
       authority: {
-        proposedOperation: { capability: "calendar.read" },
+        proposedOperation: { capability: "calendar.read", window: TEST_WINDOW },
         currentUserUtterance: "Show my calendar.",
       },
       acquisition: {
@@ -102,7 +103,7 @@ describe("authority-gated governed Calendar acquisition", () => {
 
     const result = await acquireAuthorizedCalendarEvidence({
       authority: {
-        proposedOperation: { capability: "calendar.read" },
+        proposedOperation: { capability: "calendar.read", window: TEST_WINDOW },
         currentUserUtterance: "What should I do?",
       },
       acquisition: acquisition(listUpcoming),
@@ -121,7 +122,7 @@ describe("authority-gated governed Calendar acquisition", () => {
 
     const result = await acquireAuthorizedCalendarEvidence({
       authority: {
-        proposedOperation: { capability: "calendar.read" },
+        proposedOperation: { capability: "calendar.read", window: TEST_WINDOW },
         currentUserUtterance,
       },
       acquisition: acquisition(listUpcoming),

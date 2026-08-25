@@ -7,8 +7,9 @@ const event = { id: "event-1", title: "Review", start: "2026-08-26T09:00:00Z",
 
 function dependencies() {
   const listUpcoming = vi.fn(async () => [event]);
-  const createConnector = vi.fn(() => ({ source: "google" as const, listUpcoming }));
-  return { value: { createConnector, clock: () => new Date("2026-08-25T00:00:00Z") }, createConnector, listUpcoming };
+  const listBetween = vi.fn(async () => [event]);
+  const createConnector = vi.fn(() => ({ source: "google" as const, listUpcoming, listBetween }));
+  return { value: { createConnector, clock: () => new Date("2026-08-25T00:00:00Z") }, createConnector, listUpcoming, listBetween };
 }
 
 describe("production calendar.read authority ordering", () => {
@@ -17,7 +18,7 @@ describe("production calendar.read authority ordering", () => {
     const result = await resolveProductionCalendarRead({ currentUserUtterance: "Show my calendar" }, deps.value);
     expect(result.decision).toBe("ALLOW");
     expect(result.evidence?.status).toBe("available");
-    expect(deps.listUpcoming).toHaveBeenCalledWith(5);
+    expect(deps.listBetween).toHaveBeenCalledWith("2026-08-25T00:00:00.000Z", "2026-09-01T00:00:00.000Z", 5);
   });
 
   it("creates pending server state for ASK without constructing or calling a connector", async () => {
@@ -40,7 +41,7 @@ describe("production calendar.read authority ordering", () => {
       pendingAuthorizationId: pending.pendingAuthorizationReference!.pendingAuthorizationId,
       utterance: "Yes, please.",
     })]);
-    expect(deps.listUpcoming).toHaveBeenCalledOnce();
+    expect(deps.listBetween).toHaveBeenCalledOnce();
   });
 
   it("proposes an implicit temporal read but asks rather than acquiring", async () => {
@@ -48,6 +49,19 @@ describe("production calendar.read authority ordering", () => {
     const result = await resolveProductionCalendarRead({ currentUserUtterance: "How does tomorrow look?" }, deps.value);
     expect(result).toMatchObject({ decision: "ASK", authorityEvidence: [] });
     expect(deps.createConnector).not.toHaveBeenCalled();
+  });
+
+  it("retains and consumes the exact resolved temporal bounds after confirmation", async () => {
+    const deps = dependencies();
+    const pending = await resolveProductionCalendarRead({ currentUserUtterance: "What's on tomorrow?" }, deps.value);
+    expect(pending.window).toMatchObject({
+      start: "2026-08-25T14:00:00.000Z", end: "2026-08-26T14:00:00.000Z", period: "tomorrow",
+    });
+    await resolveProductionCalendarRead({ currentUserUtterance: "yes",
+      pendingAuthorizationReference: pending.pendingAuthorizationReference }, deps.value);
+    expect(deps.listBetween).toHaveBeenCalledWith(
+      "2026-08-25T14:00:00.000Z", "2026-08-26T14:00:00.000Z", 5,
+    );
   });
 
   it("leaves bare confirmation outside the Calendar authority flow", async () => {

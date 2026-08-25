@@ -1,5 +1,5 @@
 import { getCalendarConnector } from "../connectors/calendar";
-import type { CalendarAcquisitionPort } from "../governed-conversation/calendar-evidence-acquisition-adapter";
+import type { ScopedCalendarAcquisitionPort } from "../governed-conversation/scoped-calendar-evidence-acquisition-adapter";
 import type { GovernedCalendarEvidenceInput } from "../governed-conversation/projection-composer";
 import type { SourceAdapterResult } from "../governed-conversation/source-adapter-result";
 import {
@@ -14,7 +14,7 @@ import {
 import { proposeCalendarRead } from "./calendar-read-proposal";
 
 export interface ProductionCalendarDependencies {
-  readonly createConnector: () => CalendarAcquisitionPort;
+  readonly createConnector: () => ScopedCalendarAcquisitionPort;
   readonly clock: () => Date;
 }
 
@@ -25,10 +25,11 @@ export type ProductionCalendarReadResult = Readonly<{
   evidence: SourceAdapterResult<GovernedCalendarEvidenceInput> | null;
   pendingAuthorizationReference: PendingAuthorizationReference | null;
   authorityEvidence: readonly unknown[];
+  window: import("./calendar-read-window").CalendarReadWindow | null;
 }>;
 
 const defaults: ProductionCalendarDependencies = {
-  createConnector: getCalendarConnector,
+  createConnector: () => getCalendarConnector() as unknown as ScopedCalendarAcquisitionPort,
   clock: () => new Date(),
 };
 
@@ -45,8 +46,8 @@ export async function resolveProductionCalendarRead(input: {
   if (hasTransportReference) {
     const acquired = await acquirePendingAuthorizedCalendarEvidence({
       ...input,
-      acquisition: () => ({ connector: dependencies.createConnector(), clock: dependencies.clock,
-        requestedLimit: 5, horizonDays: 7 }),
+      acquisition: (operation) => ({ connector: dependencies.createConnector(), clock: dependencies.clock,
+        requestedLimit: 5, horizonDays: 7, window: operation.window }),
     });
     const resolution = acquired.authority;
     if (resolution.decision !== "ALLOW") {
@@ -57,18 +58,19 @@ export async function resolveProductionCalendarRead(input: {
         evidence: null,
         pendingAuthorizationReference: resolution.pendingAuthorizationReference,
         authorityEvidence: resolution.authorityEvidence,
+        window: resolution.proposedOperation?.window ?? null,
       });
     }
 
     return Object.freeze({ handled: true, decision: "ALLOW", reason: resolution.reason,
       evidence: acquired.evidence, pendingAuthorizationReference: null,
-      authorityEvidence: resolution.authorityEvidence });
+      authorityEvidence: resolution.authorityEvidence, window: resolution.proposedOperation!.window });
   }
 
-  const proposedOperation = proposeCalendarRead(input.currentUserUtterance);
+  const proposedOperation = proposeCalendarRead(input.currentUserUtterance, dependencies.clock);
   if (proposedOperation === null) {
     return Object.freeze({ handled: false, decision: null, reason: null, evidence: null,
-      pendingAuthorizationReference: null, authorityEvidence: Object.freeze([]) });
+      pendingAuthorizationReference: null, authorityEvidence: Object.freeze([]), window: null });
   }
 
   const authority = evaluateCalendarReadAuthority({
@@ -79,13 +81,13 @@ export async function resolveProductionCalendarRead(input: {
     const acquired = await acquireAuthorizedCalendarEvidence({
       authority: { proposedOperation, currentUserUtterance: input.currentUserUtterance },
       acquisition: { connector: dependencies.createConnector(), clock: dependencies.clock,
-        requestedLimit: 5, horizonDays: 7 },
+        requestedLimit: 5, horizonDays: 7, window: proposedOperation.window },
     });
     return Object.freeze({ handled: true, decision: "ALLOW", reason: acquired.authority.reason,
       evidence: acquired.evidence, pendingAuthorizationReference: null,
-      authorityEvidence: acquired.authority.authorityEvidence });
+      authorityEvidence: acquired.authority.authorityEvidence, window: proposedOperation.window });
   }
   return Object.freeze({ handled: true, decision: "ASK", reason: authority.reason,
     evidence: null, pendingAuthorizationReference: createPendingAuthorization(proposedOperation),
-    authorityEvidence: authority.authorityEvidence });
+    authorityEvidence: authority.authorityEvidence, window: proposedOperation.window });
 }

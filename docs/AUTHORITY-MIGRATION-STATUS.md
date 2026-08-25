@@ -161,6 +161,14 @@ must remain unavailable until explicit Memory read/write authority exists. Any
 connector `source` synthesized for the legacy Dashboard contract is
 compatibility-only and is not observed provider provenance.
 
+Sprint 3.129 closes the final callable eager full-state surfaces. The legacy
+`/api/operational-state` and deprecated `/api/operational-picture` routes now
+fail closed with HTTP 410 and do not import or invoke `buildOperationalState()`.
+The unused `/api/operational-state/evaluation` route is removed. The production
+quarantine and machine-readable inventory record zero callable eager full-state
+surfaces, so migration Step 5 is complete. This does not add Gmail, Drive, or
+Memory authority, and `BRIEF_ME_GRANT` remains unimplemented.
+
 ### Local fallback acquisition — `!` for future authority architecture
 
 Legacy Calendar, Gmail and Drive loaders can fall back to local data after source failures. This behaviour is historically intentional for dashboard continuity, but it must not become an authority bypass in the governed production path.

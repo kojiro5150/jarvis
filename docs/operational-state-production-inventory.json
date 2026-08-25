@@ -1,7 +1,7 @@
 {
-  "schemaVersion": 1,
-  "asOfSprint": "3.128",
-  "step5Status": "partial",
+  "schemaVersion": 2,
+  "asOfSprint": "3.129",
+  "step5Status": "complete",
   "surfaces": [
     {
       "id": "dashboard",
@@ -27,24 +27,25 @@
       "classification": "legacy-production-api",
       "entryPoint": "app/api/operational-state/route.ts",
       "dependencies": [],
-      "acquisition": "direct-builder",
-      "disposition": "quarantined-no-known-in-repository-client"
+      "acquisition": "none",
+      "disposition": "retired-fail-closed-http-410-in-sprint-3.129"
     },
     {
       "id": "operational-picture-alias",
       "classification": "deprecated-compatibility-api",
       "entryPoint": "app/api/operational-picture/route.ts",
       "dependencies": [],
-      "acquisition": "direct-builder",
-      "disposition": "quarantined-no-known-in-repository-client"
+      "acquisition": "none",
+      "disposition": "retired-fail-closed-http-410-in-sprint-3.129"
     },
     {
       "id": "operational-state-evaluation",
       "classification": "evidence-only-evaluation-api",
-      "entryPoint": "app/api/operational-state/evaluation/route.ts",
+      "entryPoint": null,
       "dependencies": [],
-      "acquisition": "direct-builder",
-      "disposition": "quarantined-no-known-in-repository-client"
+      "acquisition": "none",
+      "disposition": "unused-route-removed-in-sprint-3.129"
     }
-  ]
+  ],
+  "callableEagerFullStateSurfaces": 0
 }

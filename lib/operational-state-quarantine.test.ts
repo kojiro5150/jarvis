@@ -23,12 +23,18 @@ function filesMatching(pattern: RegExp): string[] {
 }
 
 describe("legacy OperationalState production quarantine", () => {
-  it("keeps the complete direct builder inventory closed", () => {
-    expect(filesMatching(/import\s*\{[\s\S]*?\bbuildOperationalState\b[\s\S]*?\}\s*from\s*["'][^"']*operational-state["']/)).toEqual([
+  it("keeps the callable eager full-state surface at zero", () => {
+    expect(filesMatching(/import\s*\{[\s\S]*?\bbuildOperationalState\b[\s\S]*?\}\s*from\s*["'][^"']*operational-state["']/)).toEqual([]);
+
+    expect(sources).not.toContain("app/api/operational-state/evaluation/route.ts");
+    for (const route of [
       "app/api/operational-picture/route.ts",
-      "app/api/operational-state/evaluation/route.ts",
       "app/api/operational-state/route.ts",
-    ]);
+    ]) {
+      const source = readFileSync(join(ROOT, route), "utf8");
+      expect(source).toContain("status: 410");
+      expect(source).not.toContain("buildOperationalState");
+    }
   });
 
   it("keeps the operational-state APIs clientless and the compatibility hook status-only", () => {
@@ -52,24 +58,26 @@ describe("legacy OperationalState production quarantine", () => {
     expect(rail).toContain('statusLabel="UNAVAILABLE"');
   });
 
-  it("keeps the machine-readable surface inventory complete and explicitly partial", () => {
+  it("keeps the machine-readable surface inventory complete and marks Step 5 complete", () => {
     const inventoryPath = join(ROOT, "docs/operational-state-production-inventory.json");
     const inventory = JSON.parse(readFileSync(inventoryPath, "utf8")) as {
       step5Status: string;
-      surfaces: Array<{ entryPoint: string; acquisition: string }>;
+      callableEagerFullStateSurfaces: number;
+      surfaces: Array<{ entryPoint: string | null; acquisition: string; disposition: string }>;
     };
     const directBuilders = inventory.surfaces
       .filter(surface => surface.acquisition === "direct-builder")
       .map(surface => surface.entryPoint)
       .sort();
 
-    expect(inventory.step5Status).toBe("partial");
-    expect(directBuilders).toEqual([
-      "app/api/operational-picture/route.ts",
-      "app/api/operational-state/evaluation/route.ts",
-      "app/api/operational-state/route.ts",
-    ]);
+    expect(inventory.step5Status).toBe("complete");
+    expect(inventory.callableEagerFullStateSurfaces).toBe(0);
+    expect(directBuilders).toEqual([]);
     for (const surface of inventory.surfaces) {
+      if (surface.entryPoint === null) {
+        expect(surface.disposition).toContain("removed");
+        continue;
+      }
       expect(relative(ROOT, join(ROOT, surface.entryPoint))).toBe(surface.entryPoint);
       expect(sources).toContain(surface.entryPoint);
     }

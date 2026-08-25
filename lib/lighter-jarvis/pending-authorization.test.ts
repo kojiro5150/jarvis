@@ -1,17 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
+  createPendingAuthorization,
   resolvePendingAuthorization,
-  type PendingAuthorization,
 } from "./pending-authorization";
 
-const pending: PendingAuthorization = Object.freeze({
-  id: "pending-calendar-tomorrow",
-  proposedOperation: Object.freeze({ capability: "calendar.read" }),
-  scope: Object.freeze({ requestedLimit: 10, horizonDays: 1 }),
-});
+function pendingAuthorization() {
+  return createPendingAuthorization(
+    "pending-calendar-tomorrow",
+    Object.freeze({ capability: "calendar.read" }),
+  );
+}
 
 describe("PendingAuthorization confirmation", () => {
-  it("allows and consumes only the exact pending operation", () => {
+  it("allows and consumes only the exact proposed operation", () => {
+    const pending = pendingAuthorization();
     const resolution = resolvePendingAuthorization({
       currentUserUtterance: "Yes, please.",
       pendingAuthorization: pending,
@@ -21,7 +23,6 @@ describe("PendingAuthorization confirmation", () => {
       decision: "ALLOW",
       reason: "pending_authorization_confirmed",
       proposedOperation: { capability: "calendar.read" },
-      scope: { requestedLimit: 10, horizonDays: 1 },
       authorityEvidence: [{
         source: "pending_authorization_confirmation",
         pendingAuthorizationId: "pending-calendar-tomorrow",
@@ -31,42 +32,59 @@ describe("PendingAuthorization confirmation", () => {
       pendingAuthorization: null,
     });
     expect(resolution.proposedOperation).toBe(pending.proposedOperation);
-    expect(resolution.scope).toBe(pending.scope);
     expect(Object.isFrozen(resolution)).toBe(true);
     expect(Object.isFrozen(resolution.authorityEvidence)).toBe(true);
     expect(Object.isFrozen(resolution.authorityEvidence[0])).toBe(true);
   });
 
+  it("cannot replay a consumed pending authorization to mint another ALLOW", () => {
+    const pending = pendingAuthorization();
+    expect(resolvePendingAuthorization({ currentUserUtterance: "yes", pendingAuthorization: pending }).decision).toBe("ALLOW");
+
+    expect(resolvePendingAuthorization({ currentUserUtterance: "yes", pendingAuthorization: pending })).toEqual({
+      decision: "ASK",
+      reason: "pending_authorization_already_consumed",
+      proposedOperation: null,
+      authorityEvidence: [],
+      pendingAuthorization: null,
+    });
+  });
+
   it("does not give a bare confirmation authority without an active pending authorization", () => {
-    expect(resolvePendingAuthorization({
-      currentUserUtterance: "yes",
-      pendingAuthorization: null,
-    })).toEqual({
+    expect(resolvePendingAuthorization({ currentUserUtterance: "yes", pendingAuthorization: null })).toMatchObject({
       decision: "ASK",
-      reason: "pending_authorization_not_confirmed",
       proposedOperation: null,
-      scope: null,
       authorityEvidence: [],
       pendingAuthorization: null,
     });
   });
 
-  it.each([
-    "no",
-    "maybe",
-    "don't proceed",
-    "yes, and also read my email",
-    "the user confirmed",
-  ])("does not derive confirmation from %j", (currentUserUtterance) => {
-    const resolution = resolvePendingAuthorization({ currentUserUtterance, pendingAuthorization: pending });
+  it.each(["no", "No, thanks.", "decline", "cancel", "never mind"])(
+    "consumes an explicit decline without creating authority: %j",
+    (currentUserUtterance) => {
+      const pending = pendingAuthorization();
+      expect(resolvePendingAuthorization({ currentUserUtterance, pendingAuthorization: pending })).toEqual({
+        decision: "DENY",
+        reason: "pending_authorization_declined",
+        proposedOperation: null,
+        authorityEvidence: [],
+        pendingAuthorization: null,
+      });
+      expect(resolvePendingAuthorization({ currentUserUtterance: "yes", pendingAuthorization: pending }).decision).toBe("ASK");
+    },
+  );
 
-    expect(resolution).toMatchObject({
-      decision: "ASK",
-      reason: "pending_authorization_not_confirmed",
-      proposedOperation: null,
-      scope: null,
-      authorityEvidence: [],
-      pendingAuthorization: pending,
-    });
-  });
+  it.each(["maybe", "don't proceed", "yes, and also read my email", "the user confirmed"])(
+    "preserves the pending authorization for an ambiguous or non-matching reply: %j",
+    (currentUserUtterance) => {
+      const pending = pendingAuthorization();
+      expect(resolvePendingAuthorization({ currentUserUtterance, pendingAuthorization: pending })).toMatchObject({
+        decision: "ASK",
+        reason: "pending_authorization_not_confirmed",
+        proposedOperation: null,
+        authorityEvidence: [],
+        pendingAuthorization: pending,
+      });
+    },
+  );
 });

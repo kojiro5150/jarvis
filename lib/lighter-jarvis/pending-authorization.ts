@@ -1,15 +1,12 @@
 import type { ProposedOperation } from "./calendar-read-authority";
 
-export type PendingAuthorizationScope = Readonly<{
-  requestedLimit: number;
-  horizonDays: number;
-}>;
+const activePendingAuthorization: unique symbol = Symbol("activePendingAuthorization");
 
-/** One active, bounded operation waiting for the user's confirmation. */
+/** One active authorization bound to the exact proposed operation awaiting confirmation. */
 export type PendingAuthorization = Readonly<{
   id: string;
   proposedOperation: ProposedOperation;
-  scope: PendingAuthorizationScope;
+  readonly [activePendingAuthorization]: true;
 }>;
 
 export type PendingAuthorizationConfirmationEvidence = Readonly<{
@@ -20,53 +17,87 @@ export type PendingAuthorizationConfirmationEvidence = Readonly<{
 }>;
 
 export type PendingAuthorizationResolution = Readonly<{
-  decision: "ALLOW" | "ASK";
-  reason: "pending_authorization_confirmed" | "pending_authorization_not_confirmed";
+  decision: "ALLOW" | "ASK" | "DENY";
+  reason:
+    | "pending_authorization_confirmed"
+    | "pending_authorization_declined"
+    | "pending_authorization_not_confirmed"
+    | "pending_authorization_already_consumed";
   proposedOperation: ProposedOperation | null;
-  scope: PendingAuthorizationScope | null;
   authorityEvidence: readonly PendingAuthorizationConfirmationEvidence[];
-  /** Null means that the exact pending authorization was consumed. */
   pendingAuthorization: PendingAuthorization | null;
 }>;
 
+const consumedPendingAuthorizations = new WeakSet<PendingAuthorization>();
 const EXPLICIT_CONFIRMATION = /^(?:yes|yes,?\s+please|confirm|confirmed|proceed|go\s+ahead)[.!]?$/i;
+const EXPLICIT_DECLINE = /^(?:no|no,?\s+thanks|decline|cancel|never\s+mind)[.!]?$/i;
+
+/** Creates the only public representation accepted as an active pending authorization. */
+export function createPendingAuthorization(
+  id: string,
+  proposedOperation: ProposedOperation,
+): PendingAuthorization {
+  return Object.freeze({
+    id,
+    proposedOperation,
+    [activePendingAuthorization]: true as const,
+  });
+}
 
 /**
- * Resolves confirmation solely from the raw current utterance and the active
- * pending authorization. A caller cannot supply a confirmation flag, an
- * authority decision, or an operation different from the pending operation.
+ * Resolves confirmation or decline solely from the raw current utterance and
+ * active pending authorization. Confirmation and decline each consume the
+ * value; a consumed value cannot mint a later ALLOW even if retained by a
+ * caller and submitted again.
  */
 export function resolvePendingAuthorization(input: {
   readonly currentUserUtterance: string;
   readonly pendingAuthorization: PendingAuthorization | null;
 }): PendingAuthorizationResolution {
   const pending = input.pendingAuthorization;
-  const confirmed = pending !== null && EXPLICIT_CONFIRMATION.test(input.currentUserUtterance.trim());
 
-  if (!confirmed) {
+  if (pending !== null && consumedPendingAuthorizations.has(pending)) {
+    return resolution("ASK", "pending_authorization_already_consumed", null);
+  }
+
+  const utterance = input.currentUserUtterance.trim();
+
+  if (pending !== null && EXPLICIT_CONFIRMATION.test(utterance)) {
+    consumedPendingAuthorizations.add(pending);
     return Object.freeze({
-      decision: "ASK",
-      reason: "pending_authorization_not_confirmed",
-      proposedOperation: null,
-      scope: null,
-      authorityEvidence: Object.freeze([]),
-      pendingAuthorization: pending,
+      decision: "ALLOW",
+      reason: "pending_authorization_confirmed",
+      proposedOperation: pending.proposedOperation,
+      authorityEvidence: Object.freeze([
+        Object.freeze({
+          source: "pending_authorization_confirmation",
+          pendingAuthorizationId: pending.id,
+          utterance: input.currentUserUtterance,
+          basis: "explicit_confirmation",
+        }),
+      ]),
+      pendingAuthorization: null,
     });
   }
 
+  if (pending !== null && EXPLICIT_DECLINE.test(utterance)) {
+    consumedPendingAuthorizations.add(pending);
+    return resolution("DENY", "pending_authorization_declined", null);
+  }
+
+  return resolution("ASK", "pending_authorization_not_confirmed", pending);
+}
+
+function resolution(
+  decision: "ASK" | "DENY",
+  reason: Exclude<PendingAuthorizationResolution["reason"], "pending_authorization_confirmed">,
+  pendingAuthorization: PendingAuthorization | null,
+): PendingAuthorizationResolution {
   return Object.freeze({
-    decision: "ALLOW",
-    reason: "pending_authorization_confirmed",
-    proposedOperation: pending.proposedOperation,
-    scope: pending.scope,
-    authorityEvidence: Object.freeze([
-      Object.freeze({
-        source: "pending_authorization_confirmation",
-        pendingAuthorizationId: pending.id,
-        utterance: input.currentUserUtterance,
-        basis: "explicit_confirmation",
-      }),
-    ]),
-    pendingAuthorization: null,
+    decision,
+    reason,
+    proposedOperation: null,
+    authorityEvidence: Object.freeze([]),
+    pendingAuthorization,
   });
 }

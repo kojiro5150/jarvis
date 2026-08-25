@@ -41,7 +41,7 @@ Legend:
 | Explicit current-user utterance | ✓ for `calendar.read` only | Raw current utterance is independently matched; proposal itself is non-authoritative. |
 | Named capability grants | ○ | No general named-grant machinery yet. |
 | Standing grants | ○ | No standing-grant store or adjudication yet. |
-| `PendingAuthorization` confirmation | △ | An isolated public resolver binds deterministic confirmation to the exact existing `ProposedOperation`, makes confirmation and explicit decline one-shot, and gives bare confirmation no authority. Production conversation state is not yet integrated. |
+| `PendingAuthorization` confirmation | △ | An isolated public resolver binds deterministic confirmation to the exact existing `ProposedOperation`, makes confirmation and explicit decline one-shot by pending-authorization ID, and gives bare confirmation no authority. Production conversation state is not yet integrated. |
 | Resource policy | △ | Mature Gmail content-retrieval policy exists; it is not positive user authority and is not yet composed into a general Authority Engine. |
 
 ## `calendar.read` detail

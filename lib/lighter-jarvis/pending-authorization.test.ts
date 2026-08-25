@@ -4,16 +4,18 @@ import {
   resolvePendingAuthorization,
 } from "./pending-authorization";
 
-function pendingAuthorization() {
+let pendingSequence = 0;
+
+function pendingAuthorization(id = `pending-calendar-${pendingSequence += 1}`) {
   return createPendingAuthorization(
-    "pending-calendar-tomorrow",
+    id,
     Object.freeze({ capability: "calendar.read" }),
   );
 }
 
 describe("PendingAuthorization confirmation", () => {
   it("allows and consumes only the exact proposed operation", () => {
-    const pending = pendingAuthorization();
+    const pending = pendingAuthorization("pending-calendar-tomorrow");
     const resolution = resolvePendingAuthorization({
       currentUserUtterance: "Yes, please.",
       pendingAuthorization: pending,
@@ -42,6 +44,21 @@ describe("PendingAuthorization confirmation", () => {
     expect(resolvePendingAuthorization({ currentUserUtterance: "yes", pendingAuthorization: pending }).decision).toBe("ALLOW");
 
     expect(resolvePendingAuthorization({ currentUserUtterance: "yes", pendingAuthorization: pending })).toEqual({
+      decision: "ASK",
+      reason: "pending_authorization_already_consumed",
+      proposedOperation: null,
+      authorityEvidence: [],
+      pendingAuthorization: null,
+    });
+  });
+
+  it("cannot replay a consumed pending authorization ID through a different object", () => {
+    const first = pendingAuthorization("pending-calendar-duplicate");
+    const duplicateId = pendingAuthorization("pending-calendar-duplicate");
+    expect(first).not.toBe(duplicateId);
+    expect(resolvePendingAuthorization({ currentUserUtterance: "yes", pendingAuthorization: first }).decision).toBe("ALLOW");
+
+    expect(resolvePendingAuthorization({ currentUserUtterance: "yes", pendingAuthorization: duplicateId })).toEqual({
       decision: "ASK",
       reason: "pending_authorization_already_consumed",
       proposedOperation: null,

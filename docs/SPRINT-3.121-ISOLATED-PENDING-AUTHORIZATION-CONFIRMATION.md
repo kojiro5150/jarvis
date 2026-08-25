@@ -28,8 +28,9 @@ immutable authority evidence, and consumes the pending value by returning
 
 Without both an explicit current confirmation and an active pending value, the
 result is `ASK`, no operation is released, and no authority evidence is
-created. A consumed pending object is tracked internally and cannot be replayed
-to mint another `ALLOW`, even if a caller retained it.
+created. A consumed pending identifier is tracked internally and cannot be
+replayed to mint another `ALLOW`, even through a different object carrying the
+same `pendingAuthorizationId`.
 
 An explicit standalone decline returns `DENY`, creates no authority evidence
 and consumes the pending authorization. Ambiguous and non-matching replies
@@ -41,7 +42,8 @@ Tests prove:
 
 ```text
 active exact pending + standalone confirmation → ALLOW + exact bound operation + consumed
-consumed pending     + later confirmation      → ASK   + no authority
+consumed pending ID  + later confirmation      → ASK   + no authority
+consumed pending ID  + different object        → ASK   + no authority
 active exact pending + explicit decline        → DENY  + consumed + no authority
 active exact pending + ambiguous reply         → ASK   + pending preserved
 no active pending    + bare confirmation       → ASK   + no authority

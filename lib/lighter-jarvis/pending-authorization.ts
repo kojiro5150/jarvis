@@ -28,7 +28,7 @@ export type PendingAuthorizationResolution = Readonly<{
   pendingAuthorization: PendingAuthorization | null;
 }>;
 
-const consumedPendingAuthorizations = new WeakSet<PendingAuthorization>();
+const consumedPendingAuthorizationIds = new Set<string>();
 const EXPLICIT_CONFIRMATION = /^(?:yes|yes,?\s+please|confirm|confirmed|proceed|go\s+ahead)[.!]?$/i;
 const EXPLICIT_DECLINE = /^(?:no|no,?\s+thanks|decline|cancel|never\s+mind)[.!]?$/i;
 
@@ -47,8 +47,8 @@ export function createPendingAuthorization(
 /**
  * Resolves confirmation or decline solely from the raw current utterance and
  * active pending authorization. Confirmation and decline each consume the
- * value; a consumed value cannot mint a later ALLOW even if retained by a
- * caller and submitted again.
+ * identifier; recreating an object with a consumed identifier cannot mint a
+ * later ALLOW.
  */
 export function resolvePendingAuthorization(input: {
   readonly currentUserUtterance: string;
@@ -56,14 +56,14 @@ export function resolvePendingAuthorization(input: {
 }): PendingAuthorizationResolution {
   const pending = input.pendingAuthorization;
 
-  if (pending !== null && consumedPendingAuthorizations.has(pending)) {
+  if (pending !== null && consumedPendingAuthorizationIds.has(pending.id)) {
     return resolution("ASK", "pending_authorization_already_consumed", null);
   }
 
   const utterance = input.currentUserUtterance.trim();
 
   if (pending !== null && EXPLICIT_CONFIRMATION.test(utterance)) {
-    consumedPendingAuthorizations.add(pending);
+    consumedPendingAuthorizationIds.add(pending.id);
     return Object.freeze({
       decision: "ALLOW",
       reason: "pending_authorization_confirmed",
@@ -81,7 +81,7 @@ export function resolvePendingAuthorization(input: {
   }
 
   if (pending !== null && EXPLICIT_DECLINE.test(utterance)) {
-    consumedPendingAuthorizations.add(pending);
+    consumedPendingAuthorizationIds.add(pending.id);
     return resolution("DENY", "pending_authorization_declined", null);
   }
 

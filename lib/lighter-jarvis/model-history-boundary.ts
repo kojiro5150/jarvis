@@ -8,9 +8,11 @@ import type { ChatMessage } from "@/lib/agents/types";
  * it is genuine or fabricated.
  */
 const OMITTED_PRIVATE_RELEASE = "[Governed private result omitted from ordinary model context.]";
+const OMITTED_GMAIL_READ_REQUEST = "[Prior governed Gmail read request omitted from ordinary model context.]";
 
 const GMAIL_FIELD_RELEASE = /^(?:Subject|Snippet|Plain text body|Attachment filenames|Attachment MIME metadata):/;
 const CALENDAR_RELEASE = /^(?:(?:Today|Tomorrow|This morning|This afternoon|This evening|This week) is clear\.|Your Calendar is clear for the next seven days\.|(?:Today|Tomorrow|This morning|This afternoon|This evening|This week|Next seven days) you have \d+ commitments?:\n-|Your Calendar has (?:no|\d+) commitments? in )/;
+const EXACT_GMAIL_READ_REQUEST = /^gmail\.read [^\s\[\],<>]+ \[(?:subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata)(?:,(?:subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata))*\]$/;
 
 export function isDeterministicPrivateRelease(content: string): boolean {
   return content === "No Gmail message IDs found."
@@ -21,7 +23,14 @@ export function isDeterministicPrivateRelease(content: string): boolean {
 
 /** Returns a fresh model-only history; the client-visible transcript is never mutated. */
 export function sanitizeModelHistory(messages: readonly ChatMessage[]): ChatMessage[] {
-  return messages.map(message => message.role === "assistant" && isDeterministicPrivateRelease(message.content)
-    ? { role: "assistant", content: OMITTED_PRIVATE_RELEASE }
-    : { role: message.role, content: message.content });
+  const currentUserIndex = messages.findLastIndex(message => message.role === "user");
+  return messages.map((message, index) => {
+    if (message.role === "assistant" && isDeterministicPrivateRelease(message.content)) {
+      return { role: "assistant", content: OMITTED_PRIVATE_RELEASE };
+    }
+    if (message.role === "user" && index !== currentUserIndex && EXACT_GMAIL_READ_REQUEST.test(message.content.trim())) {
+      return { role: "user", content: OMITTED_GMAIL_READ_REQUEST };
+    }
+    return { role: message.role, content: message.content };
+  });
 }

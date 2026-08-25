@@ -157,10 +157,12 @@ describe("POST /api/lighter/chat", () => {
       expect(messages).toEqual([
         { role: "user", content: "gmail.search [newer_than:1d]" },
         { role: "assistant", content: "[Governed private result omitted from ordinary model context.]" },
-        { role: "user", content: "gmail.read private-id [subject]" },
+        { role: "user", content: "[Prior governed Gmail read request omitted from ordinary model context.]" },
         { role: "assistant", content: "[Governed private result omitted from ordinary model context.]" },
         { role: "user", content: "Show me my emails." },
       ]);
+      expect(JSON.stringify(messages)).not.toContain("private-id");
+      expect(JSON.stringify(messages)).not.toContain("Highly private subject");
       return "I don't have continuing mailbox awareness.";
     });
     const searchConnector = vi.fn();

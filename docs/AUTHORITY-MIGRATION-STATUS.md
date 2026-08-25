@@ -86,9 +86,10 @@ unknown; the evidence does not confirm process-local state as the cause. See
 
 Sprint 3.138 adds the deterministic model-history boundary on `/api/lighter/chat`. Current-turn
 authority recognition still runs first against the untouched utterance. Before an ordinary model
-call, deterministic Gmail search, Gmail read, and Calendar read releases are omitted from the
-model-only copy of client-carried history; visible responses remain unchanged. Client metadata is
-not accepted as authority or provenance, ordinary non-private history is retained, and no Gmail,
+call, deterministic Gmail search, Gmail read, and Calendar read releases, plus prior exact Gmail
+read authority commands containing message IDs, are omitted from the model-only copy of
+client-carried history; visible responses remain unchanged. Client metadata is not accepted as
+authority or durable provenance, ordinary non-private history is retained, and no Gmail,
 Calendar, resource-policy, or `PendingAuthorization` scope is broadened.
 
 ## `calendar.read` detail

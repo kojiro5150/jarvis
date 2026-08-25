@@ -26,4 +26,19 @@ describe("ordinary-model history boundary", () => {
       { role: "user" as const, content: "What should you call me?" }];
     expect(sanitizeModelHistory(history)).toEqual(history);
   });
+
+  it("omits prior exact Gmail read commands without changing ordinary user history or the current utterance", () => {
+    const history = [
+      { role: "user" as const, content: "Call me Sam." },
+      { role: "user" as const, content: "gmail.read private-id [subject]" },
+      { role: "assistant" as const, content: "Subject: Private subject" },
+      { role: "user" as const, content: "gmail.read current-id [subject]" },
+    ];
+    expect(sanitizeModelHistory(history)).toEqual([
+      history[0],
+      { role: "user", content: "[Prior governed Gmail read request omitted from ordinary model context.]" },
+      { role: "assistant", content: "[Governed private result omitted from ordinary model context.]" },
+      history[3],
+    ]);
+  });
 });

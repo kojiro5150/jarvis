@@ -14,10 +14,12 @@ acquire Calendar or Gmail data.
 ## Runtime boundary
 
 After all existing deterministic Gmail and Calendar proposal/authorization resolvers have
-run, the server checks the untouched current user utterance before accepting a model handoff.
-If the utterance asks to acquire Calendar/Gmail data, or recalls those sources as though an
-ordinary fall-through turn had acquired them, the proposed route is discarded. The model's
-task summary and target are not authority inputs.
+run, the server checks both the untouched current user utterance and the model-proposed task
+summary before accepting a model handoff. If either asks to acquire Calendar/Gmail data, or
+recalls those sources as though an ordinary fall-through turn had acquired them, the proposed
+route is discarded. The task summary remains non-authoritative: inspecting it is deny-side
+routing enforcement only. A blocked proposal receives deterministic neutral copy rather than
+the model's potentially misleading handoff claim.
 
 The guard does not execute a capability and does not broaden either recognizer. In
 particular it adds no weekday Calendar window, natural-language `gmail.read`, Gmail search

@@ -569,6 +569,8 @@ describe("POST /api/lighter/chat", () => {
     )(request({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }));
 
     const body = await response.json();
+    expect(body.reply).toBe("That request cannot be handled through a specialist handoff.");
+    expect(body.reply).not.toMatch(/DAWNWATCH|Calendar|Gmail|email|inbox|access/i);
     expect(body).not.toHaveProperty("routeTo");
     expect(body).not.toHaveProperty("pendingAuthorizationReference");
     expect(calendarConnector).not.toHaveBeenCalled();
@@ -593,6 +595,8 @@ describe("POST /api/lighter/chat", () => {
     )(request({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }));
 
     const body = await response.json();
+    expect(body.reply).toBe("That request cannot be handled through a specialist handoff.");
+    expect(body.reply).not.toMatch(/DAWNWATCH|Calendar|Gmail|email|inbox|access/i);
     expect(body).not.toHaveProperty("routeTo");
     expect(body).not.toHaveProperty("pendingAuthorizationReference");
     expect(calendarConnector).not.toHaveBeenCalled();
@@ -600,12 +604,30 @@ describe("POST /api/lighter/chat", () => {
     expect(gmailSearchConnector).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["Can you take care of that?", "Retrieve my calendar"],
+    ["Please handle it.", "Check my Gmail"],
+  ])("blocks an ambiguous utterance when the model task summary proposes private acquisition: %s", async (utterance, taskSummary) => {
+    const response = await createLighterChatHandler(async () => handoffResult(
+      "dawnwatch", "DAWNWATCH can access that for you.", taskSummary,
+    ))(request({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }));
+
+    expect(await response.json()).toEqual({
+      reply: "That request cannot be handled through a specialist handoff.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+  });
+
   it("preserves a legitimate non-private specialist handoff", async () => {
     const response = await createLighterChatHandler(async () => handoffResult(
       "herald", "HERALD can draft that.", "Draft a product announcement from the user's supplied notes.",
     ))(request({ specialistId: "jarvis", messages: [{ role: "user", content: "Draft a product announcement from these notes" }] }));
 
-    expect(await response.json()).toMatchObject({
+    expect(await response.json()).toEqual({
+      reply: "HERALD can draft that.",
+      specialistId: "jarvis",
+      execution: "none",
       routeTo: "herald",
       taskSummary: "Draft a product announcement from the user's supplied notes.",
     });

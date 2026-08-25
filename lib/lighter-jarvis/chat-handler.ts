@@ -77,6 +77,8 @@ const JARVIS_TOOLS: ClaudeTool[] = [{
   },
 }];
 
+const PRIVATE_CAPABILITY_HANDOFF_BLOCKED_REPLY = "That request cannot be handled through a specialist handoff.";
+
 const isFetchError = (value: unknown): boolean => {
   if (Array.isArray(value)) return value.some(isFetchError);
   if (typeof value !== "object" || value === null) return false;
@@ -313,9 +315,17 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           const hasValidMarketScopes = target?.id !== "gecko" || Boolean(resolvedMarketDomains);
           // The model may suggest expertise, but it cannot manufacture a
           // substitute route around JARVIS's private-source authority paths.
-          const privateAcquisition = currentUserUtterance !== undefined
-            && isPrivateAcquisitionHandoffRequest(currentUserUtterance);
-          if (target && hasTaskSummary && hasValidMarketScopes && !privateAcquisition) {
+          const privateAcquisition = (currentUserUtterance !== undefined
+            && isPrivateAcquisitionHandoffRequest(currentUserUtterance))
+            || (typeof taskSummary === "string" && isPrivateAcquisitionHandoffRequest(taskSummary));
+          if (privateAcquisition) {
+            return NextResponse.json({
+              reply: PRIVATE_CAPABILITY_HANDOFF_BLOCKED_REPLY,
+              specialistId: specialist.id,
+              execution: "none",
+            });
+          }
+          if (target && hasTaskSummary && hasValidMarketScopes) {
             const routedReply = reply.trim() || `I'd recommend handing this to ${target.name}.`;
             return NextResponse.json({
               reply: routedReply,

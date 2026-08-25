@@ -11,6 +11,37 @@ describe("calendar.read proposal boundary", () => {
       .toMatchObject({ decision: "ASK", authorityEvidence: [] });
   });
 
+  it.each([
+    "What’s on for tomorrow?",
+    "What's on today?",
+    "What is on this afternoon?",
+    "What do I have tomorrow?",
+    "What do I have for this morning?",
+    "What's scheduled tomorrow?",
+    "What is scheduled for this evening?",
+  ])("proposes a high-precision schedule question without granting authority: %s", (utterance) => {
+    const proposedOperation = proposeCalendarRead(utterance);
+    expect(proposedOperation).toEqual({ capability: "calendar.read" });
+    expect(evaluateCalendarReadAuthority({ proposedOperation: proposedOperation!, currentUserUtterance: utterance }))
+      .toEqual({
+        capability: "calendar.read",
+        decision: "ASK",
+        reason: "explicit_calendar_read_not_established",
+        readOnly: true,
+        authorityEvidence: [],
+      });
+  });
+
+  it.each([
+    "What's happening tomorrow?",
+    "What should I do today?",
+    "Are we on for tomorrow?",
+    "Do I have time this afternoon?",
+    "What's scheduled eventually?",
+  ])("preserves ambiguous temporal conversation outside Calendar proposals: %s", (utterance) => {
+    expect(proposeCalendarRead(utterance)).toBeNull();
+  });
+
   it("does not propose Calendar acquisition for unrelated conversation", () => {
     expect(proposeCalendarRead("Help me draft a note")).toBeNull();
   });

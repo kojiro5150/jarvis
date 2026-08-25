@@ -70,6 +70,94 @@ describe("POST /api/lighter/chat", () => {
     expect(body.reply).not.toContain("Private title");
     expect(model).not.toHaveBeenCalled();
   });
+
+  it.each([
+    "What’s on for tomorrow?",
+    "What do I have today?",
+    "What have I got tomorrow?",
+    "What appointments do I have tomorrow?",
+    "What's scheduled this afternoon?",
+  ])("asks before a deterministic schedule read without model, handoff, Gmail scope, or connector execution: %s", async (utterance) => {
+    const model = vi.fn(async () => handoffResult("dawnwatch", "I'll hand this to DAWNWATCH."));
+    const connector = vi.fn();
+    const response = await createLighterChatHandler(model, {
+      createConnector: connector,
+      clock: () => new Date("2026-08-25T00:00:00Z"),
+    })(request({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }));
+    const body = await response.json();
+
+    expect(body).toEqual({
+      reply: "Please explicitly confirm that I may read your Calendar.",
+      specialistId: "jarvis",
+      execution: "none",
+      calendarAuthority: {
+        decision: "ASK",
+        reason: "explicit_calendar_read_not_established",
+      },
+      pendingAuthorizationReference: {
+        pendingAuthorizationId: expect.any(String),
+      },
+    });
+    expect(body).not.toHaveProperty("routeTo");
+    expect(body).not.toHaveProperty("marketScopes");
+    expect(JSON.stringify(body)).not.toMatch(/gmail/i);
+    expect(model).not.toHaveBeenCalled();
+    expect(connector).not.toHaveBeenCalled();
+  });
+
+  it("acquires Calendar only after yes confirms the exact schedule-question reference, then consumes it", async () => {
+    const model = vi.fn();
+    const listUpcoming = vi.fn(async () => []);
+    const createConnector = vi.fn(() => ({ source: "google" as const, listUpcoming }));
+    const handler = createLighterChatHandler(model, {
+      createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z"),
+    });
+
+    const askResponse = await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "What’s on for tomorrow?" }],
+    }));
+    const ask = await askResponse.json();
+    const exactReference = ask.pendingAuthorizationReference;
+    expect(ask.calendarAuthority.decision).toBe("ASK");
+    expect(exactReference).toEqual({ pendingAuthorizationId: expect.any(String) });
+    expect(createConnector).not.toHaveBeenCalled();
+
+    const allowedResponse = await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "yes" }],
+      pendingAuthorizationReference: exactReference,
+    }));
+    expect(await allowedResponse.json()).toEqual({
+      reply: "Your Calendar has no commitments in the next seven days (up to five events checked).",
+      specialistId: "jarvis",
+      execution: "none",
+      calendarAuthority: {
+        decision: "ALLOW",
+        reason: "pending_authorization_confirmed",
+      },
+    });
+    expect(createConnector).toHaveBeenCalledOnce();
+    expect(listUpcoming).toHaveBeenCalledOnce();
+    expect(model).not.toHaveBeenCalled();
+
+    const consumedResponse = await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "yes" }],
+      pendingAuthorizationReference: exactReference,
+    }));
+    expect(await consumedResponse.json()).toMatchObject({
+      calendarAuthority: {
+        decision: "ASK",
+        reason: "pending_authorization_already_consumed",
+      },
+      pendingAuthorizationReference: null,
+    });
+    expect(createConnector).toHaveBeenCalledOnce();
+    expect(listUpcoming).toHaveBeenCalledOnce();
+    expect(model).not.toHaveBeenCalled();
+  });
   it("resolves market scope domains deterministically with union and deduplication", () => {
     expect(resolveMarketScopeDomains(["fx", "australia"])).toEqual([
       "federalreserve.gov", "ecb.europa.eu", "bankofengland.co.uk", "rba.gov.au",

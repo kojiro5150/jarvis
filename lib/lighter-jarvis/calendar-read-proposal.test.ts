@@ -3,6 +3,32 @@ import { evaluateCalendarReadAuthority } from "./calendar-read-authority";
 import { proposeCalendarRead } from "./calendar-read-proposal";
 
 describe("calendar.read proposal boundary", () => {
+  it.each([
+    "Show my calendar",
+    "What's on my calendar?",
+    "What's on for tomorrow?",
+    "What do I have today?",
+    "How does this week look?",
+  ])("proposes an explicit high-precision Calendar request: %s", (utterance) => {
+    expect(proposeCalendarRead(utterance)).toMatchObject({ capability: "calendar.read" });
+  });
+
+  it.each([
+    "What did my calendar just say?",
+    "Why did you ask to read my calendar?",
+    "We were talking about my calendar.",
+    "Did my calendar response work?",
+    "I just checked my calendar.",
+    "That calendar result was useful.",
+    "What did you say about my calendar?",
+  ])("does not turn Calendar meta, recall, or discussion language into a proposal: %s", (utterance) => {
+    expect(proposeCalendarRead(utterance)).toBeNull();
+  });
+
+  it("does not propose an unsupported weekday-specific Calendar window", () => {
+    expect(proposeCalendarRead("Show my calendar Monday")).toBeNull();
+  });
+
   it("proposes a temporal schedule question without treating the proposal as authority", () => {
     const utterance = "How does tomorrow look?";
     const proposedOperation = proposeCalendarRead(utterance);

@@ -1,7 +1,7 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 25 August 2026 (Sprint 3.124)
+- **Last updated:** 25 August 2026 (Sprint 3.125)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
 - **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
 
@@ -127,6 +127,12 @@ configuration, stored-token metadata and provider selection. It performs no
 Calendar, Gmail, Drive or Memory content acquisition. `OperationalState`
 itself and its other callers remain unchanged and still require migration.
 
+Sprint 3.125 removes the ordinary non-capability `/api/chat` caller. That path
+no longer builds `OperationalState` or injects its implicit Memory, Calendar,
+Gmail or Drive-derived prompt context. Agent and BOA instructions, audited
+execution and the explicit capability branch remain in place. Other
+legacy `OperationalState` callers remain unresolved.
+
 ### Local fallback acquisition — `!` for future authority architecture
 
 Legacy Calendar, Gmail and Drive loaders can fall back to local data after source failures. This behaviour is historically intentional for dashboard continuity, but it must not become an authority bypass in the governed production path.
@@ -151,7 +157,7 @@ The frozen product direction is one user-facing JARVIS identity. Internal specia
 | 2 | Authority-gated governed Calendar acquisition | ✓ |
 | 3 | General `PendingAuthorization` for exact operation confirmation | △ |
 | 4 | Live conversational Calendar integration | △ |
-| 5 | Separate private acquisition from legacy `OperationalState` assembly | △ — console connector-status refresh separated; legacy assembly remains |
+| 5 | Separate private acquisition from legacy `OperationalState` assembly | △ — console status refresh and ordinary non-capability `/api/chat` are separated; legacy assembly remains |
 | 6 | Extend authority to Gmail, Drive and Memory | ○ |
 | 7 | Named and standing grants, including bounded briefing authority | ○ |
 | 8 | Complete one-JARVIS UX migration and remove authority-bypassing legacy paths | ○ |

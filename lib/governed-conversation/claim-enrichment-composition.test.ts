@@ -33,10 +33,10 @@ const protectedHashes: Record<string, string> = {
   [`lib/governed-conversation/claim-${"boundary"}-publications.ts`]: "ccd7caa39316eb2fce1c7c8c8eda3741d0182eb12a123de9f7860e8225aa7c95",
   "lib/governed-conversation/projection-composer.ts": "51b58941273e2b6ac748ce94e54368020928a384074cd3f062bd8d9b2dcd6106",
   [`lib/governed-conversation/conflict-${"boundary"}-engine.ts`]: "ea0835339911d9a3d40af38333e0f0c39295477d70e1ebc63145375c47ff6064",
-  "app/api/chat/route.ts": "503840ffa6c17f52a049c1aaaad4e8402c000904dd3b7ce868104a10c6ba08a3",
+  "app/api/chat/route.ts": "6972a6821c962aeca51a1c37a90a3514e8533d221fa4c9328f3c244715c656c7",
   "lib/context-builder.ts": "8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d",
   "lib/useAgentConversation.ts": "55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97",
-  "lib/agents/chat-execution.ts": "da387b401acd4cc87609112e7b110451254af16bb33d8dd5224c4fb9aa210a88",
+  "lib/agents/chat-execution.ts": "a8fc170c4273b0dc9e90ec1d85dfaf98c2b4aeddbae3e38380fbe4aad3533dc7",
 };
 const walk = (root: string): string[] => readdirSync(root).flatMap(name => { const path = join(root, name); return statSync(path).isDirectory() ? walk(path) : [path]; });
 describe("pure-Node Sprint 3.104 isolation", () => {

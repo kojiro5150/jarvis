@@ -40,7 +40,7 @@ function buildChatAuditRecord(
     task: latestUserTask(request.messages),
     constraints: [
       `Conversational execution with ${request.messages.length} message${request.messages.length === 1 ? "" : "s"}`,
-      "Operational context injected server-side",
+      "Agent and BOA instructions assembled server-side",
     ],
     expectedOutput: request.agent.behaviouralContract?.outputContract,
     humanApproved: false,

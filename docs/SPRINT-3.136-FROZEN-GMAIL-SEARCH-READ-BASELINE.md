@@ -9,19 +9,25 @@
 The successful development/demo validation transcript being frozen is:
 
 ```text
-User: gmail.search [newer_than:1d]
-JARVIS: Gmail message IDs:
-- live-message-1
-- data-2
-- data-3
-- data-4
-- data-5
+YOU
+gmail.search [newer_than:1d]
 
-User: gmail.read live-message-1 [subject]
-JARVIS: Subject: Your Google Account was recovered successfully
+JARVIS
+Gmail message IDs:
+- 1a0383e203672e32
+- 1a03828dc70d69d5
+- 1a0381709a263235
+- 1a03812cd1d24617
+- 1a037f17e66d910d
+
+YOU
+gmail.read 1a0383e203672e32 [subject]
+
+JARVIS
+Subject: New Case
 ```
 
-The transcript is two requests, not a composed operation. The second `User:` line is indispensable:
+The transcript is two requests, not a composed operation. The second `YOU` command is indispensable:
 the search authority has ended, and the returned identifier is only data until that new, exact
 `gmail.read` utterance independently establishes read authority.
 

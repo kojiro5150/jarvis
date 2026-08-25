@@ -122,12 +122,33 @@ export function formatCalendarReadResponse(calendar: NonNullable<Awaited<ReturnT
   window?: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["window"]>): string {
   if (calendar.status !== "available") return "I couldn't access your Calendar right now.";
   if (calendar.evidence.length === 0 && window) return clearCalendarPeriod(window.period);
+  if (calendar.evidence.length > 0 && window) {
+    const includeDate = window.period === "this_week" || window.period === "default";
+    const commitments = calendar.evidence.map(({ start, end }) =>
+      `- ${includeDate ? `${formatMelbourneDate(start)}, ` : ""}${formatMelbourneTime(start)} – ${formatMelbourneTime(end)}`,
+    ).join("\n");
+    const count = calendar.evidence.length;
+    return `${calendarPeriodHeading(window.period)} you have ${count} commitment${count === 1 ? "" : "s"}:\n${commitments}`;
+  }
   const coverage = calendar.evidence[0]?.coverageLimit.match(/^window=([^/]+)\/([^;]+);/) ?? null;
   const bounds = window ? [window.start, window.end] : coverage?.slice(1);
   const range = bounds ? `${formatMelbourne(bounds[0])} to ${formatMelbourne(bounds[1])}` : "the requested period";
   if (calendar.evidence.length === 0) return `Your Calendar has no commitments in ${range} (up to five events checked).`;
   const commitments = calendar.evidence.map(({ start, end }) => `- ${formatMelbourne(start)} – ${formatMelbourne(end)}`).join("\n");
   return `Your Calendar has ${calendar.evidence.length} commitment${calendar.evidence.length === 1 ? "" : "s"} in ${range} (up to five events):\n${commitments}`;
+}
+
+function calendarPeriodHeading(period: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["window"]>["period"]): string {
+  const copy = {
+    today: "Today",
+    tomorrow: "Tomorrow",
+    this_morning: "This morning",
+    this_afternoon: "This afternoon",
+    this_evening: "This evening",
+    this_week: "This week",
+    default: "Next seven days",
+  } as const;
+  return copy[period];
 }
 
 function clearCalendarPeriod(period: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["window"]>["period"]): string {
@@ -145,9 +166,18 @@ function clearCalendarPeriod(period: NonNullable<Awaited<ReturnType<typeof resol
 
 const melbournePresentation = new Intl.DateTimeFormat("en-AU", { timeZone: CALENDAR_TIME_ZONE,
   weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
+const melbourneTimePresentation = new Intl.DateTimeFormat("en-AU", { timeZone: CALENDAR_TIME_ZONE,
+  hour: "numeric", minute: "2-digit", hour12: true });
+const melbourneDatePresentation = new Intl.DateTimeFormat("en-AU", { timeZone: CALENDAR_TIME_ZONE,
+  weekday: "short", day: "numeric", month: "short" });
+const upperCaseMeridiem = (value: string): string => value
+  .replace(/\s(am|pm)$/i, " $1")
+  .replace(/\b(am|pm)\b/gi, match => match.toUpperCase());
 function formatMelbourne(value: string): string {
-  return melbournePresentation.format(new Date(value)).replace(/\s(am|pm)$/i, " $1").replace(/\b(am|pm)\b/gi, match => match.toUpperCase());
+  return upperCaseMeridiem(melbournePresentation.format(new Date(value)));
 }
+function formatMelbourneTime(value: string): string { return upperCaseMeridiem(melbourneTimePresentation.format(new Date(value))); }
+function formatMelbourneDate(value: string): string { return melbourneDatePresentation.format(new Date(value)); }
 
 export function createLighterChatHandler(callModel: ModelCall = callClaude, calendarDependencies?: ProductionCalendarDependencies) {
   return async function POST(request: Request) {

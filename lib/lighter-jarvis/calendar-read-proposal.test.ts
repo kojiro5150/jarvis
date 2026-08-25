@@ -25,6 +25,10 @@ describe("calendar.read proposal boundary", () => {
     expect(proposeCalendarRead(utterance)).toBeNull();
   });
 
+  it("does not propose an unsupported weekday-specific Calendar window", () => {
+    expect(proposeCalendarRead("Show my calendar Monday")).toBeNull();
+  });
+
   it("proposes a temporal schedule question without treating the proposal as authority", () => {
     const utterance = "How does tomorrow look?";
     const proposedOperation = proposeCalendarRead(utterance);

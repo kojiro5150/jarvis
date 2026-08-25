@@ -7,7 +7,7 @@ import { resolveCalendarReadWindow, type CalendarReadPeriod } from "./calendar-r
 const TEMPORAL_PERIOD = String.raw`(?:today|tomorrow|this\s+(?:morning|afternoon|evening|week))`;
 const CALENDAR_READ_VERB = String.raw`(?:show|check|view|see|list|read|open)`;
 const CALENDAR_OBJECT = String.raw`(?:my\s+)?calendars?`;
-const CALENDAR_SCOPE = String.raw`(?:today|tomorrow|this\s+(?:morning|afternoon|evening|week)|(?:mon|tues|wednes|thurs|fri|satur|sun)day)`;
+const CALENDAR_SCOPE = String.raw`(?:today|tomorrow|this\s+(?:morning|afternoon|evening|week))`;
 const CALENDAR_REQUEST = new RegExp(
   String.raw`^(?:(?:please\s+)?${CALENDAR_READ_VERB}\s+(?:me\s+)?${CALENDAR_OBJECT}(?:\s+(?:for\s+)?${CALENDAR_SCOPE})?|(?:can|could|would)\s+you\s+(?:please\s+)?${CALENDAR_READ_VERB}\s+(?:me\s+)?${CALENDAR_OBJECT}(?:\s+(?:for\s+)?${CALENDAR_SCOPE})?|what(?:'s|\s+is)\s+on\s+${CALENDAR_OBJECT}(?:\s+(?:for\s+)?${CALENDAR_SCOPE})?|(?:what\s+do\s+i\s+have|do\s+i\s+have\s+anything)\s+(?:on|in)\s+${CALENDAR_OBJECT}(?:\s+(?:for\s+)?${CALENDAR_SCOPE})?)[?!.]?$`,
   "i",

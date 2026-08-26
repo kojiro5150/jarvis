@@ -1,3 +1,5 @@
+import { isAmbiguousPrivateReadFollowUp } from "./private-capability-handoff-guard";
+
 /**
  * Ordinary model text is presentation, never authority machinery. Keep the
  * guard content-derived: neither the model nor the client may label text as a
@@ -32,20 +34,29 @@ const GMAIL_REQUEST = /\b(?:gmail|e-?mail|emails|inbox|mailbox)\b/i;
 const DRIVE_REQUEST = /\bdrive\b/i;
 const FALSE_GLOBAL_CAPABILITY_CLAIM = /(?:\b(?:i\s+)?(?:do\s+not|don['’]?t|cannot|can['’]?t|am\s+not|I['’]?m\s+not|unable\s+to)\s+(?:(?:currently|directly)\s+)?(?:have\s+(?:(?:the|that|this|any)\s+)?(?:ability|capability|access)|access|connect(?:ed)?|read|search|retrieve|check|view)|\bno\s+(?:calendar|gmail|e-?mail|inbox|mailbox|drive)\s+(?:access|capability|integration)|\b(?:this|that|the)\s+capability\s+(?:does\s+not|doesn['’]?t)\s+exist|\b(?:calendar|gmail|e-?mail|inbox|mailbox|drive)\s+(?:is\s+not|isn['’]?t)\s+(?:connected|available|supported))/i;
 const DRIVE_CAPABILITY_DENIAL = /\b(?:google\s+)?drive\b/i;
-const EXCLUDED_DRIVE_PROVENANCE_CLAIMS = [
+const EXPLICIT_DRIVE_PROVENANCE_CLAIMS = [
+  /\byour Drive search returned\b/i,
+  /\bearlier,? your Drive search returned\b/i,
+  /\bthe Drive file I found was\b/i,
+  /\bthe ID from the earlier Drive result was\b/i,
+] as const;
+const CONTEXTUAL_DRIVE_PROVENANCE_CLAIMS = [
   /\bI(?:'m| am) showing you (?:the )?result I already provided\b/i,
   /\bI found (?:this|that) document earlier\b/i,
   /\bthe document ID was\b/i,
-  /\byour Drive search returned\b/i,
   /\bthe (?:document|file) ID I found (?:earlier|before) was\b/i,
   /\bI previously found (?:the )?document ID\b/i,
-  /\bearlier,? your Drive search returned\b/i,
-  /\bthe Drive file I found was\b/i,
   /\bI found provider ID\b[^\r\n]*\bearlier\b/i,
   /\bthe document was\b[^\r\n]*\band its ID was\b/i,
   /\bI found that file earlier and its ID is\b/i,
-  /\bthe ID from the earlier Drive result was\b/i,
 ] as const;
+const DRIVE_PROVENANCE_FOLLOW_UP = /^(?:what was the (?:document|file) ID you found (?:earlier|before)|what file did you find|what was that (?:Google )?Drive file ID|which document did (?:the )?(?:Google )?Drive search return)[?!.]*$/i;
+
+function isDriveProvenanceFollowUp(utterance: string | undefined): boolean {
+  if (!utterance) return false;
+  const normalized = utterance.normalize("NFKC").replace(/\s+/g, " ").trim();
+  return DRIVE_PROVENANCE_FOLLOW_UP.test(normalized) || isAmbiguousPrivateReadFollowUp(utterance);
+}
 
 export function presentsPrivateAuthorityConfirmation(content: string): boolean {
   return PRIVATE_SOURCE.test(content)
@@ -59,7 +70,10 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
     return NEUTRALIZED_ORDINARY_AUTHORITY_REPLY;
   }
 
-  if (governedDriveHistoryExcluded && EXCLUDED_DRIVE_PROVENANCE_CLAIMS.some(pattern => pattern.test(content))) {
+  const explicitDriveProvenance = EXPLICIT_DRIVE_PROVENANCE_CLAIMS.some(pattern => pattern.test(content));
+  const contextualDriveProvenance = CONTEXTUAL_DRIVE_PROVENANCE_CLAIMS.some(pattern => pattern.test(content))
+    && isDriveProvenanceFollowUp(currentUserUtterance);
+  if (governedDriveHistoryExcluded && (explicitDriveProvenance || contextualDriveProvenance)) {
     return EXCLUDED_DRIVE_PROVENANCE_REPLY;
   }
 

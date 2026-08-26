@@ -12,7 +12,7 @@ This covers anaphoric current turns such as `read it`, `open it`, `show it`, and
 
 ## Provenance rule
 
-When governed Drive history was excluded, deterministic patterns replace ordinary-model claims that it found, remembered, or is restating an earlier Drive result with `EXCLUDED_DRIVE_PROVENANCE_REPLY`. The contained family includes:
+When governed Drive history was excluded, deterministic patterns replace ordinary-model claims that it found, remembered, or is restating an earlier Drive result with `EXCLUDED_DRIVE_PROVENANCE_REPLY`. Explicitly Drive-marked claims are contained directly. Source-agnostic document/file claims are contained only when the current utterance is a bounded Drive-result follow-up (including the existing deny-only ambiguous read-follow-up classifier); unrelated contract, project, or local-record memory remains ordinary model text. The contained family includes:
 
 - document/file IDs allegedly found earlier or before;
 - previously found document IDs;
@@ -23,7 +23,7 @@ When governed Drive history was excluded, deterministic patterns replace ordinar
 - a file allegedly found earlier plus its ID; and
 - IDs allegedly originating from an earlier Drive result.
 
-The guard returns neither fabricated metadata nor true governed metadata. It uses no classifier and restores no governed result to model history.
+The guard returns neither fabricated metadata nor true governed metadata. It uses no model-based classifier and restores no governed result to model history.
 
 ## Regression evidence
 

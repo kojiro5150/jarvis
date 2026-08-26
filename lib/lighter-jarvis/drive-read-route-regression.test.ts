@@ -100,4 +100,19 @@ describe("route-level drive.read acceptance", () => {
     expect(h.search).not.toHaveBeenCalled();
     expect(h.createReadConnector).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ["What was the contract document ID we discussed?", "The document ID I found earlier was contract-123."],
+    ["Remind me of the project document we discussed.", "The document was Project Charter and its ID was DOC-42."],
+  ])("preserves unrelated ordinary document memory after governed Drive history", async (utterance, modelReply) => {
+    const h = harness(modelReply);
+    const body = await (await h.handler(request([
+      { role: "user", content: "drive.search Atlas" },
+      { role: "assistant", content: "Drive files:\n- Atlas — application/vnd.google-apps.document — 2026-08-26T00:00:00Z — true-governed-provider-id" },
+      { role: "user", content: utterance },
+    ]))).json();
+    expect(body.reply).toBe(modelReply);
+    expect(h.search).not.toHaveBeenCalled();
+    expect(h.createReadConnector).not.toHaveBeenCalled();
+  });
 });

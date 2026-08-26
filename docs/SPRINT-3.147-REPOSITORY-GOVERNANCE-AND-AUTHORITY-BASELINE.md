@@ -55,7 +55,7 @@ work; this sprint deliberately adds no persistence.
 
 ## Legacy `/api/chat` Gmail containment
 
-The legacy `/api/chat` activation route for `governed_gmail_retrieval` fails closed before request
+The legacy `/api/chat` activation route for `governed_gmail_retrieval` fails closed before capability
 parsing, authorization, connector construction, or acquisition. The old Gmail-capable
 implementation remains physically present beneath that containment guard. This is contained
 technical debt, **not** a currently verified bypass.

@@ -1,7 +1,7 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 26 August 2026 (Sprint 3.143)
+- **Last updated:** 26 August 2026 (Sprint 3.145)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
 - **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
 
@@ -30,6 +30,7 @@ Legend:
 | `calendar.read` | ✓ | ✓ | △ | The JARVIS conversational route now gates bounded governed Calendar reads. Its deterministic proposal recognizer accepts deliberate high-precision requests rather than Calendar mentions, recall, or discussion; broader production conversation and legacy paths remain unchanged. |
 | identified-message `gmail.read` | ✓ | ✓ | ✓ — frozen baseline | The exact `/api/lighter/chat` command path gates one exact message and requested-field set before resource-policy evaluation and acquisition. The development/demo runtime is explicitly wired to a subject-only policy; the lighter path returns deterministic presentation with no model or specialist handoff. Legacy `/api/chat` Gmail execution is contained. |
 | bounded `gmail.search` discovery | ✓ | ✓ | ✓ — exact baseline frozen; NL proposal live | The unchanged exact `1d`/`7d` command path directly allows at most five message IDs. Sprint 3.137 also deterministically proposes those same bounded operations from high-precision natural language, but proposal recognition confers no execution authority: explicit confirmation of server-owned pending state is required. Broader Gmail discovery remains unimplemented. |
+| metadata-only `drive.search` | ✓ | ✓ | ✓ — exact baseline frozen; NL proposal live | The exact command directly allows up to five provider metadata records. Sprint 3.145 admits exactly three high-precision natural-language proposal forms; server-owned pending state and separate explicit confirmation remain required before execution. Content and `drive.read` remain unimplemented. |
 | `drive.read` | ○ | ○ | ○ | Connector exists; operation-level authority not yet implemented. |
 | `memory.read` | ○ | ○ | ○ | Memory is still acquired through legacy state-building paths; operation-level authority not yet implemented. |
 | `calendar.write` | ○ | ○ | ○ | Future action capability; not part of current read migration. |
@@ -39,10 +40,10 @@ Legend:
 
 | Evidence class | Status | Notes |
 | --- | --- | --- |
-| Explicit current-user utterance | ✓ for `calendar.read`, identified-message `gmail.read`, and bounded `gmail.search` | Raw current utterance is independently matched; capability/proposal metadata is non-authoritative. |
+| Explicit current-user utterance | ✓ for `calendar.read`, identified-message `gmail.read`, bounded `gmail.search`, and metadata-only `drive.search` | Raw current utterance is independently matched; capability/proposal metadata is non-authoritative. |
 | Named capability grants | ○ | No general named-grant machinery yet. |
 | Standing grants | ○ | No standing-grant store or adjudication yet. |
-| `PendingAuthorization` confirmation | △ | Server-owned state is integrated for Calendar reads, identified-message Gmail reads, and natural-language bounded Gmail search proposals. Opaque references fail closed and resolve before model invocation; persistence remains process-local rather than durable or distributed. |
+| `PendingAuthorization` confirmation | △ | Server-owned state is integrated for Calendar reads, identified-message Gmail reads, and natural-language bounded Gmail and Drive search proposals. Opaque references fail closed and resolve before model invocation; persistence remains process-local rather than durable or distributed. |
 | Resource policy | △ | Mature Gmail content-retrieval policy follows authority for the identified-message path; it is not positive user authority and is not yet composed into a general Authority Engine. |
 
 Sprint 3.133 wires the closed identified-message operation into the live JARVIS lighter route.
@@ -118,6 +119,14 @@ keyed by capture identity rather than transcript text, and request freshness pre
 responses from overwriting the current opaque pending reference. Transcription metadata remains
 non-authoritative; typed authority semantics, server ownership, and Calendar/Gmail scope are
 unchanged. See `docs/SPRINT-3.143-VOICE-AUTHORITY-TURN-INTEGRITY.md`.
+
+Sprint 3.144 introduces the exact-command, metadata-only `drive.search` production baseline.
+Sprint 3.145 leaves that baseline and its Google `drive.metadata.readonly` connector unchanged and
+adds exactly three deterministic natural-language proposal forms. Recognition grants no authority:
+the exact stored operation executes only after explicit confirmation of server-owned, one-shot,
+Drive-capability pending state. Anaphora, all other natural-language forms, content reads, export,
+download, summarisation, local fallback, and Calendar/Gmail authority crossover remain excluded.
+See `docs/SPRINT-3.145-NATURAL-LANGUAGE-DRIVE-SEARCH-PROPOSALS.md`.
 
 ## `calendar.read` detail
 

@@ -1,7 +1,7 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 26 August 2026 (Sprint 3.145)
+- **Last updated:** 26 August 2026 (through Sprint 3.146; reconciled in Sprint 3.147)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
 - **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
 
@@ -27,7 +27,7 @@ Legend:
 
 | Capability / mechanism | Adjudication | Acquisition gate | Live production path | Notes |
 | --- | --- | --- | --- | --- |
-| `calendar.read` | ✓ | ✓ | △ | The JARVIS conversational route now gates bounded governed Calendar reads. Its deterministic proposal recognizer accepts deliberate high-precision requests rather than Calendar mentions, recall, or discussion; broader production conversation and legacy paths remain unchanged. |
+| `calendar.read` | ✓ | ✓ | ✓ — live bounded path | The JARVIS conversational route gates bounded governed Calendar reads. Its deterministic proposal recognizer accepts deliberate high-precision requests rather than Calendar mentions, recall, or discussion. |
 | identified-message `gmail.read` | ✓ | ✓ | ✓ — frozen baseline | The exact `/api/lighter/chat` command path gates one exact message and requested-field set before resource-policy evaluation and acquisition. The development/demo runtime is explicitly wired to a subject-only policy; the lighter path returns deterministic presentation with no model or specialist handoff. Legacy `/api/chat` Gmail execution is contained. |
 | bounded `gmail.search` discovery | ✓ | ✓ | ✓ — exact baseline frozen; NL proposal live | The unchanged exact `1d`/`7d` command path directly allows at most five message IDs. Sprint 3.137 also deterministically proposes those same bounded operations from high-precision natural language, but proposal recognition confers no execution authority: explicit confirmation of server-owned pending state is required. Broader Gmail discovery remains unimplemented. |
 | metadata-only `drive.search` | ✓ | ✓ | ✓ — exact baseline frozen; NL proposal live | The exact command directly allows up to five provider metadata records. Sprint 3.145 admits exactly three high-precision natural-language proposal forms; server-owned pending state and separate explicit confirmation remain required before execution. Content and `drive.read` remain unimplemented. |
@@ -43,7 +43,7 @@ Legend:
 | Explicit current-user utterance | ✓ for `calendar.read`, identified-message `gmail.read`, bounded `gmail.search`, and metadata-only `drive.search` | Raw current utterance is independently matched; capability/proposal metadata is non-authoritative. |
 | Named capability grants | ○ | No general named-grant machinery yet. |
 | Standing grants | ○ | No standing-grant store or adjudication yet. |
-| `PendingAuthorization` confirmation | △ | Server-owned state is integrated for Calendar reads, identified-message Gmail reads, and natural-language bounded Gmail and Drive search proposals. Opaque references fail closed and resolve before model invocation; persistence remains process-local rather than durable or distributed. |
+| `PendingAuthorization` confirmation | ✓ — live | Server-owned, capability-bound, one-shot state is integrated for Calendar reads, identified-message Gmail reads, and natural-language bounded Gmail and Drive search proposals. The client receives only an opaque reference. Bare, stale, fabricated, unknown, consumed, and capability-mismatched references fail closed and resolve before model invocation. The authoritative registry is a module-private process-local `Map`; durable or distributed persistence remains incomplete. |
 | Resource policy | △ | Mature Gmail content-retrieval policy follows authority for the identified-message path; it is not positive user authority and is not yet composed into a general Authority Engine. |
 
 Sprint 3.133 wires the closed identified-message operation into the live JARVIS lighter route.
@@ -198,11 +198,12 @@ The agent coordinator and lighter handoff flows demonstrate bounded deterministi
 
 They do not provide the general operation-level authority sources required by v0.1.
 
-## Legacy production conflicts requiring migration
+## Legacy and retired operational-state machinery
 
-### Eager private acquisition in `buildOperationalState()` — `!`
+### `OperationalState` and `buildOperationalState()` — `△` legacy/internal code; no callable production conflict
 
-On current `main`, `buildOperationalState()` executes:
+The legacy implementation still physically exists in `lib/operational-state.ts`, where
+`buildOperationalState()` executes:
 
 ```text
 Promise.all([
@@ -213,7 +214,10 @@ Promise.all([
 ])
 ```
 
-This means a broad state build can acquire multiple private sources before operation-level authority has been adjudicated for each source.
+Calling that builder would acquire multiple private sources before operation-level authority has
+been adjudicated for each source. It is therefore legacy/internal code and must not be made a
+production authority path. Current quarantine and retirement regressions record zero callable eager
+full-state production surfaces; its continued existence is not a current callable authority conflict.
 
 Target correction: authorized acquisition first, state assembly second.
 
@@ -276,8 +280,8 @@ Calendar, Gmail or Drive while constructing its specialist prompt. No
 compliant multi-source private briefing authority is implemented.
 
 A future compliant briefing path requires bounded authority for each private
-operation. `BRIEF_ME_GRANT` remains unimplemented, as do Gmail search/discovery
-and broader conversational Gmail use, Drive authority, and Memory authority.
+operation. `BRIEF_ME_GRANT` remains unimplemented, as do broader Gmail discovery
+and conversational Gmail use, Drive content/read authority, and Memory authority.
 The bounded identified-message `gmail.read` foundation does not authorize a
 private briefing.
 
@@ -301,10 +305,10 @@ The frozen product direction is one user-facing JARVIS identity. Internal specia
 | --- | --- | --- |
 | 1 | Isolated deterministic `calendar.read` adjudication | ✓ |
 | 2 | Authority-gated governed Calendar acquisition | ✓ |
-| 3 | General `PendingAuthorization` for exact operation confirmation | △ |
-| 4 | Live conversational Calendar integration | △ |
-| 5 | Separate private acquisition from legacy `OperationalState` assembly | △ — partial; console and Dashboard status refresh, ordinary non-capability `/api/chat`, and the DAWNWATCH conversational prompt are separated; the three clientless direct-builder APIs remain quarantined |
-| 6 | Extend authority to Gmail, Drive and Memory | △ — identified-message `gmail.read`, bounded `gmail.search`, and exact-command metadata-only `drive.search` are live; broader Gmail/Drive use and Memory remain unimplemented |
+| 3 | General `PendingAuthorization` for exact operation confirmation | ✓ — live for the bounded production capabilities; authoritative storage remains process-local |
+| 4 | Live conversational Calendar integration | ✓ — bounded `calendar.read` path |
+| 5 | Separate private acquisition from legacy `OperationalState` assembly | ✓ — COMPLETE since Sprint 3.129; retired/quarantined regressions prove zero callable eager full-state production surfaces |
+| 6 | Extend authority to Gmail, Drive and Memory | △ — bounded `gmail.search`, identified-message `gmail.read`, and metadata-only `drive.search` are live; `drive.read` and `memory.read` are unimplemented |
 | 7 | Named and standing grants, including bounded briefing authority | ○ |
 | 8 | Complete one-JARVIS UX migration and remove authority-bypassing legacy paths | ○ |
 

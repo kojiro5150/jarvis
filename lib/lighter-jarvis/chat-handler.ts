@@ -11,6 +11,7 @@ import { resolveProductionGmailSearch, type ProductionGmailSearchDependencies } 
 import { sanitizeModelHistory } from "@/lib/lighter-jarvis/model-history-boundary";
 import { isPrivateAcquisitionHandoffRequest } from "@/lib/lighter-jarvis/private-capability-handoff-guard";
 import { guardOrdinaryModelReply } from "@/lib/lighter-jarvis/ordinary-model-reply-guard";
+import { resolveProductionDriveSearch, type ProductionDriveSearchDependencies } from "@/lib/lighter-jarvis/production-drive-search";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -187,7 +188,8 @@ function formatMelbourneTime(value: string): string { return upperCaseMeridiem(m
 function formatMelbourneDate(value: string): string { return melbourneDatePresentation.format(new Date(value)); }
 
 export function createLighterChatHandler(callModel: ModelCall = callClaude, calendarDependencies?: ProductionCalendarDependencies,
-  gmailDependencies?: ProductionGmailDependencies, gmailSearchDependencies?: ProductionGmailSearchDependencies) {
+  gmailDependencies?: ProductionGmailDependencies, gmailSearchDependencies?: ProductionGmailSearchDependencies,
+  driveSearchDependencies?: ProductionDriveSearchDependencies) {
   return async function POST(request: Request) {
     let body: LighterChatBody;
     try { body = await request.json() as LighterChatBody; }
@@ -204,6 +206,13 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       return NextResponse.json({ error: "`messages` must contain 1-40 valid conversation messages." }, { status: 400 });
     }
     const currentUserUtterance = [...body.messages].reverse().find(({ role }) => role === "user")?.content;
+    const driveSearch = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
+      ? await resolveProductionDriveSearch({ currentUserUtterance }, driveSearchDependencies) : null;
+    if (driveSearch?.handled) {
+      return NextResponse.json({ reply: driveSearch.reply, specialistId: specialist.id, execution: "none",
+        driveSearchAuthority: { ...(driveSearch.decision ? { decision: driveSearch.decision } : {}), reason: driveSearch.reason },
+        ...(driveSearch.files ? { driveFiles: driveSearch.files } : {}) });
+    }
     const gmailSearch = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
       ? await resolveProductionGmailSearch({ currentUserUtterance,
           ...(Object.hasOwn(body, "pendingAuthorizationReference")

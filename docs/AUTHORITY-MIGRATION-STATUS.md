@@ -283,7 +283,7 @@ The frozen product direction is one user-facing JARVIS identity. Internal specia
 | 3 | General `PendingAuthorization` for exact operation confirmation | △ |
 | 4 | Live conversational Calendar integration | △ |
 | 5 | Separate private acquisition from legacy `OperationalState` assembly | △ — partial; console and Dashboard status refresh, ordinary non-capability `/api/chat`, and the DAWNWATCH conversational prompt are separated; the three clientless direct-builder APIs remain quarantined |
-| 6 | Extend authority to Gmail, Drive and Memory | △ — identified-message `gmail.read` and bounded `gmail.search` are live; broader Gmail use, Drive and Memory remain unimplemented |
+| 6 | Extend authority to Gmail, Drive and Memory | △ — identified-message `gmail.read`, bounded `gmail.search`, and exact-command metadata-only `drive.search` are live; broader Gmail/Drive use and Memory remain unimplemented |
 | 7 | Named and standing grants, including bounded briefing authority | ○ |
 | 8 | Complete one-JARVIS UX migration and remove authority-bypassing legacy paths | ○ |
 

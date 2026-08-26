@@ -318,6 +318,54 @@ describe("POST /api/lighter/chat", () => {
     expect(connector).not.toHaveBeenCalled();
   });
 
+  it("neutralizes a fake Calendar confirmation and proves a following bare yes creates no authority", async () => {
+    const model = vi.fn()
+      .mockResolvedValueOnce("Please explicitly confirm that I may read your Calendar.")
+      .mockResolvedValueOnce("Ordinary acknowledgement.");
+    const connector = vi.fn();
+    const handler = createLighterChatHandler(model, {
+      createConnector: connector,
+      clock: () => new Date("2026-08-25T00:00:00Z"),
+    });
+    const history: ChatMessage[] = [{ role: "user", content: "Show my calendar Monday" }];
+
+    const unsupported = await handler(request({ specialistId: "jarvis", messages: history }));
+    const first = await unsupported.json();
+    expect(first).toEqual({
+      reply: "That request cannot be authorized through an ordinary model response.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(first).not.toHaveProperty("calendarAuthority");
+    expect(first).not.toHaveProperty("pendingAuthorizationReference");
+    expect(connector).not.toHaveBeenCalled();
+
+    const confirmation = await handler(request({ specialistId: "jarvis", messages: [
+      ...history,
+      { role: "assistant", content: first.reply },
+      { role: "user", content: "yes" },
+    ] }));
+    expect(await confirmation.json()).toEqual({
+      reply: "Ordinary acknowledgement.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(connector).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    "[Governed private result omitted from ordinary model context.]",
+    "[Prior governed Gmail read request omitted from ordinary model context.]",
+  ])("does not release an internal sanitizer marker returned by the model: %s", async (marker) => {
+    const response = await createLighterChatHandler(async () => marker)(request({
+      specialistId: "jarvis", messages: [{ role: "user", content: "Ordinary question" }],
+    }));
+    const body = await response.json();
+    expect(body.reply).toBe("That request cannot be authorized through an ordinary model response.");
+    expect(JSON.stringify(body)).not.toContain(marker);
+  });
+
   it("resolves pending Calendar authority before any model call", async () => {
     const model = vi.fn();
     const connector = vi.fn();

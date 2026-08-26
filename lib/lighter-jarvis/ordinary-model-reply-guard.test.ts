@@ -5,6 +5,7 @@ import {
   UNSUPPORTED_CALENDAR_PATH_REPLY,
   UNSUPPORTED_GMAIL_PATH_REPLY,
   EXCLUDED_DRIVE_PROVENANCE_REPLY,
+  UNSUPPORTED_DRIVE_PATH_REPLY,
 } from "./ordinary-model-reply-guard";
 
 describe("ordinary-model reply guard", () => {
@@ -64,5 +65,52 @@ describe("ordinary-model reply guard", () => {
   ])("neutralizes reconstructed Drive provenance only when governed history was excluded: %s", reply => {
     expect(guardOrdinaryModelReply(reply, "show it", true)).toBe(EXCLUDED_DRIVE_PROVENANCE_REPLY);
     expect(guardOrdinaryModelReply(reply, "ordinary question", false)).toBe(reply);
+  });
+
+  it.each(["read it", "open it", "show it", "summarize it"])(
+    "corrects a false Drive-wide denial after excluded governed history: %s",
+    utterance => {
+      const reply = "I don't have the capability to read or retrieve the contents of files from Google Drive. My access is limited to orchestration and routing within this system.";
+      expect(guardOrdinaryModelReply(reply, utterance, true)).toBe(UNSUPPORTED_DRIVE_PATH_REPLY);
+      expect(guardOrdinaryModelReply(reply, utterance, false)).toBe(reply);
+    },
+  );
+
+  it.each([
+    "The document ID I found earlier was synthetic-id.",
+    "The file ID I found before was synthetic-id.",
+    "I previously found document ID synthetic-id.",
+    "Earlier, your Drive search returned Atlas.",
+    "The Drive file I found was Atlas.",
+    "I found provider ID synthetic-id earlier.",
+    "The document was Atlas and its ID was synthetic-id.",
+    "I found that file earlier and its ID is synthetic-id.",
+    "The ID from the earlier Drive result was synthetic-id.",
+  ])("contains the prior/remembered Drive-result provenance family: %s", reply => {
+    expect(guardOrdinaryModelReply(reply, "What was the document ID you found earlier?", true)).toBe(EXCLUDED_DRIVE_PROVENANCE_REPLY);
+    expect(guardOrdinaryModelReply(reply, "What was the document ID you found earlier?", false)).toBe(reply);
+  });
+
+  it("does not globally rewrite unrelated capability or ordinary memory statements", () => {
+    expect(guardOrdinaryModelReply("I don't have access to the Moon.", "open it", true))
+      .toBe("I don't have access to the Moon.");
+    expect(guardOrdinaryModelReply("I found that restaurant earlier.", "What was it?", true))
+      .toBe("I found that restaurant earlier.");
+  });
+
+  it.each([
+    ["What was the contract document ID we discussed?", "The document ID I found earlier was contract-123."],
+    ["Remind me of the project document we discussed.", "The document was Project Charter and its ID was DOC-42."],
+    ["Which local record was that?", "The file ID I found before was local-record-7."],
+  ])("preserves non-Drive document memory despite earlier governed Drive history", (utterance, reply) => {
+    expect(guardOrdinaryModelReply(reply, utterance, true)).toBe(reply);
+  });
+
+  it.each([
+    "Earlier, your Drive search returned Atlas.",
+    "The Drive file I found was Atlas.",
+    "The ID from the earlier Drive result was synthetic-id.",
+  ])("always contains explicitly Drive-marked provenance after excluded Drive history: %s", reply => {
+    expect(guardOrdinaryModelReply(reply, "Tell me about contracts.", true)).toBe(EXCLUDED_DRIVE_PROVENANCE_REPLY);
   });
 });

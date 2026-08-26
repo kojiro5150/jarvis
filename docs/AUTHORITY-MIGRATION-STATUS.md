@@ -1,7 +1,7 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 25 August 2026 (issue #294 follow-up)
+- **Last updated:** 26 August 2026 (Sprint 3.140)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
 - **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
 
@@ -28,7 +28,7 @@ Legend:
 | Capability / mechanism | Adjudication | Acquisition gate | Live production path | Notes |
 | --- | --- | --- | --- | --- |
 | `calendar.read` | ✓ | ✓ | △ | The JARVIS conversational route now gates bounded governed Calendar reads. Its deterministic proposal recognizer accepts deliberate high-precision requests rather than Calendar mentions, recall, or discussion; broader production conversation and legacy paths remain unchanged. |
-| identified-message `gmail.read` | ✓ | ✓ | ✓ — frozen baseline | The explicit `/api/chat` capability path and exact `/api/lighter/chat` command path gate one exact message and requested-field set before resource-policy evaluation and acquisition. The development/demo runtime is explicitly wired to a subject-only policy; the lighter path returns deterministic presentation with no model or specialist handoff. |
+| identified-message `gmail.read` | ✓ | ✓ | ✓ — frozen baseline | The exact `/api/lighter/chat` command path gates one exact message and requested-field set before resource-policy evaluation and acquisition. The development/demo runtime is explicitly wired to a subject-only policy; the lighter path returns deterministic presentation with no model or specialist handoff. Legacy `/api/chat` Gmail execution is contained. |
 | bounded `gmail.search` discovery | ✓ | ✓ | ✓ — exact baseline frozen; NL proposal live | The unchanged exact `1d`/`7d` command path directly allows at most five message IDs. Sprint 3.137 also deterministically proposes those same bounded operations from high-precision natural language, but proposal recognition confers no execution authority: explicit confirmation of server-owned pending state is required. Broader Gmail discovery remains unimplemented. |
 | `drive.read` | ○ | ○ | ○ | Connector exists; operation-level authority not yet implemented. |
 | `memory.read` | ○ | ○ | ○ | Memory is still acquired through legacy state-building paths; operation-level authority not yet implemented. |
@@ -91,6 +91,12 @@ read authority commands containing message IDs, are omitted from the model-only 
 client-carried history; visible responses remain unchanged. Client metadata is not accepted as
 authority or durable provenance, ordinary non-private history is retained, and no Gmail,
 Calendar, resource-policy, or `PendingAuthorization` scope is broadened.
+
+Sprint 3.140 contains the independently proven legacy `/api/chat` Gmail bypass before convergence.
+That route now rejects `governed_gmail_retrieval` with a neutral path-scoped response before
+authorization, `PendingAuthorization`, connector construction, or acquisition routing. The
+governed `/api/lighter/chat` Gmail baseline and its separate search/read authority remain unchanged.
+See `docs/SPRINT-3.140-LEGACY-GMAIL-CONTAINMENT.md`.
 
 ## `calendar.read` detail
 

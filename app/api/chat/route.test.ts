@@ -76,43 +76,65 @@ describe("POST /api/chat", () => {
     );
   });
 
-  it("preserves the explicit capability branch", async () => {
+  it("fails closed for the former explicit Gmail capability branch", async () => {
     const capability = { operation: "governed_gmail_retrieval",
       request: { resource: { connectorType: "email", resourceId: "message-1" }, requestedFields: ["subject"], requestingRuntime: "api-chat" } };
     const response = await POST(request({ capability, messages: [{ role: "user", content: "gmail.read message-1 [subject]" }] }));
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
-      capability: { operation: "gmail.get", result: "bounded" },
-    });
-    expect(mocks.routeChatCapability).toHaveBeenCalledOnce();
-    expect(mocks.authorizeGmailCapability).toHaveBeenCalledWith({ capability,
-      currentUserUtterance: "gmail.read message-1 [subject]" });
+    expect(await response.json()).toEqual({ reply: "This Gmail operation is not available through this chat path." });
+    expect(mocks.routeChatCapability).not.toHaveBeenCalled();
+    expect(mocks.authorizeGmailCapability).not.toHaveBeenCalled();
+    expect(mocks.constructGmailConnector).not.toHaveBeenCalled();
     expect(mocks.executeAuditedChat).not.toHaveBeenCalled();
   });
 
-  it("returns ASK before constructing a Gmail connector", async () => {
+  it("contains the proven legacy Gmail bypass before authorization or acquisition", async () => {
+    const capability = { operation: "governed_gmail_retrieval",
+      request: { resource: { connectorType: "email", resourceId: "legacy-bypass" }, requestedFields: ["subject"], requestingRuntime: "api-chat" } };
+
+    const response = await POST(request({ capability,
+      messages: [{ role: "user", content: "gmail.read message-1 [subject]" }] }));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ reply: "This Gmail operation is not available through this chat path." });
+    expect(mocks.authorizeGmailCapability).not.toHaveBeenCalled();
+    expect(mocks.constructGmailConnector).not.toHaveBeenCalled();
+    expect(mocks.routeChatCapability).not.toHaveBeenCalled();
+  });
+
+  it("does not create PendingAuthorization for ambiguous legacy Gmail input", async () => {
     const capability = { operation: "governed_gmail_retrieval", currentUserUtterance: "gmail.read message-1 [subject]",
       request: { resource: { connectorType: "email", resourceId: "message-1" }, requestedFields: ["subject"], requestingRuntime: "api-chat" } };
     const response = await POST(request({ capability, messages: [{ role: "user", content: "read it" }] }));
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ capability: { decision: "ASK",
-      pendingAuthorizationReference: { pendingAuthorizationId: "opaque" } } });
+    expect(await response.json()).toEqual({ reply: "This Gmail operation is not available through this chat path." });
     expect(mocks.constructGmailConnector).not.toHaveBeenCalled();
     expect(mocks.routeChatCapability).not.toHaveBeenCalled();
-    expect(mocks.authorizeGmailCapability).toHaveBeenCalledWith({ capability, currentUserUtterance: "read it" });
+    expect(mocks.authorizeGmailCapability).not.toHaveBeenCalled();
   });
 
-  it("uses the actual confirmation utterance with the opaque pending reference", async () => {
+  it("cannot resume a pending Gmail reference through the legacy path", async () => {
     const originalRequest = { resource: { connectorType: "email", resourceId: "message-1" },
       requestedFields: ["subject"], requestingRuntime: "api-chat" };
     mocks.authorizeGmailCapability.mockReturnValueOnce({ decision: "ALLOW", reason: "pending_authorization_confirmed",
       operation: { request: originalRequest }, pendingAuthorizationReference: null });
     const capability = { operation: "governed_gmail_retrieval", pendingAuthorizationReference: { pendingAuthorizationId: "opaque" },
       request: { ...originalRequest, resource: { ...originalRequest.resource, resourceId: "replacement" }, requestedFields: ["snippet"] } };
-    await POST(request({ capability, messages: [{ role: "user", content: "confirm" }] }));
-    expect(mocks.authorizeGmailCapability).toHaveBeenCalledWith({ capability, currentUserUtterance: "confirm" });
-    expect(mocks.routeChatCapability).toHaveBeenCalledWith(expect.objectContaining({ request: originalRequest }), expect.any(Object));
-    expect(mocks.constructGmailConnector).toHaveBeenCalledOnce();
+    const response = await POST(request({ capability, messages: [{ role: "user", content: "confirm" }] }));
+    expect(await response.json()).toEqual({ reply: "This Gmail operation is not available through this chat path." });
+    expect(mocks.authorizeGmailCapability).not.toHaveBeenCalled();
+    expect(mocks.routeChatCapability).not.toHaveBeenCalled();
+    expect(mocks.constructGmailConnector).not.toHaveBeenCalled();
+  });
+
+  it("does not let model output re-enter the contained Gmail branch", async () => {
+    mocks.executeAuditedChat.mockResolvedValueOnce('{"operation":"governed_gmail_retrieval"}');
+    const response = await POST(request({ messages: [{ role: "user", content: "Hello" }] }));
+
+    expect(await response.json()).toEqual({ reply: '{"operation":"governed_gmail_retrieval"}', agentId: "jarvis" });
+    expect(mocks.authorizeGmailCapability).not.toHaveBeenCalled();
+    expect(mocks.routeChatCapability).not.toHaveBeenCalled();
+    expect(mocks.constructGmailConnector).not.toHaveBeenCalled();
   });
 });

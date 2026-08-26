@@ -7,6 +7,8 @@ import {
   useVoiceSession,
   type VoiceState,
 } from "@/lib/lighter-jarvis/useVoiceSession";
+import { VoiceTurnQueue, type VoiceTurn } from "@/lib/lighter-jarvis/voice-turn-queue";
+import { ClientAuthorityTurnState, type OpaquePendingAuthorization } from "@/lib/lighter-jarvis/client-authority-turn-state";
 import { DIRECT_SPECIALIST_IDS } from "./head-mode-contract";
 
 type Specialist = {
@@ -22,7 +24,6 @@ type PendingHandoff = {
   taskSummary: string;
   marketScopes?: string[];
 };
-type PendingAuthorizationReference = { pendingAuthorizationId: string };
 type ConnectorName = "calendar" | "gmail" | "drive";
 type ConnectorServiceStatus =
   | "online"
@@ -107,7 +108,8 @@ function HeadComposite({
 
 export default function UnifiedOpsConsole() {
   const voiceSession = useVoiceSession();
-  const submittedTranscriptRef = useRef<string | null>(null);
+  const voiceQueueRef = useRef<VoiceTurnQueue | null>(null);
+  const voiceTurnHandlerRef = useRef<(turn: VoiceTurn) => Promise<void>>(async () => undefined);
   const [specialists, setSpecialists] = useState<Specialist[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>("jarvis");
   const [conversations, setConversations] = useState<Record<string, Message[]>>(
@@ -118,8 +120,7 @@ export default function UnifiedOpsConsole() {
   const [pendingHandoff, setPendingHandoff] = useState<PendingHandoff | null>(
     null,
   );
-  const [pendingAuthorizationReference, setPendingAuthorizationReference] =
-    useState<PendingAuthorizationReference | null>(null);
+  const authorityTurnStateRef = useRef(new ClientAuthorityTurnState());
   const [listError, setListError] = useState("");
   const [connectorStatuses, setConnectorStatuses] = useState<Record<
     ConnectorName,
@@ -314,6 +315,9 @@ export default function UnifiedOpsConsole() {
     content: string,
   ): Promise<{ routeTo?: string; taskSummary?: string; marketScopes?: string[] } | undefined> {
     if (!content) return;
+    const authorityRequest = specialist.id === "jarvis"
+      ? authorityTurnStateRef.current.beginRequest()
+      : null;
     const existingMessages = conversations[specialist.id] ?? [];
     const nextMessages: Message[] = [
       ...existingMessages,
@@ -335,8 +339,8 @@ export default function UnifiedOpsConsole() {
             role,
             content: text,
           })),
-          ...(specialist.id === "jarvis" && pendingAuthorizationReference
-            ? { pendingAuthorizationReference }
+          ...(authorityRequest?.pendingAuthorizationReference
+            ? { pendingAuthorizationReference: authorityRequest.pendingAuthorizationReference }
             : {}),
         }),
       });
@@ -345,7 +349,7 @@ export default function UnifiedOpsConsole() {
         routeTo?: string;
         taskSummary?: string;
         marketScopes?: string[];
-        pendingAuthorizationReference?: PendingAuthorizationReference | null;
+        pendingAuthorizationReference?: OpaquePendingAuthorization | null;
         error?: string;
       };
       if (!response.ok)
@@ -353,8 +357,11 @@ export default function UnifiedOpsConsole() {
           data.error || `${response.status} ${response.statusText}`,
         );
       const reply = requiredReply(data.reply);
-      if (specialist.id === "jarvis") {
-        setPendingAuthorizationReference(data.pendingAuthorizationReference ?? null);
+      if (authorityRequest) {
+        authorityTurnStateRef.current.applyResponse(
+          authorityRequest.requestId,
+          data.pendingAuthorizationReference ?? null,
+        );
       }
       setConversations((current) => ({
         ...current,
@@ -411,14 +418,12 @@ export default function UnifiedOpsConsole() {
     }
   }
 
-  useEffect(() => {
-    const transcript = voiceSession.transcript;
-    if (!transcript || transcript === submittedTranscriptRef.current || !selected) return;
-    submittedTranscriptRef.current = transcript;
+  voiceTurnHandlerRef.current = async ({ transcript }) => {
+    if (!selected) return;
     if (pendingHandoff) {
       const response = handoffResponse(transcript);
       if (response === "confirm") {
-        void confirmHandoff();
+        await confirmHandoff();
         return;
       }
       if (response === "decline") {
@@ -428,24 +433,28 @@ export default function UnifiedOpsConsole() {
     }
     setPendingHandoff(null);
     const source = selected;
-    void (async () => {
-      const result = await submitMessage(source, transcript);
-      const target = result?.routeTo
-        ? specialists.find((item) => item.id === result.routeTo)
-        : undefined;
-      if (target && result?.taskSummary) {
-        setPendingHandoff({
-          sourceId: source.id,
-          targetId: target.id,
-          taskSummary: result.taskSummary,
-          marketScopes: result.marketScopes,
-        });
-      }
-    })();
-    // A transcript enters the same canonical path as typed input exactly once,
-    // including the same confirmation-required hand-off flow as send().
+    const result = await submitMessage(source, transcript);
+    const target = result?.routeTo
+      ? specialists.find((item) => item.id === result.routeTo)
+      : undefined;
+    if (target && result?.taskSummary) {
+      setPendingHandoff({ sourceId: source.id, targetId: target.id,
+        taskSummary: result.taskSummary, marketScopes: result.marketScopes });
+    }
+  };
+
+  if (!voiceQueueRef.current) {
+    voiceQueueRef.current = new VoiceTurnQueue((turn) => voiceTurnHandlerRef.current(turn));
+  }
+
+  useEffect(() => {
+    if (!voiceSession.turn) return;
+    void voiceQueueRef.current!.enqueue(voiceSession.turn);
+    // Capture identity, rather than transcript text or confidence metadata,
+    // defines one canonical voice turn. The queue applies its full response
+    // before beginning the next capture event.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voiceSession.transcript]);
+  }, [voiceSession.turn]);
 
   async function confirmHandoff() {
     if (!pendingHandoff || loading || !jarvis) return;

@@ -56,8 +56,8 @@ describe("UnifiedOpsConsole head-mode contract", () => {
 
   it("a voice transcript that triggers a hand-off proposes it instead of discarding it", () => {
     const effectSource = source.slice(
-      source.indexOf("voiceSession.transcript;"),
-      source.indexOf("voiceSession.transcript;") + 1300,
+      source.indexOf("voiceTurnHandlerRef.current"),
+      source.indexOf("voiceTurnHandlerRef.current") + 1500,
     );
     expect(effectSource).toContain("setPendingHandoff({");
     expect(effectSource).not.toContain("void submitMessage(selected, transcript)");
@@ -65,12 +65,12 @@ describe("UnifiedOpsConsole head-mode contract", () => {
 
   it("a voice transcript confirms or declines a pending hand-off instead of re-proposing it", () => {
     const effectSource = source.slice(
-      source.indexOf("voiceSession.transcript;"),
-      source.indexOf("voiceSession.transcript;") + 1300,
+      source.indexOf("voiceTurnHandlerRef.current"),
+      source.indexOf("voiceTurnHandlerRef.current") + 1500,
     );
     expect(effectSource).toContain("if (pendingHandoff) {");
     expect(effectSource).toContain("handoffResponse(transcript)");
-    expect(effectSource).toContain("void confirmHandoff()");
+    expect(effectSource).toContain("await confirmHandoff()");
   });
 
   it("carries the opaque Calendar pending reference through the shared typed and voice submission path", () => {
@@ -79,7 +79,7 @@ describe("UnifiedOpsConsole head-mode contract", () => {
       source.indexOf("async function send"),
     );
     expect(submission).toContain("pendingAuthorizationReference");
-    expect(submission).toContain("setPendingAuthorizationReference");
+    expect(submission).toContain("authorityTurnStateRef.current.applyResponse");
     expect(submission).not.toContain("proposedOperation");
   });
 

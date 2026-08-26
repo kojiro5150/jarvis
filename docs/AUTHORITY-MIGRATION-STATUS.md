@@ -1,7 +1,7 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 26 August 2026 (Sprint 3.142)
+- **Last updated:** 26 August 2026 (Sprint 3.143)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
 - **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
 
@@ -111,6 +111,13 @@ denials are replaced with fixed path-scoped wording that records only the existe
 authority evidence, does not inspect or represent connector state, creates no pending authority,
 and performs no acquisition. Governed ASK flows and all operation recognizers remain unchanged.
 See `docs/SPRINT-3.142-CAPABILITY-TRUTHFULNESS.md`.
+
+Sprint 3.143 serializes capture-identified voice turns through the shared canonical submission
+path. A later voice turn cannot begin until the prior response has applied, duplicate delivery is
+keyed by capture identity rather than transcript text, and request freshness prevents stale
+responses from overwriting the current opaque pending reference. Transcription metadata remains
+non-authoritative; typed authority semantics, server ownership, and Calendar/Gmail scope are
+unchanged. See `docs/SPRINT-3.143-VOICE-AUTHORITY-TURN-INTEGRITY.md`.
 
 ## `calendar.read` detail
 

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   guardOrdinaryModelReply,
   NEUTRALIZED_ORDINARY_AUTHORITY_REPLY,
+  UNSUPPORTED_CALENDAR_PATH_REPLY,
+  UNSUPPORTED_GMAIL_PATH_REPLY,
 } from "./ordinary-model-reply-guard";
 
 describe("ordinary-model reply guard", () => {
@@ -26,5 +28,30 @@ describe("ordinary-model reply guard", () => {
     expect(guardOrdinaryModelReply("Monday is a weekday.")).toBe("Monday is a weekday.");
     expect(guardOrdinaryModelReply("Calendar access requires deterministic authority machinery."))
       .toBe("Calendar access requires deterministic authority machinery.");
+  });
+
+  it.each([
+    "I don't have access to your Calendar.",
+    "Calendar is not connected.",
+    "This capability does not exist.",
+  ])("corrects false global Calendar capability claims without representing authority: %s", (reply) => {
+    expect(guardOrdinaryModelReply(reply, "Show my calendar Monday"))
+      .toBe(UNSUPPORTED_CALENDAR_PATH_REPLY);
+  });
+
+  it.each([
+    "I cannot access Gmail.",
+    "I don't have the capability to check your inbox.",
+    "Gmail isn't available.",
+  ])("corrects false global Gmail capability claims without representing authority: %s", (reply) => {
+    expect(guardOrdinaryModelReply(reply, "Show me my emails"))
+      .toBe(UNSUPPORTED_GMAIL_PATH_REPLY);
+  });
+
+  it("does not rewrite unrelated ordinary conversation or truthful path-scoped limitations", () => {
+    expect(guardOrdinaryModelReply("I don't have access to the Moon.", "Tell me about the Moon"))
+      .toBe("I don't have access to the Moon.");
+    expect(guardOrdinaryModelReply("That inbox request is not supported on this path.", "Get my inbox"))
+      .toBe("That inbox request is not supported on this path.");
   });
 });

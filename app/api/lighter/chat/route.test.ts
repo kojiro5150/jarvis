@@ -244,6 +244,34 @@ describe("POST /api/lighter/chat", () => {
     expect(createConnector).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["Show my calendar Monday", "I don't have access to your calendar.", "The governed Calendar path supports calendar.read, but it does not support this request."],
+    ["What Calendar capabilities do you have?", "That capability does not exist.", "The governed Calendar path supports calendar.read, but it does not support this request."],
+    ["Show me my emails", "I don't have access to Gmail.", "The governed Gmail path supports gmail.search and identified-message gmail.read, but it does not support this request."],
+    ["Check my Gmail", "Gmail is not connected.", "The governed Gmail path supports gmail.search and identified-message gmail.read, but it does not support this request."],
+    ["Read my latest email", "I cannot read email.", "The governed Gmail path supports gmail.search and identified-message gmail.read, but it does not support this request."],
+    ["Get my inbox", "I don't have that capability.", "The governed Gmail path supports gmail.search and identified-message gmail.read, but it does not support this request."],
+  ])("corrects unsupported private request capability representation without acquiring: %s", async (utterance, modelReply, expected) => {
+    const model = vi.fn(async () => modelReply);
+    const calendarConnector = vi.fn();
+    const gmailReadConnector = vi.fn();
+    const gmailSearchConnector = vi.fn();
+    const response = await createLighterChatHandler(model,
+      { createConnector: calendarConnector, clock: () => new Date("2026-08-25T00:00:00Z") },
+      { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
+      { createConnector: gmailSearchConnector })(request({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }));
+    const body = await response.json();
+
+    expect(body).toEqual({ reply: expected, specialistId: "jarvis", execution: "none" });
+    expect(body).not.toHaveProperty("pendingAuthorizationReference");
+    expect(body).not.toHaveProperty("calendarAuthority");
+    expect(body).not.toHaveProperty("gmailAuthority");
+    expect(body).not.toHaveProperty("gmailSearchAuthority");
+    expect(calendarConnector).not.toHaveBeenCalled();
+    expect(gmailReadConnector).not.toHaveBeenCalled();
+    expect(gmailSearchConnector).not.toHaveBeenCalled();
+  });
+
   it("rejects malformed Gmail searches before constructing any connector", async () => {
     const model = vi.fn(); const searchConnector = vi.fn(); const readConnector = vi.fn();
     const response = await createLighterChatHandler(model, undefined, { createConnector: readConnector, loadPolicy: vi.fn() },

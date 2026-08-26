@@ -19,6 +19,8 @@ interface ChatRequestBody {
   capability?: unknown;
 }
 
+const LEGACY_GMAIL_UNAVAILABLE = "This Gmail operation is not available through this chat path.";
+
 function isValidMessages(messages: unknown): messages is ChatMessage[] {
   return (
     Array.isArray(messages) &&
@@ -40,6 +42,13 @@ export async function POST(req: NextRequest) {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  // Gmail authority is owned by /api/lighter/chat. Keep this legacy boundary
+  // fail-closed before parsing, authorization, connector construction, or acquisition.
+  if (body.capability && typeof body.capability === "object" &&
+      "operation" in body.capability && body.capability.operation === "governed_gmail_retrieval") {
+    return NextResponse.json({ reply: LEGACY_GMAIL_UNAVAILABLE });
   }
 
   if (body.capability !== undefined) {

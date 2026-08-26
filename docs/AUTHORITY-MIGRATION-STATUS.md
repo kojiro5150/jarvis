@@ -1,7 +1,7 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 26 August 2026 (Sprint 3.140)
+- **Last updated:** 26 August 2026 (Sprint 3.141)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
 - **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
 
@@ -97,6 +97,12 @@ That route now rejects `governed_gmail_retrieval` with a neutral path-scoped res
 authorization, `PendingAuthorization`, connector construction, or acquisition routing. The
 governed `/api/lighter/chat` Gmail baseline and its separate search/read authority remain unchanged.
 See `docs/SPRINT-3.140-LEGACY-GMAIL-CONTAINMENT.md`.
+
+Sprint 3.141 makes authority confirmation UX the exclusive responsibility of deterministic
+authority machinery. Ordinary model output cannot impersonate a governed Calendar or Gmail `ASK`,
+and governed-history sanitizer placeholders remain model-context-only artifacts that are never
+user-visible. Genuine governed Calendar/Gmail `ASK` flows are unchanged, and unsupported weekday
+Calendar requests remain unsupported. See `docs/SPRINT-3.141-AUTHORITY-UX-INTEGRITY.md`.
 
 ## `calendar.read` detail
 

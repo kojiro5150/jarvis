@@ -10,6 +10,7 @@ import { resolveProductionGmailRead, type ProductionGmailDependencies } from "@/
 import { resolveProductionGmailSearch, type ProductionGmailSearchDependencies } from "@/lib/lighter-jarvis/production-gmail-search";
 import { sanitizeModelHistory } from "@/lib/lighter-jarvis/model-history-boundary";
 import { isPrivateAcquisitionHandoffRequest } from "@/lib/lighter-jarvis/private-capability-handoff-guard";
+import { guardOrdinaryModelReply } from "@/lib/lighter-jarvis/ordinary-model-reply-guard";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -338,6 +339,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           }
         }
       }
+      reply = guardOrdinaryModelReply(reply);
       return NextResponse.json({ reply, specialistId: specialist.id, execution: "none" });
     } catch (error) {
       console.error("[/api/lighter/chat] Specialist invocation failed:", error);

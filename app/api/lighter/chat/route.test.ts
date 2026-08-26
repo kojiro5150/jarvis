@@ -68,6 +68,42 @@ describe("POST /api/lighter/chat", () => {
     expect(model).not.toHaveBeenCalled(); expect(allow).not.toHaveProperty("routeTo");
   });
 
+  it("delivers an opaque Gmail pending reference to the server and confirms after more than 40 transcript messages without a model call", async () => {
+    const model = vi.fn(async () => "ordinary model must not run");
+    const search = vi.fn(async () => ["long-session-id"]);
+    const handler = createLighterChatHandler(
+      model,
+      undefined,
+      undefined,
+      { createConnector: vi.fn(() => ({ search })) },
+    );
+    const ask = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Search my Gmail from the last week." }],
+    }))).json();
+    const longTranscript = [
+      ...Array.from({ length: 42 }, (_, index) => ({
+        role: index % 2 === 0 ? "user" as const : "assistant" as const,
+        content: `ordinary transcript message ${index + 1}`,
+      })),
+      { role: "user" as const, content: "yes" },
+    ];
+
+    const response = await handler(request({
+      specialistId: "jarvis",
+      messages: longTranscript,
+      pendingAuthorizationReference: ask.pendingAuthorizationReference,
+    }));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      reply: "Gmail message IDs:\n- long-session-id",
+      gmailSearchAuthority: { decision: "ALLOW", reason: "pending_authorization_confirmed" },
+    });
+    expect(search).toHaveBeenCalledWith("7d", 5);
+    expect(model).not.toHaveBeenCalled();
+  });
+
   it("freezes explicit Gmail search followed by a separate explicit, policy-gated read", async () => {
     const model = vi.fn(async () => "A message ID alone is not read authority.");
     const calendarConnector = vi.fn();

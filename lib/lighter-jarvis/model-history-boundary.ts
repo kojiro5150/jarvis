@@ -12,13 +12,15 @@ const OMITTED_GMAIL_READ_REQUEST = "[Prior governed Gmail read request omitted f
 
 const GMAIL_FIELD_RELEASE = /^(?:Subject|Snippet|Plain text body|Attachment filenames|Attachment MIME metadata):/;
 const CALENDAR_RELEASE = /^(?:(?:Today|Tomorrow|This morning|This afternoon|This evening|This week) is clear\.|Your Calendar is clear for the next seven days\.|(?:Today|Tomorrow|This morning|This afternoon|This evening|This week|Next seven days) you have \d+ commitments?:\n-|Your Calendar has (?:no|\d+) commitments? in )/;
+const DRIVE_RELEASE = /^(?:No Drive files found\.|Drive files:\n-)/;
 const EXACT_GMAIL_READ_REQUEST = /^gmail\.read [^\s\[\],<>]+ \[(?:subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata)(?:,(?:subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata))*\]$/;
 
 export function isDeterministicPrivateRelease(content: string): boolean {
   return content === "No Gmail message IDs found."
     || content.startsWith("Gmail message IDs:\n-")
     || GMAIL_FIELD_RELEASE.test(content)
-    || CALENDAR_RELEASE.test(content);
+    || CALENDAR_RELEASE.test(content)
+    || DRIVE_RELEASE.test(content);
 }
 
 /** Returns a fresh model-only history; the client-visible transcript is never mutated. */

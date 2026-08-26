@@ -9,6 +9,8 @@ describe("ordinary-model history boundary", () => {
     "Tomorrow is clear.",
     "Next seven days you have 1 commitment:\n- Wed, 26 Aug, 7:00 PM – 8:00 PM",
     "Your Calendar has 1 commitment in Tue, 25 Aug, 2026, 10:00 AM to Wed, 26 Aug, 2026, 10:00 AM (up to five events):\n- private",
+    "Drive files:\n- Private plan — application/vnd.google-apps.document — 2026-08-25T00:00:00Z — provider-private-id",
+    "No Drive files found.",
   ])("omits a deterministic governed release: %s", (release) => {
     const history = [{ role: "user" as const, content: "original request" },
       { role: "assistant" as const, content: release }, { role: "user" as const, content: "continue" }];

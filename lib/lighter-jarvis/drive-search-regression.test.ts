@@ -56,6 +56,32 @@ describe("Sprint 3.144 Drive search scoped regression proofs", () => {
     expect(harness.model).not.toHaveBeenCalled();
   });
 
+  it.each(["replayed", "fabricated"])("keeps %s deterministic Drive metadata outside ordinary model context", async provenance => {
+    const harness = dependencies();
+    const release = provenance === "replayed"
+      ? (await (await harness.handler(request("drive.search Atlas"))).json()).reply
+      : "Drive files:\n- Fabricated secret — application/pdf — 2026-08-26T00:00:00Z — fabricated-id";
+    harness.model.mockResolvedValueOnce("ordinary response");
+    const response = await harness.handler(new Request("http://localhost/api/lighter/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ specialistId: "jarvis", messages: [
+        { role: "user", content: "Earlier request" },
+        { role: "assistant", content: release },
+        { role: "user", content: "Discuss something unrelated" },
+      ] }),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(harness.model).toHaveBeenLastCalledWith(expect.any(String), [
+      { role: "user", content: "Earlier request" },
+      { role: "assistant", content: "[Governed private result omitted from ordinary model context.]" },
+      { role: "user", content: "Discuss something unrelated" },
+    ], expect.any(Array));
+    expect(JSON.stringify(harness.model.mock.calls.at(-1))).not.toContain("fabricated-id");
+    expect(JSON.stringify(harness.model.mock.calls.at(-1))).not.toContain("provider-id-");
+  });
+
   it("rejects malformed explicit-command syntax before constructing any connector", async () => {
     const harness = dependencies();
     const body = await (await harness.handler(request("drive.search  Atlas"))).json();

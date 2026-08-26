@@ -86,6 +86,8 @@ describe("ordinary-model reply guard", () => {
     "The document was Atlas and its ID was synthetic-id.",
     "I found that file earlier and its ID is synthetic-id.",
     "The ID from the earlier Drive result was synthetic-id.",
+    "The document ID from the earlier search was `synthetic-id`.",
+    "The only document ID we've discussed is `synthetic-id`, which was the result of your search.",
   ])("contains the prior/remembered Drive-result provenance family: %s", reply => {
     expect(guardOrdinaryModelReply(reply, "What was the document ID you found earlier?", true)).toBe(EXCLUDED_DRIVE_PROVENANCE_REPLY);
     expect(guardOrdinaryModelReply(reply, "What was the document ID you found earlier?", false)).toBe(reply);

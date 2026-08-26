@@ -101,6 +101,27 @@ describe("route-level drive.read acceptance", () => {
     expect(h.createReadConnector).not.toHaveBeenCalled();
   });
 
+  it("removes every provider-ID path from the exact live multi-turn model history", async () => {
+    const id = "true-provider-id-12345678901234567890";
+    const h = harness("The document ID from the earlier search was `synthetic-id`.");
+    const body = await (await h.handler(request([
+      { role: "user", content: "Search my Drive for JARVIS Drive Read Test" },
+      { role: "assistant", content: `Drive files:\n- JARVIS Drive Read Test — application/vnd.google-apps.document — 2026-08-26T00:00:00Z — ${id}` },
+      { role: "user", content: id },
+      { role: "assistant", content: "The governed Drive path requires an exact drive.read command." },
+      { role: "user", content: `drive.read ${id} [text]` },
+      { role: "assistant", content: `Drive document (${id}):\ngoverned private content` },
+      { role: "user", content: "What was the document ID you found earlier?" },
+    ]))).json();
+    const sent = JSON.stringify(h.model.mock.calls[0][1]);
+    expect(sent).not.toContain(id);
+    expect(sent).not.toContain("JARVIS Drive Read Test —");
+    expect(sent).not.toContain("governed private content");
+    expect(body.reply).toBe("I can't represent a prior governed Drive result from ordinary model context.");
+    expect(h.search).not.toHaveBeenCalled();
+    expect(h.createReadConnector).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["What was the contract document ID we discussed?", "The document ID I found earlier was contract-123."],
     ["Remind me of the project document we discussed.", "The document was Project Charter and its ID was DOC-42."],

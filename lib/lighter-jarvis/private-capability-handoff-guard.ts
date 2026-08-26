@@ -22,5 +22,9 @@ export function isPrivateAcquisitionHandoffRequest(utterance: string): boolean {
 /** Prior Drive context may activate this deny-only classifier; it supplies no operation or authority. */
 export function isAmbiguousPrivateReadFollowUp(utterance: string): boolean {
   const normalized = utterance.normalize("NFKC").toLowerCase().replace(/[’]/g, "'").replace(/\s+/g, " ").trim();
-  return /^(?:(?:read|open|show|summari[sz]e)(?:\s+(?:it|that))?|[a-z0-9_-]+)[.!?]*$/.test(normalized);
+  const anaphoricRead = /^(?:read|open|show|summari[sz]e)(?:\s+(?:it|that))?[.!?]*$/.test(normalized);
+  // Twenty characters is deliberately structural, not proof of a real ID.
+  // It excludes ordinary short words while retaining observed opaque Drive-ID shapes.
+  const providerIdLike = /^[A-Za-z0-9_-]{20,}$/.test(utterance.trim());
+  return anaphoricRead || providerIdLike;
 }

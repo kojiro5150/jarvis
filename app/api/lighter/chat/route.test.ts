@@ -1043,7 +1043,7 @@ describe("POST /api/lighter/chat", () => {
     expect(model).not.toHaveBeenCalled();
   });
 
-  it.each(["read it", "open it", "show it", "summarize it", "provider_317"])("suppresses an alternate private-read handoff after governed Drive context: %s", async utterance => {
+  it.each(["read it", "open it", "show it", "summarize it", "19xlDULDXTH4jniT-6jnZ0Vdp4LETYlG4jfIoOr4TkPQ"])("suppresses an alternate private-read handoff after governed Drive context: %s", async utterance => {
     const model = vi.fn(async () => handoffResult("oracle", "ORACLE can retrieve it.", "Open the referenced item."));
     const response = await createLighterChatHandler(model)(request({ specialistId: "jarvis", messages: [
       { role: "user", content: "drive.read provider_317 [text]" },
@@ -1060,6 +1060,31 @@ describe("POST /api/lighter/chat", () => {
     ]);
     expect(body).not.toHaveProperty("routeTo");
     expect(body).not.toHaveProperty("pendingAuthorizationReference");
+  });
+
+  it("preserves an unrelated ORACLE handoff after governed Drive history", async () => {
+    const driveSearchConnector = vi.fn();
+    const driveReadConnector = vi.fn(() => ({ readGoogleDocText: vi.fn() }));
+    const model = vi.fn(async () => handoffResult(
+      "oracle", "ORACLE can research that.", "Research public information about distributed systems.",
+    ));
+    const response = await createLighterChatHandler(model, undefined, undefined, undefined,
+      { createConnector: driveSearchConnector }, { loadPolicy: async () => null, hasOAuthCapability: async () => false,
+        createConnector: driveReadConnector })(request({ specialistId: "jarvis", messages: [
+        { role: "user", content: "drive.read provider_317 [text]" },
+        { role: "assistant", content: "Drive document (provider_317):\nprivate content" },
+        { role: "user", content: "research" },
+      ] }));
+
+    const body = await response.json();
+    expect(body).toMatchObject({ reply: "ORACLE can research that.", routeTo: "oracle",
+      taskSummary: "Research public information about distributed systems." });
+    expect(body.reply).not.toBe("That request cannot be handled through a specialist handoff.");
+    expect(body).not.toHaveProperty("pendingAuthorizationReference");
+    expect(body).not.toHaveProperty("driveReadAuthority");
+    expect(body).not.toHaveProperty("driveSearchAuthority");
+    expect(driveSearchConnector).not.toHaveBeenCalled();
+    expect(driveReadConnector).not.toHaveBeenCalled();
   });
 
   it("neutralizes fabricated Drive provenance without restoring excluded ID or content", async () => {

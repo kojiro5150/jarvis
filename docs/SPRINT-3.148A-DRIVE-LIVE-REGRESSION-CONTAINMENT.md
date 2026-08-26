@@ -12,7 +12,7 @@ Accordingly, the root cause remains **unresolved / not reproduced**. There is no
 
 ## Deny-only containment
 
-When transcript content shows a prior governed Drive command or deterministic Drive release, the boundary records only a deny/presentation signal. If the current utterance is an anaphoric read request (`read it`, `open it`, `show it`, or `summarize it`) or a bare provider-ID-shaped token, a model-proposed specialist handoff is suppressed. This context signal cannot propose a Drive operation, invoke a connector, create pending authorization, or authorize `drive.read`.
+When transcript content shows a prior governed Drive command or deterministic Drive release, the boundary records only a deny/presentation signal. If the current utterance is an anaphoric read request (`read it`, `open it`, `show it`, or `summarize it`) or a bare provider-ID-shaped token, a model-proposed specialist handoff is suppressed. The provider-ID-like shape is deliberately narrow: at least 20 characters, using only `[A-Za-z0-9_-]`. It is not proof that an ID is real, while ordinary one-word requests remain eligible for unrelated specialist handoffs. This context signal cannot propose a Drive operation, invoke a connector, create pending authorization, or authorize `drive.read`.
 
 The current user utterance still reaches the ordinary model as ordinary conversation. Prior exact Drive read commands and deterministic Drive releases remain replaced with content-free markers.
 

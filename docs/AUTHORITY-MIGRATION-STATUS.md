@@ -30,7 +30,7 @@ Legend:
 | `calendar.read` | ✓ | ✓ | ✓ — live bounded path | The JARVIS conversational route gates bounded governed Calendar reads. Its deterministic proposal recognizer accepts deliberate high-precision requests rather than Calendar mentions, recall, or discussion. |
 | identified-message `gmail.read` | ✓ | ✓ | ✓ — frozen baseline | The exact `/api/lighter/chat` command path gates one exact message and requested-field set before resource-policy evaluation and acquisition. The development/demo runtime is explicitly wired to a subject-only policy; the lighter path returns deterministic presentation with no model or specialist handoff. Legacy `/api/chat` Gmail execution is contained. |
 | bounded `gmail.search` discovery | ✓ | ✓ | ✓ — exact baseline frozen; NL proposal live | The unchanged exact `1d`/`7d` command path directly allows at most five message IDs. Sprint 3.137 also deterministically proposes those same bounded operations from high-precision natural language, but proposal recognition confers no execution authority: explicit confirmation of server-owned pending state is required. Broader Gmail discovery remains unimplemented. |
-| metadata-only `drive.search` | ✓ | ✓ | ✓ — exact baseline frozen; NL proposal live | The exact command directly allows up to five provider metadata records. Sprint 3.145 admits exactly three high-precision natural-language proposal forms; server-owned pending state and separate explicit confirmation remain required before execution. Content and `drive.read` remain unimplemented. |
+| metadata-only `drive.search` and identified Google Doc `drive.read` | ✓ | ✓ | ✓ — bounded production paths | Search remains metadata-only. `drive.read <provider-file-id> [text]` alone authorizes a 65,536-byte-bounded, complete verbatim Google Docs plain-text export; it has no NL or pending flow and search authority is non-transitive. |
 | `drive.read` | ○ | ○ | ○ | Connector exists; operation-level authority not yet implemented. |
 | `memory.read` | ○ | ○ | ○ | Memory is still acquired through legacy state-building paths; operation-level authority not yet implemented. |
 | `calendar.write` | ○ | ○ | ○ | Future action capability; not part of current read migration. |
@@ -40,7 +40,7 @@ Legend:
 
 | Evidence class | Status | Notes |
 | --- | --- | --- |
-| Explicit current-user utterance | ✓ for `calendar.read`, identified-message `gmail.read`, bounded `gmail.search`, and metadata-only `drive.search` | Raw current utterance is independently matched; capability/proposal metadata is non-authoritative. |
+| Explicit current-user utterance | ✓ for `calendar.read`, identified-message `gmail.read`, bounded `gmail.search`, metadata-only `drive.search`, and identified-Google-Doc `drive.read` | Raw current utterance is independently matched; capability/proposal metadata is non-authoritative. |
 | Named capability grants | ○ | No general named-grant machinery yet. |
 | Standing grants | ○ | No standing-grant store or adjudication yet. |
 | `PendingAuthorization` confirmation | ✓ — live | Server-owned, capability-bound, one-shot state is integrated for Calendar reads, identified-message Gmail reads, and natural-language bounded Gmail and Drive search proposals. The client receives only an opaque reference. Bare, stale, fabricated, unknown, consumed, and capability-mismatched references fail closed and resolve before model invocation. The authoritative registry is a module-private process-local `Map`; durable or distributed persistence remains incomplete. |
@@ -308,7 +308,7 @@ The frozen product direction is one user-facing JARVIS identity. Internal specia
 | 3 | General `PendingAuthorization` for exact operation confirmation | ✓ — live for the bounded production capabilities; authoritative storage remains process-local |
 | 4 | Live conversational Calendar integration | ✓ — bounded `calendar.read` path |
 | 5 | Separate private acquisition from legacy `OperationalState` assembly | ✓ — COMPLETE since Sprint 3.129; retired/quarantined regressions prove zero callable eager full-state production surfaces |
-| 6 | Extend authority to Gmail, Drive and Memory | △ — bounded `gmail.search`, identified-message `gmail.read`, and metadata-only `drive.search` are live; `drive.read` and `memory.read` are unimplemented |
+| 6 | Extend authority to Gmail, Drive and Memory | △ — bounded Gmail, Drive search, and identified Google Doc read paths are live; arbitrary `drive.read` and `memory.read` are unimplemented |
 | 7 | Named and standing grants, including bounded briefing authority | ○ |
 | 8 | Complete one-JARVIS UX migration and remove authority-bypassing legacy paths | ○ |
 

@@ -9,18 +9,22 @@ import type { ChatMessage } from "@/lib/agents/types";
  */
 const OMITTED_PRIVATE_RELEASE = "[Governed private result omitted from ordinary model context.]";
 const OMITTED_GMAIL_READ_REQUEST = "[Prior governed Gmail read request omitted from ordinary model context.]";
+const OMITTED_DRIVE_READ_REQUEST = "[Prior governed Drive read request omitted from ordinary model context.]";
 
 const GMAIL_FIELD_RELEASE = /^(?:Subject|Snippet|Plain text body|Attachment filenames|Attachment MIME metadata):/;
 const CALENDAR_RELEASE = /^(?:(?:Today|Tomorrow|This morning|This afternoon|This evening|This week) is clear\.|Your Calendar is clear for the next seven days\.|(?:Today|Tomorrow|This morning|This afternoon|This evening|This week|Next seven days) you have \d+ commitments?:\n-|Your Calendar has (?:no|\d+) commitments? in )/;
 const DRIVE_RELEASE = /^(?:No Drive files found\.|Drive files:\n-)/;
+const DRIVE_CONTENT_RELEASE = /^Drive document \([A-Za-z0-9_-]+\):\n/;
 const EXACT_GMAIL_READ_REQUEST = /^gmail\.read [^\s\[\],<>]+ \[(?:subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata)(?:,(?:subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata))*\]$/;
+const EXACT_DRIVE_READ_REQUEST = /^drive\.read [A-Za-z0-9_-]+ \[text\]$/;
 
 export function isDeterministicPrivateRelease(content: string): boolean {
   return content === "No Gmail message IDs found."
     || content.startsWith("Gmail message IDs:\n-")
     || GMAIL_FIELD_RELEASE.test(content)
     || CALENDAR_RELEASE.test(content)
-    || DRIVE_RELEASE.test(content);
+    || DRIVE_RELEASE.test(content)
+    || DRIVE_CONTENT_RELEASE.test(content);
 }
 
 /** Returns a fresh model-only history; the client-visible transcript is never mutated. */
@@ -32,6 +36,9 @@ export function sanitizeModelHistory(messages: readonly ChatMessage[]): ChatMess
     }
     if (message.role === "user" && index !== currentUserIndex && EXACT_GMAIL_READ_REQUEST.test(message.content.trim())) {
       return { role: "user", content: OMITTED_GMAIL_READ_REQUEST };
+    }
+    if (message.role === "user" && index !== currentUserIndex && EXACT_DRIVE_READ_REQUEST.test(message.content)) {
+      return { role: "user", content: OMITTED_DRIVE_READ_REQUEST };
     }
     return { role: message.role, content: message.content };
   });

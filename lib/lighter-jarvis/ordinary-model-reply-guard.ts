@@ -13,11 +13,12 @@ export const UNSUPPORTED_GMAIL_PATH_REPLY =
   "The governed Gmail path supports gmail.search and identified-message gmail.read, but it does not support this request.";
 
 export const UNSUPPORTED_DRIVE_PATH_REPLY =
-  "The governed Drive path supports exact-command drive.search for metadata only, but it does not support this request.";
+  "The governed Drive path supports drive.search metadata and exact-command identified Google Docs drive.read; it does not support arbitrary Drive content requests.";
 
 const INTERNAL_HISTORY_MARKERS = [
   "[Governed private result omitted from ordinary model context.]",
   "[Prior governed Gmail read request omitted from ordinary model context.]",
+  "[Prior governed Drive read request omitted from ordinary model context.]",
 ] as const;
 
 const PRIVATE_SOURCE = /\b(?:calendar|gmail|e-?mail|inbox|drive)\b/i;

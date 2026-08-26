@@ -7,15 +7,15 @@ import type { GoogleTokens } from "./tokens";
  * minimal footprint on Vercel's free tier).
  *
  * Scope is deliberately narrow and read-only: calendar.readonly, (as of
- * Sprint 2.7) gmail.readonly, and (as of v43) drive.metadata.readonly —
- * metadata only, never file contents, matching how this connector only
- * ever needed "what's recently been touched," not what's in it. All
+ * Sprint 2.7) gmail.readonly, and (as of Sprint 3.148) drive.readonly.
+ * Drive's minimum general read-only scope supports the deliberately narrow
+ * identified-Google-Doc export path as well as metadata search. All
  * three are requested together in one consent screen — one Google grant
  * backs all three connectors, since they share the same token store (see
  * access-token.ts).
  *
- * v43 HONESTY NOTE: anyone who connected before this scope was added has
- * a token grant that predates drive.metadata.readonly. Google doesn't
+ * SCOPE MIGRATION NOTE: anyone who connected before this scope was added has
+ * a token grant that predates drive.readonly. Google doesn't
  * retroactively add scope to an existing grant — they'll see Drive stay
  * "unavailable" until they Disconnect and Connect again, which re-runs
  * this consent screen with all three scopes at once (the callback route
@@ -27,8 +27,8 @@ const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const CALENDAR_READONLY_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
 const GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
-const DRIVE_METADATA_READONLY_SCOPE = "https://www.googleapis.com/auth/drive.metadata.readonly";
-const REQUESTED_SCOPES = [CALENDAR_READONLY_SCOPE, GMAIL_READONLY_SCOPE, DRIVE_METADATA_READONLY_SCOPE].join(" ");
+const DRIVE_READONLY_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
+const REQUESTED_SCOPES = [CALENDAR_READONLY_SCOPE, GMAIL_READONLY_SCOPE, DRIVE_READONLY_SCOPE].join(" ");
 
 function getOAuthEnv() {
   const clientId = process.env.GOOGLE_CLIENT_ID;

@@ -8,8 +8,8 @@ import { resolveProductionCalendarRead, type ProductionCalendarDependencies } fr
 import { CALENDAR_TIME_ZONE } from "@/lib/lighter-jarvis/calendar-read-window";
 import { resolveProductionGmailRead, type ProductionGmailDependencies } from "@/lib/lighter-jarvis/production-gmail-read";
 import { resolveProductionGmailSearch, type ProductionGmailSearchDependencies } from "@/lib/lighter-jarvis/production-gmail-search";
-import { sanitizeModelHistory } from "@/lib/lighter-jarvis/model-history-boundary";
-import { isPrivateAcquisitionHandoffRequest } from "@/lib/lighter-jarvis/private-capability-handoff-guard";
+import { hasGovernedDriveHistory, sanitizeModelHistory } from "@/lib/lighter-jarvis/model-history-boundary";
+import { isAmbiguousPrivateReadFollowUp, isPrivateAcquisitionHandoffRequest } from "@/lib/lighter-jarvis/private-capability-handoff-guard";
 import { guardOrdinaryModelReply } from "@/lib/lighter-jarvis/ordinary-model-reply-guard";
 import { resolveProductionDriveSearch, type ProductionDriveSearchDependencies } from "@/lib/lighter-jarvis/production-drive-search";
 import { resolveProductionDriveRead, type ProductionDriveReadDependencies } from "@/lib/lighter-jarvis/production-drive-read";
@@ -315,6 +315,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           : undefined;
       // Authority above is resolved from the untouched current utterance first.
       // Only the later, ordinary model call receives the private-release boundary.
+      const governedDriveHistoryExcluded = hasGovernedDriveHistory(body.messages);
       const modelMessages = sanitizeModelHistory(body.messages);
       const result = tools
         ? await callModel(systemPrompt, modelMessages, tools)
@@ -345,7 +346,9 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           // substitute route around JARVIS's private-source authority paths.
           const privateAcquisition = (currentUserUtterance !== undefined
             && isPrivateAcquisitionHandoffRequest(currentUserUtterance))
-            || (typeof taskSummary === "string" && isPrivateAcquisitionHandoffRequest(taskSummary));
+            || (typeof taskSummary === "string" && isPrivateAcquisitionHandoffRequest(taskSummary))
+            || (governedDriveHistoryExcluded && currentUserUtterance !== undefined
+              && isAmbiguousPrivateReadFollowUp(currentUserUtterance));
           if (privateAcquisition) {
             return NextResponse.json({
               reply: PRIVATE_CAPABILITY_HANDOFF_BLOCKED_REPLY,
@@ -366,7 +369,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           }
         }
       }
-      reply = guardOrdinaryModelReply(reply, currentUserUtterance);
+      reply = guardOrdinaryModelReply(reply, currentUserUtterance, governedDriveHistoryExcluded);
       return NextResponse.json({ reply, specialistId: specialist.id, execution: "none" });
     } catch (error) {
       console.error("[/api/lighter/chat] Specialist invocation failed:", error);

@@ -4,6 +4,7 @@ import {
   NEUTRALIZED_ORDINARY_AUTHORITY_REPLY,
   UNSUPPORTED_CALENDAR_PATH_REPLY,
   UNSUPPORTED_GMAIL_PATH_REPLY,
+  EXCLUDED_DRIVE_PROVENANCE_REPLY,
 } from "./ordinary-model-reply-guard";
 
 describe("ordinary-model reply guard", () => {
@@ -53,5 +54,15 @@ describe("ordinary-model reply guard", () => {
       .toBe("I don't have access to the Moon.");
     expect(guardOrdinaryModelReply("That inbox request is not supported on this path.", "Get my inbox"))
       .toBe("That inbox request is not supported on this path.");
+  });
+
+  it.each([
+    "I'm showing you the result I already provided.",
+    "I found this document earlier.",
+    "The document ID was provider-secret.",
+    "Your Drive search returned Atlas.",
+  ])("neutralizes reconstructed Drive provenance only when governed history was excluded: %s", reply => {
+    expect(guardOrdinaryModelReply(reply, "show it", true)).toBe(EXCLUDED_DRIVE_PROVENANCE_REPLY);
+    expect(guardOrdinaryModelReply(reply, "ordinary question", false)).toBe(reply);
   });
 });

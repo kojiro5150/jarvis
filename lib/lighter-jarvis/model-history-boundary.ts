@@ -18,6 +18,15 @@ const DRIVE_CONTENT_RELEASE = /^Drive document \([A-Za-z0-9_-]+\):\n/;
 const EXACT_GMAIL_READ_REQUEST = /^gmail\.read [^\s\[\],<>]+ \[(?:subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata)(?:,(?:subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata))*\]$/;
 const EXACT_DRIVE_READ_REQUEST = /^drive\.read [A-Za-z0-9_-]+ \[text\]$/;
 
+/** Content-derived signal used only by downstream deny/presentation guards. */
+export function hasGovernedDriveHistory(messages: readonly ChatMessage[]): boolean {
+  const currentUserIndex = messages.findLastIndex(message => message.role === "user");
+  return messages.some((message, index) =>
+    (message.role === "assistant" && (DRIVE_RELEASE.test(message.content) || DRIVE_CONTENT_RELEASE.test(message.content)))
+    || (message.role === "user" && index !== currentUserIndex && EXACT_DRIVE_READ_REQUEST.test(message.content)),
+  );
+}
+
 export function isDeterministicPrivateRelease(content: string): boolean {
   return content === "No Gmail message IDs found."
     || content.startsWith("Gmail message IDs:\n-")

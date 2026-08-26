@@ -1042,4 +1042,60 @@ describe("POST /api/lighter/chat", () => {
     expect(await response.json()).toEqual({ error: "`relaySpecialistReply` must contain a valid specialist id and reply." });
     expect(model).not.toHaveBeenCalled();
   });
+
+  it.each(["read it", "open it", "show it", "summarize it", "19xlDULDXTH4jniT-6jnZ0Vdp4LETYlG4jfIoOr4TkPQ"])("suppresses an alternate private-read handoff after governed Drive context: %s", async utterance => {
+    const model = vi.fn(async () => handoffResult("oracle", "ORACLE can retrieve it.", "Open the referenced item."));
+    const response = await createLighterChatHandler(model)(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "drive.read provider_317 [text]" },
+      { role: "assistant", content: "Drive document (provider_317):\nprivate content" },
+      { role: "user", content: utterance },
+    ] }));
+    const body = await response.json();
+    const modelMessages = (model.mock.calls as unknown as [string, ChatMessage[]][])[0][1];
+    expect(body).toEqual({ reply: "That request cannot be handled through a specialist handoff.",
+      specialistId: "jarvis", execution: "none" });
+    expect(modelMessages.slice(0, 2)).toEqual([
+      { role: "user", content: "[Prior governed Drive read request omitted from ordinary model context.]" },
+      { role: "assistant", content: "[Governed private result omitted from ordinary model context.]" },
+    ]);
+    expect(body).not.toHaveProperty("routeTo");
+    expect(body).not.toHaveProperty("pendingAuthorizationReference");
+  });
+
+  it("preserves an unrelated ORACLE handoff after governed Drive history", async () => {
+    const driveSearchConnector = vi.fn();
+    const driveReadConnector = vi.fn(() => ({ readGoogleDocText: vi.fn() }));
+    const model = vi.fn(async () => handoffResult(
+      "oracle", "ORACLE can research that.", "Research public information about distributed systems.",
+    ));
+    const response = await createLighterChatHandler(model, undefined, undefined, undefined,
+      { createConnector: driveSearchConnector }, { loadPolicy: async () => null, hasOAuthCapability: async () => false,
+        createConnector: driveReadConnector })(request({ specialistId: "jarvis", messages: [
+        { role: "user", content: "drive.read provider_317 [text]" },
+        { role: "assistant", content: "Drive document (provider_317):\nprivate content" },
+        { role: "user", content: "research" },
+      ] }));
+
+    const body = await response.json();
+    expect(body).toMatchObject({ reply: "ORACLE can research that.", routeTo: "oracle",
+      taskSummary: "Research public information about distributed systems." });
+    expect(body.reply).not.toBe("That request cannot be handled through a specialist handoff.");
+    expect(body).not.toHaveProperty("pendingAuthorizationReference");
+    expect(body).not.toHaveProperty("driveReadAuthority");
+    expect(body).not.toHaveProperty("driveSearchAuthority");
+    expect(driveSearchConnector).not.toHaveBeenCalled();
+    expect(driveReadConnector).not.toHaveBeenCalled();
+  });
+
+  it("neutralizes fabricated Drive provenance without restoring excluded ID or content", async () => {
+    const model = vi.fn(async () => "The document ID was provider_317. Your Drive search returned it.");
+    const response = await createLighterChatHandler(model)(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "drive.read provider_317 [text]" },
+      { role: "assistant", content: "Drive document (provider_317):\nprivate content" },
+      { role: "user", content: "what happened?" },
+    ] }));
+    expect(await response.json()).toMatchObject({ reply: "I can't represent a prior governed Drive result from ordinary model context." });
+    const modelMessages = (model.mock.calls as unknown as [string, ChatMessage[]][])[0][1];
+    expect(JSON.stringify(modelMessages)).not.toMatch(/provider_317|private content/);
+  });
 });

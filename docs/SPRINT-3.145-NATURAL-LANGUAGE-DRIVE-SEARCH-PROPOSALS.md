@@ -37,9 +37,14 @@ are preserved. File content, snippets, export, download, summarisation, model sy
 follow-on reads remain outside the capability. The exact `drive.search <file name>` grammar and
 direct `ALLOW` path are unchanged.
 
-No other natural-language spelling, casing, word order, Drive operation, or referential expression
-is admitted. This sprint adds no `drive.read`, Calendar, Gmail, Memory, specialist, standing-grant,
-or general natural-language authority.
+The three forms are matched case-insensitively and may end in one `.`, `?`, or `!`; no other
+normalisation is performed. Other word orders, broad Drive verbs, content reads, fuzzy or semantic
+matching, referential expressions, and voice-specific shortcuts are not admitted. The deny-side
+private-capability handoff classifier checks both the raw utterance and a model-proposed task
+summary for Drive acquisition requests. That dual check can only prevent a specialist bypass: a
+task summary is never authority and cannot create a proposal or pending state. This sprint adds no
+`drive.read`, Calendar, Gmail, Memory, specialist, standing-grant, or general natural-language
+authority.
 
 ## Verification
 

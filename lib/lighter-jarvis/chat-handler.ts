@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { callClaude } from "@/lib/claude";
 import type { ClaudeContentBlock, ClaudeResult, ClaudeTool } from "@/lib/claude";
 import type { ChatMessage } from "@/lib/agents/types";
-import { areValidMessages, buildSpecialistPrompt, type RelaySpecialistReply } from "@/lib/lighter-jarvis/runtime";
+import { areValidMessages, areValidMessageTranscript, buildSpecialistPrompt, type RelaySpecialistReply } from "@/lib/lighter-jarvis/runtime";
 import { getLighterSpecialist } from "@/lib/lighter-jarvis/specialists";
 import { resolveProductionCalendarRead, type ProductionCalendarDependencies } from "@/lib/lighter-jarvis/production-calendar-read";
 import { CALENDAR_TIME_ZONE } from "@/lib/lighter-jarvis/calendar-read-window";
@@ -202,8 +202,11 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     if (!specialist) {
       return NextResponse.json({ error: "Unknown or inactive specialist." }, { status: 404 });
     }
-    if (!areValidMessages(body.messages)) {
-      return NextResponse.json({ error: "`messages` must contain 1-40 valid conversation messages." }, { status: 400 });
+    // Deterministic authority resolution needs only a valid current utterance.
+    // Do not reject a long client transcript before an opaque pending reference
+    // has had the opportunity to reach its server-owned resolver.
+    if (!areValidMessageTranscript(body.messages)) {
+      return NextResponse.json({ error: "`messages` must contain valid conversation messages." }, { status: 400 });
     }
     const currentUserUtterance = [...body.messages].reverse().find(({ role }) => role === "user")?.content;
     const driveSearch = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
@@ -271,6 +274,9 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         execution: "none",
         calendarAuthority: { decision: "ALLOW", reason: calendar.reason },
       });
+    }
+    if (!areValidMessages(body.messages)) {
+      return NextResponse.json({ error: "`messages` must contain 1-40 valid conversation messages." }, { status: 400 });
     }
     const marketDomains = specialist.id === "gecko"
       ? resolveMarketScopeDomains(body.marketScopes)

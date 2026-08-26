@@ -27,7 +27,7 @@ interface ConnectorStatusMetadata {
 const SCOPES: Record<ConnectorName, string> = {
   calendar: "https://www.googleapis.com/auth/calendar.readonly",
   gmail: "https://www.googleapis.com/auth/gmail.readonly",
-  drive: "https://www.googleapis.com/auth/drive.metadata.readonly",
+  drive: "https://www.googleapis.com/auth/drive.readonly",
 };
 
 function configuredForGoogle(provider: string | undefined, hasTokens: boolean) {

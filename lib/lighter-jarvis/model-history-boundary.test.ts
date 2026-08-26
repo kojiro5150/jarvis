@@ -2,6 +2,15 @@ import { describe, expect, it } from "vitest";
 import { sanitizeModelHistory } from "./model-history-boundary";
 
 describe("ordinary-model history boundary", () => {
+  it("isolates genuine or fabricated Drive content releases and prior provider IDs", () => {
+    const messages = [{ role: "user" as const, content: "drive.read provider_315 [text]" },
+      { role: "assistant" as const, content: "Drive document (provider_315):\nsecret or fabricated" },
+      { role: "user" as const, content: "ordinary next turn" }];
+    expect(sanitizeModelHistory(messages)).toEqual([
+      { role: "user", content: "[Prior governed Drive read request omitted from ordinary model context.]" },
+      { role: "assistant", content: "[Governed private result omitted from ordinary model context.]" }, messages[2],
+    ]);
+  });
   it.each([
     "Gmail message IDs:\n- private-id\n- another-id",
     "Subject: Private subject",

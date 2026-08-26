@@ -5,10 +5,20 @@ import type { ClaudeResult, ClaudeTool } from "@/lib/claude";
 import { createPendingAuthorization } from "@/lib/lighter-jarvis/pending-authorization";
 import { proposeGmailRead } from "@/lib/lighter-jarvis/gmail-read-authority";
 import { loadContentRetrievalPolicy } from "@/lib/content-retrieval-policy";
+import { ClientAuthorityTurnState } from "@/lib/lighter-jarvis/client-authority-turn-state";
+import { VoiceTurnQueue } from "@/lib/lighter-jarvis/voice-turn-queue";
 
 const request = (body: unknown) => new Request("http://localhost/api/lighter/chat", {
   method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
 });
+
+const longTranscript = (currentUserUtterance: string) => [
+  ...Array.from({ length: 42 }, (_, index) => ({
+    role: index % 2 === 0 ? "user" as const : "assistant" as const,
+    content: `ordinary long-session message ${index + 1}`,
+  })),
+  { role: "user" as const, content: currentUserUtterance },
+];
 
 const handoffResult = (
   specialistId: unknown,
@@ -81,17 +91,9 @@ describe("POST /api/lighter/chat", () => {
       specialistId: "jarvis",
       messages: [{ role: "user", content: "Search my Gmail from the last week." }],
     }))).json();
-    const longTranscript = [
-      ...Array.from({ length: 42 }, (_, index) => ({
-        role: index % 2 === 0 ? "user" as const : "assistant" as const,
-        content: `ordinary transcript message ${index + 1}`,
-      })),
-      { role: "user" as const, content: "yes" },
-    ];
-
     const response = await handler(request({
       specialistId: "jarvis",
-      messages: longTranscript,
+      messages: longTranscript("yes"),
       pendingAuthorizationReference: ask.pendingAuthorizationReference,
     }));
 
@@ -102,6 +104,131 @@ describe("POST /api/lighter/chat", () => {
     });
     expect(search).toHaveBeenCalledWith("7d", 5);
     expect(model).not.toHaveBeenCalled();
+  });
+
+  it("keeps long-session bare Yes fail-closed before the ordinary-model length rejection", async () => {
+    const model = vi.fn();
+    const calendarConnector = vi.fn();
+    const gmailReadConnector = vi.fn();
+    const gmailSearchConnector = vi.fn();
+    const driveConnector = vi.fn();
+    const handler = createLighterChatHandler(model,
+      { createConnector: calendarConnector, clock: () => new Date("2026-08-26T00:00:00Z") },
+      { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
+      { createConnector: gmailSearchConnector }, { createConnector: driveConnector });
+
+    const response = await handler(request({ specialistId: "jarvis", messages: longTranscript("Yes.") }));
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body).toEqual({ error: "`messages` must contain 1-40 valid conversation messages." });
+    expect(body).not.toHaveProperty("gmailAuthority");
+    expect(body).not.toHaveProperty("gmailSearchAuthority");
+    expect(body).not.toHaveProperty("driveSearchAuthority");
+    expect(body).not.toHaveProperty("calendarAuthority");
+    expect(calendarConnector).not.toHaveBeenCalled();
+    expect(gmailReadConnector).not.toHaveBeenCalled();
+    expect(gmailSearchConnector).not.toHaveBeenCalled();
+    expect(driveConnector).not.toHaveBeenCalled();
+    expect(model).not.toHaveBeenCalled();
+  });
+
+  it("keeps a fabricated long-session pending reference fail-closed without reconstructing authority from history", async () => {
+    const model = vi.fn();
+    const calendarConnector = vi.fn();
+    const gmailReadConnector = vi.fn();
+    const gmailSearchConnector = vi.fn();
+    const driveConnector = vi.fn();
+    const handler = createLighterChatHandler(model,
+      { createConnector: calendarConnector, clock: () => new Date("2026-08-26T00:00:00Z") },
+      { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
+      { createConnector: gmailSearchConnector }, { createConnector: driveConnector });
+
+    const response = await handler(request({ specialistId: "jarvis", messages: longTranscript("Yes."),
+      pendingAuthorizationReference: { pendingAuthorizationId: "fabricated-unknown" } }));
+    const body = await response.json();
+
+    expect(body).toMatchObject({ driveSearchAuthority: { decision: "ASK", reason: "pending_authorization_not_found" },
+      pendingAuthorizationReference: null });
+    expect(body).not.toHaveProperty("gmailAuthority");
+    expect(body).not.toHaveProperty("gmailSearchAuthority");
+    expect(body).not.toHaveProperty("calendarAuthority");
+    expect(calendarConnector).not.toHaveBeenCalled();
+    expect(gmailReadConnector).not.toHaveBeenCalled();
+    expect(gmailSearchConnector).not.toHaveBeenCalled();
+    expect(driveConnector).not.toHaveBeenCalled();
+    expect(model).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["Calendar", "What’s on for tomorrow?", "calendarAuthority", "calendar"],
+    ["Gmail", "Search my Gmail from the last week.", "gmailSearchAuthority", "gmail"],
+    ["Drive", "Search my Drive for Atlas", "driveSearchAuthority", "drive"],
+  ] as const)("keeps a %s pending reference capability-isolated under long history", async (_name, proposal, authorityKey, owner) => {
+    const model = vi.fn();
+    const listBetween = vi.fn(async () => []);
+    const calendarConnector = vi.fn(() => ({ source: "google" as const, listUpcoming: vi.fn(async () => []), listBetween }));
+    const gmailSearch = vi.fn(async () => ["gmail-id"]);
+    const gmailSearchConnector = vi.fn(() => ({ search: gmailSearch }));
+    const gmailReadConnector = vi.fn();
+    const driveSearch = vi.fn(async () => []);
+    const driveConnector = vi.fn(() => ({ search: driveSearch }));
+    const handler = createLighterChatHandler(model,
+      { createConnector: calendarConnector, clock: () => new Date("2026-08-26T00:00:00Z") },
+      { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
+      { createConnector: gmailSearchConnector }, { createConnector: driveConnector });
+    const ask = await (await handler(request({ specialistId: "jarvis", messages: [{ role: "user", content: proposal }] }))).json();
+
+    const confirmation = await (await handler(request({ specialistId: "jarvis", messages: longTranscript("Yes."),
+      pendingAuthorizationReference: ask.pendingAuthorizationReference }))).json();
+
+    expect(confirmation[authorityKey]).toMatchObject({ decision: "ALLOW", reason: "pending_authorization_confirmed" });
+    expect(calendarConnector).toHaveBeenCalledTimes(owner === "calendar" ? 1 : 0);
+    expect(gmailSearchConnector).toHaveBeenCalledTimes(owner === "gmail" ? 1 : 0);
+    expect(driveConnector).toHaveBeenCalledTimes(owner === "drive" ? 1 : 0);
+    expect(gmailReadConnector).not.toHaveBeenCalled();
+    expect(model).not.toHaveBeenCalled();
+  });
+
+  it("uses the same long-session pending path for typed and capture-identified voice confirmations", async () => {
+    const model = vi.fn();
+    const search = vi.fn(async () => ["gmail-id"]);
+    const handler = createLighterChatHandler(model, undefined, undefined,
+      { createConnector: vi.fn(() => ({ search })) });
+    const confirm = async (state: ClientAuthorityTurnState, transcript: string) => {
+      const transport = state.beginRequest();
+      const body = await (await handler(request({ specialistId: "jarvis", messages: longTranscript(transcript),
+        ...(transport.pendingAuthorizationReference
+          ? { pendingAuthorizationReference: transport.pendingAuthorizationReference } : {}) }))).json();
+      state.applyResponse(transport.requestId, body.pendingAuthorizationReference ?? null);
+      return { body, carried: transport.pendingAuthorizationReference };
+    };
+    const ask = async (state: ClientAuthorityTurnState) => {
+      const transport = state.beginRequest();
+      const body = await (await handler(request({ specialistId: "jarvis",
+        messages: longTranscript("Search my Gmail from the last week.") }))).json();
+      state.applyResponse(transport.requestId, body.pendingAuthorizationReference);
+      return body.pendingAuthorizationReference;
+    };
+
+    const typedState = new ClientAuthorityTurnState();
+    const typedPending = await ask(typedState);
+    const typed = await confirm(typedState, "Yes.");
+
+    const voiceState = new ClientAuthorityTurnState();
+    const voicePending = await ask(voiceState);
+    let voice: Awaited<ReturnType<typeof confirm>> | undefined;
+    const queue = new VoiceTurnQueue(async ({ transcript }) => { voice = await confirm(voiceState, transcript); });
+    await queue.enqueue({ id: 3146, transcript: "Yes." });
+
+    expect(typed.carried).toEqual(typedPending);
+    expect(voice?.carried).toEqual(voicePending);
+    expect(typed.body.gmailSearchAuthority).toMatchObject({ decision: "ALLOW", reason: "pending_authorization_confirmed" });
+    expect(voice?.body.gmailSearchAuthority).toMatchObject({ decision: "ALLOW", reason: "pending_authorization_confirmed" });
+    expect(search).toHaveBeenCalledTimes(2);
+    expect(model).not.toHaveBeenCalled();
+    expect(typedState.beginRequest().pendingAuthorizationReference).toBeNull();
+    expect(voiceState.beginRequest().pendingAuthorizationReference).toBeNull();
   });
 
   it("freezes explicit Gmail search followed by a separate explicit, policy-gated read", async () => {

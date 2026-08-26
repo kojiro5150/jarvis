@@ -130,6 +130,16 @@ The private-capability handoff guard also classifies Drive acquisition on both t
 model task summary as a deny-only check; model output remains non-authoritative.
 See `docs/SPRINT-3.145-NATURAL-LANGUAGE-DRIVE-SEARCH-PROPOSALS.md`.
 
+Sprint 3.146 excludes deterministic Drive metadata releases, including fabricated presentation
+lookalikes, from ordinary model history. It also records that the 40-message bound constrains only
+ordinary model context: structurally valid long-session confirmations reach the governed
+resolvers first, and a valid opaque reference completes without a model call. Bare, stale,
+fabricated, unknown, consumed, and capability-mismatched references remain fail-closed under the
+existing one-shot `PendingAuthorization` and Sprint 3.143 voice-freshness semantics. No authority
+evidence class, capability grammar, connector scope, content-read scope, or acquisition bound is
+changed. See
+`docs/SPRINT-3.146-DRIVE-HISTORY-AND-LONG-SESSION-PENDING-INTEGRITY.md`.
+
 ## `calendar.read` detail
 
 ### Implemented

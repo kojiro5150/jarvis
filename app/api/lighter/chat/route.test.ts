@@ -683,9 +683,27 @@ describe("POST /api/lighter/chat", () => {
   it.each([
     ["Can you take care of that?", "Retrieve my calendar"],
     ["Please handle it.", "Check my Gmail"],
+    ["Can you take care of that?", "Search my Drive for Atlas"],
   ])("blocks an ambiguous utterance when the model task summary proposes private acquisition: %s", async (utterance, taskSummary) => {
     const response = await createLighterChatHandler(async () => handoffResult(
       "dawnwatch", "DAWNWATCH can access that for you.", taskSummary,
+    ))(request({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }));
+
+    expect(await response.json()).toEqual({
+      reply: "That request cannot be handled through a specialist handoff.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+  });
+
+  it.each([
+    "Read my Drive",
+    "Open Google Drive",
+    "Search through my Drive for something similar to Atlas",
+    "What did my Drive return?",
+  ])("blocks a model-generated Drive acquisition handoff from the raw utterance: %s", async utterance => {
+    const response = await createLighterChatHandler(async () => handoffResult(
+      "dawnwatch", "I'll hand this to DAWNWATCH.", "Review the private Drive request.",
     ))(request({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }));
 
     expect(await response.json()).toEqual({

@@ -126,6 +126,8 @@ adds exactly three deterministic natural-language proposal forms. Recognition gr
 the exact stored operation executes only after explicit confirmation of server-owned, one-shot,
 Drive-capability pending state. Anaphora, all other natural-language forms, content reads, export,
 download, summarisation, local fallback, and Calendar/Gmail authority crossover remain excluded.
+The private-capability handoff guard also classifies Drive acquisition on both the raw utterance and
+model task summary as a deny-only check; model output remains non-authoritative.
 See `docs/SPRINT-3.145-NATURAL-LANGUAGE-DRIVE-SEARCH-PROPOSALS.md`.
 
 ## `calendar.read` detail

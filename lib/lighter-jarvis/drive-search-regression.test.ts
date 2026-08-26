@@ -3,10 +3,11 @@ import { createLighterChatHandler } from "./chat-handler";
 import { guardOrdinaryModelReply, NEUTRALIZED_ORDINARY_AUTHORITY_REPLY, UNSUPPORTED_DRIVE_PATH_REPLY } from "./ordinary-model-reply-guard";
 import { VoiceTurnQueue } from "./voice-turn-queue";
 
-const request = (utterance: string) => new Request("http://localhost/api/lighter/chat", {
+const request = (utterance: string, pendingAuthorizationReference?: unknown) => new Request("http://localhost/api/lighter/chat", {
   method: "POST",
   headers: { "content-type": "application/json" },
-  body: JSON.stringify({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }),
+  body: JSON.stringify({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }],
+    ...(pendingAuthorizationReference === undefined ? {} : { pendingAuthorizationReference }) }),
 });
 
 const metadata = Array.from({ length: 6 }, (_, index) => Object.freeze({
@@ -81,6 +82,28 @@ describe("Sprint 3.144 Drive search scoped regression proofs", () => {
       driveSearchAuthority: { decision: "ASK", reason: "explicit_drive_search_not_established" },
       pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) } });
     expect(harness.driveConnector).not.toHaveBeenCalled();
+    expect(harness.model).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "search MY drive for Atlas?",
+    "FIND Atlas in my drive.",
+    "Look IN my DRIVE for Atlas!",
+  ])("asks without handoff, then executes the exact stored operation: %s", async utterance => {
+    const harness = dependencies();
+    const ask = await (await harness.handler(request(utterance))).json();
+
+    expect(ask).toMatchObject({ driveSearchAuthority: { decision: "ASK" },
+      pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) } });
+    expect(ask).not.toHaveProperty("routeTo");
+    expect(harness.driveConnector).not.toHaveBeenCalled();
+    expect(harness.model).not.toHaveBeenCalled();
+
+    const allow = await (await harness.handler(request("yes", ask.pendingAuthorizationReference))).json();
+    expect(allow).toMatchObject({ driveSearchAuthority: { decision: "ALLOW", reason: "pending_authorization_confirmed" },
+      driveFiles: metadata.slice(0, 5) });
+    expect(allow).not.toHaveProperty("routeTo");
+    expect(harness.search).toHaveBeenCalledWith("Atlas", 5);
     expect(harness.model).not.toHaveBeenCalled();
   });
 

@@ -1,9 +1,9 @@
 import { proposeDriveSearch, type ProposedDriveSearchOperation } from "./drive-search-authority";
 
 const NATURAL_DRIVE_SEARCH_FORMS = Object.freeze([
-  /^Search my Drive for (\S(?:[^\r\n]*\S)?)$/,
-  /^Find (\S(?:[^\r\n]*\S)?) in my Drive$/,
-  /^Look in my Drive for (\S(?:[^\r\n]*\S)?)$/,
+  /^search my drive for (\S(?:[^\r\n]*?\S)?)[.?!]?$/i,
+  /^find (\S(?:[^\r\n]*?\S)?) in my drive[.?!]?$/i,
+  /^look in my drive for (\S(?:[^\r\n]*?\S)?)[.?!]?$/i,
 ]);
 const ANAPHORIC_QUERY = /^(?:it|this|that|these|those|them|one|ones|the (?:file|document|folder|sheet|slide))$/i;
 

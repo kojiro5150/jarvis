@@ -207,11 +207,18 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
     const currentUserUtterance = [...body.messages].reverse().find(({ role }) => role === "user")?.content;
     const driveSearch = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
-      ? await resolveProductionDriveSearch({ currentUserUtterance }, driveSearchDependencies) : null;
+      ? await resolveProductionDriveSearch({ currentUserUtterance,
+          ...(Object.hasOwn(body, "pendingAuthorizationReference")
+            ? { pendingAuthorizationReference: body.pendingAuthorizationReference }
+            : {}),
+        }, driveSearchDependencies) : null;
     if (driveSearch?.handled) {
       return NextResponse.json({ reply: driveSearch.reply, specialistId: specialist.id, execution: "none",
         driveSearchAuthority: { ...(driveSearch.decision ? { decision: driveSearch.decision } : {}), reason: driveSearch.reason },
-        ...(driveSearch.files ? { driveFiles: driveSearch.files } : {}) });
+        ...(driveSearch.files ? { driveFiles: driveSearch.files } : {}),
+        ...(driveSearch.pendingAuthorizationReference !== undefined
+          ? { pendingAuthorizationReference: driveSearch.pendingAuthorizationReference }
+          : {}) });
     }
     const gmailSearch = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
       ? await resolveProductionGmailSearch({ currentUserUtterance,

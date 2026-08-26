@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMicCapture } from "@/lib/useMicCapture";
 import type { AudioCaptureArtifact, TranscriptionResult } from "./transcription/types";
+import type { VoiceTurn } from "./voice-turn-queue";
 
 export type VoiceState = "standby" | "listening" | "transcribing" | "error";
 
@@ -10,6 +11,7 @@ export interface VoiceSession {
   state: VoiceState;
   amplitude: number;
   transcript: string | null;
+  turn: VoiceTurn | null;
   error: string | null;
   toggle: () => void;
 }
@@ -23,6 +25,8 @@ export function useVoiceSession(): VoiceSession {
   const mountedRef = useRef(true);
   const [transcribing, setTranscribing] = useState(false);
   const [transcript, setTranscript] = useState<string | null>(null);
+  const [turn, setTurn] = useState<VoiceTurn | null>(null);
+  const nextTurnIdRef = useRef(0);
   const [sessionError, setSessionError] = useState<string | null>(null);
 
   const transcribe = useCallback(async (artifact: AudioCaptureArtifact) => {
@@ -42,7 +46,11 @@ export function useVoiceSession(): VoiceSession {
       const data = await response.json() as Partial<TranscriptionResult> & { error?: string };
       if (!response.ok) throw new Error(data.error || `Transcription request failed (${response.status}).`);
       if (typeof data.text !== "string" || !data.text.trim()) throw new Error("Transcription returned no text.");
-      if (mountedRef.current) setTranscript(data.text.trim());
+      if (mountedRef.current) {
+        const text = data.text.trim();
+        setTranscript(text);
+        setTurn({ id: ++nextTurnIdRef.current, transcript: text });
+      }
     } catch (error) {
       const message = error instanceof DOMException && error.name === "AbortError"
         ? "Transcription timed out after 20 seconds."
@@ -120,5 +128,5 @@ export function useVoiceSession(): VoiceSession {
 
   const error = mic.error || sessionError;
   const state: VoiceState = error ? "error" : transcribing ? "transcribing" : mic.active ? "listening" : "standby";
-  return { state, amplitude: mic.amplitude, transcript, error, toggle };
+  return { state, amplitude: mic.amplitude, transcript, turn, error, toggle };
 }

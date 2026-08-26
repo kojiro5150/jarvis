@@ -24,6 +24,7 @@ const INTERNAL_HISTORY_MARKERS = [
   "[Governed private result omitted from ordinary model context.]",
   "[Prior governed Gmail read request omitted from ordinary model context.]",
   "[Prior governed Drive read request omitted from ordinary model context.]",
+  "[Prior governed Drive provider-ID follow-up omitted from ordinary model context.]",
 ] as const;
 
 const PRIVATE_SOURCE = /\b(?:calendar|gmail|e-?mail|inbox|drive)\b/i;
@@ -49,6 +50,8 @@ const CONTEXTUAL_DRIVE_PROVENANCE_CLAIMS = [
   /\bI found provider ID\b[^\r\n]*\bearlier\b/i,
   /\bthe document was\b[^\r\n]*\band its ID was\b/i,
   /\bI found that file earlier and its ID is\b/i,
+  /\bthe document ID from the earlier search was\b/i,
+  /\bthe only document ID (?:we(?:'ve| have) discussed|we discussed) is\b[^\r\n]*\b(?:result of|from) your search\b/i,
 ] as const;
 const DRIVE_PROVENANCE_FOLLOW_UP = /^(?:what was the (?:document|file) ID you found (?:earlier|before)|what file did you find|what was that (?:Google )?Drive file ID|which document did (?:the )?(?:Google )?Drive search return)[?!.]*$/i;
 

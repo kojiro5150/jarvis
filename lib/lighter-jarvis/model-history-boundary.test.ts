@@ -38,6 +38,30 @@ describe("ordinary-model history boundary", () => {
     expect(sanitizeModelHistory(history)).toEqual(history);
   });
 
+  it("isolates a prior bare provider-ID-like follow-up only after governed Drive history", () => {
+    const id = "true-provider-id-12345678901234567890";
+    const history = [
+      { role: "user" as const, content: "Search my Drive for JARVIS Drive Read Test" },
+      { role: "assistant" as const, content: `Drive files:\n- JARVIS Drive Read Test — application/vnd.google-apps.document — 2026-08-26T00:00:00Z — ${id}` },
+      { role: "user" as const, content: id },
+      { role: "assistant" as const, content: "The governed Drive path requires an exact drive.read command." },
+      { role: "user" as const, content: `drive.read ${id} [text]` },
+      { role: "assistant" as const, content: `Drive document (${id}):\ngoverned private content` },
+      { role: "user" as const, content: "What was the document ID you found earlier?" },
+    ];
+    const sanitized = sanitizeModelHistory(history);
+    expect(sanitized[2]).toEqual({ role: "user", content: "[Prior governed Drive provider-ID follow-up omitted from ordinary model context.]" });
+    expect(sanitized.at(-1)).toEqual(history.at(-1));
+    expect(JSON.stringify(sanitized)).not.toContain(id);
+    expect(JSON.stringify(sanitized)).not.toContain("governed private content");
+  });
+
+  it("preserves a bare long token without prior governed Drive history", () => {
+    const history = [{ role: "user" as const, content: "ABCDEFGHIJKLMNOPQRST123" },
+      { role: "assistant" as const, content: "Noted." }, { role: "user" as const, content: "What did I say?" }];
+    expect(sanitizeModelHistory(history)).toEqual(history);
+  });
+
   it("omits prior exact Gmail read commands without changing ordinary user history or the current utterance", () => {
     const history = [
       { role: "user" as const, content: "Call me Sam." },

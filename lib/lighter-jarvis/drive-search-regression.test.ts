@@ -73,15 +73,15 @@ describe("Sprint 3.144 Drive search scoped regression proofs", () => {
     expect(harness.model).not.toHaveBeenCalled();
   });
 
-  it("does not turn natural-language Drive requests into a proposal, ASK, or acquisition", async () => {
+  it("turns only the scoped natural-language request into a server-owned proposal without acquisition", async () => {
     const harness = dependencies();
-    const body = await (await harness.handler(request("Search Drive for Atlas"))).json();
+    const body = await (await harness.handler(request("Search my Drive for Atlas"))).json();
 
-    expect(body).toEqual({ reply: "ordinary model reply", specialistId: "jarvis", execution: "none" });
-    expect(body).not.toHaveProperty("driveSearchAuthority");
-    expect(body).not.toHaveProperty("pendingAuthorizationReference");
+    expect(body).toMatchObject({ reply: "Please explicitly confirm that I may search Drive.", specialistId: "jarvis", execution: "none",
+      driveSearchAuthority: { decision: "ASK", reason: "explicit_drive_search_not_established" },
+      pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) } });
     expect(harness.driveConnector).not.toHaveBeenCalled();
-    expect(harness.model).toHaveBeenCalledOnce();
+    expect(harness.model).not.toHaveBeenCalled();
   });
 
   it("extends ordinary capability truthfulness only to Drive metadata and never manufactures authority UX", () => {

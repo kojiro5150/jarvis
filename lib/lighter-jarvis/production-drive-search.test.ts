@@ -19,6 +19,14 @@ describe("production drive.search", () => {
     expect(result.reply).toContain("provider-1");
   });
 
+  it("preserves exact-command authority even when the client supplies a null pending reference", async () => {
+    const search = vi.fn(async () => []);
+    const result = await resolveProductionDriveSearch({ currentUserUtterance: "drive.search Atlas", pendingAuthorizationReference: null },
+      { createConnector: () => ({ search }) });
+    expect(result).toMatchObject({ decision: "ALLOW", reason: "explicit_drive_search" });
+    expect(search).toHaveBeenCalledWith("Atlas", 5);
+  });
+
   it.each(["drive.search", "drive.search ", " drive.search Atlas", "Drive.search Atlas", "search Drive for Atlas"])("does not broaden exact grammar: %s", async utterance => {
     const createConnector = vi.fn();
     const result = await resolveProductionDriveSearch({ currentUserUtterance: utterance }, { createConnector });
@@ -30,6 +38,32 @@ describe("production drive.search", () => {
     const files = Array.from({ length: 8 }, (_, index) => ({ id: `id-${index}`, name: `Atlas ${index}`, mimeType: "text/plain", modifiedTime: "2026-08-25T00:00:00Z" }));
     const result = await resolveProductionDriveSearch({ currentUserUtterance: "drive.search Atlas" }, { createConnector: () => ({ search: async () => files }) });
     expect(result.files).toHaveLength(5);
+  });
+
+  it("asks, then executes the exact stored proposal once on explicit confirmation", async () => {
+    const search = vi.fn(async () => [{ id: "provider-1", name: "Atlas", mimeType: "text/plain", modifiedTime: "2026-08-25T00:00:00Z" }]);
+    const dependencies = { createConnector: vi.fn(() => ({ search })) };
+    const proposed = await resolveProductionDriveSearch({ currentUserUtterance: "Search my Drive for Atlas" }, dependencies);
+    expect(proposed).toMatchObject({ decision: "ASK", reason: "explicit_drive_search_not_established" });
+    expect(dependencies.createConnector).not.toHaveBeenCalled();
+
+    const confirmed = await resolveProductionDriveSearch({ currentUserUtterance: "yes",
+      pendingAuthorizationReference: proposed.pendingAuthorizationReference }, dependencies);
+    expect(confirmed).toMatchObject({ decision: "ALLOW", reason: "pending_authorization_confirmed", files: [{ id: "provider-1" }] });
+    expect(search).toHaveBeenCalledWith("Atlas", 5);
+
+    const replay = await resolveProductionDriveSearch({ currentUserUtterance: "yes",
+      pendingAuthorizationReference: proposed.pendingAuthorizationReference }, dependencies);
+    expect(replay).toMatchObject({ decision: "ASK", reason: "pending_authorization_already_consumed" });
+    expect(search).toHaveBeenCalledOnce();
+  });
+
+  it("does not treat bare confirmation or another capability's pending state as Drive authority", async () => {
+    expect((await resolveProductionDriveSearch({ currentUserUtterance: "yes" })).handled).toBe(false);
+    const foreign = (await import("./pending-authorization")).createPendingAuthorization(
+      (await import("./gmail-search-authority")).proposeGmailSearch("1d"),
+    );
+    expect((await resolveProductionDriveSearch({ currentUserUtterance: "yes", pendingAuthorizationReference: foreign })).handled).toBe(false);
   });
 
   it("escapes apostrophes and backslashes in Drive query literals", () => {

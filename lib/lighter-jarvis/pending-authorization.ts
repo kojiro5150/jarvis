@@ -3,8 +3,9 @@ import { randomUUID } from "node:crypto";
 import type { ProposedCalendarReadOperation } from "./calendar-read-authority";
 import type { ProposedGmailReadOperation } from "./gmail-read-authority";
 import type { ProposedGmailSearchOperation } from "./gmail-search-authority";
+import type { ProposedDriveSearchOperation } from "./drive-search-authority";
 
-type ProposedOperation = ProposedCalendarReadOperation | ProposedGmailReadOperation | ProposedGmailSearchOperation;
+type ProposedOperation = ProposedCalendarReadOperation | ProposedGmailReadOperation | ProposedGmailSearchOperation | ProposedDriveSearchOperation;
 
 /**
  * An opaque, non-authoritative handle that may cross the client boundary.

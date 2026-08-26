@@ -18,3 +18,9 @@ export function isPrivateAcquisitionHandoffRequest(utterance: string): boolean {
 
   return sourceRecall || (acquisition && (calendarSource || gmailSource || mailSource || driveSource));
 }
+
+/** Prior Drive context may activate this deny-only classifier; it supplies no operation or authority. */
+export function isAmbiguousPrivateReadFollowUp(utterance: string): boolean {
+  const normalized = utterance.normalize("NFKC").toLowerCase().replace(/[’]/g, "'").replace(/\s+/g, " ").trim();
+  return /^(?:(?:read|open|show|summari[sz]e)(?:\s+(?:it|that))?|[a-z0-9_-]+)[.!?]*$/.test(normalized);
+}

@@ -58,6 +58,16 @@ describe("production drive.search", () => {
     expect(search).toHaveBeenCalledOnce();
   });
 
+  it.each(["Yes.", "YES", "yes!", "yes please", "yes"])("resolves an intact active Drive reference equivalently: %s", async confirmation => {
+    const search = vi.fn(async () => []);
+    const dependencies = { createConnector: vi.fn(() => ({ search })) };
+    const proposed = await resolveProductionDriveSearch({ currentUserUtterance: "Search my Drive for Atlas" }, dependencies);
+    const result = await resolveProductionDriveSearch({ currentUserUtterance: confirmation,
+      pendingAuthorizationReference: proposed.pendingAuthorizationReference }, dependencies);
+    expect(result).toMatchObject({ decision: "ALLOW", reason: "pending_authorization_confirmed" });
+    expect(search).toHaveBeenCalledWith("Atlas", 5);
+  });
+
   it("does not treat bare confirmation or another capability's pending state as Drive authority", async () => {
     expect((await resolveProductionDriveSearch({ currentUserUtterance: "yes" })).handled).toBe(false);
     const foreign = (await import("./pending-authorization")).createPendingAuthorization(

@@ -15,6 +15,9 @@ export const UNSUPPORTED_GMAIL_PATH_REPLY =
 export const UNSUPPORTED_DRIVE_PATH_REPLY =
   "The governed Drive path supports drive.search metadata and exact-command identified Google Docs drive.read; it does not support arbitrary Drive content requests.";
 
+export const EXCLUDED_DRIVE_PROVENANCE_REPLY =
+  "I can't represent a prior governed Drive result from ordinary model context.";
+
 const INTERNAL_HISTORY_MARKERS = [
   "[Governed private result omitted from ordinary model context.]",
   "[Prior governed Gmail read request omitted from ordinary model context.]",
@@ -36,9 +39,13 @@ export function presentsPrivateAuthorityConfirmation(content: string): boolean {
 }
 
 /** Applies only to text returned by an ordinary model invocation. */
-export function guardOrdinaryModelReply(content: string, currentUserUtterance?: string): string {
+export function guardOrdinaryModelReply(content: string, currentUserUtterance?: string, governedDriveHistoryExcluded = false): string {
   if (presentsPrivateAuthorityConfirmation(content)) {
     return NEUTRALIZED_ORDINARY_AUTHORITY_REPLY;
+  }
+
+  if (governedDriveHistoryExcluded && /\b(?:I(?:'m| am) showing you (?:the )?result I already provided|I found (?:this|that) document earlier|the document ID was|your Drive search returned)\b/i.test(content)) {
+    return EXCLUDED_DRIVE_PROVENANCE_REPLY;
   }
 
   // This is static capability knowledge, not authority or connector evidence.

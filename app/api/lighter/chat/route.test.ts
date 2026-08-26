@@ -1042,4 +1042,35 @@ describe("POST /api/lighter/chat", () => {
     expect(await response.json()).toEqual({ error: "`relaySpecialistReply` must contain a valid specialist id and reply." });
     expect(model).not.toHaveBeenCalled();
   });
+
+  it.each(["read it", "open it", "show it", "summarize it", "provider_317"])("suppresses an alternate private-read handoff after governed Drive context: %s", async utterance => {
+    const model = vi.fn(async () => handoffResult("oracle", "ORACLE can retrieve it.", "Open the referenced item."));
+    const response = await createLighterChatHandler(model)(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "drive.read provider_317 [text]" },
+      { role: "assistant", content: "Drive document (provider_317):\nprivate content" },
+      { role: "user", content: utterance },
+    ] }));
+    const body = await response.json();
+    const modelMessages = (model.mock.calls as unknown as [string, ChatMessage[]][])[0][1];
+    expect(body).toEqual({ reply: "That request cannot be handled through a specialist handoff.",
+      specialistId: "jarvis", execution: "none" });
+    expect(modelMessages.slice(0, 2)).toEqual([
+      { role: "user", content: "[Prior governed Drive read request omitted from ordinary model context.]" },
+      { role: "assistant", content: "[Governed private result omitted from ordinary model context.]" },
+    ]);
+    expect(body).not.toHaveProperty("routeTo");
+    expect(body).not.toHaveProperty("pendingAuthorizationReference");
+  });
+
+  it("neutralizes fabricated Drive provenance without restoring excluded ID or content", async () => {
+    const model = vi.fn(async () => "The document ID was provider_317. Your Drive search returned it.");
+    const response = await createLighterChatHandler(model)(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "drive.read provider_317 [text]" },
+      { role: "assistant", content: "Drive document (provider_317):\nprivate content" },
+      { role: "user", content: "what happened?" },
+    ] }));
+    expect(await response.json()).toMatchObject({ reply: "I can't represent a prior governed Drive result from ordinary model context." });
+    const modelMessages = (model.mock.calls as unknown as [string, ChatMessage[]][])[0][1];
+    expect(JSON.stringify(modelMessages)).not.toMatch(/provider_317|private content/);
+  });
 });

@@ -12,9 +12,12 @@ The path-scoped response is:
 
 ## Bypass proof and containment sequence
 
-The first commit in this sprint adds a passing regression proving that a client-supplied
-`governed_gmail_retrieval` capability could cause `/api/chat` to authorize the request, construct a
-Gmail connector, and enter capability routing without passing through `/api/lighter/chat`.
+Before containment, a local passing regression demonstrated that a client-supplied
+`governed_gmail_retrieval` capability caused `/api/chat` to call
+`authorizeGmailCapability`, construct `GoogleGmailContentConnector`, and call
+`routeChatCapability` without passing through `/api/lighter/chat`. The remote PR history does not
+retain that pre-fix regression as a separate commit; this records the concrete local proof without
+claiming otherwise.
 
 The containment commit places one deterministic guard immediately after JSON decoding and before
 legacy capability parsing. A matching Gmail operation now returns the neutral response above. It

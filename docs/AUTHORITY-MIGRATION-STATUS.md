@@ -1,7 +1,7 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 26 August 2026 (Sprint 3.141)
+- **Last updated:** 26 August 2026 (Sprint 3.142)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
 - **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
 
@@ -103,6 +103,14 @@ authority machinery. Ordinary model output cannot impersonate a governed Calenda
 and governed-history sanitizer placeholders remain model-context-only artifacts that are never
 user-visible. Genuine governed Calendar/Gmail `ASK` flows are unchanged, and unsupported weekday
 Calendar requests remain unsupported. See `docs/SPRINT-3.141-AUTHORITY-UX-INTEGRITY.md`.
+
+Sprint 3.142 extends that ordinary-model reply boundary with static capability truthfulness.
+For Calendar/Gmail-related requests that remain on the unsupported ordinary path, false global
+denials are replaced with fixed path-scoped wording that records only the existence of
+`calendar.read`, `gmail.search`, and identified-message `gmail.read`. The correction is not
+authority evidence, does not inspect or represent connector state, creates no pending authority,
+and performs no acquisition. Governed ASK flows and all operation recognizers remain unchanged.
+See `docs/SPRINT-3.142-CAPABILITY-TRUTHFULNESS.md`.
 
 ## `calendar.read` detail
 

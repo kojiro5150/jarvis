@@ -339,7 +339,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           }
         }
       }
-      reply = guardOrdinaryModelReply(reply);
+      reply = guardOrdinaryModelReply(reply, currentUserUtterance);
       return NextResponse.json({ reply, specialistId: specialist.id, execution: "none" });
     } catch (error) {
       console.error("[/api/lighter/chat] Specialist invocation failed:", error);

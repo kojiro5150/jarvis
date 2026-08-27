@@ -4,7 +4,7 @@ const CALENDAR_RECALL_FOLLOW_UP = /^(?:what (?:times? did you (?:just )?(?:see|g
 const PRIOR_CALENDAR_REPORT = /(?:\bbased on (?:the result from )?your calendar\b|\blooking at your calendar for (?:today|tomorrow|this (?:morning|afternoon|evening|week)|next seven days)\b[\s\S]*?\byou have (?:\d+|one|two|three|four|five) commitments?\b|\bcalendar result (?:I )?reported\b|\b(?:today|tomorrow|this (?:morning|afternoon|evening|week)|next seven days) (?:is clear|you have \d+ commitments?)\b|\byour calendar (?:is clear|has \d+ commitments?)\b)/i;
 const SCHEDULE_INTERVAL_TEXT = String.raw`\d{1,2}(?::\d{2})?\s*(?:AM|PM)?\s*[–-]\s*\d{1,2}(?::\d{2})?\s*(?:AM|PM)`;
 const SCHEDULE_ONLY_CALENDAR_REPORT = new RegExp(
-  String.raw`^(?:Based on your calendar(?: for [^,.\\n]+)?,?\\s+you have|(?:Today|Tomorrow|This (?:morning|afternoon|evening|week)|Next seven days)\\s+you have)\\s+(?:\\d+|one|two|three|four|five) commitments?:\\s*${SCHEDULE_INTERVAL_TEXT}(?:\\s*(?:,|and|\\n)\\s*${SCHEDULE_INTERVAL_TEXT})*[.!]?$`,
+  String.raw`^(?:Based on your calendar(?: for [^,.\n]+)?,?\s+you have|(?:Today|Tomorrow|This (?:morning|afternoon|evening|week)|Next seven days)\s+you have)\s+(?:\d+|one|two|three|four|five) commitments?:\s*${SCHEDULE_INTERVAL_TEXT}(?:\s*(?:,|and|\n)\s*${SCHEDULE_INTERVAL_TEXT})*[.!]?$`,
   "i",
 );
 const DETAIL_FOLLOW_UP = /^what are (?:those|the) (?:meetings|commitments) about[?!.]*$/i;

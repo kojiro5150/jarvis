@@ -91,11 +91,11 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
 
   if (calendarProvenance && !calendarProvenance.hasCurrentCalendarGovernedContext
     && calendarProvenance.isCalendarRecollection) {
+    const attributed = attributeCalendarRecollection(content);
+    if (attributed) return attributed;
     if (calendarProvenance.isDetailFollowUp && calendarProvenance.priorVisibleReportIsScheduleOnly) {
       return "The earlier calendar result I reported contained only the times, not the meeting details.";
     }
-    const attributed = attributeCalendarRecollection(content);
-    if (attributed) return attributed;
   }
 
   // This is static capability knowledge, not authority or connector evidence.

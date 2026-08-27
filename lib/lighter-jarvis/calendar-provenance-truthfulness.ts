@@ -8,6 +8,7 @@ const SCHEDULE_ONLY_CALENDAR_REPORT = new RegExp(
   "i",
 );
 const DETAIL_FOLLOW_UP = /^what are (?:those|the) (?:meetings|commitments) about[?!.]*$/i;
+const USER_SUPPLIED_CALENDAR_DETAIL = /\b(?:my|the)\s+(?:\d{1,2}(?::\d{2})?\s*(?:AM|PM)\s+)?(?:meeting|commitment)\s+(?:is|was|is called|was called|is about|was about)\s+\S/i;
 
 export function isCalendarRecallFollowUp(utterance: string | undefined): boolean {
   if (!utterance) return false;
@@ -29,6 +30,10 @@ export function hasPriorVisibleCalendarReport(messages: readonly ChatMessage[]):
  */
 export function priorVisibleCalendarReportIsScheduleOnly(messages: readonly ChatMessage[]): boolean {
   const currentUserIndex = messages.findLastIndex(message => message.role === "user");
+  const hasExplicitUserDetail = messages.some((message, index) => index < currentUserIndex
+    && message.role === "user"
+    && USER_SUPPLIED_CALENDAR_DETAIL.test(message.content.normalize("NFKC").replace(/\s+/g, " ")));
+  if (hasExplicitUserDetail) return false;
   const report = messages.findLast((message, index) => index < currentUserIndex
     && message.role === "assistant" && PRIOR_CALENDAR_REPORT.test(message.content));
   return Boolean(report && SCHEDULE_ONLY_CALENDAR_REPORT.test(report.content.trim()));
@@ -40,6 +45,12 @@ export function isCalendarDetailRecallFollowUp(utterance: string | undefined): b
 
 export function attributeCalendarRecollection(content: string): string | undefined {
   const rewrites: readonly [RegExp, (match: RegExpMatchArray) => string][] = [
+    [/^I (?:saw|identified) ((?:two )?(?:time blocks?|commitments)|these times) (?:on|in) your calendar for tomorrow\s*:\s*([\s\S]+)$/i,
+      match => `From the calendar result I reported earlier, ${match[1]} were ${match[2]}`],
+    [/^The calendar (?:information|result) I saw showed\s+([\s\S]+)$/i,
+      match => `The earlier calendar result I reported showed ${match[1]}`],
+    [/^The calendar (?:information|result) I saw\s*[:,]?\s*([\s\S]+)$/i,
+      match => `From the earlier calendar result I reported, ${match[1]}`],
     [/^I saw (?:two )?time slots? on your calendar:\s*([\s\S]+)$/i,
       match => `From the calendar result I reported earlier, the time slots were ${match[1]}`],
     [/^I can see that ([\s\S]+)$/i,

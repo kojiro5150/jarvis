@@ -7,8 +7,6 @@ import {
   EXCLUDED_DRIVE_PROVENANCE_REPLY,
   UNSUPPORTED_DRIVE_PATH_REPLY,
   ORDINARY_CALENDAR_FACT_REPLY,
-  CALENDAR_READ_TRUTHFULNESS_REPLY,
-  UNSUPPORTED_CALENDAR_WRITE_REPLY,
 } from "./ordinary-model-reply-guard";
 import {
   hasPriorVisibleCalendarReport,
@@ -27,14 +25,16 @@ describe("ordinary-model reply guard", () => {
     },
   );
 
-  it("contains false Calendar read denial and unsupported Calendar write offers on ordinary facts", () => {
-    const utterance = "My 10 a.m. meeting is the project review.";
-    expect(guardOrdinaryModelReply("I don't have access to your calendar.", utterance))
-      .toBe(CALENDAR_READ_TRUTHFULNESS_REPLY);
-    expect(guardOrdinaryModelReply("If you'd like me to update your calendar, I can do that.", utterance))
-      .toBe(UNSUPPORTED_CALENDAR_WRITE_REPLY);
-    expect(guardOrdinaryModelReply("I can add that to your calendar.", utterance))
-      .toBe(UNSUPPORTED_CALENDAR_WRITE_REPLY);
+  it.each([
+    "Please explicitly confirm that I may read your Calendar.",
+    "I don't have access to your calendar.",
+    "I can help you work with the information here, but Calendar write/update actions are not available in the current governed path.",
+    "If you'd like me to update your calendar, I can do that.",
+    "I can add that to your calendar.",
+    "I understand you're telling me that your 9 a.m. meeting is the finance review.",
+  ])("makes a classified ordinary timed Calendar fact deterministically user-provided: %s", modelReply => {
+    expect(guardOrdinaryModelReply(modelReply, "My 9 a.m. meeting is the finance review."))
+      .toBe(ORDINARY_CALENDAR_FACT_REPLY);
   });
 
   it.each([
@@ -42,6 +42,89 @@ describe("ordinary-model reply guard", () => {
     ["12:0:PM", "12:00 PM"], ["12:0:AM", "12:00 AM"],
   ])("formats comparison clock %s for presentation", (clock, expected) => {
     expect(displayCalendarClock(clock)).toBe(expected);
+  });
+
+  it("recognizes the canonical governed Tomorrow schedule as schedule-only", () => {
+    const messages = [
+      { role: "assistant" as const, content: "Tomorrow you have 2 commitments:\n- 10:00 AM – 11:00 AM\n- 3:00 PM – 4:00 PM" },
+      { role: "user" as const, content: "What are the meetings about?" },
+    ];
+    expect(priorVisibleCalendarReportIsScheduleOnly(messages)).toBe(true);
+    const diagnostic = calendarRecallDiagnostics(messages);
+    expect(diagnostic).toMatchObject({
+      priorCalendarReportPresent: true,
+      isCalendarRecollection: true,
+      priorVisibleReportIsScheduleOnly: true,
+      isDetailFollowUp: true,
+    });
+  });
+
+  it.each([
+    ["From your calendar, I can see the timing of your two meetings tomorrow.", /^From the earlier Calendar result I reported/],
+    ["From the calendar information I have access to, I can only see the timing of your commitments for tomorrow.", /^From the earlier Calendar result I reported/],
+    ["I can see the timing of your meetings tomorrow, but The earlier Calendar projection I reported doesn't include details.", /^From the calendar result I reported earlier/],
+    ["I just saw:\n1. 10:00 AM – 11:00 AM\n2. 3:00 PM – 4:00 PM", /^From the calendar result I reported earlier/],
+  ])("contains the exact final-live recall wording family: %s", (modelReply, expected) => {
+    const recollection = {
+      hasCurrentCalendarGovernedContext: false,
+      isCalendarRecollection: true,
+      priorVisibleReportIsScheduleOnly: false,
+      isDetailFollowUp: true,
+    } as const;
+    expect(guardOrdinaryModelReply(modelReply, "What are the meetings about?", false, recollection))
+      .toMatch(expected);
+  });
+
+  it.each([
+    `Based on what's visible from your calendar:
+
+1. **10:00 AM – 11:00 AM**: project review — you told me this yourself earlier in our conversation.
+
+2. **3:00 PM – 4:00 PM**: No subject or description was provided for this meeting.
+
+The calendar entries I can see show only the timing. I don't have access to meeting descriptions, agendas, attendees, or other details that might explain what these meetings are about beyond what you've already shared with me.`,
+    `Based on what I can see and what you've told me:
+
+1. **10:00 AM – 11:00 AM** — **project review** (you provided this detail earlier)
+2. **3:00 PM – 4:00 PM** — no subject or description is visible in the calendar entry
+
+If you'd like to know more about the 3 PM meeting, you may need to check the original invitation or any associated notes you have.`,
+  ])("contains the exact second-run bound-detail live failure: %s", reply => {
+    const result = guardOrdinaryModelReply(reply, "What are the meetings about?", false, {
+      hasCurrentCalendarGovernedContext: false,
+      isCalendarRecollection: true,
+      priorVisibleReportIsScheduleOnly: false,
+      isDetailFollowUp: true,
+      boundUserDetails: [{ clock: "10 AM", label: "project review" }],
+      unknownCommitmentClocks: ["3 PM"],
+    });
+    expect(result).toBe(
+      "From the earlier Calendar result I reported: From what you told me earlier, the 10 AM commitment is the project review. The earlier governed Calendar result did not include title or description information for the 3 PM commitment."
+    );
+  });
+
+  it("contains the exact Typed Test 1 recall wording", () => {
+    const recollection = { hasCurrentCalendarGovernedContext: false, isCalendarRecollection: true } as const;
+    const reply = "I saw these two time slots for tomorrow:\n\n1. **10:00 AM – 11:00 AM**\n2. **3:00 PM – 4:00 PM**";
+    expect(guardOrdinaryModelReply(reply, "What times did you just see?", false, recollection))
+      .toMatch(/^From the calendar result I reported earlier,/);
+  });
+
+  it.each([
+    "From the calendar information I have, I can only see the timing of your commitments tomorrow.",
+    "Based on what's visible in your Calendar:\n\n1. 10:00 AM – 11:00 AM: project review\n2. 3:00 PM – 4:00 PM: no label.",
+  ])("contains the final bound-detail live provenance family: %s", reply => {
+    const result = guardOrdinaryModelReply(reply, "What are the meetings about?", false, {
+      hasCurrentCalendarGovernedContext: false,
+      isCalendarRecollection: true,
+      priorVisibleReportIsScheduleOnly: false,
+      isDetailFollowUp: true,
+      boundUserDetails: [{ clock: "10 AM", label: "project review" }],
+      unknownCommitmentClocks: ["3 PM"],
+    });
+    expect(result).toBe(
+      "From the earlier Calendar result I reported: From what you told me earlier, the 10 AM commitment is the project review. The earlier governed Calendar result did not include title or description information for the 3 PM commitment."
+    );
   });
 
   it("proves the complete-history state and attribution for the live timing transcript", () => {

@@ -408,6 +408,117 @@ describe("POST /api/lighter/chat", () => {
     expect(createConnector).not.toHaveBeenCalled();
   });
 
+  it.each([
+    "I can help you work with the information here, but Calendar write/update actions are not available in the current governed path.",
+    "I haven't read your Calendar on this turn. Calendar reads are available through the governed path when explicitly authorized.",
+    "I've noted that your 9 a.m. meeting is the finance review.",
+  ])("keeps the exact live 9 AM user fact ordinary regardless of model wording: %s", async modelReply => {
+    const model = vi.fn(async () => modelReply);
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, {
+      createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z"),
+    })(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "My 9 a.m. meeting is the finance review." },
+    ] }));
+    expect(await response.json()).toEqual({
+      reply: "Thanks — I'll treat that as information you provided.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(createConnector).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledOnce();
+  });
+
+  it("treats the canonical Tomorrow report as schedule-only on the exact live 9 AM recall", async () => {
+    const model = vi.fn(async () =>
+      "From the calendar result I reported earlier, the timing and titles of your meetings tomorrow, but no additional detail beyond what was visible in the last response—start times, end times, and commitment titles only.");
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, {
+      createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z"),
+    })(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "My 9 a.m. meeting is the finance review." },
+      { role: "assistant", content: "Thanks — I'll treat that as information you provided." },
+      { role: "assistant", content: "Tomorrow you have 2 commitments:\n- 10:00 AM – 11:00 AM\n- 3:00 PM – 4:00 PM\nYou previously mentioned finance review at 9:00 AM, but that time does not match a commitment in this Calendar result, so I cannot associate it with one." },
+      { role: "user", content: "What are the meetings about?" },
+    ] }));
+    const body = await response.json();
+    expect(body.reply).toBe("The governed Calendar path available here includes timing information only, not titles or descriptions.");
+    expect(body.reply).not.toContain("finance review");
+    expect(body.reply).not.toContain("titles of your meetings");
+    expect(body).not.toHaveProperty("calendarAuthority");
+    expect(body).not.toHaveProperty("pendingAuthorizationReference");
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    `Based on what's visible from your calendar:
+
+1. **10:00 AM – 11:00 AM**: project review — you told me this yourself earlier in our conversation.
+
+2. **3:00 PM – 4:00 PM**: No subject or description was provided for this meeting.
+
+The calendar entries I can see show only the timing. I don't have access to meeting descriptions, agendas, attendees, or other details that might explain what these meetings are about beyond what you've already shared with me.`,
+    `Based on what I can see and what you've told me:
+
+1. **10:00 AM – 11:00 AM** — **project review** (you provided this detail earlier)
+2. **3:00 PM – 4:00 PM** — no subject or description is visible in the calendar entry
+
+If you'd like to know more about the 3 PM meeting, you may need to check the original invitation or any associated notes you have.`,
+  ])("contains the exact second-run bound-detail live failure through the shared route: %s", async modelReply => {
+    const model = vi.fn(async () => modelReply);
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, {
+      createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z"),
+    })(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "My 10 a.m. meeting is the project review." },
+      { role: "assistant", content: "Thanks — I'll treat that as information you provided." },
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments:\n10:00 AM – 11:00 AM\n3:00 PM – 4:00 PM" },
+      { role: "user", content: "What are the meetings about?" },
+    ] }));
+    expect((await response.json()).reply).toBe(
+      "From the earlier Calendar result I reported: From what you told me earlier, the 10 AM commitment is the project review. The earlier governed Calendar result did not include title or description information for the 3 PM commitment."
+    );
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
+  it("contains the exact final Typed Test 1 recall wording through the shared route", async () => {
+    const model = vi.fn(async () => "I saw these two time slots for tomorrow:\n\n1. **10:00 AM – 11:00 AM**\n2. **3:00 PM – 4:00 PM**");
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, {
+      createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z"),
+    })(request({ specialistId: "jarvis", messages: [
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments:\n10:00 AM – 11:00 AM\n3:00 PM – 4:00 PM" },
+      { role: "user", content: "What times did you just see?" },
+    ] }));
+    expect((await response.json()).reply).toMatch(/^From the calendar result I reported earlier,/);
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "From the calendar information I have, I can only see the timing of your commitments tomorrow.\n\nFor the 10:00 AM meeting, you told me earlier that it's the project review.\nFor the 3:00 PM meeting, I don't have any subject, title, or description available from the calendar data.",
+    "Based on what's visible in your Calendar:\n\n1. 10:00 AM – 11:00 AM: project review\n2. 3:00 PM – 4:00 PM: no label or details are available from your Calendar.\n\nThe Calendar evidence I have access to shows only the timing of commitments.",
+  ])("deterministically composes the final bound-detail live recall through the shared route: %s", async modelReply => {
+    const model = vi.fn(async () => modelReply);
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, {
+      createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z"),
+    })(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "My 10 a.m. meeting is the project review." },
+      { role: "assistant", content: "Thanks — I'll treat that as information you provided." },
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments:\n10:00 AM – 11:00 AM\n3:00 PM – 4:00 PM" },
+      { role: "user", content: "What are the meetings about?" },
+    ] }));
+    expect((await response.json()).reply).toBe(
+      "From the earlier Calendar result I reported: From what you told me earlier, the 10 AM commitment is the project review. The earlier governed Calendar result did not include title or description information for the 3 PM commitment."
+    );
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
   it("attributes a bounded Calendar recollection without connector access or pending authority", async () => {
     const model = vi.fn(async () => "I saw two time slots on your calendar: 10:00–11:00 AM and 3:00–4:00 PM.");
     const createConnector = vi.fn();

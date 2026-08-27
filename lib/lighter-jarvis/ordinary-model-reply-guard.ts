@@ -45,9 +45,8 @@ const CONFIRMATION_REQUEST = /(?:\b(?:confirm|confirmation|permission|authorize|
 const PRIVATE_ACCESS = /\b(?:access|read|search|retrieve|check|view|show|look(?:ing)?\s+(?:at|through|in)|connect(?:ing)?\s+to)\b/i;
 const CALENDAR_REQUEST = /\bcalendar\b/i;
 const PRIVATE_ACQUISITION_UTTERANCE = /\bwhat(?:'s| is)\s+on\s+(?:for\s+)?(?:today|tomorrow)\b|\b(?:calendar|gmail|e-?mail|inbox|drive)\b[\s\S]*\b(?:read|search|retrieve|check|view|show|look|access|connect|what(?:'s| is)|on)\b|\b(?:read|search|retrieve|check|view|show|look|access|connect|what(?:'s| is))\b[\s\S]*\b(?:calendar|gmail|e-?mail|inbox|drive)\b/i;
-const CALENDAR_GLOBAL_DENIAL = /\b(?:don['’]?t|do not|cannot|can['’]?t)\s+(?:have\s+)?(?:the\s+(?:ability\s+to\s+)?)?(?:access|ability)[\s\S]*\bcalendar\b|\b(?:don['’]?t|do not|cannot|can['’]?t)\b[\s\S]*\bcalendar\b[\s\S]*\b(?:access|modify|interact)\b/i;
-const CALENDAR_WRITE_OFFER = /(?:\b(?:I can|I(?:'d| would) be (?:happy|able) to|let me|would you like me to|if you(?:'d| would) like(?: me to)?)\b[\s\S]{0,80}\b(?:update|modify|change|create|edit|write to|save to|add (?:that|this|it) to)\b[\s\S]{0,80}\b(?:calendar|calendar entry|event|meeting entry)\b|\bI can\b[\s\S]{0,80}\b(?:calendar|calendar entry|event|meeting entry)\b[\s\S]{0,80}\b(?:update|modify|change|create|edit|write|save|add)\b)/i;
-const PROJECTED_FIELD_ABSENCE = /\b(?:the\s+)?(?:calendar entry|meeting|event)\s+(?:doesn['’]?t|does not)\s+include\s+(?:a\s+)?(?:label|title|description)(?:\s+or\s+(?:a\s+)?(?:label|title|description))?|\b(?:the\s+)?(?:meeting|event)\s+has\s+no\s+(?:title|label|description)(?:\s+in\s+the\s+calendar)?|\bthere\s+is\s+no\s+(?:title|label|description)\s+on\s+(?:the\s+)?(?:meeting|event)\b/gi;
+const PROJECTED_FIELD_ABSENCE = /\b(?:the\s+)?(?:calendar entry|meeting|event)\s+(?:doesn['’]?t|does not)\s+include\s+(?:a\s+)?(?:label|title|description)(?:\s+or\s+(?:a\s+)?(?:label|title|description))?|\b(?:the\s+)?(?:meeting|event)\s+has\s+no\s+(?:title|label|description)(?:\s+in\s+the\s+calendar)?|\bthere\s+is\s+no\s+(?:title|label|description)\s+on\s+(?:the\s+)?(?:meeting|event)\b|\bI don['’]?t have any\s+(?:subject|title|description)(?:\s+or\s+(?:subject|title|description))*\s+information\s+visible\s+in\s+the\s+calendar\s+data\b/gi;
+const UNSAFE_BOUND_DETAIL_RECALL = /(?:\bfrom the calendar information I have\b|\bbased on what['’]s visible (?:in|from) your calendar\b|\bbased on what I can see\b|\bcalendar (?:evidence|entries?) I (?:can see|have access to)\b|\bI don['’]?t have access to\b|\bavailable from (?:your|the) calendar\b|\bvisible in (?:the|your) calendar (?:data|entry)\b|\bno subject or description is visible in the calendar entry\b)/i;
 const GMAIL_REQUEST = /\b(?:gmail|e-?mail|emails|inbox|mailbox)\b/i;
 const DRIVE_REQUEST = /\bdrive\b/i;
 const FALSE_GLOBAL_CAPABILITY_CLAIM = /(?:\b(?:i\s+)?(?:do\s+not|don['’]?t|cannot|can['’]?t|am\s+not|I['’]?m\s+not|unable\s+to)\s+(?:(?:currently|directly)\s+)?(?:have\s+(?:(?:the|that|this|any)\s+)?(?:ability|capability|access)|access|connect(?:ed)?|read|search|retrieve|check|view)|\bno\s+(?:calendar|gmail|e-?mail|inbox|mailbox|drive)\s+(?:access|capability|integration)|\b(?:this|that|the)\s+capability\s+(?:does\s+not|doesn['’]?t)\s+exist|\b(?:calendar|gmail|e-?mail|inbox|mailbox|drive)\s+(?:is\s+not|isn['’]?t)\s+(?:connected|available|supported))/i;
@@ -104,14 +103,11 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
     ? userSuppliedTimedCalendarDetail(currentUserUtterance) !== undefined
     : false;
 
-  if (ordinaryCalendarFact && presentsPrivateAuthorityConfirmation(content)) {
+  // A narrow timed Calendar fact is ordinary user-provided conversation.
+  // Once classified, presentation is deterministic: model wording cannot turn
+  // the same fact into authority UX, capability denial, or a write/update path.
+  if (ordinaryCalendarFact) {
     return ORDINARY_CALENDAR_FACT_REPLY;
-  }
-  if (ordinaryCalendarFact && CALENDAR_GLOBAL_DENIAL.test(content)) {
-    return CALENDAR_READ_TRUTHFULNESS_REPLY;
-  }
-  if (ordinaryCalendarFact && CALENDAR_WRITE_OFFER.test(content)) {
-    return UNSUPPORTED_CALENDAR_WRITE_REPLY;
   }
   const hasProjectedFieldAbsence = Boolean(calendarProvenance
     && (calendarProvenance.hasCurrentCalendarGovernedContext || calendarProvenance.isCalendarRecollection)
@@ -131,6 +127,17 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
 
   if (calendarProvenance && !calendarProvenance.hasCurrentCalendarGovernedContext
     && calendarProvenance.isCalendarRecollection) {
+    // Only unsafe live possession/source-level wording triggers deterministic
+    // reconstruction. Safe historical model wording remains untouched.
+    if (calendarProvenance.isDetailFollowUp
+      && (calendarProvenance.boundUserDetails?.length ?? 0) > 0
+      && UNSAFE_BOUND_DETAIL_RECALL.test(guarded)) {
+      const known = (calendarProvenance.boundUserDetails ?? [])
+        .map(detail => `From what you told me earlier, the ${detail.clock} commitment is the ${detail.label}.`).join(" ");
+      const unknown = (calendarProvenance.unknownCommitmentClocks ?? [])
+        .map(clock => `The earlier governed Calendar result did not include title or description information for the ${clock} commitment.`).join(" ");
+      return `From the earlier Calendar result I reported: ${known} ${unknown}`.trim();
+    }
     const attributed = attributeCalendarRecollection(guarded)
       ?? attributeBareCalendarRecollection(guarded);
     if (attributed) guarded = attributed;

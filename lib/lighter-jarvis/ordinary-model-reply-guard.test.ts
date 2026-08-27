@@ -94,6 +94,31 @@ describe("ordinary-model reply guard", () => {
     ])).toBe(false);
   });
 
+  it("binds user detail only to a start time in the latest schedule report", () => {
+    const schedule = { role: "assistant" as const,
+      content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." };
+    const current = { role: "user" as const, content: "What are the meetings about?" };
+    const isScheduleOnlyWith = (detail: string) => priorVisibleCalendarReportIsScheduleOnly([
+      { role: "user", content: detail }, { role: "assistant", content: "Thanks." }, schedule, current,
+    ]);
+
+    expect(isScheduleOnlyWith("My 10 AM meeting is the project review.")).toBe(false);
+    expect(isScheduleOnlyWith("My 10:00 AM meeting is the project review.")).toBe(false);
+    expect(isScheduleOnlyWith("The 3 PM meeting is the team review.")).toBe(false);
+    expect(isScheduleOnlyWith("My 9 AM meeting was the finance review.")).toBe(true);
+    expect(isScheduleOnlyWith("My meeting is the project review.")).toBe(true);
+  });
+
+  it("does not bind user detail to an older Calendar report", () => {
+    expect(priorVisibleCalendarReportIsScheduleOnly([
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have one commitment: 9:00–10:00 AM." },
+      { role: "user", content: "My 9 AM meeting is the finance review." },
+      { role: "assistant", content: "Thanks." },
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
+      { role: "user", content: "What are the meetings about?" },
+    ])).toBe(true);
+  });
+
   it.each([
     "I don't have access to your Calendar.",
     "Calendar is not connected.",

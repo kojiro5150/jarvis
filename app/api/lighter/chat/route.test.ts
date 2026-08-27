@@ -536,6 +536,39 @@ describe("POST /api/lighter/chat", () => {
   });
 
   it.each([
+    ["My 9 AM meeting was the finance review.", "unrelated clock time"],
+    ["My meeting is the project review.", "missing clock time"],
+  ])("keeps schedule-only containment for user detail with %s", async (userDetail) => {
+    const model = vi.fn(async () => "The 10 AM meeting is project review and 3 PM is team stand-up.");
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, { createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: userDetail },
+      { role: "assistant", content: "Thanks." },
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
+      { role: "user", content: "What are the meetings about?" },
+    ] }));
+    expect((await response.json()).reply)
+      .toBe("The earlier calendar result I reported contained only the times, not the meeting details.");
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
+  it("binds explicit user detail to the second recalled interval", async () => {
+    const model = vi.fn(async () => "From what you told me earlier, the 3 PM commitment is the team review.");
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, { createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "My 3 PM meeting is the team review." },
+      { role: "assistant", content: "Thanks." },
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
+      { role: "user", content: "What are the meetings about?" },
+    ] }));
+    expect((await response.json()).reply)
+      .toBe("From what you told me earlier, the 3 PM commitment is the team review.");
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
+  it.each([
     ["Show my calendar Monday", "I don't have access to your calendar.", "The governed Calendar path supports calendar.read, but it does not support this request."],
     ["What Calendar capabilities do you have?", "That capability does not exist.", "The governed Calendar path supports calendar.read, but it does not support this request."],
     ["Show me my emails", "I don't have access to Gmail.", "The governed Gmail path supports gmail.search and identified-message gmail.read, but it does not support this request."],

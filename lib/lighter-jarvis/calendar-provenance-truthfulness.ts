@@ -8,7 +8,29 @@ const SCHEDULE_ONLY_CALENDAR_REPORT = new RegExp(
   "i",
 );
 const DETAIL_FOLLOW_UP = /^what are (?:those|the) (?:meetings|commitments) about[?!.]*$/i;
-const USER_SUPPLIED_CALENDAR_DETAIL = /\b(?:my|the)\s+(?:\d{1,2}(?::\d{2})?\s*(?:AM|PM)\s+)?(?:meeting|commitment)\s+(?:is|was|is called|was called|is about|was about)\s+\S/i;
+const USER_SUPPLIED_TIMED_CALENDAR_DETAIL = /\b(?:my|the)\s+(\d{1,2})(?::(\d{2}))?\s*(AM|PM)\s+(?:meeting|commitment)\s+(?:is|was)(?:\s+(?:called|about))?\s+\S/i;
+const SCHEDULE_INTERVAL_PARTS = /(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?\s*[–-]\s*\d{1,2}(?::\d{2})?\s*(AM|PM)/gi;
+
+function normalizedTime(hourText: string, minuteText: string | undefined, meridiem: string): string {
+  return `${Number(hourText)}:${Number(minuteText ?? "0")}:${meridiem.toUpperCase()}`;
+}
+
+/** Presentation-only exact clock binding against the latest visible Calendar report. */
+function hasBoundUserCalendarDetail(messages: readonly ChatMessage[], currentUserIndex: number,
+  report: ChatMessage | undefined): boolean {
+  if (!report) return false;
+  const intervalStarts = new Set<string>();
+  for (const match of report.content.matchAll(SCHEDULE_INTERVAL_PARTS)) {
+    intervalStarts.add(normalizedTime(match[1], match[2], match[3] ?? match[4]));
+  }
+  if (intervalStarts.size === 0) return false;
+  return messages.some((message, index) => {
+    if (index >= currentUserIndex || message.role !== "user") return false;
+    const match = message.content.normalize("NFKC").replace(/\s+/g, " ")
+      .match(USER_SUPPLIED_TIMED_CALENDAR_DETAIL);
+    return Boolean(match && intervalStarts.has(normalizedTime(match[1], match[2], match[3])));
+  });
+}
 
 export function isCalendarRecallFollowUp(utterance: string | undefined): boolean {
   if (!utterance) return false;
@@ -30,13 +52,10 @@ export function hasPriorVisibleCalendarReport(messages: readonly ChatMessage[]):
  */
 export function priorVisibleCalendarReportIsScheduleOnly(messages: readonly ChatMessage[]): boolean {
   const currentUserIndex = messages.findLastIndex(message => message.role === "user");
-  const hasExplicitUserDetail = messages.some((message, index) => index < currentUserIndex
-    && message.role === "user"
-    && USER_SUPPLIED_CALENDAR_DETAIL.test(message.content.normalize("NFKC").replace(/\s+/g, " ")));
-  if (hasExplicitUserDetail) return false;
   const report = messages.findLast((message, index) => index < currentUserIndex
     && message.role === "assistant" && PRIOR_CALENDAR_REPORT.test(message.content));
-  return Boolean(report && SCHEDULE_ONLY_CALENDAR_REPORT.test(report.content.trim()));
+  return Boolean(report && SCHEDULE_ONLY_CALENDAR_REPORT.test(report.content.trim())
+    && !hasBoundUserCalendarDetail(messages, currentUserIndex, report));
 }
 
 export function isCalendarDetailRecallFollowUp(utterance: string | undefined): boolean {

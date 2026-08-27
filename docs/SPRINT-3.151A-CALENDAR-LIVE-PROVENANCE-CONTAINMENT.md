@@ -23,7 +23,7 @@ This is not a global rewrite of “I saw.” References to a previous message, p
 
 Visible details explicitly supplied by the user remain ordinary conversational evidence. For example, “My 10 AM meeting is the project review” may be reused on a later detail follow-up, attributed to what the user said earlier. It must not be represented as Calendar evidence.
 
-The deterministic schedule-only response remains fail-closed when the visible report contains only intervals and the user supplied no explicit meeting detail. It blocks model-invented titles. A narrow explicit user statement prevents that canned response from erasing information visibly present in the conversation; this is not semantic entity resolution or a provenance database.
+The deterministic schedule-only response remains fail-closed when the visible report contains only intervals and the user supplied no explicitly timed meeting detail whose normalized 12-hour clock time matches an interval start in the most recent recognizable report. It blocks model-invented titles. A matching statement such as “My 10 AM meeting is the project review” can prevent the canned response from erasing bound information; an unrelated time, a generic untimed detail, or a match found only in an older report cannot. This is not semantic entity resolution, fuzzy temporal reasoning, or a provenance database.
 
 ## Invariants
 

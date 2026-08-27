@@ -424,6 +424,34 @@ describe("POST /api/lighter/chat", () => {
     expect(model).toHaveBeenCalledOnce();
   });
 
+  it("attributes the live tomorrow time-block wording without connector access", async () => {
+    const model = vi.fn(async () => "I saw two time blocks on your calendar for tomorrow: 10:00–11:00 AM and 3:00–4:00 PM.");
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, { createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis", messages: [
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
+      { role: "user", content: "What times did you just see?" },
+    ] }));
+    expect(await response.json()).toEqual({
+      reply: "From the calendar result I reported earlier, two time blocks were 10:00–11:00 AM and 3:00–4:00 PM.",
+      specialistId: "jarvis", execution: "none",
+    });
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
+  it("attributes the live calendar-information wording", async () => {
+    const model = vi.fn(async () => "The calendar information I saw showed only that you have commitments at those two times.");
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, { createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis", messages: [
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
+      { role: "user", content: "What are the meetings about?" },
+    ] }));
+    expect((await response.json()).reply)
+      .toBe("The earlier calendar result I reported showed only that you have commitments at those two times.");
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
   it("still requires fresh authority after a Calendar recollection", async () => {
     const model = vi.fn(async () => "From the calendar result I reported earlier, the time was 10:00–11:00 AM.");
     const createConnector = vi.fn();
@@ -488,6 +516,56 @@ describe("POST /api/lighter/chat", () => {
     });
     expect(createConnector).not.toHaveBeenCalled();
     expect(model).toHaveBeenCalledOnce();
+  });
+
+  it("preserves explicit user detail preceding a later schedule-only report", async () => {
+    const model = vi.fn(async () => "From what you told me earlier, the 10 AM commitment is the project review. I don't have details for the 3 PM commitment.");
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, { createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "My 10 AM meeting is the project review." },
+      { role: "assistant", content: "Thanks — the 10 AM meeting is the project review." },
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
+      { role: "user", content: "What are the meetings about?" },
+    ] }));
+    expect(await response.json()).toEqual({
+      reply: "From what you told me earlier, the 10 AM commitment is the project review. I don't have details for the 3 PM commitment.",
+      specialistId: "jarvis", execution: "none",
+    });
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["My 9 AM meeting was the finance review.", "unrelated clock time"],
+    ["My meeting is the project review.", "missing clock time"],
+  ])("keeps schedule-only containment for user detail with %s", async (userDetail) => {
+    const model = vi.fn(async () => "The 10 AM meeting is project review and 3 PM is team stand-up.");
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, { createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: userDetail },
+      { role: "assistant", content: "Thanks." },
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
+      { role: "user", content: "What are the meetings about?" },
+    ] }));
+    expect((await response.json()).reply)
+      .toBe("The earlier calendar result I reported contained only the times, not the meeting details.");
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
+  it("binds explicit user detail to the second recalled interval", async () => {
+    const model = vi.fn(async () => "From what you told me earlier, the 3 PM commitment is the team review.");
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, { createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "My 3 PM meeting is the team review." },
+      { role: "assistant", content: "Thanks." },
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
+      { role: "user", content: "What are the meetings about?" },
+    ] }));
+    expect((await response.json()).reply)
+      .toBe("From what you told me earlier, the 3 PM commitment is the team review.");
+    expect(createConnector).not.toHaveBeenCalled();
   });
 
   it.each([

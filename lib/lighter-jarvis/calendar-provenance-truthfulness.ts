@@ -8,6 +8,29 @@ const SCHEDULE_ONLY_CALENDAR_REPORT = new RegExp(
   "i",
 );
 const DETAIL_FOLLOW_UP = /^what are (?:those|the) (?:meetings|commitments) about[?!.]*$/i;
+const USER_SUPPLIED_TIMED_CALENDAR_DETAIL = /\b(?:my|the)\s+(\d{1,2})(?::(\d{2}))?\s*(AM|PM)\s+(?:meeting|commitment)\s+(?:is|was)(?:\s+(?:called|about))?\s+\S/i;
+const SCHEDULE_INTERVAL_PARTS = /(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?\s*[–-]\s*\d{1,2}(?::\d{2})?\s*(AM|PM)/gi;
+
+function normalizedTime(hourText: string, minuteText: string | undefined, meridiem: string): string {
+  return `${Number(hourText)}:${Number(minuteText ?? "0")}:${meridiem.toUpperCase()}`;
+}
+
+/** Presentation-only exact clock binding against the latest visible Calendar report. */
+function hasBoundUserCalendarDetail(messages: readonly ChatMessage[], currentUserIndex: number,
+  report: ChatMessage | undefined): boolean {
+  if (!report) return false;
+  const intervalStarts = new Set<string>();
+  for (const match of report.content.matchAll(SCHEDULE_INTERVAL_PARTS)) {
+    intervalStarts.add(normalizedTime(match[1], match[2], match[3] ?? match[4]));
+  }
+  if (intervalStarts.size === 0) return false;
+  return messages.some((message, index) => {
+    if (index >= currentUserIndex || message.role !== "user") return false;
+    const match = message.content.normalize("NFKC").replace(/\s+/g, " ")
+      .match(USER_SUPPLIED_TIMED_CALENDAR_DETAIL);
+    return Boolean(match && intervalStarts.has(normalizedTime(match[1], match[2], match[3])));
+  });
+}
 
 export function isCalendarRecallFollowUp(utterance: string | undefined): boolean {
   if (!utterance) return false;
@@ -31,7 +54,8 @@ export function priorVisibleCalendarReportIsScheduleOnly(messages: readonly Chat
   const currentUserIndex = messages.findLastIndex(message => message.role === "user");
   const report = messages.findLast((message, index) => index < currentUserIndex
     && message.role === "assistant" && PRIOR_CALENDAR_REPORT.test(message.content));
-  return Boolean(report && SCHEDULE_ONLY_CALENDAR_REPORT.test(report.content.trim()));
+  return Boolean(report && SCHEDULE_ONLY_CALENDAR_REPORT.test(report.content.trim())
+    && !hasBoundUserCalendarDetail(messages, currentUserIndex, report));
 }
 
 export function isCalendarDetailRecallFollowUp(utterance: string | undefined): boolean {
@@ -40,6 +64,12 @@ export function isCalendarDetailRecallFollowUp(utterance: string | undefined): b
 
 export function attributeCalendarRecollection(content: string): string | undefined {
   const rewrites: readonly [RegExp, (match: RegExpMatchArray) => string][] = [
+    [/^I (?:saw|identified) ((?:two )?(?:time blocks?|commitments)|these times) (?:on|in) your calendar for tomorrow\s*:\s*([\s\S]+)$/i,
+      match => `From the calendar result I reported earlier, ${match[1]} were ${match[2]}`],
+    [/^The calendar (?:information|result) I saw showed\s+([\s\S]+)$/i,
+      match => `The earlier calendar result I reported showed ${match[1]}`],
+    [/^The calendar (?:information|result) I saw\s*[:,]?\s*([\s\S]+)$/i,
+      match => `From the earlier calendar result I reported, ${match[1]}`],
     [/^I saw (?:two )?time slots? on your calendar:\s*([\s\S]+)$/i,
       match => `From the calendar result I reported earlier, the time slots were ${match[1]}`],
     [/^I can see that ([\s\S]+)$/i,

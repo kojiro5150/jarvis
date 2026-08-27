@@ -42,6 +42,16 @@ describe("ordinary-model reply guard", () => {
       "From the calendar result I reported earlier, you have two meetings tomorrow."],
     ["Your calendar currently shows two meetings.",
       "From the calendar result I reported earlier, two meetings."],
+    ["I saw two time blocks on your calendar for tomorrow: 10:00–11:00 AM and 3:00–4:00 PM.",
+      "From the calendar result I reported earlier, two time blocks were 10:00–11:00 AM and 3:00–4:00 PM."],
+    ["I saw two commitments in your calendar for tomorrow: 10:00–11:00 AM and 3:00–4:00 PM.",
+      "From the calendar result I reported earlier, two commitments were 10:00–11:00 AM and 3:00–4:00 PM."],
+    ["I identified these times on your calendar for tomorrow: 10:00–11:00 AM and 3:00–4:00 PM.",
+      "From the calendar result I reported earlier, these times were 10:00–11:00 AM and 3:00–4:00 PM."],
+    ["The calendar information I saw showed only that you have commitments at those two times.",
+      "The earlier calendar result I reported showed only that you have commitments at those two times."],
+    ["The Calendar result I saw: only the time blocks were included.",
+      "From the earlier calendar result I reported, only the time blocks were included."],
   ])("historically attributes false current Calendar provenance while retaining content", (reply, expected) => {
     expect(guardOrdinaryModelReply(reply, "What times did you just see?", false, recollection)).toBe(expected);
   });
@@ -54,6 +64,7 @@ describe("ordinary-model reply guard", () => {
   });
 
   it.each(["I can see what you mean.", "I saw your previous message.",
+    "The information I saw in the text you pasted...", "I saw two options in your note.",
     "I can see two options in the text you pasted.", "I saw that you wrote Atlas.",
     "I can see the difference between those approaches."])("does not overmatch non-Calendar sight language: %s", reply => {
     expect(guardOrdinaryModelReply(reply, "ordinary question", false, recollection)).toBe(reply);
@@ -75,6 +86,37 @@ describe("ordinary-model reply guard", () => {
       { role: "assistant", content: "Based on your calendar, you have a 10:00–11:00 AM commitment. From what you told me earlier, that is the project review." },
       current,
     ])).toBe(false);
+    expect(priorVisibleCalendarReportIsScheduleOnly([
+      { role: "user", content: "My 10 AM meeting is the project review." },
+      { role: "assistant", content: "Thanks — the 10 AM meeting is the project review." },
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
+      current,
+    ])).toBe(false);
+  });
+
+  it("binds user detail only to a start time in the latest schedule report", () => {
+    const schedule = { role: "assistant" as const,
+      content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." };
+    const current = { role: "user" as const, content: "What are the meetings about?" };
+    const isScheduleOnlyWith = (detail: string) => priorVisibleCalendarReportIsScheduleOnly([
+      { role: "user", content: detail }, { role: "assistant", content: "Thanks." }, schedule, current,
+    ]);
+
+    expect(isScheduleOnlyWith("My 10 AM meeting is the project review.")).toBe(false);
+    expect(isScheduleOnlyWith("My 10:00 AM meeting is the project review.")).toBe(false);
+    expect(isScheduleOnlyWith("The 3 PM meeting is the team review.")).toBe(false);
+    expect(isScheduleOnlyWith("My 9 AM meeting was the finance review.")).toBe(true);
+    expect(isScheduleOnlyWith("My meeting is the project review.")).toBe(true);
+  });
+
+  it("does not bind user detail to an older Calendar report", () => {
+    expect(priorVisibleCalendarReportIsScheduleOnly([
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have one commitment: 9:00–10:00 AM." },
+      { role: "user", content: "My 9 AM meeting is the finance review." },
+      { role: "assistant", content: "Thanks." },
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
+      { role: "user", content: "What are the meetings about?" },
+    ])).toBe(true);
   });
 
   it.each([

@@ -408,6 +408,35 @@ describe("POST /api/lighter/chat", () => {
     expect(createConnector).not.toHaveBeenCalled();
   });
 
+  it("fails closed to the deterministic Calendar schedule when model prose substitutes a projected commitment", async () => {
+    const model = vi.fn(async () => "Based on your calendar for tomorrow, you have two commitments:\n1. 9:00 AM – 10:00 AM\n2. 3:00 PM – 4:00 PM");
+    const listBetween = vi.fn(async () => [
+      { id: "ten", title: "hidden", start: "2026-08-28T00:00:00Z", end: "2026-08-28T01:00:00Z", day: "FRI", time: "10:00",
+        source: "google" as const, calendarId: "primary", calendarName: "Private" },
+      { id: "three", title: "hidden", start: "2026-08-28T05:00:00Z", end: "2026-08-28T06:00:00Z", day: "FRI", time: "15:00",
+        source: "google" as const, calendarId: "primary", calendarName: "Private" },
+    ]);
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => ({ source: "google" as const, listBetween }),
+      clock: () => new Date("2026-08-27T00:00:00Z"),
+    });
+    const ask = await (await handler(request({
+      specialistId: "jarvis", messages: [{ role: "user", content: "What's on for tomorrow?" }],
+    }))).json();
+    const allow = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [
+        { role: "user", content: "What's on for tomorrow?" },
+        { role: "assistant", content: ask.reply },
+        { role: "user", content: "Yes." },
+      ],
+      pendingAuthorizationReference: ask.pendingAuthorizationReference,
+    }))).json();
+    expect(allow.reply).toBe("Tomorrow you have 2 commitments:\n- 10:00 AM – 11:00 AM\n- 3:00 PM – 4:00 PM");
+    expect(allow.reply).not.toContain("9:00 AM – 10:00 AM");
+    expect(model).toHaveBeenCalledOnce();
+  });
+
   it("preserves the governed Calendar commitment set when user history conflicts with model schedule prose", async () => {
     const model = vi.fn()
       .mockResolvedValueOnce(`I've noted that your 9 a.m. meeting tomorrow is a finance review.

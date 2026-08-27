@@ -452,6 +452,41 @@ describe("POST /api/lighter/chat", () => {
     expect(createConnector).not.toHaveBeenCalled();
   });
 
+  it("contains the exact final Typed Test 1 recall wording through the shared route", async () => {
+    const model = vi.fn(async () => "I saw these two time slots for tomorrow:\n\n1. **10:00 AM – 11:00 AM**\n2. **3:00 PM – 4:00 PM**");
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, {
+      createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z"),
+    })(request({ specialistId: "jarvis", messages: [
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments:\n10:00 AM – 11:00 AM\n3:00 PM – 4:00 PM" },
+      { role: "user", content: "What times did you just see?" },
+    ] }));
+    expect((await response.json()).reply).toMatch(/^From the calendar result I reported earlier,/);
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "From the calendar information I have, I can only see the timing of your commitments tomorrow.\n\nFor the 10:00 AM meeting, you told me earlier that it's the project review.\nFor the 3:00 PM meeting, I don't have any subject, title, or description available from the calendar data.",
+    "Based on what's visible in your Calendar:\n\n1. 10:00 AM – 11:00 AM: project review\n2. 3:00 PM – 4:00 PM: no label or details are available from your Calendar.\n\nThe Calendar evidence I have access to shows only the timing of commitments.",
+  ])("deterministically composes the final bound-detail live recall through the shared route: %s", async modelReply => {
+    const model = vi.fn(async () => modelReply);
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, {
+      createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z"),
+    })(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "My 10 a.m. meeting is the project review." },
+      { role: "assistant", content: "Thanks — I'll treat that as information you provided." },
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments:\n10:00 AM – 11:00 AM\n3:00 PM – 4:00 PM" },
+      { role: "user", content: "What are the meetings about?" },
+    ] }));
+    expect((await response.json()).reply).toBe(
+      "From the earlier Calendar result I reported: From what you told me earlier, the 10 AM commitment is the project review. The earlier governed Calendar result did not include title or description information for the 3 PM commitment."
+    );
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
   it("attributes a bounded Calendar recollection without connector access or pending authority", async () => {
     const model = vi.fn(async () => "I saw two time slots on your calendar: 10:00–11:00 AM and 3:00–4:00 PM.");
     const createConnector = vi.fn();

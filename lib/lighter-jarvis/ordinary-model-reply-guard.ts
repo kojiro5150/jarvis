@@ -46,6 +46,7 @@ const PRIVATE_ACCESS = /\b(?:access|read|search|retrieve|check|view|show|look(?:
 const CALENDAR_REQUEST = /\bcalendar\b/i;
 const PRIVATE_ACQUISITION_UTTERANCE = /\bwhat(?:'s| is)\s+on\s+(?:for\s+)?(?:today|tomorrow)\b|\b(?:calendar|gmail|e-?mail|inbox|drive)\b[\s\S]*\b(?:read|search|retrieve|check|view|show|look|access|connect|what(?:'s| is)|on)\b|\b(?:read|search|retrieve|check|view|show|look|access|connect|what(?:'s| is))\b[\s\S]*\b(?:calendar|gmail|e-?mail|inbox|drive)\b/i;
 const PROJECTED_FIELD_ABSENCE = /\b(?:the\s+)?(?:calendar entry|meeting|event)\s+(?:doesn['’]?t|does not)\s+include\s+(?:a\s+)?(?:label|title|description)(?:\s+or\s+(?:a\s+)?(?:label|title|description))?|\b(?:the\s+)?(?:meeting|event)\s+has\s+no\s+(?:title|label|description)(?:\s+in\s+the\s+calendar)?|\bthere\s+is\s+no\s+(?:title|label|description)\s+on\s+(?:the\s+)?(?:meeting|event)\b|\bI don['’]?t have any\s+(?:subject|title|description)(?:\s+or\s+(?:subject|title|description))*\s+information\s+visible\s+in\s+the\s+calendar\s+data\b/gi;
+const UNSAFE_BOUND_DETAIL_RECALL = /(?:\bfrom the calendar information I have\b|\bbased on what['’]s visible in your calendar\b|\bcalendar evidence I have access to\b|\bavailable from (?:your|the) calendar\b|\bvisible in the calendar data\b)/i;
 const GMAIL_REQUEST = /\b(?:gmail|e-?mail|emails|inbox|mailbox)\b/i;
 const DRIVE_REQUEST = /\bdrive\b/i;
 const FALSE_GLOBAL_CAPABILITY_CLAIM = /(?:\b(?:i\s+)?(?:do\s+not|don['’]?t|cannot|can['’]?t|am\s+not|I['’]?m\s+not|unable\s+to)\s+(?:(?:currently|directly)\s+)?(?:have\s+(?:(?:the|that|this|any)\s+)?(?:ability|capability|access)|access|connect(?:ed)?|read|search|retrieve|check|view)|\bno\s+(?:calendar|gmail|e-?mail|inbox|mailbox|drive)\s+(?:access|capability|integration)|\b(?:this|that|the)\s+capability\s+(?:does\s+not|doesn['’]?t)\s+exist|\b(?:calendar|gmail|e-?mail|inbox|mailbox|drive)\s+(?:is\s+not|isn['’]?t)\s+(?:connected|available|supported))/i;
@@ -126,10 +127,11 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
 
   if (calendarProvenance && !calendarProvenance.hasCurrentCalendarGovernedContext
     && calendarProvenance.isCalendarRecollection) {
-    // A detail follow-up with exact user-bound details is fully reconstructable
-    // from server-derived history state. Do not let model wording reassert
-    // current Calendar possession or source-level metadata claims.
-    if (calendarProvenance.isDetailFollowUp && (calendarProvenance.boundUserDetails?.length ?? 0) > 0) {
+    // Only unsafe live possession/source-level wording triggers deterministic
+    // reconstruction. Safe historical model wording remains untouched.
+    if (calendarProvenance.isDetailFollowUp
+      && (calendarProvenance.boundUserDetails?.length ?? 0) > 0
+      && UNSAFE_BOUND_DETAIL_RECALL.test(guarded)) {
       const known = (calendarProvenance.boundUserDetails ?? [])
         .map(detail => `From what you told me earlier, the ${detail.clock} commitment is the ${detail.label}.`).join(" ");
       const unknown = (calendarProvenance.unknownCommitmentClocks ?? [])

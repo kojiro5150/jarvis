@@ -83,6 +83,15 @@ describe("UnifiedOpsConsole head-mode contract", () => {
     expect(submission).not.toContain("proposedOperation");
   });
 
+  it("constructs shared typed and voice requests from synchronously accepted transport history", () => {
+    const submission = source.slice(
+      source.indexOf("async function submitMessage"),
+      source.indexOf("async function send"),
+    );
+    expect(submission).toContain("conversationHistoryRef.current.acceptUser");
+    expect(submission).not.toContain("const existingMessages = conversations[");
+  });
+
   it("the head-composite status is display-only, not a toggle control", () => {
     const headSource = source.slice(
       source.indexOf("function HeadComposite"),

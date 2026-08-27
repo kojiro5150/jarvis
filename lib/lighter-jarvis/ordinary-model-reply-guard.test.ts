@@ -9,10 +9,56 @@ import {
 } from "./ordinary-model-reply-guard";
 import {
   hasPriorVisibleCalendarReport,
+  calendarRecallDiagnostics,
   priorVisibleCalendarReportIsScheduleOnly,
 } from "./calendar-provenance-truthfulness";
 
 describe("ordinary-model reply guard", () => {
+  const liveReport = "Based on your calendar for tomorrow (Friday, 28 August 2026), you have two commitments:\n10:00 AM – 11:00 AM\n3:00 PM – 4:00 PM";
+
+  it("proves the complete-history state and attribution for the live timing transcript", () => {
+    const messages = [
+      { role: "assistant" as const, content: liveReport },
+      { role: "user" as const, content: "What times did you just see?" },
+    ];
+    const diagnostic = calendarRecallDiagnostics(messages);
+    expect(diagnostic).toMatchObject({ priorCalendarReportPresent: true,
+      calendarRecallFollowUp: true, hasCurrentCalendarGovernedContext: false,
+      isCalendarRecollection: true });
+    expect(guardOrdinaryModelReply("I just saw two time blocks on your calendar for tomorrow...",
+      messages.at(-1)?.content, false, diagnostic))
+      .toMatch(/^From the calendar result I reported earlier,/);
+  });
+
+  it("binds relevant user detail and rewrites current-source provenance with full history", () => {
+    const messages = [
+      { role: "user" as const, content: "My 10 AM meeting is the project review." },
+      { role: "assistant" as const, content: liveReport },
+      { role: "user" as const, content: "What are the meetings about?" },
+    ];
+    const diagnostic = calendarRecallDiagnostics(messages);
+    expect(diagnostic).toMatchObject({ isCalendarRecollection: true,
+      priorVisibleReportIsScheduleOnly: false, isDetailFollowUp: true,
+      hasCurrentCalendarGovernedContext: false });
+    expect(guardOrdinaryModelReply("From the calendar data I can access, I only see the timing...",
+      messages.at(-1)?.content, false, diagnostic))
+      .toMatch(/^From the earlier calendar result I reported/);
+  });
+
+  it("does not bind an unrelated 9 AM detail and keeps detail containment fail-closed", () => {
+    const scheduleOnlyReport = "Based on your calendar for tomorrow, you have two commitments:\n10:00 AM – 11:00 AM\n3:00 PM – 4:00 PM";
+    const messages = [
+      { role: "user" as const, content: "My 9 AM meeting is the finance review." },
+      { role: "assistant" as const, content: scheduleOnlyReport },
+      { role: "user" as const, content: "What are the meetings about?" },
+    ];
+    const diagnostic = calendarRecallDiagnostics(messages);
+    expect(diagnostic).toMatchObject({ isCalendarRecollection: true,
+      priorVisibleReportIsScheduleOnly: true, isDetailFollowUp: true });
+    expect(guardOrdinaryModelReply("The first is finance review and the second is unknown.",
+      messages.at(-1)?.content, false, diagnostic))
+      .toBe("The governed Calendar path available here includes timing information only, not titles or descriptions.");
+  });
   it.each([
     "Please explicitly confirm that I may read your Calendar.",
     "Can I access your calendar? Reply yes to confirm.",

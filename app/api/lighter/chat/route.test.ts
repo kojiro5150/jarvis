@@ -408,6 +408,110 @@ describe("POST /api/lighter/chat", () => {
     expect(createConnector).not.toHaveBeenCalled();
   });
 
+  it("fails closed to the deterministic Calendar schedule when model prose substitutes a projected commitment", async () => {
+    const model = vi.fn(async () => "Based on your calendar for tomorrow, you have two commitments:\n1. 9:00 AM – 10:00 AM\n2. 3:00 PM – 4:00 PM");
+    const listBetween = vi.fn(async () => [
+      { id: "ten", title: "hidden", start: "2026-08-28T00:00:00Z", end: "2026-08-28T01:00:00Z", day: "FRI", time: "10:00",
+        source: "google" as const, calendarId: "primary", calendarName: "Private" },
+      { id: "three", title: "hidden", start: "2026-08-28T05:00:00Z", end: "2026-08-28T06:00:00Z", day: "FRI", time: "15:00",
+        source: "google" as const, calendarId: "primary", calendarName: "Private" },
+    ]);
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => ({ source: "google" as const, listBetween }),
+      clock: () => new Date("2026-08-27T00:00:00Z"),
+    });
+    const ask = await (await handler(request({
+      specialistId: "jarvis", messages: [{ role: "user", content: "What's on for tomorrow?" }],
+    }))).json();
+    const allow = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [
+        { role: "user", content: "What's on for tomorrow?" },
+        { role: "assistant", content: ask.reply },
+        { role: "user", content: "Yes." },
+      ],
+      pendingAuthorizationReference: ask.pendingAuthorizationReference,
+    }))).json();
+    expect(allow.reply).toBe("Tomorrow you have 2 commitments:\n- 10:00 AM – 11:00 AM\n- 3:00 PM – 4:00 PM");
+    expect(allow.reply).not.toContain("9:00 AM – 10:00 AM");
+    expect(model).toHaveBeenCalledOnce();
+  });
+
+  it("preserves the governed Calendar commitment set when user history conflicts with model schedule prose", async () => {
+    const model = vi.fn()
+      .mockResolvedValueOnce(`I've noted that your 9 a.m. meeting tomorrow is a finance review.
+
+Since I don't have access to your calendar data in this conversation, I can't update or confirm any details about that meeting directly.`)
+      .mockResolvedValueOnce(`Based on your calendar for tomorrow (Friday, 28 August 2026), you have **two commitments**:
+
+1. **9:00 AM – 10:00 AM**
+2. **3:00 PM – 4:00 PM**
+
+From our earlier conversation, you mentioned that your 9 a.m. meeting is a finance review. I don't have details about the 3:00 PM commitment from the calendar data itself.`)
+      .mockResolvedValueOnce(`From our conversation, I know that your **9:00 AM meeting is a finance review** (you told me that earlier).
+
+For the **3:00 PM meeting**, I don't have any information about what it's about. The calendar data I can access shows only the timing of your commitments, not their subjects, titles, or other details.`);
+
+    const listBetween = vi.fn(async () => [
+      { id: "ten", title: "hidden", start: "2026-08-28T00:00:00Z", end: "2026-08-28T01:00:00Z", day: "FRI", time: "10:00",
+        source: "google" as const, calendarId: "primary", calendarName: "Private" },
+      { id: "three", title: "hidden", start: "2026-08-28T05:00:00Z", end: "2026-08-28T06:00:00Z", day: "FRI", time: "15:00",
+        source: "google" as const, calendarId: "primary", calendarName: "Private" },
+    ]);
+    const createConnector = vi.fn(() => ({ source: "google" as const, listBetween }));
+    const handler = createLighterChatHandler(model, {
+      createConnector,
+      clock: () => new Date("2026-08-27T00:00:00Z"),
+    });
+
+    const factMessages = [{ role: "user" as const, content: "My 9 a.m. meeting tomorrow is a finance review." }];
+    const fact = await (await handler(request({ specialistId: "jarvis", messages: factMessages }))).json();
+    expect(fact.reply).toBe("Thanks — I'll treat that as information you provided.");
+    expect(createConnector).not.toHaveBeenCalled();
+
+    const requestMessages = [
+      ...factMessages,
+      { role: "assistant" as const, content: fact.reply },
+      { role: "user" as const, content: "What's on for tomorrow?" },
+    ];
+    const ask = await (await handler(request({ specialistId: "jarvis", messages: requestMessages }))).json();
+    expect(ask.reply).toBe("Please explicitly confirm that I may read your Calendar.");
+    expect(createConnector).not.toHaveBeenCalled();
+
+    const allowMessages = [
+      ...requestMessages,
+      { role: "assistant" as const, content: ask.reply },
+      { role: "user" as const, content: "Yes." },
+    ];
+    const allow = await (await handler(request({
+      specialistId: "jarvis",
+      messages: allowMessages,
+      pendingAuthorizationReference: ask.pendingAuthorizationReference,
+    }))).json();
+
+    expect(allow.reply).toBe(
+      "Tomorrow you have 2 commitments:\n- 10:00 AM – 11:00 AM\n- 3:00 PM – 4:00 PM\nYou previously mentioned finance review at 9:00 AM, but that time does not match a commitment in this Calendar result, so I cannot associate it with one."
+    );
+    expect(allow.reply).not.toContain("9:00 AM – 10:00 AM");
+    expect(allow.reply).toContain("10:00 AM – 11:00 AM");
+    expect(listBetween).toHaveBeenCalledOnce();
+
+    const recall = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [
+        ...allowMessages,
+        { role: "assistant" as const, content: allow.reply },
+        { role: "user" as const, content: "What are those meetings about?" },
+      ],
+    }))).json();
+
+    expect(recall.reply).toBe("The governed Calendar path available here includes timing information only, not titles or descriptions.");
+    expect(recall.reply).not.toContain("9:00 AM meeting is a finance review");
+    expect(recall.reply).not.toMatch(/calendar data I can access/i);
+    expect(createConnector).toHaveBeenCalledOnce();
+    expect(model).toHaveBeenCalledTimes(3);
+  });
+
   it.each([
     "I can help you work with the information here, but Calendar write/update actions are not available in the current governed path.",
     "I haven't read your Calendar on this turn. Calendar reads are available through the governed path when explicitly authorized.",

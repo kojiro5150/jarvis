@@ -13,9 +13,9 @@ import { isAmbiguousPrivateReadFollowUp, isPrivateAcquisitionHandoffRequest } fr
 import { guardOrdinaryModelReply } from "@/lib/lighter-jarvis/ordinary-model-reply-guard";
 import { resolveProductionDriveSearch, type ProductionDriveSearchDependencies } from "@/lib/lighter-jarvis/production-drive-search";
 import { resolveProductionDriveRead, type ProductionDriveReadDependencies } from "@/lib/lighter-jarvis/production-drive-read";
-import { bindUserCalendarDetails, projectCalendarContext } from "@/lib/lighter-jarvis/calendar-governed-context";
+import { bindUserCalendarDetails, projectCalendarContext, type CalendarBindingState } from "@/lib/lighter-jarvis/calendar-governed-context";
 import { createGovernedContext, type GovernedContext } from "@/lib/lighter-jarvis/governed-context";
-import { calendarRecallDiagnostics } from "@/lib/lighter-jarvis/calendar-provenance-truthfulness";
+import { calendarRecallDiagnostics, displayCalendarClock, normalizedCalendarClock } from "@/lib/lighter-jarvis/calendar-provenance-truthfulness";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -132,16 +132,22 @@ export function hasVerifiableExternalEvidence(content: ClaudeContentBlock[], all
 }
 
 export function formatCalendarReadResponse(calendar: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["evidence"]>,
-  window?: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["window"]>): string {
+  window?: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["window"]>,
+  bindingState?: CalendarBindingState): string {
   if (calendar.status !== "available") return "I couldn't access your Calendar right now.";
   if (calendar.evidence.length === 0 && window) return clearCalendarPeriod(window.period);
   if (calendar.evidence.length > 0 && window) {
     const includeDate = window.period === "this_week" || window.period === "default";
-    const commitments = calendar.evidence.map(({ start, end }) =>
-      `- ${includeDate ? `${formatMelbourneDate(start)}, ` : ""}${formatMelbourneTime(start)} – ${formatMelbourneTime(end)}`,
-    ).join("\n");
+    const bindingByStart = new Map((bindingState?.bindings ?? []).map(binding => [binding.commitmentStart, binding.label]));
+    const commitments = calendar.evidence.map(({ start, end }) => {
+      const label = bindingByStart.get(start);
+      return `- ${includeDate ? `${formatMelbourneDate(start)}, ` : ""}${formatMelbourneTime(start)} – ${formatMelbourneTime(end)}${label ? ` — ${label} (as you mentioned)` : ""}`;
+    }).join("\n");
     const count = calendar.evidence.length;
-    return `${calendarPeriodHeading(window.period)} you have ${count} commitment${count === 1 ? "" : "s"}:\n${commitments}`;
+    const unbound = (bindingState?.unbound ?? []).map(detail =>
+      `You previously mentioned ${detail.label} at ${displayCalendarClock(detail.clock)}, but that time does not match a commitment in this Calendar result, so I cannot associate it with one.`
+    ).join("\n");
+    return `${calendarPeriodHeading(window.period)} you have ${count} commitment${count === 1 ? "" : "s"}:\n${commitments}${unbound ? `\n${unbound}` : ""}`;
   }
   const coverage = calendar.evidence[0]?.coverageLimit.match(/^window=([^/]+)\/([^;]+);/) ?? null;
   const bounds = window ? [window.start, window.end] : coverage?.slice(1);
@@ -191,6 +197,35 @@ function formatMelbourne(value: string): string {
 }
 function formatMelbourneTime(value: string): string { return upperCaseMeridiem(melbourneTimePresentation.format(new Date(value))); }
 function formatMelbourneDate(value: string): string { return melbourneDatePresentation.format(new Date(value)); }
+
+const CALENDAR_REPLY_INTERVAL = /(\d{1,2})(?::(\d{2}))?\s*(AM|PM)\s*[–-]\s*(\d{1,2})(?::(\d{2}))?\s*(AM|PM)/gi;
+
+function calendarIntervalKey(start: string, end: string): string {
+  const parts = (value: string) => {
+    const formatted = formatMelbourneTime(value);
+    const match = formatted.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)/i);
+    if (!match) throw new Error("Unable to normalize Calendar commitment time.");
+    return normalizedCalendarClock(match[1], match[2], match[3]);
+  };
+  return `${parts(start)}->${parts(end)}`;
+}
+
+/**
+ * Current governed Calendar presentation may add prose, but it may not alter
+ * the projected commitment set. Any missing, substituted or extra interval
+ * fails closed to the deterministic server formatter.
+ */
+export function calendarReplyPreservesProjection(content: string,
+  commitments: readonly Readonly<{ start: string; end: string }>[]): boolean {
+  const observed = [...content.matchAll(CALENDAR_REPLY_INTERVAL)].map(match =>
+    `${normalizedCalendarClock(match[1], match[2], match[3])}->${normalizedCalendarClock(match[4], match[5], match[6])}`
+  ).sort();
+  CALENDAR_REPLY_INTERVAL.lastIndex = 0;
+  const expected = commitments.map(commitment => calendarIntervalKey(commitment.start, commitment.end)).sort();
+  const hasExplicitClock = /\b\d{1,2}(?::\d{2})?\s*(?:AM|PM)\b/i.test(content);
+  if (observed.length === 0) return !hasExplicitClock;
+  return observed.length === expected.length && observed.every((value, index) => value === expected[index]);
+}
 
 export function createLighterChatHandler(callModel: ModelCall = callClaude, calendarDependencies?: ProductionCalendarDependencies,
   gmailDependencies?: ProductionGmailDependencies, gmailSearchDependencies?: ProductionGmailSearchDependencies,
@@ -288,6 +323,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       }
       const projected = projectCalendarContext(calendar.evidence!.evidence, calendar.window);
       const bindingState = bindUserCalendarDetails(body.messages, projected.commitments);
+      const deterministicReply = formatCalendarReadResponse(calendar.evidence!, calendar.window, bindingState);
       const governedContext = createGovernedContext(projectCalendarContext(calendar.evidence!.evidence, calendar.window,
         bindingState.bindings, bindingState.unbound));
       try {
@@ -295,20 +331,23 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         const modelMessages = sanitizeModelHistory(body.messages);
         const result = await callModel(systemPrompt, modelMessages, JARVIS_TOOLS, governedContext);
         const modelReply = typeof result === "string" ? result : result.text;
-        const reply = guardOrdinaryModelReply(modelReply, currentUserUtterance, false, {
+        const guardedReply = guardOrdinaryModelReply(modelReply, currentUserUtterance, false, {
           hasCurrentCalendarGovernedContext: governedContext.sources.some(source => source.source === "calendar"),
           isCalendarRecollection: false,
           unboundUserDetails: bindingState.unbound,
           currentCommitmentClocks: governedContext.sources[0].commitments.map(commitment => formatMelbourneTime(commitment.start)),
           currentCalendarFallback: fallback,
         });
+        const reply = calendarReplyPreservesProjection(guardedReply, projected.commitments)
+          ? guardedReply
+          : deterministicReply;
         return NextResponse.json({ reply, specialistId: specialist.id, execution: "none",
           calendarAuthority: { decision: "ALLOW", reason: calendar.reason } });
       } catch (error) {
         console.error("[/api/lighter/chat] Governed Calendar model invocation failed:", error);
       }
       return NextResponse.json({
-        reply: fallback,
+        reply: deterministicReply,
         specialistId: specialist.id,
         execution: "none",
         calendarAuthority: { decision: "ALLOW", reason: calendar.reason },

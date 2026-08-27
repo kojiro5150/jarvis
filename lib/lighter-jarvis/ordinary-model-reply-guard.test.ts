@@ -75,6 +75,30 @@ describe("ordinary-model reply guard", () => {
       .toMatch(expected);
   });
 
+  it("contains the exact Typed Test 1 recall wording", () => {
+    const recollection = { hasCurrentCalendarGovernedContext: false, isCalendarRecollection: true } as const;
+    const reply = "I saw these two time slots for tomorrow:\n\n1. **10:00 AM – 11:00 AM**\n2. **3:00 PM – 4:00 PM**";
+    expect(guardOrdinaryModelReply(reply, "What times did you just see?", false, recollection))
+      .toMatch(/^From the calendar result I reported earlier,/);
+  });
+
+  it.each([
+    "From the calendar information I have, I can only see the timing of your commitments tomorrow.",
+    "Based on what's visible in your Calendar:\n\n1. 10:00 AM – 11:00 AM: project review\n2. 3:00 PM – 4:00 PM: no label.",
+  ])("contains the final bound-detail live provenance family: %s", reply => {
+    const result = guardOrdinaryModelReply(reply, "What are the meetings about?", false, {
+      hasCurrentCalendarGovernedContext: false,
+      isCalendarRecollection: true,
+      priorVisibleReportIsScheduleOnly: false,
+      isDetailFollowUp: true,
+      boundUserDetails: [{ clock: "10 AM", label: "project review" }],
+      unknownCommitmentClocks: ["3 PM"],
+    });
+    expect(result).toBe(
+      "From the earlier Calendar result I reported: From what you told me earlier, the 10 AM commitment is the project review. The earlier governed Calendar result did not include title or description information for the 3 PM commitment."
+    );
+  });
+
   it("proves the complete-history state and attribution for the live timing transcript", () => {
     const messages = [
       { role: "assistant" as const, content: "Based on your calendar for tomorrow, you have two commitments:\n10:00 AM – 11:00 AM\n3:00 PM – 4:00 PM" },

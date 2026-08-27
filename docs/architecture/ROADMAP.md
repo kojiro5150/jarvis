@@ -114,7 +114,7 @@ These are explicit boundaries, not reasons to delay the next audit.
         Proving question: "What needs my attention?"
 ```
 
-Sprint 3.153 must audit the existing EOS cognition stages against the state that can truthfully be produced now. It must not wire the pipeline merely because the stages exist. Its job is to identify the smallest deterministic end-to-end seam from governed operational evidence to an inspectable Attention Brief, and to stop if the current canonical contracts cannot support that seam without inference.
+Sprint 3.153 must start from the real question rather than from the existing EOS pipeline. It must identify the minimum deterministic information transformations required to answer “What needs my attention?” honestly, then map only those transformations to existing stages where they genuinely fit. It must not wire the pipeline merely because the stages exist. Its job is to identify the smallest truthful path from governed operational evidence to an inspectable Attention Brief, and to leave every non-required stage unwired.
 
 ---
 
@@ -162,7 +162,7 @@ optional conversational rendering
 
 The LLM may eventually explain an Attention Brief; it must not originate the underlying facts, manufacture a change, invent priority, or silently turn structural queue ordering into importance.
 
-**Sprint 3.153 is audit-only.** It must determine what the current stages actually consume and produce on `main`, which current governed evidence can reach them honestly, what identity/provenance survives, and whether a minimal Attention Brief can be defined without changing authority architecture. Implementation follows only from that evidence.
+**Sprint 3.153 is audit-only.** It is the first operational test of `EXECUTIVE-COGNITION-SCOPE-DISCIPLINE.md`, which is a binding scope constraint for Executive Cognition work beneath the Engineering Constitution and North Star. The audit must derive the minimum deterministic transformations from the question first, then determine which existing stages are load-bearing, not required for this capability, or still unproven. A sparse result is an acceptable—and potentially preferable—outcome. Implementation follows only from that evidence.
 
 ---
 
@@ -260,4 +260,6 @@ Consistent with the discipline established across this session:
 - Do not fold a projection fix into a "quick patch" — Sprint 3.68 exists specifically because that temptation was already named and rejected once, and the full audit-first sequence (3.68-3.74) is what actually closed the gap.
 - Do not force legacy `/api/chat` convergence merely to simplify the diagram. The governed console path and legacy compatibility path must be compared by demonstrated behaviour; retirement or convergence requires a separate evidence-led decision.
 - Do not make "What needs my attention?" a synonym for LLM ranking. Attention must remain a deterministic, inspectable policy result before any conversational rendering.
+- Do not route a real question through every existing EOS stage merely to see which stages fire. Derive the minimum required transformations first; existing stages must earn inclusion against that need.
+- Do not interpret a mostly-unwired result as failure. "Not required for this capability" is a valid successful audit finding and does not imply deletion or irrelevance elsewhere.
 - Do not treat a successful Attention audit as authority to enable planning or action. Attention is not recommendation, approval, or execution.

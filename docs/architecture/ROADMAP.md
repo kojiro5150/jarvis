@@ -1,6 +1,6 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Last updated 2026-08-01 following Sprint 3.87's conversational-runtime integration re-attempt — updated deliberately at this point rather than waiting for full production integration, because the identity/lineage architecture is now complete and proven while the remaining gap to integration is precisely scoped rather than unknown. That combination is itself a meaningful, honestly-statable milestone.
+**Status:** Living document. Last reconciled 2026-08-27 after Sprint 3.152c. The August 1 roadmap state is superseded: governed conversational source inputs, operation-level authority for bounded Calendar/Gmail/Drive reads, private-history containment, voice turn integrity, and live Calendar GovernedContext/recall truthfulness have since been implemented and verified. The next deliberate transition is from source/authority hardening to audit-led activation of the existing deterministic Executive Cognition pipeline.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
 
@@ -28,36 +28,37 @@ No phase below is authorised to skip Discover/Govern and jump to Implement, rega
 
 ```text
 Proven and operational
-    Phase I  — Deterministic Runtime Foundation
-    Dashboard (governed, evaluated, integrated, promoted — live in production)
-    DAWNWATCH (governed, implemented, evaluated, integrated, promoted —
-    live on the real account, including a resolved Gmail recipient gap
-    that required a real connector change, not a presentation fix)
-    Calendar & Gmail generic projection adapters
+    Phase I — Deterministic Runtime Foundation
+    Phase II — Governed Projection & Presentation
+    Dashboard and DAWNWATCH promoted through explicit governed selectors
+    Bounded operation-level authority and acquisition for Calendar, Gmail,
+    and Drive on the governed console path
+    Server-owned one-shot PendingAuthorization for supported proposal flows
+    Typed and voice turns sharing the governed conversational path
+    Calendar GovernedContext with exact user-detail binding and truthful recall
 
-Architecture proven in isolation, production integration blocked on a
-precisely-scoped evidence-production gap
-    Conversational runtime identity/lineage architecture (Sprints 3.75-3.86:
-    governed, implemented, evaluated, found genuinely incompatible mid-stream,
-    corrected, and proven — via a real composition test, not assertion — to
-    compose truthfully with all EOS references absent. /api/chat itself
-    remains completely untouched; Sprint 3.87's re-attempt correctly stopped
-    at the Projection Ownership Integration Gate rather than integrate on
-    invented evidence)
+Proven but deliberately bounded
+    Governed conversational claims/conflicts/evidence publication,
+    enrichment and integrity machinery
+    Private-source results that remain capability-scoped rather than a
+    general ambient context
+    Process-local PendingAuthorization (not durable/distributed)
+    Legacy /api/chat retained as a parallel compatibility path, with Gmail
+    execution contained and implicit private OperationalState removed
 
-Ready for disciplined discovery
-    Governed conversational production evidence inputs (blocking the
-    conversational integration re-attempt — see Phase III)
+Ready for disciplined activation
+    Deterministic Executive Cognition already present in the EOS:
+    Situational Awareness → Attention → Situation Formation → Assessment →
+    Executive Context → Candidate Construction/Evaluation/Comparison →
+    Executive Reasoning
+    First proving question: "What needs my attention?"
 
-Known strategic directions, not yet architecturally earned
-    Role-specific projection adapters
-    Deterministic executive cognition (Candidate Construction/Evaluation/
-    Comparison — built, unwired, unused; awareness, dependency analysis,
-    conflict detection and planning, not primarily recommendation-production)
-    Approval Records / governance event layer
-    Voice interface
-    Anomaly detection & cross-role continuity
-    GE / PHDSS / BOA pattern synthesis
+Known strategic directions, not yet earned
+    Role-specific operational context
+    Governed action approval/execution records
+    Full voice-first experience
+    Proactive anomaly detection and cross-role continuity
+    Durable/distributed authority state
 ```
 
 ---
@@ -80,24 +81,40 @@ Canonical models (OperationalCommitment, OperationalCommunication), the 14-stage
 
 ---
 
-## Phase III — Conversational Runtime Migration — Identity Architecture Proven, Production Integration Blocked on a Named Evidence Gap
+## Phase III — Trustworthy Conversational Runtime — Substantially Operational, Parallel Legacy Path Remains
 
-`/api/chat` still runs entirely on legacy `OperationalState`. This is where the project's original motivating bug lives — a confident scheduling claim followed by an unprompted retraction. Sprint 3.51 had earlier exposed `ExecutiveContext` and governed retrieval to `/api/chat` *in parallel*, and Sprint 3.58.1 added a deterministic relative-date workaround at the margins — but neither migrated the default conversational path itself. The live route remains completely unmodified since: confirmed by blob hash at multiple points across the sequence below, `app/api/chat/route.ts` has not changed throughout Sprints 3.75-3.87, including the most recent integration attempt.
+The August 1 roadmap described conversational integration as blocked on missing governed production evidence inputs. That blocker is no longer the current state.
 
-What has changed is everything underneath it. This section previously read "Not Started" — that was accurate then and would be false now, but "Complete" would be equally false. The honest state, following the same audit-first discipline used for DAWNWATCH:
+**Sprints 3.88–3.119** built the missing governed conversational evidence, claim, conflict, enrichment, identity and integrity machinery. Source-specific publishers and acquisition adapters were connected and evaluated without allowing the projection composer or model to invent evidence relationships.
 
-**Governed and proven (Sprints 3.75-3.86).** Sprint 3.75 audited `/api/chat`'s legacy path and found it had no evidence-sufficiency discipline at all. Sprint 3.76 governed a conversational contract with a closed evidence-status vocabulary. Sprints 3.77-3.79 built and evaluated an isolated governed pipeline — evidence status, model invocation, response validation — with zero live-route contact, proven by forward/reverse import search. Sprint 3.80 attempted first integration and correctly stopped: ordinary chat had no honest identity capable of satisfying the governed input contract without falsely implying an EOS run had occurred. Sprints 3.82-3.83 built a genuine conversational lineage/identity architecture (thread/request/exchange, separate from EOS identity). Sprint 3.84 then found that this lineage architecture and the earlier evidence/model architecture did not actually compose — two independently valid tracks using incompatible identity semantics. Sprint 3.85 governed the correction; Sprint 3.86 implemented it, after its own first attempt correctly caught a real contradiction in its own frozen-test scope that four prior review passes had missed. The result, verified directly against the committed code rather than taken from any report's prose: an ordinary conversational exchange now completes the full isolated pipeline — projection, evidence status, model invocation, validation, terminal execution record — with no EOS identity present or required.
+**Sprints 3.120–3.148** then established a bounded live authority architecture on the governed console path. Supported private operations are proposed and adjudicated before acquisition; positive authority comes from the current user turn or server-owned one-shot pending state, never from model output. Calendar reads, bounded Gmail search, identified-message Gmail reads, Drive metadata search and identified Google Doc reads have deterministic gated production paths. Ordinary model history excludes governed private releases where required. Legacy Gmail execution on `/api/chat` is explicitly contained rather than treated as equivalent authority.
 
-**Integration re-attempted and correctly stopped again (Sprint 3.87), on a different and much more specific blocker.** With the identity foundation resolved, Sprint 3.87 re-attempted live integration and investigated, category by category, whether production already exposes the evidence shapes the existing Dedicated Conversational Projection Composer requires. It does not. Of the eight required evidence categories, seven have no production producer at all (calendar, memory/priorities, general source evidence, connector availability, conversation history, claims, conflicts). The eighth — communications — has a real, live, production-wired Gmail normalizer (`projectProductionGmailEvidence`, built for DAWNWATCH and already feeding production `OperationalState`), but it produces the wrong shape: a normalized observation, not the composer's required governed publication with provenance, policy, and availability semantics. Sprint 3.87 correctly declined to invent any of these mappings inside the route, bypass the projection composer, or claim partial credit for shipping only a selector — the same discipline the whole sequence has held throughout.
+**Sprint 3.149** audited the authentic runtime and established an important architectural fact: the governed console uses `/api/lighter/chat` for both typed and serialized voice turns, with deterministic private-capability resolvers ahead of ordinary model invocation. The alternate Dashboard/`/api/chat` path remains production-reachable as a separate compatibility runtime; the repository does not justify calling the entire product a single converged conversational runtime.
+
+**Sprints 3.150–3.152c** closed the first live GovernedContext loop for Calendar. An authorized current-turn Calendar projection may enter bounded JARVIS reasoning; later conversational recall may use visible prior prose but cannot represent that recollection as current Calendar access. Exact user-supplied times bind only to exact projected commitments. The final hard-reset live acceptance suite passed 6/6 after Sprint 3.152c.
+
+### Current Phase III conclusion
+
+Phase III is no longer blocked on the old projection-input gap. The governed conversational path is operational enough to support the next architectural experiment: consuming trustworthy structured state in executive cognition.
+
+It is **not complete in the sense of universal convergence**:
+
+- `/api/chat` remains a parallel legacy/compatibility path;
+- PendingAuthorization remains process-local rather than durable/distributed;
+- private capabilities are still intentionally bounded rather than ambient;
+- Calendar is the strongest live GovernedContext proof; Gmail and Drive remain primarily deterministic release paths;
+- no claim is made that arbitrary private evidence may be assembled into model context.
+
+These are explicit boundaries, not reasons to delay the next audit.
 
 ### Immediate next step
 
 ```text
-3.88 — Governed Conversational Production Projection Inputs Contract
-       and Implementation
+3.153 — Executive Cognition Activation Audit
+        Proving question: "What needs my attention?"
 ```
 
-Scope, named directly by Sprint 3.87's own findings: govern and implement production owners for the seven missing evidence categories, plus the second-stage mapping from the existing Gmail normalizer's output into the composer's required communication-evidence shape. This must not touch the projection composer itself, derive evidence inside `/api/chat`, or introduce general natural-language claim extraction. Only after this sprint passes independently should Sprint 3.87's integration be re-attempted — not skipped past toward operator verification.
+Sprint 3.153 must audit the existing EOS cognition stages against the state that can truthfully be produced now. It must not wire the pipeline merely because the stages exist. Its job is to identify the smallest deterministic end-to-end seam from governed operational evidence to an inspectable Attention Brief, and to stop if the current canonical contracts cannot support that seam without inference.
 
 ---
 
@@ -107,15 +124,45 @@ Everything built so far is generic Calendar/Gmail. Nothing yet reflects the thre
 
 ---
 
-## Phase V — Deterministic Executive Cognition — Built, Unwired, Unused
+## Phase V — Deterministic Executive Cognition — Built Foundation, Activation Now Next
 
-**Renamed from an earlier draft's "Deterministic Decision-Support Reasoning," and the rename matters, not just as wording.** JARVIS is not PHDSS. PHDSS asks "what should a Board understand before making this decision" — episodic, high-stakes, institutional. JARVIS asks "what do I need to know, remember, focus on, and do right now" — continuous, everyday, personal. Framing this phase around producing *recommendations* quietly imports PHDSS's centre of gravity; framing it around expanding *executive cognition* — awareness, orientation, prioritisation, dependency analysis, conflict detection, and planning among its manifestations, decision support only one consequence among several, never the mission — keeps JARVIS what it's actually meant to be: an everyday executive assistant, not a governance system scaled down to one user.
+JARVIS is not PHDSS scaled down to one person. Its everyday purpose is continuous executive cognition: awareness, orientation, attention, dependency recognition, conflict detection, capacity understanding and planning support. A decision recommendation is not the centre of gravity.
 
-The EOS pipeline already contains real, built stages — **Candidate Construction, Candidate Evaluation, Candidate Comparison, and Executive Reasoning** (Sprints 3.10–3.23), sitting within the full 12-stage pipeline (Projection → Situational Awareness → Attention → Situation Formation → Situation Assessment → Executive Context → Intent & Constraints → Candidate Construction → Candidate Evaluation → Candidate Comparison → Executive Reasoning → Governed Action Proposal) — deterministic, structured reasoning that predates and does not require an LLM. This is currently the most under-leveraged asset in the codebase. "Executive Cognition" is the framing for what this phase is *for*; it does not rename or replace these existing stage names, which remain the actual, built vocabulary to audit and wire.
+The repository already contains the deterministic EOS stages needed to explore that purpose. In particular, the Observation/Situational Awareness and Executive Attention layers are real, typed and policy-bound; later Situation Formation, Assessment, Executive Context, Candidate Construction, Candidate Evaluation, Candidate Comparison and Executive Reasoning stages also exist. Their existence, however, is not evidence that the current governed conversational runtime can truthfully drive them end to end.
 
-What this phase is actually for, in the everyday-assistant terms it should be judged against: forgotten commitments, conflicting obligations, hidden dependencies, upcoming bottlenecks, drifted assumptions, competing priorities, available capacity — the ordinary, continuous "what's happening, what changed, what needs attention" questions, not "what should I decide." An LLM, if used at all in this layer, articulates trade-offs in natural language over facts this pipeline already computed — it never originates the facts or the framing.
+The next proving capability is deliberately narrower than "wire Executive Reasoning":
 
-**Audit-first requirement:** what do the existing stages actually do against real projected state right now; what would connecting them require; what is the correct constitutional boundary for where deterministic output hands off to LLM-mediated conversation.
+> **What needs my attention?**
+
+Why this first:
+
+- it is central to the everyday JARVIS vision;
+- the existing Attention layer is explicitly deterministic and policy-based;
+- it can surface matched changes without pretending queue order is importance;
+- it does not require autonomous action or a system-issued recommendation;
+- it provides a clean structured-record-first boundary before any LLM wording.
+
+The target conceptual chain is:
+
+```text
+authorized / governed operational evidence
+        ↓
+canonical projected state
+        ↓
+situational snapshot / change set
+        ↓
+deterministic Attention Policies
+        ↓
+Executive Attention Queue
+        ↓
+bounded Attention Brief
+        ↓
+optional conversational rendering
+```
+
+The LLM may eventually explain an Attention Brief; it must not originate the underlying facts, manufacture a change, invent priority, or silently turn structural queue ordering into importance.
+
+**Sprint 3.153 is audit-only.** It must determine what the current stages actually consume and produce on `main`, which current governed evidence can reach them honestly, what identity/provenance survives, and whether a minimal Attention Brief can be defined without changing authority architecture. Implementation follows only from that evidence.
 
 ---
 
@@ -125,9 +172,13 @@ Paused at Sprint 3.24 specifically to build the deterministic foundation first. 
 
 ---
 
-## Phase VII — Voice Interface — Deliberately Last
+## Phase VII — Voice Interface — Transport Integrated, Experience Incomplete
 
-By original design. A mic-capture hook exists (amplitude display only, explicitly no STT behind it). Real work has not begun, and should not begin before the reasoning underneath it is trustworthy — voice makes bad answers *more* dangerous, not less, by removing the visual pause to double-check.
+Voice is no longer accurately described as untouched. The governed console has mic/voice-session plumbing and, since Sprint 3.143, capture-identified voice turns are serialized through the same canonical submission path as typed turns. The Calendar acceptance work also proved the same authority and recall semantics through voice.
+
+What remains is the broader voice-first experience: dependable speech input/output, interruption/turn management, natural conversational pacing, and production UX quality. Those capabilities must continue to inherit the same authority and evidence semantics as typed interaction; voice may not become a second authority path.
+
+The sequencing principle still stands: deepen cognition first, then make it more ambient through voice.
 
 ---
 
@@ -205,6 +256,8 @@ The full Iron-Man vision — fully autonomous, understands anything, acts on eve
 
 Consistent with the discipline established across this session:
 
-- Do not build Phase IV, V, VI, VII, or the synthesis layer speculatively. Each requires its own audit first.
+- Do not build role-awareness, action execution, proactive continuity, or broad voice autonomy speculatively. Each requires its own audit and bounded authority contract.
 - Do not fold a projection fix into a "quick patch" — Sprint 3.68 exists specifically because that temptation was already named and rejected once, and the full audit-first sequence (3.68-3.74) is what actually closed the gap.
-- Do not integrate `/api/chat` before the Projection Ownership Integration Gate genuinely passes. Sprint 3.87 exists specifically because that shortcut — inventing evidence mappings inside the route to make integration appear complete — was already available and deliberately refused. Replacement follows demonstrated equivalence — always.
+- Do not force legacy `/api/chat` convergence merely to simplify the diagram. The governed console path and legacy compatibility path must be compared by demonstrated behaviour; retirement or convergence requires a separate evidence-led decision.
+- Do not make "What needs my attention?" a synonym for LLM ranking. Attention must remain a deterministic, inspectable policy result before any conversational rendering.
+- Do not treat a successful Attention audit as authority to enable planning or action. Attention is not recommendation, approval, or execution.

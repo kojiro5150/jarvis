@@ -80,6 +80,38 @@ describe("ordinary-model reply guard", () => {
     })).toBe(expected);
   });
 
+  it.each([
+    ["I just saw two time blocks for tomorrow:\n\n1. 10:00 AM – 11:00 AM\n2. 3:00 PM – 4:00 PM\n\nThese are the times I reported from the calendar view a moment ago.",
+      "From the calendar result I reported earlier, there were two time blocks for tomorrow:\n\n1. 10:00 AM – 11:00 AM\n2. 3:00 PM – 4:00 PM"],
+    ["The calendar view I saw only showed the time blocks (10:00 AM – 11:00 AM and 3:00 PM – 4:00 PM). It didn't include titles or subjects.",
+      "The earlier Calendar result I reported contained only the time blocks (10:00 AM – 11:00 AM and 3:00 PM – 4:00 PM). It didn't include titles or subjects."],
+    ["The calendar projection I can see shows when they occur but not what they're about.",
+      "The earlier Calendar projection I reported showed when they occur but not what they're about."],
+  ])("contains residual Calendar recall language: %s", (reply, expected) => {
+    expect(guardOrdinaryModelReply(reply, "What are the meetings about?", false, {
+      ...recollection, priorVisibleReportIsScheduleOnly: false, isDetailFollowUp: true,
+    })).toBe(expected);
+  });
+
+  it.each([
+    ["I just saw those times.", "From the calendar result I reported earlier, those times."],
+    ["I just saw two commitments.", "From the calendar result I reported earlier, two commitments."],
+    ["I just saw the timing.", "From the calendar result I reported earlier, the timing."],
+    ["The Calendar view I saw showed two time blocks.", "The earlier Calendar result I reported contained two time blocks."],
+    ["The calendar view I saw contained two time blocks.", "The earlier Calendar result I reported contained two time blocks."],
+    ["The Calendar projection I can see contains two time blocks.", "The earlier Calendar projection I reported contained two time blocks."],
+    ["The calendar projection I can see only includes the times.", "The earlier Calendar projection I reported only included the times."],
+  ])("covers only the bounded residual phrase variants: %s", (reply, expected) => {
+    expect(guardOrdinaryModelReply(reply, "What times did you just see?", false, recollection)).toBe(expected);
+  });
+
+  it("composes projection attribution, user detail, and false-reread containment", () => {
+    const reply = "The calendar projection I can see shows the times only.\nEarlier you told me the 10 AM meeting is the project review.\nI don't have details for the 3 PM meeting.\nIf you'd like, I can check Calendar again for the 3 PM title.";
+    expect(guardOrdinaryModelReply(reply, "What are the meetings about?", false, {
+      ...recollection, priorVisibleReportIsScheduleOnly: false, isDetailFollowUp: true,
+    })).toBe("The earlier Calendar projection I reported showed the times only.\nEarlier you told me the 10 AM meeting is the project review.\nI don't have details for the 3 PM meeting.\nThe governed Calendar path available here does not expose titles or descriptions.");
+  });
+
   it("allows current Calendar language when current governed evidence exists", () => {
     const reply = "Based on your calendar for tomorrow, you have two commitments.";
     expect(guardOrdinaryModelReply(reply, "What is on tomorrow?", false, {
@@ -88,6 +120,9 @@ describe("ordinary-model reply guard", () => {
   });
 
   it.each(["I can see what you mean.", "I saw your previous message.",
+    "I just saw your previous message.", "I just saw the note you pasted.",
+    "The projection I can see in the chart is increasing.", "The view I saw in the document was different.",
+    "The table view I saw contained three rows.",
     "The information I saw in the text you pasted...", "I saw two options in your note.",
     "I can see two options in the text you pasted.", "I saw that you wrote Atlas.",
     "I can see the difference between those approaches.",
@@ -98,7 +133,7 @@ describe("ordinary-model reply guard", () => {
   });
 
   it("does not rewrite bare schedule perception when current governed evidence exists", () => {
-    const reply = "I can see two commitments in the current Calendar evidence.";
+    const reply = "The calendar projection I can see shows two commitments.";
     expect(guardOrdinaryModelReply(reply, "What is on tomorrow?", false, {
       hasCurrentCalendarGovernedContext: true, isCalendarRecollection: true,
     })).toBe(reply);

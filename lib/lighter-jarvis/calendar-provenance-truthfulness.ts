@@ -86,12 +86,29 @@ export function attributeCalendarRecollection(content: string): string | undefin
   // false Calendar provenance from a later sentence in the same response.
   const isCalendarResultReply = /\bcalendar\b/i.test(content);
   if (isCalendarResultReply) {
+    const justSawSchedule = content.match(
+      /^I just saw ((?:two |\d+ )?(?:time blocks?|time slots?|commitments?|appointments?)[\s\S]+?)\s*\n\s*These are the times I reported from the calendar view a moment ago\.?$/i,
+    );
+    if (justSawSchedule) {
+      return `From the calendar result I reported earlier, there were ${justSawSchedule[1]}`;
+    }
+
     const multiSentenceSaw = content.match(/^I saw\s*:\s*([\s\S]+?)\s*\n\s*Those are the (.+?) I reported from your calendar([^.]*)\.?$/i);
     if (multiSentenceSaw) {
       return `From the calendar result I reported earlier, the ${multiSentenceSaw[2]} were:\n\n${multiSentenceSaw[1]}`;
     }
 
     const currentSourceRewrites: readonly [RegExp, string][] = [
+      [/^The calendar view I saw only (?:showed|contained)\s+/i,
+        "The earlier Calendar result I reported contained only "],
+      [/^The calendar view I saw (?:showed|contained)\s+/i,
+        "The earlier Calendar result I reported contained "],
+      [/^The calendar projection I can see only includes\s+/i,
+        "The earlier Calendar projection I reported only included "],
+      [/^The calendar projection I can see shows\s+/i,
+        "The earlier Calendar projection I reported showed "],
+      [/^The calendar projection I can see contains\s+/i,
+        "The earlier Calendar projection I reported contained "],
       [/^The calendar evidence I (?:currently )?have access to shows?\s+/i,
         "The earlier calendar result I reported contained "],
       [/^The calendar (?:data|entries|information) I (?:can|could) (?:currently )?see (?:only )?(?:includes?|shows?)\s+/i,
@@ -147,7 +164,7 @@ export function attributeCalendarRecollection(content: string): string | undefin
  */
 export function attributeBareCalendarRecollection(content: string): string | undefined {
   const match = content.match(
-    /^I (?:can see|saw) ((?:(?:the|those|these) )?(?:timing|times|time blocks?|time slots?)(?:\b[\s\S]*)|(?:the |those |these |two |\d+ )?(?:meetings?|commitments?|appointments?)\b[\s\S]*)$/i,
+    /^I (?:can see|(?:just )?saw) ((?:(?:the|those|these) )?(?:timing|times|time blocks?|time slots?)(?:\b[\s\S]*)|(?:the |those |these |two |\d+ )?(?:meetings?|commitments?|appointments?)\b[\s\S]*)$/i,
   );
   if (!match) return undefined;
   return `From the calendar result I reported earlier, ${match[1]}`;

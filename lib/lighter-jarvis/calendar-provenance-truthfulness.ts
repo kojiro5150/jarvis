@@ -1,6 +1,6 @@
 import type { ChatMessage } from "@/lib/agents/types";
 
-const CALENDAR_RECALL_FOLLOW_UP = /^(?:what (?:times? did you (?:just )?(?:see|give me)|did you (?:just )?(?:say|tell me)(?: (?:my schedule was|about tomorrow))?|did you report for tomorrow)|when were those (?:two )?(?:commitments|meetings)|what are the meetings about)[?!.]*$/i;
+const CALENDAR_RECALL_FOLLOW_UP = /^(?:what (?:times? did you (?:just )?(?:see|give me)|did you (?:just )?(?:say|tell me)(?: (?:my schedule was|about tomorrow))?|did you report for tomorrow)|when were those (?:two )?(?:commitments|meetings)|what are (?:those|the) (?:meetings|commitments) about)[?!.]*$/i;
 const PRIOR_CALENDAR_REPORT = /(?:\bbased on (?:the result from )?your calendar\b|\blooking at your calendar for (?:today|tomorrow|this (?:morning|afternoon|evening|week)|next seven days)\b[\s\S]*?\byou have (?:\d+|one|two|three|four|five) commitments?\b|\bcalendar result (?:I )?reported\b|\b(?:today|tomorrow|this (?:morning|afternoon|evening|week)|next seven days) (?:is clear|you have \d+ commitments?)\b|\byour calendar (?:is clear|has \d+ commitments?)\b)/i;
 const SCHEDULE_INTERVAL_TEXT = String.raw`\d{1,2}(?::\d{2})?\s*(?:AM|PM)?\s*[–-]\s*\d{1,2}(?::\d{2})?\s*(?:AM|PM)`;
 const SCHEDULE_ONLY_CALENDAR_REPORT = new RegExp(
@@ -9,7 +9,7 @@ const SCHEDULE_ONLY_CALENDAR_REPORT = new RegExp(
 );
 const UNBOUND_DETAIL_MISMATCH_SUFFIX = /\nYou previously mentioned [^\r\n]+ at \d{1,2}:\d{2}\s+(?:AM|PM), but that time does not match a commitment in this Calendar result, so I cannot associate it with one\.[\s]*$/i;
 const DETAIL_FOLLOW_UP = /^what are (?:those|the) (?:meetings|commitments) about[?!.]*$/i;
-const USER_SUPPLIED_TIMED_CALENDAR_DETAIL = /\b(?:my|the)\s+(\d{1,2})(?::(\d{2}))?\s*(A\.?M\.?|P\.?M\.?)\s+(?:meeting|commitment)\s+(?:is|was)(?:\s+(?:called|about))?\s+(?:the\s+)?(.+?)(?:[.!?]|$)/i;
+const USER_SUPPLIED_TIMED_CALENDAR_DETAIL = /\b(?:my|the)\s+(\d{1,2})(?::(\d{2}))?\s*(A\.?M\.?|P\.?M\.?)\s+(?:meeting|commitment)(?:\s+(?:today|tomorrow))?\s+(?:is|was)(?:\s+(?:called|about))?\s+(?:the\s+)?(.+?)(?:[.!?]|$)/i;
 const SCHEDULE_INTERVAL_PARTS = /(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?\s*[–-]\s*\d{1,2}(?::\d{2})?\s*(AM|PM)/gi;
 const OMITTED_CALENDAR_METADATA = String.raw`(?:titles?|subjects?|descriptions?|details?|locations?|attendees?|organi[sz]ers?)`;
 const FALSE_CALENDAR_REREAD_OFFER = new RegExp(

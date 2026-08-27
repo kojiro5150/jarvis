@@ -15,7 +15,7 @@ import { resolveProductionDriveSearch, type ProductionDriveSearchDependencies } 
 import { resolveProductionDriveRead, type ProductionDriveReadDependencies } from "@/lib/lighter-jarvis/production-drive-read";
 import { projectCalendarContext } from "@/lib/lighter-jarvis/calendar-governed-context";
 import { createGovernedContext, type GovernedContext } from "@/lib/lighter-jarvis/governed-context";
-import { calendarReportContainsOnlySchedule, hasPriorVisibleCalendarReport, isCalendarDetailRecallFollowUp, isCalendarRecallFollowUp } from "@/lib/lighter-jarvis/calendar-provenance-truthfulness";
+import { hasPriorVisibleCalendarReport, isCalendarDetailRecallFollowUp, isCalendarRecallFollowUp, priorVisibleCalendarReportIsScheduleOnly } from "@/lib/lighter-jarvis/calendar-provenance-truthfulness";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -402,7 +402,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       reply = guardOrdinaryModelReply(reply, currentUserUtterance, governedDriveHistoryExcluded, {
         hasCurrentCalendarGovernedContext: false,
         isCalendarRecollection: calendarRecall,
-        priorReportContainedOnlySchedule: calendarRecall && calendarReportContainsOnlySchedule(body.messages),
+        priorVisibleReportIsScheduleOnly: calendarRecall && priorVisibleCalendarReportIsScheduleOnly(body.messages),
         isDetailFollowUp: calendarRecall && isCalendarDetailRecallFollowUp(currentUserUtterance),
       });
       return NextResponse.json({ reply, specialistId: specialist.id, execution: "none" });

@@ -72,7 +72,7 @@ export function presentsPrivateAuthorityConfirmation(content: string): boolean {
 export type CalendarProvenanceState = Readonly<{
   hasCurrentCalendarGovernedContext: boolean;
   isCalendarRecollection: boolean;
-  priorReportContainedOnlySchedule?: boolean;
+  priorVisibleReportIsScheduleOnly?: boolean;
   isDetailFollowUp?: boolean;
 }>;
 
@@ -91,7 +91,7 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
 
   if (calendarProvenance && !calendarProvenance.hasCurrentCalendarGovernedContext
     && calendarProvenance.isCalendarRecollection) {
-    if (calendarProvenance.isDetailFollowUp && calendarProvenance.priorReportContainedOnlySchedule) {
+    if (calendarProvenance.isDetailFollowUp && calendarProvenance.priorVisibleReportIsScheduleOnly) {
       return "The earlier calendar result I reported contained only the times, not the meeting details.";
     }
     const attributed = attributeCalendarRecollection(content);

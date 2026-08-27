@@ -7,6 +7,7 @@ import {
   EXCLUDED_DRIVE_PROVENANCE_REPLY,
   UNSUPPORTED_DRIVE_PATH_REPLY,
 } from "./ordinary-model-reply-guard";
+import { priorVisibleCalendarReportIsScheduleOnly } from "./calendar-provenance-truthfulness";
 
 describe("ordinary-model reply guard", () => {
   it.each([
@@ -60,8 +61,20 @@ describe("ordinary-model reply guard", () => {
 
   it("contains invented meeting metadata when the visible report supplied only times", () => {
     expect(guardOrdinaryModelReply("The first is your team meeting and the second is a review.",
-      "What are the meetings about?", false, { ...recollection, priorReportContainedOnlySchedule: true, isDetailFollowUp: true }))
+      "What are the meetings about?", false, { ...recollection, priorVisibleReportIsScheduleOnly: true, isDetailFollowUp: true }))
       .toBe("The earlier calendar result I reported contained only the times, not the meeting details.");
+  });
+
+  it("proves schedule-only from the complete bounded report rather than interval presence", () => {
+    const current = { role: "user" as const, content: "What are the meetings about?" };
+    expect(priorVisibleCalendarReportIsScheduleOnly([
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
+      current,
+    ])).toBe(true);
+    expect(priorVisibleCalendarReportIsScheduleOnly([
+      { role: "assistant", content: "Based on your calendar, you have a 10:00–11:00 AM commitment. From what you told me earlier, that is the project review." },
+      current,
+    ])).toBe(false);
   });
 
   it.each([

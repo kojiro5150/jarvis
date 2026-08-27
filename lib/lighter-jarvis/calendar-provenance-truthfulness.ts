@@ -2,7 +2,11 @@ import type { ChatMessage } from "@/lib/agents/types";
 
 const CALENDAR_RECALL_FOLLOW_UP = /^(?:what (?:times? did you (?:just )?(?:see|give me)|did you (?:just )?(?:say|tell me)(?: (?:my schedule was|about tomorrow))?|did you report for tomorrow)|when were those (?:two )?(?:commitments|meetings)|what are the meetings about)[?!.]*$/i;
 const PRIOR_CALENDAR_REPORT = /(?:\bbased on (?:the result from )?your calendar\b|\bcalendar result (?:I )?reported\b|\b(?:today|tomorrow|this (?:morning|afternoon|evening|week)|next seven days) (?:is clear|you have \d+ commitments?)\b|\byour calendar (?:is clear|has \d+ commitments?)\b)/i;
-const SCHEDULE_INTERVAL = /\b\d{1,2}(?::\d{2})?\s*(?:AM|PM)?\s*[–-]\s*\d{1,2}(?::\d{2})?\s*(?:AM|PM)\b/i;
+const SCHEDULE_INTERVAL_TEXT = String.raw`\d{1,2}(?::\d{2})?\s*(?:AM|PM)?\s*[–-]\s*\d{1,2}(?::\d{2})?\s*(?:AM|PM)`;
+const SCHEDULE_ONLY_CALENDAR_REPORT = new RegExp(
+  String.raw`^Based on your calendar(?: for [^,.\n]+)?,?\s+you have (?:\d+|one|two|three|four|five) commitments?:\s*${SCHEDULE_INTERVAL_TEXT}(?:\s*(?:,|and|\n)\s*${SCHEDULE_INTERVAL_TEXT})*[.!]?$`,
+  "i",
+);
 const DETAIL_FOLLOW_UP = /^what are (?:those|the) (?:meetings|commitments) about[?!.]*$/i;
 
 export function isCalendarRecallFollowUp(utterance: string | undefined): boolean {
@@ -18,11 +22,16 @@ export function hasPriorVisibleCalendarReport(messages: readonly ChatMessage[]):
     && PRIOR_CALENDAR_REPORT.test(message.content));
 }
 
-export function calendarReportContainsOnlySchedule(messages: readonly ChatMessage[]): boolean {
+/**
+ * Proves only the deliberately bounded report grammar emitted in tests and
+ * presentation. Merely containing an interval is not proof: mixed prose must
+ * remain ordinary recallable conversation.
+ */
+export function priorVisibleCalendarReportIsScheduleOnly(messages: readonly ChatMessage[]): boolean {
   const currentUserIndex = messages.findLastIndex(message => message.role === "user");
   const report = messages.findLast((message, index) => index < currentUserIndex
     && message.role === "assistant" && PRIOR_CALENDAR_REPORT.test(message.content));
-  return Boolean(report && SCHEDULE_INTERVAL.test(report.content));
+  return Boolean(report && SCHEDULE_ONLY_CALENDAR_REPORT.test(report.content.trim()));
 }
 
 export function isCalendarDetailRecallFollowUp(utterance: string | undefined): boolean {

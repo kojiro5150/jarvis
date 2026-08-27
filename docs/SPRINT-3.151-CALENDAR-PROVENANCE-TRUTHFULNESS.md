@@ -23,7 +23,7 @@ The deterministic backstop is deliberately narrow. It requires all of the follow
 3. recognizable prior visible Calendar-report prose; and
 4. a model response matching a Calendar-specific false-current-source form.
 
-It rewrites only the provenance-bearing phrase and preserves useful answer content. It does not globally rewrite “I can see” or “I saw.” A narrow details follow-up is contained when the prior visible report supplied only schedule intervals: the response states that the earlier result contained times, not meeting details, rather than accepting invented titles or metadata.
+It rewrites only the provenance-bearing phrase and preserves useful answer content. It does not globally rewrite “I can see” or “I saw.” A narrow details follow-up is contained only when the complete prior visible report matches a bounded schedule-only grammar (Calendar framing, count, and intervals with no other semantic prose). Merely containing an interval is not enough. Mixed visible prose, including details attributed to the user, remains ordinary recallable conversation. When the stronger schedule-only condition is proven, the response states that the earlier result contained times, not meeting details, rather than accepting invented titles or metadata.
 
 ## History, fresh reads, and non-authority
 

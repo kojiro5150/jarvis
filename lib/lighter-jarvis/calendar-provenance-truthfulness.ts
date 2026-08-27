@@ -10,6 +10,13 @@ const SCHEDULE_ONLY_CALENDAR_REPORT = new RegExp(
 const DETAIL_FOLLOW_UP = /^what are (?:those|the) (?:meetings|commitments) about[?!.]*$/i;
 const USER_SUPPLIED_TIMED_CALENDAR_DETAIL = /\b(?:my|the)\s+(\d{1,2})(?::(\d{2}))?\s*(AM|PM)\s+(?:meeting|commitment)\s+(?:is|was)(?:\s+(?:called|about))?\s+\S/i;
 const SCHEDULE_INTERVAL_PARTS = /(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?\s*[–-]\s*\d{1,2}(?::\d{2})?\s*(AM|PM)/gi;
+const OMITTED_CALENDAR_METADATA = String.raw`(?:titles?|subjects?|descriptions?|details?|locations?|attendees?|organi[sz]ers?)`;
+const FALSE_CALENDAR_REREAD_OFFER = new RegExp(
+  String.raw`(^|(?:\r?\n)+|(?<=[.!?])\s+)((?:(?:If you(?:'d| would) like,?\s+)?I can|Would you like me to)\s+(?:(?:check|read|open|access)\s+(?:your\s+|the\s+)?calendar\s+again|(?:reread|re-read)\s+(?:your\s+|the\s+)?calendar)\b[^.!?\n]*\b${OMITTED_CALENDAR_METADATA}\b[^.!?\n]*[.!?]?)`,
+  "gi",
+);
+const CALENDAR_METADATA_LIMITATION =
+  "The governed Calendar path available here does not expose titles or descriptions.";
 
 function normalizedTime(hourText: string, minuteText: string | undefined, meridiem: string): string {
   return `${Number(hourText)}:${Number(minuteText ?? "0")}:${meridiem.toUpperCase()}`;
@@ -60,6 +67,18 @@ export function priorVisibleCalendarReportIsScheduleOnly(messages: readonly Chat
 
 export function isCalendarDetailRecallFollowUp(utterance: string | undefined): boolean {
   return Boolean(utterance && DETAIL_FOLLOW_UP.test(utterance.normalize("NFKC").replace(/\s+/g, " ").trim()));
+}
+
+/** Rewrites only reread offers that falsely promise omitted Calendar metadata. */
+export function rewriteFalseCalendarRereadOffer(content: string): string | undefined {
+  if (!FALSE_CALENDAR_REREAD_OFFER.test(content)) return undefined;
+  FALSE_CALENDAR_REREAD_OFFER.lastIndex = 0;
+  let insertedLimitation = false;
+  return content.replace(FALSE_CALENDAR_REREAD_OFFER, (_offer, separator: string) => {
+    if (insertedLimitation) return separator;
+    insertedLimitation = true;
+    return `${separator}${CALENDAR_METADATA_LIMITATION}`;
+  }).trim();
 }
 
 export function attributeCalendarRecollection(content: string): string | undefined {

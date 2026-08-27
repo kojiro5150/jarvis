@@ -92,6 +92,33 @@ describe("ordinary-model reply guard", () => {
       .toBe("The governed Calendar path available here includes timing information only, not titles or descriptions.");
   });
 
+  it("preserves user detail while containing a false reread when schedule-only is false", () => {
+    const reply = "From what you told me earlier, the 10 AM commitment is the project review.\nI don't know the 3 PM title.\nIf you'd like, I can check the calendar again for those details.";
+    expect(guardOrdinaryModelReply(reply, "What are the meetings about?", false, {
+      ...recollection, priorVisibleReportIsScheduleOnly: false, isDetailFollowUp: true,
+    })).toBe("From what you told me earlier, the 10 AM commitment is the project review.\nI don't know the 3 PM title.\nThe governed Calendar path available here does not expose titles or descriptions.");
+  });
+
+  it.each([
+    "I can check your calendar again for the title.",
+    "I can reread your calendar to get the subject.",
+    "I can read the calendar again for more details.",
+    "Would you like me to check the calendar again for the meeting title?",
+    "Would you like me to access Calendar again for those locations?",
+    "I can open the calendar again to get the description.",
+  ])("contains a Calendar reread offer for omitted metadata: %s", reply => {
+    expect(guardOrdinaryModelReply(reply, "What are the meetings about?", false, {
+      ...recollection, priorVisibleReportIsScheduleOnly: false, isDetailFollowUp: true,
+    })).toBe("The governed Calendar path available here does not expose titles or descriptions.");
+  });
+
+  it.each(["If you'd like, I can check the document again.", "I can reread the note for those details.",
+    "Would you like me to check the table again?"])("preserves a non-Calendar reread offer: %s", reply => {
+    expect(guardOrdinaryModelReply(reply, "What are the meetings about?", false, {
+      ...recollection, priorVisibleReportIsScheduleOnly: false, isDetailFollowUp: true,
+    })).toBe(reply);
+  });
+
   it("proves schedule-only from the complete bounded report rather than interval presence", () => {
     const current = { role: "user" as const, content: "What are the meetings about?" };
     expect(priorVisibleCalendarReportIsScheduleOnly([

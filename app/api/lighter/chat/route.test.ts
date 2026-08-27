@@ -518,6 +518,24 @@ describe("POST /api/lighter/chat", () => {
     expect(createConnector).not.toHaveBeenCalled();
   });
 
+  it("preserves bound user detail while containing a false Calendar reread offer", async () => {
+    const model = vi.fn(async () => "From what you told me earlier, the 10 AM commitment is the project review.\nI don't know the 3 PM title.\nIf you'd like, I can check the calendar again for those details.");
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, { createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "My 10 AM meeting is the project review." },
+      { role: "assistant", content: "Thanks — the 10 AM meeting is the project review." },
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
+      { role: "user", content: "What are the meetings about?" },
+    ] }));
+    const body = await response.json();
+    expect(body.reply).toBe("From what you told me earlier, the 10 AM commitment is the project review.\nI don't know the 3 PM title.\nThe governed Calendar path available here does not expose titles or descriptions.");
+    expect(body).not.toHaveProperty("pendingAuthorizationReference");
+    expect(body).not.toHaveProperty("calendarAuthority");
+    expect(createConnector).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledOnce();
+  });
+
   it("preserves user-supplied detail in a mixed visible Calendar report", async () => {
     const model = vi.fn(async () => "The 10 AM meeting is the project review, based on what you told me earlier.");
     const createConnector = vi.fn();

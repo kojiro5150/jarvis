@@ -14,6 +14,8 @@ A valid prior governed result is not current source access.
 
 The presentation guard therefore inspects the whole model response in Calendar recollection mode. It rewrites false present-source language while preserving useful schedule content. On schedule-only detail follow-ups, it replaces false reread offers or invented metadata with the truthful limitation that the governed Calendar path provides timing, not titles or descriptions.
 
+Schedule-only hidden-metadata containment and false reread-offer containment are separate checks. The former may replace an invented schedule-only answer wholesale. The latter applies to Calendar detail recollection even when a valid user-supplied detail is bound to one interval: it preserves that conversational detail and an honest statement that another detail is unknown, while replacing only the offer to reread Calendar for omitted metadata. Neither check creates authority, pending authorization, or connector acquisition.
+
 ## Current turn versus recall-only
 
 Current-source wording remains valid during the actual authorized read when the current turn has Calendar `GovernedContext`. Later recall-only wording must refer to the earlier result or previous response. These corrections are presentation-only: they do not create pending authorization, invoke a connector, or change Calendar authority decisions.

@@ -15,7 +15,7 @@ describe("Calendar governed-context closed projection", () => {
 
     expect(context).toEqual({ version: "1", sources: [{ source: "calendar", capability: "calendar.read",
       period: "tomorrow", window: { start: window.start, end: window.end, timeZone: "Australia/Melbourne" },
-      commitments: [{ start: malicious.start, end: malicious.end }] }] });
+      commitments: [{ start: malicious.start, end: malicious.end }], userSuppliedBindings: [], unboundUserSuppliedDetails: [] }] });
     expect(Object.isFrozen(context)).toBe(true);
     expect(Object.isFrozen(context.sources)).toBe(true);
     expect(Object.isFrozen(context.sources[0].commitments[0])).toBe(true);

@@ -9,6 +9,7 @@ import {
 } from "@/lib/lighter-jarvis/useVoiceSession";
 import { VoiceTurnQueue, type VoiceTurn } from "@/lib/lighter-jarvis/voice-turn-queue";
 import { ClientAuthorityTurnState, type OpaquePendingAuthorization } from "@/lib/lighter-jarvis/client-authority-turn-state";
+import { ConversationTransportHistory } from "@/lib/lighter-jarvis/conversation-transport-history";
 import { DIRECT_SPECIALIST_IDS } from "./head-mode-contract";
 
 type Specialist = {
@@ -121,6 +122,7 @@ export default function UnifiedOpsConsole() {
     null,
   );
   const authorityTurnStateRef = useRef(new ClientAuthorityTurnState());
+  const conversationHistoryRef = useRef(new ConversationTransportHistory());
   const [listError, setListError] = useState("");
   const [connectorStatuses, setConnectorStatuses] = useState<Record<
     ConnectorName,
@@ -318,11 +320,7 @@ export default function UnifiedOpsConsole() {
     const authorityRequest = specialist.id === "jarvis"
       ? authorityTurnStateRef.current.beginRequest()
       : null;
-    const existingMessages = conversations[specialist.id] ?? [];
-    const nextMessages: Message[] = [
-      ...existingMessages,
-      { role: "user", content },
-    ];
+    const nextMessages = conversationHistoryRef.current.acceptUser(specialist.id, content);
     setConversations((current) => ({
       ...current,
       [specialist.id]: nextMessages,
@@ -363,24 +361,14 @@ export default function UnifiedOpsConsole() {
           data.pendingAuthorizationReference ?? null,
         );
       }
-      setConversations((current) => ({
-        ...current,
-        [specialist.id]: [
-          ...(current[specialist.id] ?? nextMessages),
-          { role: "assistant", content: reply },
-        ],
-      }));
+      const acceptedMessages = conversationHistoryRef.current.acceptAssistant(specialist.id, reply);
+      setConversations((current) => ({ ...current, [specialist.id]: acceptedMessages }));
       return { routeTo: data.routeTo, taskSummary: data.taskSummary, marketScopes: data.marketScopes };
     } catch (error) {
       const detail =
         error instanceof Error ? error.message : "Unknown request error.";
-      setConversations((current) => ({
-        ...current,
-        [specialist.id]: [
-          ...(current[specialist.id] ?? nextMessages),
-          { role: "assistant", content: detail, error: true },
-        ],
-      }));
+      const acceptedMessages = conversationHistoryRef.current.acceptAssistant(specialist.id, detail, true);
+      setConversations((current) => ({ ...current, [specialist.id]: acceptedMessages }));
     } finally {
       setLoading(false);
     }
@@ -491,7 +479,7 @@ export default function UnifiedOpsConsole() {
         );
       const specialistReply = requiredReply(specialistData.reply);
 
-      const jarvisMessages = conversations[jarvis.id] ?? [];
+      const jarvisMessages = conversationHistoryRef.current.messages(jarvis.id);
       const synthesisResponse = await fetch("/api/lighter/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -517,23 +505,13 @@ export default function UnifiedOpsConsole() {
             `${synthesisResponse.status} ${synthesisResponse.statusText}`,
         );
       const synthesisReply = requiredReply(synthesisData.reply);
-      setConversations((current) => ({
-        ...current,
-        [jarvis.id]: [
-          ...(current[jarvis.id] ?? jarvisMessages),
-          { role: "assistant", content: synthesisReply },
-        ],
-      }));
+      const acceptedMessages = conversationHistoryRef.current.acceptAssistant(jarvis.id, synthesisReply);
+      setConversations((current) => ({ ...current, [jarvis.id]: acceptedMessages }));
     } catch (error) {
       const detail =
         error instanceof Error ? error.message : "Unknown request error.";
-      setConversations((current) => ({
-        ...current,
-        [jarvis.id]: [
-          ...(current[jarvis.id] ?? []),
-          { role: "assistant", content: detail, error: true },
-        ],
-      }));
+      const acceptedMessages = conversationHistoryRef.current.acceptAssistant(jarvis.id, detail, true);
+      setConversations((current) => ({ ...current, [jarvis.id]: acceptedMessages }));
     } finally {
       setLoading(false);
     }

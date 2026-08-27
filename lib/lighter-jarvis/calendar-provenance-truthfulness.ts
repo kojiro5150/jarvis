@@ -69,6 +69,27 @@ export function isCalendarDetailRecallFollowUp(utterance: string | undefined): b
   return Boolean(utterance && DETAIL_FOLLOW_UP.test(utterance.normalize("NFKC").replace(/\s+/g, " ").trim()));
 }
 
+/** Metadata-only audit seam used by the ordinary-model path; it exposes no message content. */
+export function calendarRecallDiagnostics(messages: readonly ChatMessage[],
+  hasCurrentCalendarGovernedContext = false) {
+  const currentUserUtterance = messages.findLast(message => message.role === "user")?.content;
+  const priorCalendarReportPresent = hasPriorVisibleCalendarReport(messages);
+  const calendarRecallFollowUp = isCalendarRecallFollowUp(currentUserUtterance);
+  const isCalendarRecollection = priorCalendarReportPresent && calendarRecallFollowUp;
+  return {
+    messageCount: messages.length,
+    orderedRoles: messages.map(message => message.role),
+    priorCalendarReportPresent,
+    calendarRecallFollowUp,
+    priorVisibleReportIsScheduleOnly: isCalendarRecollection
+      && priorVisibleCalendarReportIsScheduleOnly(messages),
+    hasCurrentCalendarGovernedContext,
+    isCalendarRecollection,
+    isDetailFollowUp: isCalendarRecollection
+      && isCalendarDetailRecallFollowUp(currentUserUtterance),
+  } as const;
+}
+
 /** Rewrites only reread offers that falsely promise omitted Calendar metadata. */
 export function rewriteFalseCalendarRereadOffer(content: string): string | undefined {
   if (!FALSE_CALENDAR_REREAD_OFFER.test(content)) return undefined;
@@ -99,6 +120,8 @@ export function attributeCalendarRecollection(content: string): string | undefin
     }
 
     const currentSourceRewrites: readonly [RegExp, string][] = [
+      [/^From the calendar data I (?:can|could) access,?\s+(?:I )?(?:can )?(?:only )?(?:see|access)\s+/i,
+        "From the earlier calendar result I reported, I only had "],
       [/^The calendar view I saw only (?:showed|contained)\s+/i,
         "The earlier Calendar result I reported contained only "],
       [/^The calendar view I saw (?:showed|contained)\s+/i,
@@ -129,7 +152,7 @@ export function attributeCalendarRecollection(content: string): string | undefin
   }
 
   const rewrites: readonly [RegExp, (match: RegExpMatchArray) => string][] = [
-    [/^I (?:saw|identified) ((?:two )?(?:time blocks?|commitments)|these times) (?:on|in) your calendar for tomorrow\s*:\s*([\s\S]+)$/i,
+    [/^I (?:just )?(?:saw|identified) ((?:two )?(?:time blocks?|commitments)|these times) (?:on|in) your calendar for tomorrow\s*:?\s*([\s\S]+)$/i,
       match => `From the calendar result I reported earlier, ${match[1]} were ${match[2]}`],
     [/^The calendar (?:information|result) I saw showed\s+([\s\S]+)$/i,
       match => `The earlier calendar result I reported showed ${match[1]}`],

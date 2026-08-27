@@ -57,9 +57,11 @@ The comparison layer:
 
 A future production history owner remains a separate decision.
 
-## 4. Set-level evidence contract
+## 4. Set-level ownership contract
 
-`publishCalendarEvidenceSet()` preserves:
+The existing protected Calendar evidence publisher remains unchanged.
+
+Because event evidence alone cannot carry empty-set coverage semantics, the **caller that already owns the authorised acquisition window** must supply the set envelope alongside the published event evidence. The envelope preserves:
 
 - source identity;
 - availability;
@@ -71,7 +73,7 @@ A future production history owner remains a separate decision.
 - disclosure policy identity;
 - event evidence, including an empty array.
 
-The existing `publishCalendarEvidence()` remains backward compatible and still returns only event evidence.
+This keeps the new comparison seam from modifying or coupling to the protected publisher and makes set-level ownership explicit.
 
 ## 5. Canonical observation-set contract
 
@@ -164,14 +166,14 @@ Tests cover:
 - reversed observation-time rejection;
 - fail-closed membership change under incomplete coverage;
 - permitted removal under complete coverage;
-- preservation of an authoritative empty observation set.
+- preservation of an authoritative empty observation set when the caller supplies its acquisition envelope.
 
 ## 11. Resulting architecture
 
 ```text
-governed Calendar acquisition
+governed Calendar acquisition + caller-owned coverage envelope
         ↓
-GovernedCalendarEvidenceSet
+published governed Calendar event evidence
         ↓
 CanonicalCalendarAttentionObservationSet
         ↓

@@ -18,7 +18,7 @@ import {
 describe("ordinary-model reply guard", () => {
   const liveReport = "Based on your calendar for tomorrow (Friday, 28 August 2026), you have two commitments:\n10:00 AM – 11:00 AM\n3:00 PM – 4:00 PM";
 
-  it.each(["My 9 a.m. meeting is the finance review.", "My 10 a.m. meeting is the project review."])(
+  it.each(["My 9 a.m. meeting is the finance review.", "My 10 a.m. meeting is the project review.", "My 9 a.m. meeting tomorrow is a finance review."])(
     "keeps an ordinary timed user fact out of fake authority UX: %s", utterance => {
       expect(guardOrdinaryModelReply("Please explicitly confirm that I may read your Calendar.", utterance))
         .toBe(ORDINARY_CALENDAR_FACT_REPLY);
@@ -35,6 +35,8 @@ describe("ordinary-model reply guard", () => {
   ])("makes a classified ordinary timed Calendar fact deterministically user-provided: %s", modelReply => {
     expect(guardOrdinaryModelReply(modelReply, "My 9 a.m. meeting is the finance review."))
       .toBe(ORDINARY_CALENDAR_FACT_REPLY);
+    expect(guardOrdinaryModelReply(modelReply, "My 9 a.m. meeting tomorrow is a finance review."))
+      .toBe(ORDINARY_CALENDAR_FACT_REPLY);
   });
 
   it.each([
@@ -42,6 +44,18 @@ describe("ordinary-model reply guard", () => {
     ["12:0:PM", "12:00 PM"], ["12:0:AM", "12:00 AM"],
   ])("formats comparison clock %s for presentation", (clock, expected) => {
     expect(displayCalendarClock(clock)).toBe(expected);
+  });
+
+  it("recognizes 'those meetings' as a bounded Calendar detail recollection", () => {
+    const messages = [
+      { role: "assistant" as const, content: "Tomorrow you have 2 commitments:\n- 10:00 AM – 11:00 AM\n- 3:00 PM – 4:00 PM" },
+      { role: "user" as const, content: "What are those meetings about?" },
+    ];
+    expect(calendarRecallDiagnostics(messages)).toMatchObject({
+      calendarRecallFollowUp: true,
+      isCalendarRecollection: true,
+      isDetailFollowUp: true,
+    });
   });
 
   it("recognizes the canonical governed Tomorrow schedule as schedule-only", () => {
@@ -113,6 +127,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
   it.each([
     "From the calendar information I have, I can only see the timing of your commitments tomorrow.",
     "Based on what's visible in your Calendar:\n\n1. 10:00 AM – 11:00 AM: project review\n2. 3:00 PM – 4:00 PM: no label.",
+    "From our conversation, the 10 AM commitment is the project review. The calendar data I can access shows only timing.",
   ])("contains the final bound-detail live provenance family: %s", reply => {
     const result = guardOrdinaryModelReply(reply, "What are the meetings about?", false, {
       hasCurrentCalendarGovernedContext: false,

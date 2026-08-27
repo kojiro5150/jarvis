@@ -452,6 +452,38 @@ describe("POST /api/lighter/chat", () => {
     expect(createConnector).not.toHaveBeenCalled();
   });
 
+  it.each([
+    `Based on what's visible from your calendar:
+
+1. **10:00 AM – 11:00 AM**: project review — you told me this yourself earlier in our conversation.
+
+2. **3:00 PM – 4:00 PM**: No subject or description was provided for this meeting.
+
+The calendar entries I can see show only the timing. I don't have access to meeting descriptions, agendas, attendees, or other details that might explain what these meetings are about beyond what you've already shared with me.`,
+    `Based on what I can see and what you've told me:
+
+1. **10:00 AM – 11:00 AM** — **project review** (you provided this detail earlier)
+2. **3:00 PM – 4:00 PM** — no subject or description is visible in the calendar entry
+
+If you'd like to know more about the 3 PM meeting, you may need to check the original invitation or any associated notes you have.`,
+  ])("contains the exact second-run bound-detail live failure through the shared route: %s", async modelReply => {
+    const model = vi.fn(async () => modelReply);
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, {
+      createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z"),
+    })(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "My 10 a.m. meeting is the project review." },
+      { role: "assistant", content: "Thanks — I'll treat that as information you provided." },
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments:\n10:00 AM – 11:00 AM\n3:00 PM – 4:00 PM" },
+      { role: "user", content: "What are the meetings about?" },
+    ] }));
+    expect((await response.json()).reply).toBe(
+      "From the earlier Calendar result I reported: From what you told me earlier, the 10 AM commitment is the project review. The earlier governed Calendar result did not include title or description information for the 3 PM commitment."
+    );
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
   it("contains the exact final Typed Test 1 recall wording through the shared route", async () => {
     const model = vi.fn(async () => "I saw these two time slots for tomorrow:\n\n1. **10:00 AM – 11:00 AM**\n2. **3:00 PM – 4:00 PM**");
     const createConnector = vi.fn();

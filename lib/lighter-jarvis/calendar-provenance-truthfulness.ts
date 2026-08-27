@@ -169,8 +169,10 @@ export function attributeCalendarRecollection(content: string): string | undefin
     }
 
     const currentSourceRewrites: readonly [RegExp, string][] = [
-      [/\bFrom the calendar information I have access to,?\s+I can (?:only )?see\b/i,
+      [/\bFrom the calendar information I have(?: access to)?,?\s+I can (?:only )?see\b/i,
         "From the earlier Calendar result I reported, I saw"],
+      [/^Based on what['’]s visible in your Calendar:?\s*/i,
+        "From the earlier Calendar result I reported: "],
       [/\bFrom your calendar,?\s+I can see\b/i,
         "From the earlier Calendar result I reported, I saw"],
       [/\bThe calendar shows me\b/i,
@@ -215,7 +217,7 @@ export function attributeCalendarRecollection(content: string): string | undefin
   }
 
   const rewrites: readonly [RegExp, (match: RegExpMatchArray) => string][] = [
-    [/^I saw (two |\d+ )?(time blocks?|time slots?) for tomorrow\s*:?\s*([\s\S]+)$/i,
+    [/^I saw (?:these )?(two |\d+ )?(time blocks?|time slots?) for tomorrow\s*:?\s*([\s\S]+)$/i,
       match => `From the calendar result I reported earlier, ${match[1] ?? ""}${match[2]} for tomorrow: ${match[3]}`],
     [/^I (?:just )?(?:saw|identified) ((?:two )?(?:time blocks?|commitments)|these times) (?:on|in) your calendar for tomorrow\s*:?\s*([\s\S]+)$/i,
       match => `From the calendar result I reported earlier, ${match[1]} were ${match[2]}`],

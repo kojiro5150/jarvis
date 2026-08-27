@@ -22,6 +22,13 @@ export function normalizedCalendarClock(hourText: string, minuteText: string | u
   return `${Number(hourText)}:${Number(minuteText ?? "0")}:${meridiem.replaceAll(".", "").toUpperCase()}`;
 }
 
+/** Formats the comparison-only clock representation for user-visible text. */
+export function displayCalendarClock(clock: string): string {
+  const match = clock.match(/^(\d{1,2}):(\d{1,2}):(AM|PM)$/);
+  if (!match) return clock;
+  return `${Number(match[1])}:${match[2].padStart(2, "0")} ${match[3]}`;
+}
+
 export type UserSuppliedTimedCalendarDetail = Readonly<{ clock: string; label: string; statement: string }>;
 
 /** Extracts the deliberately narrow user assertion grammar shared by current and recall binding. */
@@ -160,6 +167,12 @@ export function attributeCalendarRecollection(content: string): string | undefin
     }
 
     const currentSourceRewrites: readonly [RegExp, string][] = [
+      [/\bFrom the calendar information I have access to,?\s+I can see\b/i,
+        "From the earlier Calendar result I reported, I saw"],
+      [/\bBased on what I can see from your calendar,?\s*/i,
+        "From the earlier Calendar result I reported, "],
+      [/\bThe calendar projection I saw\b/i, "The earlier Calendar projection I reported"],
+      [/\bThe calendar projection I have access to\b/i, "The earlier Calendar projection I reported"],
       [/^Based on the calendar data I can see,?\s*/i, "From the earlier Calendar result I reported, "],
       [/^From the calendar data,?\s+I only have\s+/i, "From the earlier Calendar result I reported, I only had "],
       [/^The (?:current )?calendar information (?:available to me )?only shows\s+/i,

@@ -3,6 +3,8 @@ import {
   attributeBareCalendarRecollection,
   attributeCalendarRecollection,
   rewriteFalseCalendarRereadOffer,
+  displayCalendarClock,
+  userSuppliedTimedCalendarDetail,
 } from "./calendar-provenance-truthfulness";
 
 /**
@@ -15,6 +17,12 @@ export const NEUTRALIZED_ORDINARY_AUTHORITY_REPLY =
 
 export const UNSUPPORTED_CALENDAR_PATH_REPLY =
   "The governed Calendar path supports calendar.read, but it does not support this request.";
+
+export const ORDINARY_CALENDAR_FACT_REPLY = "Thanks — I'll treat that as information you provided.";
+export const CALENDAR_READ_TRUTHFULNESS_REPLY =
+  "I haven't read your Calendar on this turn. Calendar reads are available through the governed path when explicitly authorized.";
+export const UNSUPPORTED_CALENDAR_WRITE_REPLY =
+  "I can help you work with the information here, but Calendar write/update actions are not available in the current governed path.";
 
 export const UNSUPPORTED_GMAIL_PATH_REPLY =
   "The governed Gmail path supports gmail.search and identified-message gmail.read, but it does not support this request.";
@@ -36,6 +44,10 @@ const PRIVATE_SOURCE = /\b(?:calendar|gmail|e-?mail|inbox|drive)\b/i;
 const CONFIRMATION_REQUEST = /(?:\b(?:confirm|confirmation|permission|authorize|authorise|approval|consent)\b|\b(?:may|can)\s+I\b|\b(?:reply|respond|say)\s+["'“”]?(?:yes|confirm|approve|allow)\b)/i;
 const PRIVATE_ACCESS = /\b(?:access|read|search|retrieve|check|view|show|look(?:ing)?\s+(?:at|through|in)|connect(?:ing)?\s+to)\b/i;
 const CALENDAR_REQUEST = /\bcalendar\b/i;
+const PRIVATE_ACQUISITION_UTTERANCE = /\bwhat(?:'s| is)\s+on\s+(?:for\s+)?(?:today|tomorrow)\b|\b(?:calendar|gmail|e-?mail|inbox|drive)\b[\s\S]*\b(?:read|search|retrieve|check|view|show|look|access|connect|what(?:'s| is)|on)\b|\b(?:read|search|retrieve|check|view|show|look|access|connect|what(?:'s| is))\b[\s\S]*\b(?:calendar|gmail|e-?mail|inbox|drive)\b/i;
+const CALENDAR_GLOBAL_DENIAL = /\b(?:don['’]?t|do not|cannot|can['’]?t)\s+(?:have\s+)?(?:the\s+(?:ability\s+to\s+)?)?(?:access|ability)[\s\S]*\bcalendar\b|\b(?:don['’]?t|do not|cannot|can['’]?t)\b[\s\S]*\bcalendar\b[\s\S]*\b(?:access|modify|interact)\b/i;
+const CALENDAR_WRITE_OFFER = /(?:\b(?:I can|I(?:'d| would) be (?:happy|able) to|let me|would you like me to|if you(?:'d| would) like(?: me to)?)\b[\s\S]{0,80}\b(?:update|modify|change|create|edit|write to|save to|add (?:that|this|it) to)\b[\s\S]{0,80}\b(?:calendar|calendar entry|event|meeting entry)\b|\bI can\b[\s\S]{0,80}\b(?:calendar|calendar entry|event|meeting entry)\b[\s\S]{0,80}\b(?:update|modify|change|create|edit|write|save|add)\b)/i;
+const PROJECTED_FIELD_ABSENCE = /\b(?:the\s+)?(?:calendar entry|meeting|event)\s+(?:doesn['’]?t|does not)\s+include\s+(?:a\s+)?(?:label|title|description)(?:\s+or\s+(?:a\s+)?(?:label|title|description))?|\b(?:the\s+)?(?:meeting|event)\s+has\s+no\s+(?:title|label|description)(?:\s+in\s+the\s+calendar)?|\bthere\s+is\s+no\s+(?:title|label|description)\s+on\s+(?:the\s+)?(?:meeting|event)\b/gi;
 const GMAIL_REQUEST = /\b(?:gmail|e-?mail|emails|inbox|mailbox)\b/i;
 const DRIVE_REQUEST = /\bdrive\b/i;
 const FALSE_GLOBAL_CAPABILITY_CLAIM = /(?:\b(?:i\s+)?(?:do\s+not|don['’]?t|cannot|can['’]?t|am\s+not|I['’]?m\s+not|unable\s+to)\s+(?:(?:currently|directly)\s+)?(?:have\s+(?:(?:the|that|this|any)\s+)?(?:ability|capability|access)|access|connect(?:ed)?|read|search|retrieve|check|view)|\bno\s+(?:calendar|gmail|e-?mail|inbox|mailbox|drive)\s+(?:access|capability|integration)|\b(?:this|that|the)\s+capability\s+(?:does\s+not|doesn['’]?t)\s+exist|\b(?:calendar|gmail|e-?mail|inbox|mailbox|drive)\s+(?:is\s+not|isn['’]?t)\s+(?:connected|available|supported))/i;
@@ -87,6 +99,25 @@ export type CalendarProvenanceState = Readonly<{
 
 export function guardOrdinaryModelReply(content: string, currentUserUtterance?: string, governedDriveHistoryExcluded = false,
   calendarProvenance?: CalendarProvenanceState): string {
+  const ordinaryCalendarFact = currentUserUtterance
+    ? userSuppliedTimedCalendarDetail(currentUserUtterance) !== undefined
+    : false;
+
+  if (ordinaryCalendarFact && presentsPrivateAuthorityConfirmation(content)) {
+    return ORDINARY_CALENDAR_FACT_REPLY;
+  }
+  if (ordinaryCalendarFact && CALENDAR_GLOBAL_DENIAL.test(content)) {
+    return CALENDAR_READ_TRUTHFULNESS_REPLY;
+  }
+  if (ordinaryCalendarFact && CALENDAR_WRITE_OFFER.test(content)) {
+    return UNSUPPORTED_CALENDAR_WRITE_REPLY;
+  }
+  if (calendarProvenance && (calendarProvenance.hasCurrentCalendarGovernedContext
+    || calendarProvenance.isCalendarRecollection) && PROJECTED_FIELD_ABSENCE.test(content)) {
+    PROJECTED_FIELD_ABSENCE.lastIndex = 0;
+    return content.replace(PROJECTED_FIELD_ABSENCE,
+      "The governed Calendar result available here did not include that field");
+  }
   const explicitDriveProvenance = EXPLICIT_DRIVE_PROVENANCE_CLAIMS.some(pattern => pattern.test(content));
   const contextualDriveProvenance = CONTEXTUAL_DRIVE_PROVENANCE_CLAIMS.some(pattern => pattern.test(content))
     && isDriveProvenanceFollowUp(currentUserUtterance);
@@ -127,12 +158,13 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
     content.toLocaleLowerCase().includes(detail.label.toLocaleLowerCase())
     && (calendarProvenance.currentCommitmentClocks ?? []).some(clock => content.toUpperCase().includes(clock.toUpperCase())))) {
     const detail = calendarProvenance.unboundUserDetails.find(item => content.toLocaleLowerCase().includes(item.label.toLocaleLowerCase()))!;
-    return `${calendarProvenance.currentCalendarFallback ?? "The current Calendar result contains timing only."}\nYou previously mentioned ${detail.label} at ${detail.clock}, but that time does not match a commitment in this Calendar result, so I cannot associate it with one.`;
+    return `${calendarProvenance.currentCalendarFallback ?? "The current Calendar result contains timing only."}\nYou previously mentioned ${detail.label} at ${displayCalendarClock(detail.clock)}, but that time does not match a commitment in this Calendar result, so I cannot associate it with one.`;
   }
 
   // A proven recall/detail turn is ordinary recollection even if the model asks
   // for authority. Only non-recall ordinary text is neutralized as fake UX.
-  if (presentsPrivateAuthorityConfirmation(content)) {
+  if (presentsPrivateAuthorityConfirmation(content)
+    && (!currentUserUtterance || PRIVATE_ACQUISITION_UTTERANCE.test(currentUserUtterance))) {
     return NEUTRALIZED_ORDINARY_AUTHORITY_REPLY;
   }
 

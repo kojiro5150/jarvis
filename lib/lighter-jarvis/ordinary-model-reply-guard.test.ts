@@ -75,6 +75,34 @@ describe("ordinary-model reply guard", () => {
       .toMatch(expected);
   });
 
+  it.each([
+    `Based on what's visible from your calendar:
+
+1. **10:00 AM – 11:00 AM**: project review — you told me this yourself earlier in our conversation.
+
+2. **3:00 PM – 4:00 PM**: No subject or description was provided for this meeting.
+
+The calendar entries I can see show only the timing. I don't have access to meeting descriptions, agendas, attendees, or other details that might explain what these meetings are about beyond what you've already shared with me.`,
+    `Based on what I can see and what you've told me:
+
+1. **10:00 AM – 11:00 AM** — **project review** (you provided this detail earlier)
+2. **3:00 PM – 4:00 PM** — no subject or description is visible in the calendar entry
+
+If you'd like to know more about the 3 PM meeting, you may need to check the original invitation or any associated notes you have.`,
+  ])("contains the exact second-run bound-detail live failure: %s", reply => {
+    const result = guardOrdinaryModelReply(reply, "What are the meetings about?", false, {
+      hasCurrentCalendarGovernedContext: false,
+      isCalendarRecollection: true,
+      priorVisibleReportIsScheduleOnly: false,
+      isDetailFollowUp: true,
+      boundUserDetails: [{ clock: "10 AM", label: "project review" }],
+      unknownCommitmentClocks: ["3 PM"],
+    });
+    expect(result).toBe(
+      "From the earlier Calendar result I reported: From what you told me earlier, the 10 AM commitment is the project review. The earlier governed Calendar result did not include title or description information for the 3 PM commitment."
+    );
+  });
+
   it("contains the exact Typed Test 1 recall wording", () => {
     const recollection = { hasCurrentCalendarGovernedContext: false, isCalendarRecollection: true } as const;
     const reply = "I saw these two time slots for tomorrow:\n\n1. **10:00 AM – 11:00 AM**\n2. **3:00 PM – 4:00 PM**";

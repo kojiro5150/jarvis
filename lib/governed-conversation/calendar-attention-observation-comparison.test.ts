@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { publishCalendarEvidenceSet, type GovernedCalendarPublicationInput } from "./calendar-evidence-publisher";
+import { publishCalendarEvidence, type GovernedCalendarPublicationInput, CALENDAR_CONVERSATIONAL_DISCLOSURE_POLICY } from "./calendar-evidence-publisher";
 import { projectGovernedCalendarAttentionObservationSet } from "./calendar-attention-observation";
 import { compareCalendarAttentionObservationSets } from "./calendar-attention-observation-comparison";
 import type { CalendarEvent } from "../connectors/calendar-event";
@@ -14,8 +14,23 @@ const bundle = (events: readonly CalendarEvent[], overrides: Partial<GovernedCal
   windowStart: "2026-08-29T00:00:00Z", windowEnd: "2026-08-30T00:00:00Z",
   requestedLimit: 50, coverageState: "bounded", events, ...overrides,
 });
-const set = (events: readonly CalendarEvent[], overrides: Partial<GovernedCalendarPublicationInput> = {}) =>
-  projectGovernedCalendarAttentionObservationSet(publishCalendarEvidenceSet(bundle(events, overrides))!);
+const set = (events: readonly CalendarEvent[], overrides: Partial<GovernedCalendarPublicationInput> = {}) => {
+  const input = bundle(events, overrides);
+  const evidence = publishCalendarEvidence(input);
+  const coverageLimit = `window=${input.windowStart}/${input.windowEnd};max_events=${input.requestedLimit};scope=visible_non_hidden_calendars;completeness=${input.coverageState}`;
+  return projectGovernedCalendarAttentionObservationSet({
+    sourceId: "google-calendar",
+    available: true,
+    observedAt: input.retrievedAt,
+    windowStart: input.windowStart,
+    windowEnd: input.windowEnd,
+    requestedLimit: input.requestedLimit,
+    coverageState: input.coverageState,
+    coverageLimit,
+    policyReference: CALENDAR_CONVERSATIONAL_DISCLOSURE_POLICY,
+    evidence,
+  });
+};
 
 describe("Calendar attention observation comparison", () => {
   it("detects a start-time change for the same stable governed identity", () => {
@@ -59,11 +74,10 @@ describe("Calendar attention observation comparison", () => {
     ]);
   });
 
-  it("preserves an authoritative empty observation set with its coverage metadata", () => {
-    const published = publishCalendarEvidenceSet(bundle([], { coverageState: "bounded_complete_request" }));
-    expect(published).toMatchObject({ available: true, evidence: [], coverageState: "bounded_complete_request" });
-    const projected = projectGovernedCalendarAttentionObservationSet(published!);
+  it("preserves an authoritative empty observation set when the caller supplies the acquisition envelope", () => {
+    const projected = set([], { coverageState: "bounded_complete_request" });
     expect(projected.observations).toEqual([]);
+    expect(projected.coverageState).toBe("bounded_complete_request");
     expect(projected.coverageLimit).toContain("window=");
   });
 });

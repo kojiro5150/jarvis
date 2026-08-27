@@ -168,7 +168,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
       hasCurrentCalendarGovernedContext: false });
     expect(guardOrdinaryModelReply("From the calendar data I can access, I only see the timing...",
       messages.at(-1)?.content, false, diagnostic))
-      .toMatch(/^From the earlier calendar result I reported/);
+      .toMatch(/^From the earlier Calendar result I reported/i);
   });
 
   it("does not bind an unrelated 9 AM detail and keeps detail containment fail-closed", () => {

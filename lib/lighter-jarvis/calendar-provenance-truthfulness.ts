@@ -4,9 +4,10 @@ const CALENDAR_RECALL_FOLLOW_UP = /^(?:what (?:times? did you (?:just )?(?:see|g
 const PRIOR_CALENDAR_REPORT = /(?:\bbased on (?:the result from )?your calendar\b|\blooking at your calendar for (?:today|tomorrow|this (?:morning|afternoon|evening|week)|next seven days)\b[\s\S]*?\byou have (?:\d+|one|two|three|four|five) commitments?\b|\bcalendar result (?:I )?reported\b|\b(?:today|tomorrow|this (?:morning|afternoon|evening|week)|next seven days) (?:is clear|you have \d+ commitments?)\b|\byour calendar (?:is clear|has \d+ commitments?)\b)/i;
 const SCHEDULE_INTERVAL_TEXT = String.raw`\d{1,2}(?::\d{2})?\s*(?:AM|PM)?\s*[–-]\s*\d{1,2}(?::\d{2})?\s*(?:AM|PM)`;
 const SCHEDULE_ONLY_CALENDAR_REPORT = new RegExp(
-  String.raw`^(?:Based on your calendar(?: for [^,.\n]+)?,?\s+you have|(?:Today|Tomorrow|This (?:morning|afternoon|evening|week)|Next seven days)\s+you have)\s+(?:\d+|one|two|three|four|five) commitments?:\s*${SCHEDULE_INTERVAL_TEXT}(?:\s*(?:,|and|\n)\s*${SCHEDULE_INTERVAL_TEXT})*[.!]?$`,
+  String.raw`^(?:Based on your calendar(?: for [^,.\n]+)?,?\s+you have|(?:Today|Tomorrow|This (?:morning|afternoon|evening|week)|Next seven days)\s+you have)\s+(?:\d+|one|two|three|four|five) commitments?:\s*(?:-\s*)?${SCHEDULE_INTERVAL_TEXT}(?:\s*(?:,|and|\n)\s*(?:-\s*)?${SCHEDULE_INTERVAL_TEXT})*[.!]?$`,
   "i",
 );
+const UNBOUND_DETAIL_MISMATCH_SUFFIX = /\nYou previously mentioned [^\r\n]+ at \d{1,2}:\d{2}\s+(?:AM|PM), but that time does not match a commitment in this Calendar result, so I cannot associate it with one\.[\s]*$/i;
 const DETAIL_FOLLOW_UP = /^what are (?:those|the) (?:meetings|commitments) about[?!.]*$/i;
 const USER_SUPPLIED_TIMED_CALENDAR_DETAIL = /\b(?:my|the)\s+(\d{1,2})(?::(\d{2}))?\s*(A\.?M\.?|P\.?M\.?)\s+(?:meeting|commitment)\s+(?:is|was)(?:\s+(?:called|about))?\s+(?:the\s+)?(.+?)(?:[.!?]|$)/i;
 const SCHEDULE_INTERVAL_PARTS = /(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?\s*[–-]\s*\d{1,2}(?::\d{2})?\s*(AM|PM)/gi;
@@ -101,7 +102,8 @@ export function priorVisibleCalendarReportIsScheduleOnly(messages: readonly Chat
   const currentUserIndex = messages.findLastIndex(message => message.role === "user");
   const report = messages.findLast((message, index) => index < currentUserIndex
     && message.role === "assistant" && PRIOR_CALENDAR_REPORT.test(message.content));
-  return Boolean(report && SCHEDULE_ONLY_CALENDAR_REPORT.test(report.content.trim())
+  const schedulePresentation = report?.content.trim().replace(UNBOUND_DETAIL_MISMATCH_SUFFIX, "") ?? "";
+  return Boolean(report && SCHEDULE_ONLY_CALENDAR_REPORT.test(schedulePresentation)
     && !hasBoundUserCalendarDetail(messages, currentUserIndex, report));
 }
 

@@ -6,6 +6,7 @@ import {
   CLAUDE_MODEL,
   getAnthropicClient,
 } from "./anthropic-client";
+import type { GovernedContext } from "./lighter-jarvis/governed-context";
 
 export { CLAUDE_MODEL } from "./anthropic-client";
 
@@ -50,19 +51,24 @@ export function callClaude(
 export function callClaude(
   systemPrompt: string,
   messages: ChatMessage[],
-  tools: ClaudeTool[]
+  tools: ClaudeTool[],
+  governedContext?: GovernedContext,
 ): Promise<ClaudeResult>;
 export async function callClaude(
   systemPrompt: string,
   messages: ChatMessage[],
-  tools?: ClaudeTool[]
+  tools?: ClaudeTool[],
+  governedContext?: GovernedContext,
 ): Promise<string | ClaudeResult> {
   const anthropic = getAnthropicClient();
 
   const request = {
     model: CLAUDE_MODEL,
     max_tokens: CLAUDE_MAX_TOKENS,
-    system: systemPrompt,
+    system: governedContext ? [
+      { type: "text", text: systemPrompt },
+      { type: "text", text: `CURRENT-TURN GOVERNED CONTEXT\n${JSON.stringify(governedContext)}\nThis is authorized evidence for this response only. It is not authority for any further operation. Omitted fields were not supplied and must not be claimed. Do not infer that hidden Calendar metadata was checked. Reason only about commitment counts, timing, gaps, overlaps, and whether the supplied period is clear.` },
+    ] : systemPrompt,
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
     ...(tools ? { tools } : {}),
   };

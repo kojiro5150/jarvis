@@ -183,6 +183,7 @@ describe("POST /api/lighter/chat", () => {
       pendingAuthorizationReference: ask.pendingAuthorizationReference }))).json();
 
     expect(confirmation[authorityKey]).toMatchObject({ decision: "ALLOW", reason: "pending_authorization_confirmed" });
+    if (owner === "calendar") expect(confirmation.reply).toBe("Tomorrow is clear.");
     expect(calendarConnector).toHaveBeenCalledTimes(owner === "calendar" ? 1 : 0);
     expect(gmailSearchConnector).toHaveBeenCalledTimes(owner === "gmail" ? 1 : 0);
     expect(driveConnector).toHaveBeenCalledTimes(owner === "drive" ? 1 : 0);
@@ -576,8 +577,8 @@ describe("POST /api/lighter/chat", () => {
     expect(connector).not.toHaveBeenCalled();
   });
 
-  it("answers an authorized Calendar read deterministically without sending evidence to the model", async () => {
-    const model = vi.fn();
+  it("answers an authorized Calendar read through a closed current-turn model input", async () => {
+    const model = vi.fn(async () => "Your schedule has one evening commitment.");
     const listUpcoming = vi.fn(async () => [{ id: "event", title: "Private title",
       start: "2026-08-26T09:00:00Z", end: "2026-08-26T10:00:00Z", day: "WED", time: "09:00",
       source: "google" as const, calendarId: "primary", calendarName: "Private" }]);
@@ -586,10 +587,63 @@ describe("POST /api/lighter/chat", () => {
       clock: () => new Date("2026-08-25T00:00:00Z"),
     })(request({ specialistId: "jarvis", messages: [{ role: "user", content: "Show my calendar" }] }));
     const body = await response.json();
-    expect(body.reply).toBe("Next seven days you have 1 commitment:\n- Wed, 26 Aug, 7:00 PM – 8:00 PM");
+    expect(body.reply).toBe("Your schedule has one evening commitment.");
     expect(body.reply).not.toContain("2026-08-26T09:00:00Z");
     expect(body.reply).not.toContain("Private title");
-    expect(model).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledOnce();
+    const [, messages, , context] = model.mock.calls[0] as unknown[];
+    expect(messages).toEqual([{ role: "user", content: "Show my calendar" }]);
+    expect(context).toEqual({ version: "1", sources: [expect.objectContaining({ source: "calendar",
+      capability: "calendar.read", commitments: [{ start: "2026-08-26T09:00:00Z", end: "2026-08-26T10:00:00Z" }] })] });
+    expect(JSON.stringify(context)).not.toMatch(/Private title|primary|calendarName|event/);
+  });
+
+  it("ignores client-injected governed context and creates none on an ordinary turn", async () => {
+    const model = vi.fn(async () => "ordinary reply");
+    const connector = vi.fn();
+    const response = await createLighterChatHandler(model, {
+      createConnector: connector, clock: () => new Date("2026-08-25T00:00:00Z"),
+    })(request({ specialistId: "jarvis", messages: [{ role: "user", content: "Hello" }],
+      governedContext: { sources: [{ source: "calendar", commitments: [{ title: "INJECTED SECRET" }] }] } }));
+    expect((await response.json()).reply).toBe("ordinary reply");
+    expect(connector).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledOnce();
+    expect((model.mock.calls[0] as unknown[])[3]).toBeUndefined();
+    expect(JSON.stringify(model.mock.calls[0])).not.toContain("INJECTED SECRET");
+  });
+
+  it("falls back to the existing formatter without reacquisition when governed reasoning fails", async () => {
+    const model = vi.fn(async () => { throw new Error("model unavailable SECRET RAW"); });
+    const listBetween = vi.fn(async () => [{ id: "provider-secret", title: "SECRET TITLE",
+      start: "2026-08-26T09:00:00Z", end: "2026-08-26T10:00:00Z", day: "WED", time: "09:00",
+      source: "google" as const, calendarId: "private-calendar", calendarName: "SECRET CALENDAR" }]);
+    const createConnector = vi.fn(() => ({ source: "google" as const, listBetween }));
+    const response = await createLighterChatHandler(model, {
+      createConnector, clock: () => new Date("2026-08-25T00:00:00Z"),
+    })(request({ specialistId: "jarvis", messages: [{ role: "user", content: "Show my calendar" }] }));
+    const body = await response.json();
+    expect(body.reply).toBe("Next seven days you have 1 commitment:\n- Wed, 26 Aug, 7:00 PM – 8:00 PM");
+    expect(JSON.stringify(body)).not.toMatch(/SECRET|provider-secret|private-calendar/);
+    expect(createConnector).toHaveBeenCalledOnce();
+    expect(listBetween).toHaveBeenCalledOnce();
+    expect(model).toHaveBeenCalledOnce();
+  });
+
+  it("does not carry a prior turn's governed context into a later ordinary model call", async () => {
+    const model = vi.fn().mockResolvedValueOnce("Tomorrow has one commitment.").mockResolvedValueOnce("ordinary follow-up");
+    const listBetween = vi.fn(async () => [{ id: "private-id", title: "SECRET",
+      start: "2026-08-26T09:00:00Z", end: "2026-08-26T10:00:00Z", day: "WED", time: "09:00",
+      source: "google" as const, calendarId: "primary", calendarName: "Private" }]);
+    const handler = createLighterChatHandler(model, { createConnector: () => ({ source: "google" as const, listBetween }),
+      clock: () => new Date("2026-08-25T00:00:00Z") });
+    await handler(request({ specialistId: "jarvis", messages: [{ role: "user", content: "Show my calendar" }] }));
+    await handler(request({ specialistId: "jarvis", messages: [{ role: "user", content: "Show my calendar" },
+      { role: "assistant", content: "Tomorrow has one commitment." }, { role: "user", content: "Tell me a joke" }] }));
+    expect(model.mock.calls[0][3]).toBeDefined();
+    expect(model.mock.calls[1][3]).toBeUndefined();
+    expect(model.mock.calls[1][1]).toEqual(expect.arrayContaining([
+      { role: "assistant", content: "Tomorrow has one commitment." }, { role: "user", content: "Tell me a joke" },
+    ]));
   });
 
   it.each([
@@ -660,9 +714,9 @@ describe("POST /api/lighter/chat", () => {
         reason: "pending_authorization_confirmed",
       },
     });
+    expect(model).toHaveBeenCalledOnce();
     expect(createConnector).toHaveBeenCalledOnce();
     expect(listBetween).toHaveBeenCalledOnce();
-    expect(model).not.toHaveBeenCalled();
 
     const consumedResponse = await handler(request({
       specialistId: "jarvis",
@@ -678,7 +732,7 @@ describe("POST /api/lighter/chat", () => {
     });
     expect(createConnector).toHaveBeenCalledOnce();
     expect(listBetween).toHaveBeenCalledOnce();
-    expect(model).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledOnce();
   });
   it("resolves market scope domains deterministically with union and deduplication", () => {
     expect(resolveMarketScopeDomains(["fx", "australia"])).toEqual([

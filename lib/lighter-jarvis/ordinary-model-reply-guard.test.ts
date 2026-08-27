@@ -18,7 +18,7 @@ describe("ordinary-model reply guard", () => {
 
   it("proves the complete-history state and attribution for the live timing transcript", () => {
     const messages = [
-      { role: "assistant" as const, content: liveReport },
+      { role: "assistant" as const, content: "Based on your calendar for tomorrow, you have two commitments:\n10:00 AM – 11:00 AM\n3:00 PM – 4:00 PM" },
       { role: "user" as const, content: "What times did you just see?" },
     ];
     const diagnostic = calendarRecallDiagnostics(messages);
@@ -33,7 +33,7 @@ describe("ordinary-model reply guard", () => {
   it("binds relevant user detail and rewrites current-source provenance with full history", () => {
     const messages = [
       { role: "user" as const, content: "My 10 AM meeting is the project review." },
-      { role: "assistant" as const, content: liveReport },
+      { role: "assistant" as const, content: "Based on your calendar for tomorrow, you have two commitments:\n10:00 AM – 11:00 AM\n3:00 PM – 4:00 PM" },
       { role: "user" as const, content: "What are the meetings about?" },
     ];
     const diagnostic = calendarRecallDiagnostics(messages);
@@ -66,6 +66,17 @@ describe("ordinary-model reply guard", () => {
     "Please authorize me to check your inbox.",
   ])("neutralizes private-source confirmation UX: %s", (reply) => {
     expect(guardOrdinaryModelReply(reply)).toBe(NEUTRALIZED_ORDINARY_AUTHORITY_REPLY);
+  });
+
+  it("does not turn a proven Calendar detail recollection into an authority refusal", () => {
+    const messages = [
+      { role: "assistant" as const, content: "Based on your calendar for tomorrow, you have two commitments:\n10:00 AM – 11:00 AM\n3:00 PM – 4:00 PM" },
+      { role: "user" as const, content: "What are the meetings about?" },
+    ];
+    const diagnostic = calendarRecallDiagnostics(messages);
+    expect(guardOrdinaryModelReply("Please explicitly confirm that I may read your Calendar.",
+      messages.at(-1)?.content, false, diagnostic))
+      .toBe("The governed Calendar path available here includes timing information only, not titles or descriptions.");
   });
 
   it.each([
@@ -109,6 +120,16 @@ describe("ordinary-model reply guard", () => {
       "The earlier calendar result I reported only included the time blocks."],
     ["The calendar shows the 3 PM time slot but no title.",
       "The earlier calendar result I reported showed the 3 PM time slot but no title."],
+    ["I saw two time blocks for tomorrow: 10 AM and 3 PM.",
+      "From the calendar result I reported earlier, two time blocks for tomorrow: 10 AM and 3 PM."],
+    ["Based on the calendar data I can see, there were two slots.",
+      "From the earlier Calendar result I reported, there were two slots."],
+    ["From the calendar data, I only have the timing.",
+      "From the earlier Calendar result I reported, I only had the timing."],
+    ["The calendar information available to me only shows times.",
+      "From the earlier Calendar result I reported, only times."],
+    ["The current calendar information only shows times.",
+      "From the earlier Calendar result I reported, only times."],
   ])("historically attributes false current Calendar provenance while retaining content", (reply, expected) => {
     expect(guardOrdinaryModelReply(reply, "What times did you just see?", false, recollection)).toBe(expected);
   });

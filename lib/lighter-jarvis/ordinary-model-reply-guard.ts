@@ -78,14 +78,13 @@ export type CalendarProvenanceState = Readonly<{
   isCalendarRecollection: boolean;
   priorVisibleReportIsScheduleOnly?: boolean;
   isDetailFollowUp?: boolean;
+  unboundUserDetails?: readonly Readonly<{ clock: string; label: string }>[];
+  currentCommitmentClocks?: readonly string[];
+  currentCalendarFallback?: string;
 }>;
 
 export function guardOrdinaryModelReply(content: string, currentUserUtterance?: string, governedDriveHistoryExcluded = false,
   calendarProvenance?: CalendarProvenanceState): string {
-  if (presentsPrivateAuthorityConfirmation(content)) {
-    return NEUTRALIZED_ORDINARY_AUTHORITY_REPLY;
-  }
-
   const explicitDriveProvenance = EXPLICIT_DRIVE_PROVENANCE_CLAIMS.some(pattern => pattern.test(content));
   const contextualDriveProvenance = CONTEXTUAL_DRIVE_PROVENANCE_CLAIMS.some(pattern => pattern.test(content))
     && isDriveProvenanceFollowUp(currentUserUtterance);
@@ -110,6 +109,19 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
       const withoutFalseReread = rewriteFalseCalendarRereadOffer(content);
       if (withoutFalseReread) return withoutFalseReread;
     }
+  }
+
+  if (calendarProvenance?.hasCurrentCalendarGovernedContext && calendarProvenance.unboundUserDetails?.some(detail =>
+    content.toLocaleLowerCase().includes(detail.label.toLocaleLowerCase())
+    && (calendarProvenance.currentCommitmentClocks ?? []).some(clock => content.toUpperCase().includes(clock.toUpperCase())))) {
+    const detail = calendarProvenance.unboundUserDetails.find(item => content.toLocaleLowerCase().includes(item.label.toLocaleLowerCase()))!;
+    return `${calendarProvenance.currentCalendarFallback ?? "The current Calendar result contains timing only."}\nYou previously mentioned ${detail.label} at ${detail.clock}, but that time does not match a commitment in this Calendar result, so I cannot associate it with one.`;
+  }
+
+  // A proven recall/detail turn is ordinary recollection even if the model asks
+  // for authority. Only non-recall ordinary text is neutralized as fake UX.
+  if (presentsPrivateAuthorityConfirmation(content)) {
+    return NEUTRALIZED_ORDINARY_AUTHORITY_REPLY;
   }
 
   // This is static capability knowledge, not authority or connector evidence.

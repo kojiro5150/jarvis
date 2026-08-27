@@ -13,7 +13,7 @@ import { isAmbiguousPrivateReadFollowUp, isPrivateAcquisitionHandoffRequest } fr
 import { guardOrdinaryModelReply } from "@/lib/lighter-jarvis/ordinary-model-reply-guard";
 import { resolveProductionDriveSearch, type ProductionDriveSearchDependencies } from "@/lib/lighter-jarvis/production-drive-search";
 import { resolveProductionDriveRead, type ProductionDriveReadDependencies } from "@/lib/lighter-jarvis/production-drive-read";
-import { projectCalendarContext } from "@/lib/lighter-jarvis/calendar-governed-context";
+import { bindUserCalendarDetails, projectCalendarContext } from "@/lib/lighter-jarvis/calendar-governed-context";
 import { createGovernedContext, type GovernedContext } from "@/lib/lighter-jarvis/governed-context";
 import { calendarRecallDiagnostics } from "@/lib/lighter-jarvis/calendar-provenance-truthfulness";
 
@@ -286,7 +286,10 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         return NextResponse.json({ reply: fallback, specialistId: specialist.id, execution: "none",
           calendarAuthority: { decision: "ALLOW", reason: calendar.reason } });
       }
-      const governedContext = createGovernedContext(projectCalendarContext(calendar.evidence!.evidence, calendar.window));
+      const projected = projectCalendarContext(calendar.evidence!.evidence, calendar.window);
+      const bindingState = bindUserCalendarDetails(body.messages, projected.commitments);
+      const governedContext = createGovernedContext(projectCalendarContext(calendar.evidence!.evidence, calendar.window,
+        bindingState.bindings, bindingState.unbound));
       try {
         const systemPrompt = await buildSpecialistPrompt(specialist);
         const modelMessages = sanitizeModelHistory(body.messages);
@@ -295,6 +298,9 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         const reply = guardOrdinaryModelReply(modelReply, currentUserUtterance, false, {
           hasCurrentCalendarGovernedContext: governedContext.sources.some(source => source.source === "calendar"),
           isCalendarRecollection: false,
+          unboundUserDetails: bindingState.unbound,
+          currentCommitmentClocks: governedContext.sources[0].commitments.map(commitment => formatMelbourneTime(commitment.start)),
+          currentCalendarFallback: fallback,
         });
         return NextResponse.json({ reply, specialistId: specialist.id, execution: "none",
           calendarAuthority: { decision: "ALLOW", reason: calendar.reason } });

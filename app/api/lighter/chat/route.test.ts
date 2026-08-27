@@ -627,6 +627,23 @@ describe("POST /api/lighter/chat", () => {
     expect(model).toHaveBeenCalledOnce();
   });
 
+  it("keeps a Calendar meeting-detail recollection ordinary when the model emits authority UX", async () => {
+    const model = vi.fn(async () => "Please explicitly confirm that I may read your Calendar.");
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, { createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis", messages: [
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
+      { role: "user", content: "What are the meetings about?" },
+    ] }));
+    const body = await response.json();
+    expect(body.reply).toBe("The governed Calendar path available here includes timing information only, not titles or descriptions.");
+    expect(body).not.toHaveProperty("calendarAuthority");
+    expect(body).not.toHaveProperty("pendingAuthorizationReference");
+    expect(body).not.toHaveProperty("routeTo");
+    expect(createConnector).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledOnce();
+  });
+
   it("preserves user-supplied detail in a mixed visible Calendar report", async () => {
     const model = vi.fn(async () => "The 10 AM meeting is the project review, based on what you told me earlier.");
     const createConnector = vi.fn();
@@ -882,6 +899,54 @@ describe("POST /api/lighter/chat", () => {
     expect(context).toEqual({ version: "1", sources: [expect.objectContaining({ source: "calendar",
       capability: "calendar.read", commitments: [{ start: "2026-08-26T09:00:00Z", end: "2026-08-26T10:00:00Z" }] })] });
     expect(JSON.stringify(context)).not.toMatch(/Private title|primary|calendarName|event/);
+  });
+
+  it.each([
+    ["My 9 a.m. meeting is the finance review.", "The morning slot at 10:00 AM may be the finance review you mentioned earlier.", "finance review"],
+    ["My 2 PM meeting is the clinical review.", "The 3:00 PM commitment is probably the clinical review.", "clinical review"],
+  ])("blocks a non-exact current governed Calendar association: %s", async (detail, modelReply, label) => {
+    const model = vi.fn(async () => modelReply);
+    const listBetween = vi.fn(async () => [
+      { id: "a", title: "hidden", start: "2026-08-27T00:00:00Z", end: "2026-08-27T01:00:00Z", day: "THU", time: "10:00", source: "google" as const, calendarId: "primary", calendarName: "Private" },
+      { id: "b", title: "hidden", start: "2026-08-27T05:00:00Z", end: "2026-08-27T06:00:00Z", day: "THU", time: "15:00", source: "google" as const, calendarId: "primary", calendarName: "Private" },
+    ]);
+    const createConnector = vi.fn(() => ({ source: "google" as const, listUpcoming: vi.fn(), listBetween }));
+    const handler = createLighterChatHandler(model, { createConnector, clock: () => new Date("2026-08-26T00:00:00Z") });
+    const ask = await (await handler(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: detail }, { role: "user", content: "What's on for tomorrow?" },
+    ] }))).json();
+    const body = await (await handler(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: detail }, { role: "user", content: "What's on for tomorrow?" },
+      { role: "assistant", content: ask.reply }, { role: "user", content: "yes" },
+    ], pendingAuthorizationReference: ask.pendingAuthorizationReference }))).json();
+    expect(body.reply).toContain(`cannot associate it with one`);
+    expect(body.reply).not.toContain(modelReply);
+    expect(body.reply).toContain(label);
+    const [, , , context] = model.mock.calls[0] as unknown as [string, ChatMessage[], ClaudeTool[],
+      { sources: { userSuppliedBindings: unknown[] }[] }];
+    expect(context.sources[0].userSuppliedBindings).toEqual([]);
+  });
+
+  it("constructs an exact user-attributed binding server-side for a current governed turn", async () => {
+    const model = vi.fn(async () => "You mentioned that the 10:00 AM commitment is the project review.");
+    const listBetween = vi.fn(async () => [
+      { id: "a", title: "hidden", start: "2026-08-27T00:00:00Z", end: "2026-08-27T01:00:00Z", day: "THU", time: "10:00", source: "google" as const, calendarId: "primary", calendarName: "Private" },
+      { id: "b", title: "hidden", start: "2026-08-27T05:00:00Z", end: "2026-08-27T06:00:00Z", day: "THU", time: "15:00", source: "google" as const, calendarId: "primary", calendarName: "Private" },
+    ]);
+    const handler = createLighterChatHandler(model, { createConnector: () => ({ source: "google", listUpcoming: vi.fn(), listBetween }),
+      clock: () => new Date("2026-08-26T00:00:00Z") });
+    const history = [{ role: "user" as const, content: "My 10 AM meeting is the project review." },
+      { role: "user" as const, content: "What's on for tomorrow?" }];
+    const ask = await (await handler(request({ specialistId: "jarvis", messages: history }))).json();
+    const body = await (await handler(request({ specialistId: "jarvis", messages: [...history,
+      { role: "assistant", content: ask.reply }, { role: "user", content: "yes" }],
+      pendingAuthorizationReference: ask.pendingAuthorizationReference }))).json();
+    expect(body.reply).toContain("project review");
+    const [, , , context] = model.mock.calls[0] as unknown as [string, ChatMessage[], ClaudeTool[],
+      { sources: { userSuppliedBindings: unknown[] }[] }];
+    expect(context.sources[0].userSuppliedBindings).toEqual([
+      expect.objectContaining({ commitmentStart: "2026-08-27T00:00:00Z", label: "project review", provenance: "user" }),
+    ]);
   });
 
   it("ignores client-injected governed context and creates none on an ordinary turn", async () => {

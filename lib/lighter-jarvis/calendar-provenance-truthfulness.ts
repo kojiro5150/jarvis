@@ -8,7 +8,7 @@ const SCHEDULE_ONLY_CALENDAR_REPORT = new RegExp(
   "i",
 );
 const DETAIL_FOLLOW_UP = /^what are (?:those|the) (?:meetings|commitments) about[?!.]*$/i;
-const USER_SUPPLIED_TIMED_CALENDAR_DETAIL = /\b(?:my|the)\s+(\d{1,2})(?::(\d{2}))?\s*(AM|PM)\s+(?:meeting|commitment)\s+(?:is|was)(?:\s+(?:called|about))?\s+\S/i;
+const USER_SUPPLIED_TIMED_CALENDAR_DETAIL = /\b(?:my|the)\s+(\d{1,2})(?::(\d{2}))?\s*(A\.?M\.?|P\.?M\.?)\s+(?:meeting|commitment)\s+(?:is|was)(?:\s+(?:called|about))?\s+(?:the\s+)?(.+?)(?:[.!?]|$)/i;
 const SCHEDULE_INTERVAL_PARTS = /(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?\s*[–-]\s*\d{1,2}(?::\d{2})?\s*(AM|PM)/gi;
 const OMITTED_CALENDAR_METADATA = String.raw`(?:titles?|subjects?|descriptions?|details?|locations?|attendees?|organi[sz]ers?)`;
 const FALSE_CALENDAR_REREAD_OFFER = new RegExp(
@@ -18,8 +18,18 @@ const FALSE_CALENDAR_REREAD_OFFER = new RegExp(
 const CALENDAR_METADATA_LIMITATION =
   "The governed Calendar path available here does not expose titles or descriptions.";
 
-function normalizedTime(hourText: string, minuteText: string | undefined, meridiem: string): string {
-  return `${Number(hourText)}:${Number(minuteText ?? "0")}:${meridiem.toUpperCase()}`;
+export function normalizedCalendarClock(hourText: string, minuteText: string | undefined, meridiem: string): string {
+  return `${Number(hourText)}:${Number(minuteText ?? "0")}:${meridiem.replaceAll(".", "").toUpperCase()}`;
+}
+
+export type UserSuppliedTimedCalendarDetail = Readonly<{ clock: string; label: string; statement: string }>;
+
+/** Extracts the deliberately narrow user assertion grammar shared by current and recall binding. */
+export function userSuppliedTimedCalendarDetail(content: string): UserSuppliedTimedCalendarDetail | undefined {
+  const statement = content.normalize("NFKC").replace(/\s+/g, " ").trim();
+  const match = statement.match(USER_SUPPLIED_TIMED_CALENDAR_DETAIL);
+  if (!match) return undefined;
+  return Object.freeze({ clock: normalizedCalendarClock(match[1], match[2], match[3]), label: match[4].trim(), statement });
 }
 
 /** Presentation-only exact clock binding against the latest visible Calendar report. */
@@ -28,14 +38,13 @@ function hasBoundUserCalendarDetail(messages: readonly ChatMessage[], currentUse
   if (!report) return false;
   const intervalStarts = new Set<string>();
   for (const match of report.content.matchAll(SCHEDULE_INTERVAL_PARTS)) {
-    intervalStarts.add(normalizedTime(match[1], match[2], match[3] ?? match[4]));
+    intervalStarts.add(normalizedCalendarClock(match[1], match[2], match[3] ?? match[4]));
   }
   if (intervalStarts.size === 0) return false;
   return messages.some((message, index) => {
     if (index >= currentUserIndex || message.role !== "user") return false;
-    const match = message.content.normalize("NFKC").replace(/\s+/g, " ")
-      .match(USER_SUPPLIED_TIMED_CALENDAR_DETAIL);
-    return Boolean(match && intervalStarts.has(normalizedTime(match[1], match[2], match[3])));
+    const detail = userSuppliedTimedCalendarDetail(message.content);
+    return Boolean(detail && intervalStarts.has(detail.clock));
   });
 }
 
@@ -120,6 +129,10 @@ export function attributeCalendarRecollection(content: string): string | undefin
     }
 
     const currentSourceRewrites: readonly [RegExp, string][] = [
+      [/^Based on the calendar data I can see,?\s*/i, "From the earlier Calendar result I reported, "],
+      [/^From the calendar data,?\s+I only have\s+/i, "From the earlier Calendar result I reported, I only had "],
+      [/^The (?:current )?calendar information (?:available to me )?only shows\s+/i,
+        "From the earlier Calendar result I reported, only "],
       [/^From the calendar data I (?:can|could) access,?\s+(?:I )?(?:can )?(?:only )?(?:see|access)\s+/i,
         "From the earlier calendar result I reported, I only had "],
       [/^The calendar view I saw only (?:showed|contained)\s+/i,
@@ -152,6 +165,8 @@ export function attributeCalendarRecollection(content: string): string | undefin
   }
 
   const rewrites: readonly [RegExp, (match: RegExpMatchArray) => string][] = [
+    [/^I saw (two |\d+ )?(time blocks?|time slots?) for tomorrow\s*:?\s*([\s\S]+)$/i,
+      match => `From the calendar result I reported earlier, ${match[1] ?? ""}${match[2]} for tomorrow: ${match[3]}`],
     [/^I (?:just )?(?:saw|identified) ((?:two )?(?:time blocks?|commitments)|these times) (?:on|in) your calendar for tomorrow\s*:?\s*([\s\S]+)$/i,
       match => `From the calendar result I reported earlier, ${match[1]} were ${match[2]}`],
     [/^The calendar (?:information|result) I saw showed\s+([\s\S]+)$/i,

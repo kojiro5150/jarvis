@@ -222,6 +222,8 @@ export function calendarReplyPreservesProjection(content: string,
   ).sort();
   CALENDAR_REPLY_INTERVAL.lastIndex = 0;
   const expected = commitments.map(commitment => calendarIntervalKey(commitment.start, commitment.end)).sort();
+  const hasExplicitClock = /\b\d{1,2}(?::\d{2})?\s*(?:AM|PM)\b/i.test(content);
+  if (observed.length === 0) return !hasExplicitClock;
   return observed.length === expected.length && observed.every((value, index) => value === expected[index]);
 }
 
@@ -324,10 +326,6 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       const deterministicReply = formatCalendarReadResponse(calendar.evidence!, calendar.window, bindingState);
       const governedContext = createGovernedContext(projectCalendarContext(calendar.evidence!.evidence, calendar.window,
         bindingState.bindings, bindingState.unbound));
-      if (projected.commitments.length === 0) {
-        return NextResponse.json({ reply: deterministicReply, specialistId: specialist.id, execution: "none",
-          calendarAuthority: { decision: "ALLOW", reason: calendar.reason } });
-      }
       try {
         const systemPrompt = await buildSpecialistPrompt(specialist);
         const modelMessages = sanitizeModelHistory(body.messages);
@@ -338,7 +336,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           isCalendarRecollection: false,
           unboundUserDetails: bindingState.unbound,
           currentCommitmentClocks: governedContext.sources[0].commitments.map(commitment => formatMelbourneTime(commitment.start)),
-          currentCalendarFallback: deterministicReply,
+          currentCalendarFallback: fallback,
         });
         const reply = calendarReplyPreservesProjection(guardedReply, projected.commitments)
           ? guardedReply

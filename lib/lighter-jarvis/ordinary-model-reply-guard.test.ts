@@ -32,6 +32,38 @@ describe("ordinary-model reply guard", () => {
       .toBe("Calendar access requires deterministic authority machinery.");
   });
 
+  const recollection = { hasCurrentCalendarGovernedContext: false, isCalendarRecollection: true } as const;
+
+  it.each([
+    ["I saw two time slots on your calendar: 10:00–11:00 AM and 3:00–4:00 PM.",
+      "From the calendar result I reported earlier, the time slots were 10:00–11:00 AM and 3:00–4:00 PM."],
+    ["I can see that you have two meetings tomorrow.",
+      "From the calendar result I reported earlier, you have two meetings tomorrow."],
+    ["Your calendar currently shows two meetings.",
+      "From the calendar result I reported earlier, two meetings."],
+  ])("historically attributes false current Calendar provenance while retaining content", (reply, expected) => {
+    expect(guardOrdinaryModelReply(reply, "What times did you just see?", false, recollection)).toBe(expected);
+  });
+
+  it("allows current Calendar language when current governed evidence exists", () => {
+    const reply = "Based on your calendar for tomorrow, you have two commitments.";
+    expect(guardOrdinaryModelReply(reply, "What is on tomorrow?", false, {
+      hasCurrentCalendarGovernedContext: true, isCalendarRecollection: true,
+    })).toBe(reply);
+  });
+
+  it.each(["I can see what you mean.", "I saw your previous message.",
+    "I can see two options in the text you pasted.", "I saw that you wrote Atlas.",
+    "I can see the difference between those approaches."])("does not overmatch non-Calendar sight language: %s", reply => {
+    expect(guardOrdinaryModelReply(reply, "ordinary question", false, recollection)).toBe(reply);
+  });
+
+  it("contains invented meeting metadata when the visible report supplied only times", () => {
+    expect(guardOrdinaryModelReply("The first is your team meeting and the second is a review.",
+      "What are the meetings about?", false, { ...recollection, priorReportContainedOnlySchedule: true, isDetailFollowUp: true }))
+      .toBe("The earlier calendar result I reported contained only the times, not the meeting details.");
+  });
+
   it.each([
     "I don't have access to your Calendar.",
     "Calendar is not connected.",

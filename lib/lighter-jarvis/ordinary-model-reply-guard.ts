@@ -1,4 +1,5 @@
 import { isAmbiguousPrivateReadFollowUp } from "./private-capability-handoff-guard";
+import { attributeCalendarRecollection } from "./calendar-provenance-truthfulness";
 
 /**
  * Ordinary model text is presentation, never authority machinery. Keep the
@@ -68,7 +69,15 @@ export function presentsPrivateAuthorityConfirmation(content: string): boolean {
 }
 
 /** Applies only to text returned by an ordinary model invocation. */
-export function guardOrdinaryModelReply(content: string, currentUserUtterance?: string, governedDriveHistoryExcluded = false): string {
+export type CalendarProvenanceState = Readonly<{
+  hasCurrentCalendarGovernedContext: boolean;
+  isCalendarRecollection: boolean;
+  priorReportContainedOnlySchedule?: boolean;
+  isDetailFollowUp?: boolean;
+}>;
+
+export function guardOrdinaryModelReply(content: string, currentUserUtterance?: string, governedDriveHistoryExcluded = false,
+  calendarProvenance?: CalendarProvenanceState): string {
   if (presentsPrivateAuthorityConfirmation(content)) {
     return NEUTRALIZED_ORDINARY_AUTHORITY_REPLY;
   }
@@ -78,6 +87,15 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
     && isDriveProvenanceFollowUp(currentUserUtterance);
   if (governedDriveHistoryExcluded && (explicitDriveProvenance || contextualDriveProvenance)) {
     return EXCLUDED_DRIVE_PROVENANCE_REPLY;
+  }
+
+  if (calendarProvenance && !calendarProvenance.hasCurrentCalendarGovernedContext
+    && calendarProvenance.isCalendarRecollection) {
+    if (calendarProvenance.isDetailFollowUp && calendarProvenance.priorReportContainedOnlySchedule) {
+      return "The earlier calendar result I reported contained only the times, not the meeting details.";
+    }
+    const attributed = attributeCalendarRecollection(content);
+    if (attributed) return attributed;
   }
 
   // This is static capability knowledge, not authority or connector evidence.

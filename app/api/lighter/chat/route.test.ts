@@ -408,6 +408,71 @@ describe("POST /api/lighter/chat", () => {
     expect(createConnector).not.toHaveBeenCalled();
   });
 
+  it("attributes a bounded Calendar recollection without connector access or pending authority", async () => {
+    const model = vi.fn(async () => "I saw two time slots on your calendar: 10:00–11:00 AM and 3:00–4:00 PM.");
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, { createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis", messages: [
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
+      { role: "user", content: "What times did you just see?" },
+    ] }));
+    expect(await response.json()).toEqual({
+      reply: "From the calendar result I reported earlier, the time slots were 10:00–11:00 AM and 3:00–4:00 PM.",
+      specialistId: "jarvis", execution: "none",
+    });
+    expect(createConnector).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledOnce();
+  });
+
+  it("still requires fresh authority after a Calendar recollection", async () => {
+    const model = vi.fn(async () => "From the calendar result I reported earlier, the time was 10:00–11:00 AM.");
+    const createConnector = vi.fn();
+    const handler = createLighterChatHandler(model, { createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") });
+    const history: ChatMessage[] = [
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have one commitment: 10:00–11:00 AM." },
+      { role: "user", content: "What times did you just see?" },
+    ];
+    await handler(request({ specialistId: "jarvis", messages: history }));
+    const fresh = await handler(request({ specialistId: "jarvis", messages: [
+      ...history, { role: "assistant", content: "From the calendar result I reported earlier, the time was 10:00–11:00 AM." },
+      { role: "user", content: "What's on for tomorrow?" },
+    ] }));
+    expect(await fresh.json()).toMatchObject({
+      calendarAuthority: { decision: "ASK", reason: "explicit_calendar_read_not_established" },
+      pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) },
+    });
+    expect(model).toHaveBeenCalledOnce();
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
+  it("ignores spoofed client provenance while correcting false current Calendar language", async () => {
+    const model = vi.fn(async () => "Your calendar currently shows two meetings.");
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, { createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis",
+      hasCalendarContext: true, sourceState: "current", provenance: "calendar", messages: [
+        { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
+        { role: "user", content: "What did you report for tomorrow?" },
+      ] }));
+    expect((await response.json()).reply).toBe("From the calendar result I reported earlier, two meetings.");
+    expect(createConnector).not.toHaveBeenCalled();
+    expect((model.mock.calls[0] as unknown[])[3]).toBeUndefined();
+  });
+
+  it("does not accept hidden meeting metadata absent from the visible prior report", async () => {
+    const model = vi.fn(async () => "The first is your team meeting and the second is a review.");
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, { createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis", messages: [
+      { role: "assistant", content: "Based on your calendar for tomorrow: 10:00–11:00 AM and 3:00–4:00 PM." },
+      { role: "user", content: "What are the meetings about?" },
+    ] }));
+    expect((await response.json()).reply)
+      .toBe("The earlier calendar result I reported contained only the times, not the meeting details.");
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["Show my calendar Monday", "I don't have access to your calendar.", "The governed Calendar path supports calendar.read, but it does not support this request."],
     ["What Calendar capabilities do you have?", "That capability does not exist.", "The governed Calendar path supports calendar.read, but it does not support this request."],

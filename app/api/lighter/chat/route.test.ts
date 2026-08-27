@@ -424,6 +424,21 @@ describe("POST /api/lighter/chat", () => {
     expect(model).toHaveBeenCalledOnce();
   });
 
+  it("attributes a multi-sentence Calendar recollection through the shared typed/voice server path", async () => {
+    const model = vi.fn(async () => "I saw:\n\n1. 10:00 AM – 11:00 AM\n2. 3:00 PM – 4:00 PM\n\nThose are the two time slots I reported from your calendar for tomorrow.");
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, { createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis", messages: [
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
+      { role: "user", content: "What times did you just see?" },
+    ] }));
+    expect(await response.json()).toEqual({
+      reply: "From the calendar result I reported earlier, the two time slots were:\n\n1. 10:00 AM – 11:00 AM\n2. 3:00 PM – 4:00 PM",
+      specialistId: "jarvis", execution: "none",
+    });
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
   it("attributes the live tomorrow time-block wording without connector access", async () => {
     const model = vi.fn(async () => "I saw two time blocks on your calendar for tomorrow: 10:00–11:00 AM and 3:00–4:00 PM.");
     const createConnector = vi.fn();
@@ -488,17 +503,37 @@ describe("POST /api/lighter/chat", () => {
     expect((model.mock.calls[0] as unknown[])[3]).toBeUndefined();
   });
 
-  it("does not accept hidden meeting metadata absent from the visible prior report", async () => {
-    const model = vi.fn(async () => "The first is your team meeting and the second is a review.");
+  it("contains a false reread offer without connector access or pending authority", async () => {
+    const model = vi.fn(async () => "I don't have the meeting titles. If you'd like, I can check the calendar again for those details.");
     const createConnector = vi.fn();
     const response = await createLighterChatHandler(model, { createConnector,
       clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis", messages: [
       { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
       { role: "user", content: "What are the meetings about?" },
     ] }));
-    expect((await response.json()).reply)
-      .toBe("The earlier calendar result I reported contained only the times, not the meeting details.");
+    const body = await response.json();
+    expect(body.reply).toBe("The governed Calendar path available here includes timing information only, not titles or descriptions.");
+    expect(body).not.toHaveProperty("pendingAuthorizationReference");
+    expect(body).not.toHaveProperty("calendarAuthority");
     expect(createConnector).not.toHaveBeenCalled();
+  });
+
+  it("preserves bound user detail while containing a false Calendar reread offer", async () => {
+    const model = vi.fn(async () => "From what you told me earlier, the 10 AM commitment is the project review.\nI don't know the 3 PM title.\nIf you'd like, I can check the calendar again for those details.");
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, { createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "My 10 AM meeting is the project review." },
+      { role: "assistant", content: "Thanks — the 10 AM meeting is the project review." },
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
+      { role: "user", content: "What are the meetings about?" },
+    ] }));
+    const body = await response.json();
+    expect(body.reply).toBe("From what you told me earlier, the 10 AM commitment is the project review.\nI don't know the 3 PM title.\nThe governed Calendar path available here does not expose titles or descriptions.");
+    expect(body).not.toHaveProperty("pendingAuthorizationReference");
+    expect(body).not.toHaveProperty("calendarAuthority");
+    expect(createConnector).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledOnce();
   });
 
   it("preserves user-supplied detail in a mixed visible Calendar report", async () => {
@@ -549,7 +584,7 @@ describe("POST /api/lighter/chat", () => {
       { role: "user", content: "What are the meetings about?" },
     ] }));
     expect((await response.json()).reply)
-      .toBe("The earlier calendar result I reported contained only the times, not the meeting details.");
+      .toBe("The governed Calendar path available here includes timing information only, not titles or descriptions.");
     expect(createConnector).not.toHaveBeenCalled();
   });
 

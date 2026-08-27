@@ -1,5 +1,5 @@
 import { isAmbiguousPrivateReadFollowUp } from "./private-capability-handoff-guard";
-import { attributeCalendarRecollection } from "./calendar-provenance-truthfulness";
+import { attributeCalendarRecollection, rewriteFalseCalendarRereadOffer } from "./calendar-provenance-truthfulness";
 
 /**
  * Ordinary model text is presentation, never authority machinery. Keep the
@@ -94,7 +94,11 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
     const attributed = attributeCalendarRecollection(content);
     if (attributed) return attributed;
     if (calendarProvenance.isDetailFollowUp && calendarProvenance.priorVisibleReportIsScheduleOnly) {
-      return "The earlier calendar result I reported contained only the times, not the meeting details.";
+      return "The governed Calendar path available here includes timing information only, not titles or descriptions.";
+    }
+    if (calendarProvenance.isDetailFollowUp) {
+      const withoutFalseReread = rewriteFalseCalendarRereadOffer(content);
+      if (withoutFalseReread) return withoutFalseReread;
     }
   }
 

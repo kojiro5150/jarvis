@@ -63,6 +63,35 @@ export function isCalendarDetailRecallFollowUp(utterance: string | undefined): b
 }
 
 export function attributeCalendarRecollection(content: string): string | undefined {
+  // Inspect the complete reply before rewriting. A leading "I saw" can acquire
+  // false Calendar provenance from a later sentence in the same response.
+  const isCalendarResultReply = /\bcalendar\b/i.test(content);
+  if (isCalendarResultReply) {
+    const multiSentenceSaw = content.match(/^I saw\s*:\s*([\s\S]+?)\s*\n\s*Those are the (.+?) I reported from your calendar([^.]*)\.?$/i);
+    if (multiSentenceSaw) {
+      return `From the calendar result I reported earlier, the ${multiSentenceSaw[2]} were:\n\n${multiSentenceSaw[1]}`;
+    }
+
+    const currentSourceRewrites: readonly [RegExp, string][] = [
+      [/^The calendar evidence I (?:currently )?have access to shows?\s+/i,
+        "The earlier calendar result I reported contained "],
+      [/^The calendar (?:data|entries|information) I (?:can|could) (?:currently )?see (?:only )?(?:includes?|shows?)\s+/i,
+        "The earlier calendar result I reported only included "],
+      [/^The calendar entries I (?:can|could) (?:currently )?see (?:are|were)\s+/i,
+        "The entries in the earlier calendar result I reported were "],
+      [/^The calendar (?:evidence|information) I (?:currently )?have access to (?:includes?|contains?)\s+/i,
+        "The earlier calendar result I reported contained "],
+      [/^The calendar (?:data|evidence|information) shows?\s+/i,
+        "The earlier calendar result I reported showed "],
+      [/^The calendar shows?\s+/i, "The earlier calendar result I reported showed "],
+      [/^The information available to me from your calendar shows?\s+/i,
+        "The earlier calendar result I reported showed "],
+    ];
+    for (const [pattern, replacement] of currentSourceRewrites) {
+      if (pattern.test(content)) return content.replace(pattern, replacement);
+    }
+  }
+
   const rewrites: readonly [RegExp, (match: RegExpMatchArray) => string][] = [
     [/^I (?:saw|identified) ((?:two )?(?:time blocks?|commitments)|these times) (?:on|in) your calendar for tomorrow\s*:\s*([\s\S]+)$/i,
       match => `From the calendar result I reported earlier, ${match[1]} were ${match[2]}`],

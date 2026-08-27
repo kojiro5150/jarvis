@@ -94,7 +94,7 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
     const attributed = attributeCalendarRecollection(content);
     if (attributed) return attributed;
     if (calendarProvenance.isDetailFollowUp && calendarProvenance.priorVisibleReportIsScheduleOnly) {
-      return "The earlier calendar result I reported contained only the times, not the meeting details.";
+      return "The governed Calendar path available here includes timing information only, not titles or descriptions.";
     }
   }
 

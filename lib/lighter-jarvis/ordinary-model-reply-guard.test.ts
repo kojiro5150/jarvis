@@ -7,7 +7,10 @@ import {
   EXCLUDED_DRIVE_PROVENANCE_REPLY,
   UNSUPPORTED_DRIVE_PATH_REPLY,
 } from "./ordinary-model-reply-guard";
-import { priorVisibleCalendarReportIsScheduleOnly } from "./calendar-provenance-truthfulness";
+import {
+  hasPriorVisibleCalendarReport,
+  priorVisibleCalendarReportIsScheduleOnly,
+} from "./calendar-provenance-truthfulness";
 
 describe("ordinary-model reply guard", () => {
   it.each([
@@ -162,6 +165,28 @@ describe("ordinary-model reply guard", () => {
       { role: "assistant", content: "Thanks — the 10 AM meeting is the project review." },
       { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
       current,
+    ])).toBe(false);
+  });
+
+  it("recognizes both bounded prior Calendar report presentation families", () => {
+    const current = { role: "user" as const, content: "What are the meetings about?" };
+    expect(hasPriorVisibleCalendarReport([
+      { role: "assistant", content: "Looking at your calendar for tomorrow (28 August 2026, Melbourne time), you have two commitments:\n\n1. 10:00 AM – 11:00 AM\n2. 3:00 PM – 4:00 PM" },
+      current,
+    ])).toBe(true);
+    expect(hasPriorVisibleCalendarReport([
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments." },
+      current,
+    ])).toBe(true);
+  });
+
+  it.each([
+    "Looking at your message, I think...", "Looking at the table...", "Looking at the document...",
+    "Looking at your note...", "Looking at tomorrow's weather...", "Looking at your schedule options...",
+  ])("does not mistake ordinary looking-at prose for a prior Calendar report: %s", content => {
+    expect(hasPriorVisibleCalendarReport([
+      { role: "assistant", content },
+      { role: "user", content: "What are the meetings about?" },
     ])).toBe(false);
   });
 

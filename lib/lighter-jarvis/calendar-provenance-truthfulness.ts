@@ -9,7 +9,7 @@ const SCHEDULE_ONLY_CALENDAR_REPORT = new RegExp(
 );
 const UNBOUND_DETAIL_MISMATCH_SUFFIX = /\nYou previously mentioned [^\r\n]+ at \d{1,2}:\d{2}\s+(?:AM|PM), but that time does not match a commitment in this Calendar result, so I cannot associate it with one\.[\s]*$/i;
 const DETAIL_FOLLOW_UP = /^what are (?:those|the) (?:meetings|commitments) about[?!.]*$/i;
-const USER_SUPPLIED_TIMED_CALENDAR_DETAIL = /\b(?:my|the)\s+(\d{1,2})(?::(\d{2}))?\s*(A\.?M\.?|P\.?M\.?)\s+(?:meeting|commitment)(?:\s+(?:today|tomorrow))?\s+(?:is|was)(?:\s+(?:called|about))?\s+(?:the\s+)?(.+?)(?:[.!?]|$)/i;
+const USER_SUPPLIED_TIMED_CALENDAR_DETAIL = /\b(?:my|the)\s+(\d{1,2})(?::(\d{2}))?\s*(A\.?M\.?|P\.?M\.?)\s+(?:meeting|commitment)(?:\s+(?:today|tomorrow))?\s+(?:is|was)(?:\s+(?:called|about))?\s+(?:(?:the|a|an)\s+)?(.+?)(?:[.!?]|$)/i;
 const SCHEDULE_INTERVAL_PARTS = /(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?\s*[–-]\s*\d{1,2}(?::\d{2})?\s*(AM|PM)/gi;
 const OMITTED_CALENDAR_METADATA = String.raw`(?:titles?|subjects?|descriptions?|details?|locations?|attendees?|organi[sz]ers?)`;
 const FALSE_CALENDAR_REREAD_OFFER = new RegExp(

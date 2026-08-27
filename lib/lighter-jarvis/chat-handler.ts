@@ -15,6 +15,7 @@ import { resolveProductionDriveSearch, type ProductionDriveSearchDependencies } 
 import { resolveProductionDriveRead, type ProductionDriveReadDependencies } from "@/lib/lighter-jarvis/production-drive-read";
 import { projectCalendarContext } from "@/lib/lighter-jarvis/calendar-governed-context";
 import { createGovernedContext, type GovernedContext } from "@/lib/lighter-jarvis/governed-context";
+import { hasPriorVisibleCalendarReport, isCalendarDetailRecallFollowUp, isCalendarRecallFollowUp, priorVisibleCalendarReportIsScheduleOnly } from "@/lib/lighter-jarvis/calendar-provenance-truthfulness";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -291,7 +292,10 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         const modelMessages = sanitizeModelHistory(body.messages);
         const result = await callModel(systemPrompt, modelMessages, JARVIS_TOOLS, governedContext);
         const modelReply = typeof result === "string" ? result : result.text;
-        const reply = guardOrdinaryModelReply(modelReply, currentUserUtterance, false);
+        const reply = guardOrdinaryModelReply(modelReply, currentUserUtterance, false, {
+          hasCurrentCalendarGovernedContext: governedContext.sources.some(source => source.source === "calendar"),
+          isCalendarRecollection: false,
+        });
         return NextResponse.json({ reply, specialistId: specialist.id, execution: "none",
           calendarAuthority: { decision: "ALLOW", reason: calendar.reason } });
       } catch (error) {
@@ -393,7 +397,14 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           }
         }
       }
-      reply = guardOrdinaryModelReply(reply, currentUserUtterance, governedDriveHistoryExcluded);
+      const calendarRecall = isCalendarRecallFollowUp(currentUserUtterance)
+        && hasPriorVisibleCalendarReport(body.messages);
+      reply = guardOrdinaryModelReply(reply, currentUserUtterance, governedDriveHistoryExcluded, {
+        hasCurrentCalendarGovernedContext: false,
+        isCalendarRecollection: calendarRecall,
+        priorVisibleReportIsScheduleOnly: calendarRecall && priorVisibleCalendarReportIsScheduleOnly(body.messages),
+        isDetailFollowUp: calendarRecall && isCalendarDetailRecallFollowUp(currentUserUtterance),
+      });
       return NextResponse.json({ reply, specialistId: specialist.id, execution: "none" });
     } catch (error) {
       console.error("[/api/lighter/chat] Specialist invocation failed:", error);

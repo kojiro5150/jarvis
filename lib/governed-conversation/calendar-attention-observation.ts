@@ -1,5 +1,4 @@
 import type { GovernedCalendarEvidenceInput } from "./projection-composer";
-import type { GovernedCalendarEvidenceSet } from "./calendar-evidence-publisher";
 
 export interface CanonicalCalendarAttentionObservation {
   readonly id: string;
@@ -20,7 +19,7 @@ export interface CanonicalCalendarAttentionObservationSet {
   readonly windowStart: string;
   readonly windowEnd: string;
   readonly requestedLimit: number;
-  readonly coverageState: GovernedCalendarEvidenceSet["coverageState"];
+  readonly coverageState: "bounded_complete_request" | "bounded_partial_request" | "bounded";
   readonly coverageLimit: string;
   readonly policyReference: string;
   readonly observations: readonly CanonicalCalendarAttentionObservation[];
@@ -100,8 +99,21 @@ export function projectGovernedCalendarAttentionObservations(
 }
 
 
+export interface GovernedCalendarAttentionObservationSetInput {
+  readonly sourceId: "google-calendar";
+  readonly available: true;
+  readonly observedAt: string;
+  readonly windowStart: string;
+  readonly windowEnd: string;
+  readonly requestedLimit: number;
+  readonly coverageState: "bounded_complete_request" | "bounded_partial_request" | "bounded";
+  readonly coverageLimit: string;
+  readonly policyReference: string;
+  readonly evidence: readonly GovernedCalendarEvidenceInput[];
+}
+
 export function projectGovernedCalendarAttentionObservationSet(
-  set: GovernedCalendarEvidenceSet,
+  set: GovernedCalendarAttentionObservationSetInput,
 ): CanonicalCalendarAttentionObservationSet {
   if (!set || typeof set !== "object" || set.available !== true || set.sourceId !== "google-calendar") {
     throw new Error("available governed Calendar evidence set is required");

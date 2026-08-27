@@ -126,6 +126,16 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
 
   if (calendarProvenance && !calendarProvenance.hasCurrentCalendarGovernedContext
     && calendarProvenance.isCalendarRecollection) {
+    // A detail follow-up with exact user-bound details is fully reconstructable
+    // from server-derived history state. Do not let model wording reassert
+    // current Calendar possession or source-level metadata claims.
+    if (calendarProvenance.isDetailFollowUp && (calendarProvenance.boundUserDetails?.length ?? 0) > 0) {
+      const known = (calendarProvenance.boundUserDetails ?? [])
+        .map(detail => `From what you told me earlier, the ${detail.clock} commitment is the ${detail.label}.`).join(" ");
+      const unknown = (calendarProvenance.unknownCommitmentClocks ?? [])
+        .map(clock => `The earlier governed Calendar result did not include title or description information for the ${clock} commitment.`).join(" ");
+      return `From the earlier Calendar result I reported: ${known} ${unknown}`.trim();
+    }
     const attributed = attributeCalendarRecollection(guarded)
       ?? attributeBareCalendarRecollection(guarded);
     if (attributed) guarded = attributed;

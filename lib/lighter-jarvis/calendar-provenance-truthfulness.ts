@@ -139,3 +139,16 @@ export function attributeCalendarRecollection(content: string): string | undefin
   }
   return undefined;
 }
+
+/**
+ * Attributes only leading schedule-result perception language. The caller must
+ * have already established Calendar recollection from server-owned history;
+ * this helper neither detects Calendar intent nor supplies authority.
+ */
+export function attributeBareCalendarRecollection(content: string): string | undefined {
+  const match = content.match(
+    /^I (?:can see|saw) ((?:(?:the|those|these) )?(?:timing|times|time blocks?|time slots?)(?:\b[\s\S]*)|(?:the |those |these |two |\d+ )?(?:meetings?|commitments?|appointments?)\b[\s\S]*)$/i,
+  );
+  if (!match) return undefined;
+  return `From the calendar result I reported earlier, ${match[1]}`;
+}

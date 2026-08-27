@@ -1,5 +1,9 @@
 import { isAmbiguousPrivateReadFollowUp } from "./private-capability-handoff-guard";
-import { attributeCalendarRecollection, rewriteFalseCalendarRereadOffer } from "./calendar-provenance-truthfulness";
+import {
+  attributeBareCalendarRecollection,
+  attributeCalendarRecollection,
+  rewriteFalseCalendarRereadOffer,
+} from "./calendar-provenance-truthfulness";
 
 /**
  * Ordinary model text is presentation, never authority machinery. Keep the
@@ -91,8 +95,14 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
 
   if (calendarProvenance && !calendarProvenance.hasCurrentCalendarGovernedContext
     && calendarProvenance.isCalendarRecollection) {
-    const attributed = attributeCalendarRecollection(content);
-    if (attributed) return attributed;
+    const attributed = attributeCalendarRecollection(content)
+      ?? attributeBareCalendarRecollection(content);
+    if (attributed) {
+      if (calendarProvenance.isDetailFollowUp) {
+        return rewriteFalseCalendarRereadOffer(attributed) ?? attributed;
+      }
+      return attributed;
+    }
     if (calendarProvenance.isDetailFollowUp && calendarProvenance.priorVisibleReportIsScheduleOnly) {
       return "The governed Calendar path available here includes timing information only, not titles or descriptions.";
     }

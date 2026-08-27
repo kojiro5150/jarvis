@@ -64,6 +64,19 @@ describe("ordinary-model reply guard", () => {
     expect(guardOrdinaryModelReply(reply, "What times did you just see?", false, recollection)).toBe(expected);
   });
 
+  it.each([
+    ["I can see the timing of your two meetings tomorrow (10:00 AM–11:00 AM and 3:00 PM–4:00 PM), but I don't have access to the subject lines, titles, or other details.",
+      "From the calendar result I reported earlier, the timing of your two meetings tomorrow (10:00 AM–11:00 AM and 3:00 PM–4:00 PM), but I don't have access to the subject lines, titles, or other details."],
+    ["I can see those times: 10:00–11:00 AM and 3:00–4:00 PM.",
+      "From the calendar result I reported earlier, those times: 10:00–11:00 AM and 3:00–4:00 PM."],
+    ["I saw two commitments, at 10 AM and 3 PM.",
+      "From the calendar result I reported earlier, two commitments, at 10 AM and 3 PM."],
+  ])("attributes bounded bare schedule perception: %s", (reply, expected) => {
+    expect(guardOrdinaryModelReply(reply, "What are the meetings about?", false, {
+      ...recollection, priorVisibleReportIsScheduleOnly: false, isDetailFollowUp: true,
+    })).toBe(expected);
+  });
+
   it("allows current Calendar language when current governed evidence exists", () => {
     const reply = "Based on your calendar for tomorrow, you have two commitments.";
     expect(guardOrdinaryModelReply(reply, "What is on tomorrow?", false, {
@@ -75,9 +88,24 @@ describe("ordinary-model reply guard", () => {
     "The information I saw in the text you pasted...", "I saw two options in your note.",
     "I can see two options in the text you pasted.", "I saw that you wrote Atlas.",
     "I can see the difference between those approaches.",
+    "I can see two options in your note.", "I can see the data in the table.",
     "The data I can see in the table has three rows.",
     "I have access to the variable inside this function.", "The note shows two options."])("does not overmatch non-Calendar sight language: %s", reply => {
     expect(guardOrdinaryModelReply(reply, "ordinary question", false, recollection)).toBe(reply);
+  });
+
+  it("does not rewrite bare schedule perception when current governed evidence exists", () => {
+    const reply = "I can see two commitments in the current Calendar evidence.";
+    expect(guardOrdinaryModelReply(reply, "What is on tomorrow?", false, {
+      hasCurrentCalendarGovernedContext: true, isCalendarRecollection: true,
+    })).toBe(reply);
+  });
+
+  it("attributes bare timing while preserving user detail and containing a false reread", () => {
+    const reply = "I can see the timing of two meetings tomorrow.\nYou told me the 10 AM meeting is the project review.\nI don't have details for the 3 PM meeting.\nIf you'd like, I can check Calendar again for the 3 PM title.";
+    expect(guardOrdinaryModelReply(reply, "What are the meetings about?", false, {
+      ...recollection, priorVisibleReportIsScheduleOnly: false, isDetailFollowUp: true,
+    })).toBe("From the calendar result I reported earlier, the timing of two meetings tomorrow.\nYou told me the 10 AM meeting is the project review.\nI don't have details for the 3 PM meeting.\nThe governed Calendar path available here does not expose titles or descriptions.");
   });
 
   it("contains invented meeting metadata when the visible report supplied only times", () => {

@@ -4,7 +4,12 @@ const CALENDAR_RECALL_FOLLOW_UP = /^(?:what (?:times? did you (?:just )?(?:see|g
 const PRIOR_CALENDAR_REPORT = /(?:\bbased on (?:the result from )?your calendar\b|\blooking at your calendar for (?:today|tomorrow|this (?:morning|afternoon|evening|week)|next seven days)\b[\s\S]*?\byou have (?:\d+|one|two|three|four|five) commitments?\b|\bcalendar result (?:I )?reported\b|\b(?:today|tomorrow|this (?:morning|afternoon|evening|week)|next seven days) (?:is clear|you have \d+ commitments?)\b|\byour calendar (?:is clear|has \d+ commitments?)\b)/i;
 const SCHEDULE_INTERVAL_TEXT = String.raw`\d{1,2}(?::\d{2})?\s*(?:AM|PM)?\s*[–-]\s*\d{1,2}(?::\d{2})?\s*(?:AM|PM)`;
 const SCHEDULE_ONLY_CALENDAR_REPORT = new RegExp(
-  String.raw`^Based on your calendar(?: for [^,.\n]+)?,?\s+you have (?:\d+|one|two|three|four|five) commitments?:\s*${SCHEDULE_INTERVAL_TEXT}(?:\s*(?:,|and|\n)\s*${SCHEDULE_INTERVAL_TEXT})*[.!]?$`,
+  String.raw`^(?:Based on your calendar(?: for [^,.\n]+)?,?\s+you have|(?:Today|Tomorrow|This (?:morning|afternoon|evening|week)|Next seven days)\s+you have)\s+(?:\d+|one|two|three|four|five) commitments?:\s*${SCHEDULE_INTERVAL_TEXT}(?:\s*(?:,|and|\n)\s*${SCHEDULE_INTERVAL_TEXT})*[.!]?import type { ChatMessage } from "@/lib/agents/types";
+
+const CALENDAR_RECALL_FOLLOW_UP = /^(?:what (?:times? did you (?:just )?(?:see|give me)|did you (?:just )?(?:say|tell me)(?: (?:my schedule was|about tomorrow))?|did you report for tomorrow)|when were those (?:two )?(?:commitments|meetings)|what are the meetings about)[?!.]*$/i;
+const PRIOR_CALENDAR_REPORT = /(?:\bbased on (?:the result from )?your calendar\b|\blooking at your calendar for (?:today|tomorrow|this (?:morning|afternoon|evening|week)|next seven days)\b[\s\S]*?\byou have (?:\d+|one|two|three|four|five) commitments?\b|\bcalendar result (?:I )?reported\b|\b(?:today|tomorrow|this (?:morning|afternoon|evening|week)|next seven days) (?:is clear|you have \d+ commitments?)\b|\byour calendar (?:is clear|has \d+ commitments?)\b)/i;
+const SCHEDULE_INTERVAL_TEXT = String.raw`\d{1,2}(?::\d{2})?\s*(?:AM|PM)?\s*[–-]\s*\d{1,2}(?::\d{2})?\s*(?:AM|PM)`;
+,
   "i",
 );
 const DETAIL_FOLLOW_UP = /^what are (?:those|the) (?:meetings|commitments) about[?!.]*$/i;
@@ -167,8 +172,12 @@ export function attributeCalendarRecollection(content: string): string | undefin
     }
 
     const currentSourceRewrites: readonly [RegExp, string][] = [
-      [/\bFrom the calendar information I have access to,?\s+I can see\b/i,
+      [/\bFrom the calendar information I have access to,?\s+I can (?:only )?see\b/i,
         "From the earlier Calendar result I reported, I saw"],
+      [/\bFrom your calendar,?\s+I can see\b/i,
+        "From the earlier Calendar result I reported, I saw"],
+      [/\bThe calendar shows me\b/i,
+        "The earlier Calendar result I reported showed"],
       [/\bBased on what I can see from your calendar,?\s*/i,
         "From the earlier Calendar result I reported, "],
       [/\bThe calendar projection I saw\b/i, "The earlier Calendar projection I reported"],
@@ -245,6 +254,8 @@ export function attributeCalendarRecollection(content: string): string | undefin
  * this helper neither detects Calendar intent nor supplies authority.
  */
 export function attributeBareCalendarRecollection(content: string): string | undefined {
+  const bareList = content.match(/^I just saw\s*:\s*([\s\S]+)$/i);
+  if (bareList) return `From the calendar result I reported earlier, the times were:\n${bareList[1].trim()}`;
   const match = content.match(
     /^I (?:can see|(?:just )?saw) ((?:(?:the|those|these) )?(?:timing|times|time blocks?|time slots?)(?:\b[\s\S]*)|(?:the |those |these |two |\d+ )?(?:meetings?|commitments?|appointments?)\b[\s\S]*)$/i,
   );

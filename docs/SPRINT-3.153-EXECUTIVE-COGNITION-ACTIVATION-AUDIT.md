@@ -4,20 +4,25 @@
 **Sprint type:** Architecture reconciliation and audit  
 **Implementation authority:** None  
 **Production integration:** Prohibited  
-**Starting baseline:** `cef9440bf8b0e3027187f33412eb10fe3ee2a811`  
+**Starting baseline:** merged `main` after PR #337 (`211d160`)  
 **Primary proving question:** **What needs my attention?**
 
 ## 1. Purpose
 
-JARVIS now has a substantially hardened governed conversational path, bounded operation-level authority for Calendar/Gmail/Drive, server-owned pending authorization, private-history containment, typed/voice turn integrity, and a live Calendar GovernedContext path with 6/6 final acceptance.
+JARVIS now has a substantially hardened governed conversational path, bounded operation-level authority for Calendar/Gmail/Drive, server-owned pending authorization, private-history containment, typed/voice turn integrity, and a live Calendar GovernedContext path. Sprint 3.152d also closed the verified Calendar projection-fidelity regression in which model prose could substitute a user-mentioned time for a real projected commitment.
 
-The next architectural question is no longer primarily whether JARVIS can read private sources safely. It is whether the existing deterministic Executive Operating System can consume current truthful state and produce useful everyday cognition without handing factual or priority authority back to an LLM.
+The next architectural question is no longer primarily whether JARVIS can read private sources safely. It is what the real everyday question “What needs my attention?” actually requires before any existing Executive Operating System stage is allowed to define the answer.
 
-Sprint 3.153 therefore audits the existing Executive Cognition chain against the current production architecture.
+Sprint 3.153 therefore does **not** begin by auditing or wiring the twelve-stage cognition pipeline as a presumed route. It applies the Executive Cognition Scope Discipline:
+
+1. derive the minimum deterministic information transformations required to answer the question honestly;
+2. identify the minimum evidence/state each transformation requires;
+3. only then map those transformations to existing EOS stages where they genuinely fit;
+4. leave every other stage unwired.
 
 It shall answer one bounded question:
 
-> Can current governed operational evidence be transformed, through existing canonical EOS stages, into a deterministic and inspectable answer to “What needs my attention?” without inventing evidence, priority, severity, or action authority?
+> What is the minimum deterministic architecture required for JARVIS to answer “What needs my attention?” honestly, and which existing EOS stages—if any—are actually load-bearing for that capability?
 
 This sprint must not implement that path.
 
@@ -28,11 +33,14 @@ Apply, in order:
 1. Engineering Constitution;
 2. North Star;
 3. JARVIS Engineering Specification Standard;
-4. accepted ADRs;
-5. current `docs/architecture/ROADMAP.md`;
-6. current authority architecture and `docs/AUTHORITY-MIGRATION-STATUS.md`;
-7. current source and tests;
-8. this sprint specification.
+4. `docs/architecture/EXECUTIVE-COGNITION-SCOPE-DISCIPLINE.md` for Executive Cognition scope selection;
+5. accepted ADRs;
+6. current `docs/architecture/ROADMAP.md`;
+7. current authority architecture and `docs/AUTHORITY-MIGRATION-STATUS.md`;
+8. current source and tests;
+9. this sprint specification.
+
+The Executive Cognition Scope Discipline is binding for this audit as a scope constraint beneath the Engineering Constitution and North Star. It does not supersede JESS or accepted ADRs outside the scope-selection question. A stage does not earn production wiring because it already exists, compiles, or appears in the historical pipeline.
 
 The frozen authority rule remains:
 
@@ -76,7 +84,7 @@ Read and trace the actual current implementation of:
 - ADR-0009
 - Sprint 3.14 specification and tests
 
-### Downstream cognition
+### Downstream cognition — inspect only after minimum transformations are derived
 - Situation Formation
 - Situation Assessment
 - Executive Context
@@ -87,6 +95,8 @@ Read and trace the actual current implementation of:
 - Executive Reasoning
 - Governed Action Proposal
 
+These stages are inspection candidates, not presumed dependencies. Do not route the proving question through them merely to observe whether they produce output.
+
 ### Runtime composition
 - `lib/executive-operating-system/runtime/engine.ts`
 - runtime types and run records
@@ -96,7 +106,34 @@ Do not infer wiring from file presence. Follow imports and real callers.
 
 ## 4. Required audit findings
 
-The audit must produce explicit **OBSERVED / INFERRED / UNKNOWN** findings for each question below.
+The audit must first derive the capability from the question itself, before inspecting existing stage fit.
+
+### 4.0 Minimum transformation derivation
+
+State the minimum deterministic information transformations required to answer:
+
+> **What needs my attention?**
+
+For each transformation identify:
+
+- required input information;
+- required output information;
+- why the transformation is necessary for an honest answer;
+- whether it requires current state only or comparison with prior state;
+- whether it selects, interprets, ranks, recommends, or merely renders;
+- what would be lost if the transformation were omitted.
+
+Do not name an existing EOS stage as justification for a transformation. Stage mapping happens only after this derivation.
+
+After the minimum transformations are defined, classify every existing cognition stage considered by the audit as exactly one of:
+
+- **Load-bearing** — demonstrably required for this capability; state precisely what necessary transformation it provides.
+- **Not required for this capability** — this question does not require it; this makes no claim about whether another future capability may need it.
+- **Unproven** — not exercised by the evidence available in this audit.
+
+A result in which most stages are **Not required for this capability** is a successful audit result and must not be treated as a reason to wire them anyway.
+
+The audit must then produce explicit **OBSERVED / INFERRED / UNKNOWN** findings for each question below.
 
 ### A. Input ownership
 
@@ -177,25 +214,41 @@ Use whichever scenario is actually supported by current code. Do not force the p
 
 ## 5. Required architecture map
 
-Produce an evidence-backed map of the actual path, using one of these outcomes:
+Produce two maps, in this order.
 
-### Outcome A — Directly activatable
+### Map 1 — Minimum capability path
+
+Show only the transformations derived from the real question, without forcing historical EOS stage names onto them.
+
+Example shape only:
+
 ```text
-authorized source
-→ existing projection
-→ existing snapshot lifecycle
-→ existing change set
-→ existing Attention Engine
-→ future bounded Attention Brief
+governed evidence
+→ canonical state
+→ change detection
+→ deterministic attention selection
+→ attention records
+→ concise rendering
 ```
 
+The audit may return a smaller or different path if the evidence requires it.
+
+### Map 2 — Existing-stage fit
+
+Map each transformation from Map 1 to an existing EOS stage only where the code demonstrably provides that transformation. Mark every inspected stage as **Load-bearing**, **Not required for this capability**, or **Unproven**.
+
+Then classify readiness using one of these outcomes:
+
+### Outcome A — Directly activatable
+Every minimum transformation has an honest current owner and the mapped load-bearing stages can compose without inference.
+
 ### Outcome B — One named missing seam
-Same as A, but identify exactly one missing owner/contract blocking the chain.
+Exactly one required transformation or owner is absent. Name it and stop there.
 
 ### Outcome C — Multiple structural gaps
-List each gap and stop. Do not hide them inside an implementation sprint.
+List each required missing transformation/owner and stop. Do not hide them inside an implementation sprint.
 
-The audit must not return “ready” merely because all packages compile independently.
+The audit must not return “ready” merely because all packages compile independently, and it must not add stages to achieve architectural completeness.
 
 ## 6. Non-goals
 
@@ -240,14 +293,16 @@ The audit must include:
 2. audited commit;
 3. files and governing artefacts reviewed;
 4. runtime/cognition architecture map;
-5. stage-by-stage input/output table;
-6. production caller map;
-7. attention policy inventory;
-8. identity/provenance continuity findings;
-9. temporal/snapshot requirements;
-10. first proving scenario;
-11. named blockers;
-12. recommendation for exactly one next sprint.
+5. minimum-transformation map derived from the real question;
+6. existing-stage classification table (Load-bearing / Not required for this capability / Unproven);
+7. stage-by-stage input/output table for load-bearing or inspected stages;
+8. production caller map;
+9. attention policy inventory;
+10. identity/provenance continuity findings;
+11. temporal/snapshot requirements;
+12. first proving scenario;
+13. named blockers;
+14. recommendation for exactly one next sprint.
 
 The next-sprint recommendation must be one of:
 
@@ -263,6 +318,10 @@ Sprint 3.153 is complete only when:
 
 - the roadmap has been reconciled to the post-3.152c repository state;
 - the audit uses the actual merged `main` implementation;
+- the minimum required transformations are derived from the real question before existing-stage mapping;
+- every inspected EOS stage is classified as Load-bearing, Not required for this capability, or Unproven;
+- no stage is wired or recommended merely because it already exists;
+- a mostly "Not required for this capability" result is accepted without architectural completion pressure;
 - every claimed production path is proven by caller tracing;
 - every unsupported connection is labelled UNKNOWN or absent;
 - the Attention layer is not confused with ranking or prioritisation;
@@ -290,6 +349,6 @@ If repository policy or environment prevents one command from completing, report
 
 The sprint exits only when we can truthfully answer:
 
-> What exact deterministic path would allow JARVIS to answer “What needs my attention?” today, and what is the smallest missing seam—if any—between the governed operational evidence already proven and the existing Executive Attention machinery?
+> What minimum deterministic information transformations are actually required for JARVIS to answer “What needs my attention?” today; which existing EOS stages genuinely provide those transformations; and what is the smallest missing seam—if any—between the required capability and current governed operational evidence?
 
 No implementation begins until that answer is evidence-backed.

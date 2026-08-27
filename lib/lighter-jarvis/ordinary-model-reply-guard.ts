@@ -99,6 +99,7 @@ export type CalendarProvenanceState = Readonly<{
 
 export function guardOrdinaryModelReply(content: string, currentUserUtterance?: string, governedDriveHistoryExcluded = false,
   calendarProvenance?: CalendarProvenanceState): string {
+  let guarded = content;
   const ordinaryCalendarFact = currentUserUtterance
     ? userSuppliedTimedCalendarDetail(currentUserUtterance) !== undefined
     : false;
@@ -112,11 +113,14 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
   if (ordinaryCalendarFact && CALENDAR_WRITE_OFFER.test(content)) {
     return UNSUPPORTED_CALENDAR_WRITE_REPLY;
   }
-  if (calendarProvenance && (calendarProvenance.hasCurrentCalendarGovernedContext
-    || calendarProvenance.isCalendarRecollection) && PROJECTED_FIELD_ABSENCE.test(content)) {
-    PROJECTED_FIELD_ABSENCE.lastIndex = 0;
-    return content.replace(PROJECTED_FIELD_ABSENCE,
+  const hasProjectedFieldAbsence = Boolean(calendarProvenance
+    && (calendarProvenance.hasCurrentCalendarGovernedContext || calendarProvenance.isCalendarRecollection)
+    && PROJECTED_FIELD_ABSENCE.test(guarded));
+  PROJECTED_FIELD_ABSENCE.lastIndex = 0;
+  if (hasProjectedFieldAbsence) {
+    guarded = guarded.replace(PROJECTED_FIELD_ABSENCE,
       "The governed Calendar result available here did not include that field");
+    PROJECTED_FIELD_ABSENCE.lastIndex = 0;
   }
   const explicitDriveProvenance = EXPLICIT_DRIVE_PROVENANCE_CLAIMS.some(pattern => pattern.test(content));
   const contextualDriveProvenance = CONTEXTUAL_DRIVE_PROVENANCE_CLAIMS.some(pattern => pattern.test(content))
@@ -127,19 +131,32 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
 
   if (calendarProvenance && !calendarProvenance.hasCurrentCalendarGovernedContext
     && calendarProvenance.isCalendarRecollection) {
-    const attributed = attributeCalendarRecollection(content)
-      ?? attributeBareCalendarRecollection(content);
+    const attributed = attributeCalendarRecollection(guarded)
+      ?? attributeBareCalendarRecollection(guarded);
+    if (attributed) guarded = attributed;
+    if (hasProjectedFieldAbsence && calendarProvenance.isDetailFollowUp) {
+      const bound = calendarProvenance.boundUserDetails ?? [];
+      if (bound.length > 0) {
+        const known = bound.map(detail => `From what you told me earlier, the ${detail.clock} commitment is the ${detail.label}.`).join(" ");
+        const unknown = (calendarProvenance.unknownCommitmentClocks ?? [])
+          .map(clock => `The governed Calendar result did not include title or description information for the ${clock} commitment.`).join(" ");
+        return `From the earlier Calendar result I reported: ${known} ${unknown}`.trim();
+      }
+      if (calendarProvenance.priorVisibleReportIsScheduleOnly) {
+        return "From the earlier Calendar result I reported, only timing information was available in the governed projection, not titles or descriptions.";
+      }
+    }
     if (attributed) {
       if (calendarProvenance.isDetailFollowUp) {
-        return rewriteFalseCalendarRereadOffer(attributed) ?? attributed;
+        return rewriteFalseCalendarRereadOffer(guarded) ?? guarded;
       }
-      return attributed;
+      return guarded;
     }
     if (calendarProvenance.isDetailFollowUp && calendarProvenance.priorVisibleReportIsScheduleOnly) {
       return "The governed Calendar path available here includes timing information only, not titles or descriptions.";
     }
     if (calendarProvenance.isDetailFollowUp) {
-      const withoutFalseReread = rewriteFalseCalendarRereadOffer(content);
+      const withoutFalseReread = rewriteFalseCalendarRereadOffer(guarded);
       if (withoutFalseReread) return withoutFalseReread;
       if (presentsPrivateAuthorityConfirmation(content)) {
         const bound = calendarProvenance.boundUserDetails ?? [];
@@ -185,7 +202,6 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
     return UNSUPPORTED_DRIVE_PATH_REPLY;
   }
 
-  let guarded = content;
   for (const marker of INTERNAL_HISTORY_MARKERS) guarded = guarded.replaceAll(marker, "");
   guarded = guarded.trim();
   return guarded || NEUTRALIZED_ORDINARY_AUTHORITY_REPLY;

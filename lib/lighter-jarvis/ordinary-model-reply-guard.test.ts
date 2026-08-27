@@ -165,6 +165,44 @@ describe("ordinary-model reply guard", () => {
     expect(guarded).toContain("governed Calendar result available here did not include that field");
   });
 
+  it("composes historical provenance with projection-absence containment", () => {
+    const reply = "Based on what I can see from your calendar:\n\n1. 10:00 AM – 11:00 AM: Project review\n2. 3:00 PM – 4:00 PM: The calendar entry doesn't include a label or description.";
+    const guarded = guardOrdinaryModelReply(reply, "What are the meetings about?", false, {
+      ...recollection, priorVisibleReportIsScheduleOnly: false, isDetailFollowUp: true,
+      boundUserDetails: [{ clock: "10 AM", label: "project review" }],
+      unknownCommitmentClocks: ["3 PM"],
+    });
+    expect(guarded).toMatch(/earlier Calendar result I reported/i);
+    expect(guarded).toMatch(/project review/i);
+    expect(guarded).toMatch(/what you told me earlier/i);
+    expect(guarded).toMatch(/governed Calendar result.*did not include/i);
+    expect(guarded).not.toMatch(/what I can see from your calendar|I can see from your calendar|have access to/i);
+    expect(guarded).not.toMatch(/calendar entry doesn't include|event has no|source event has no/i);
+  });
+
+  it("keeps an unbound 9 AM detail isolated in composed truthfulness containment", () => {
+    const reply = "Based on what I can see from your calendar, the calendar entry doesn't include a label or description.";
+    const guarded = guardOrdinaryModelReply(reply, "What are the meetings about?", false, {
+      ...recollection, priorVisibleReportIsScheduleOnly: true, isDetailFollowUp: true,
+      boundUserDetails: [], unknownCommitmentClocks: ["10 AM", "3 PM"],
+    });
+    expect(guarded).toMatch(/earlier Calendar result I reported/i);
+    expect(guarded).toMatch(/timing information/i);
+    expect(guarded).not.toMatch(/finance review|what I can see from your calendar|doesn't include/i);
+    expect(guarded).not.toBe(NEUTRALIZED_ORDINARY_AUTHORITY_REPLY);
+  });
+
+  it("composes provenance, projection absence, and false reread containment", () => {
+    const reply = "Based on what I can see from your calendar, the event has no title. If you'd like, I can check the calendar again for its description.";
+    const guarded = guardOrdinaryModelReply(reply, "What are the meetings about?", false, {
+      ...recollection, priorVisibleReportIsScheduleOnly: false, isDetailFollowUp: true,
+    });
+    expect(guarded).toMatch(/earlier Calendar result I reported/i);
+    expect(guarded).toMatch(/governed Calendar result available here did not include that field/i);
+    expect(guarded).toMatch(/does not expose titles or descriptions/i);
+    expect(guarded).not.toMatch(/what I can see from your calendar|event has no title|check the calendar again/i);
+  });
+
   it("preserves actual private-request safety and unrelated update prose", () => {
     expect(guardOrdinaryModelReply("Please explicitly confirm that I may read your Calendar.", "Can you check my calendar?"))
       .toBe(NEUTRALIZED_ORDINARY_AUTHORITY_REPLY);

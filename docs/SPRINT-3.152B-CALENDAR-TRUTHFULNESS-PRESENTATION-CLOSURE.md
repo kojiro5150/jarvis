@@ -18,6 +18,7 @@
 * **Recall provenance — OBSERVED:** rewrite families were primarily leading, exact phrase grammars and omitted “calendar information I have access to,” “based on what I can see,” “projection I saw,” and “projection I have access to,” including phrases later in a response.
 * **Projection epistemics — OBSERVED:** no output guard distinguished a field omitted by the governed projection from a field proven absent at the provider source.
 * **Clock leak — OBSERVED:** unbound mismatch presentation interpolated `detail.clock` directly. That field intentionally carries `hour:minute:meridiem` comparison normalization, including unpadded zero minutes.
+* **Truthfulness composition — OBSERVED:** the initial 3.152b projection/source-absence correction returned immediately after replacing that phrase. The exact composed regression therefore failed pre-fix: projection absence was corrected, but “Based on what I can see from your calendar” survived because recollection provenance attribution never ran.
 
 ## Bounded corrections
 
@@ -26,6 +27,8 @@
 **OBSERVED:** Actual Calendar/Gmail/Drive acquisition utterances retain fake-authority neutralization. Non-Calendar update prose and generic sight language remain unchanged.
 
 **OBSERVED:** Server-established Calendar recollection enables bounded, whole-response provenance replacements. Server-established current or recalled Calendar state enables bounded projection-absence correction. Neither mechanism runs globally.
+
+**OBSERVED:** These distinct truthfulness transforms now run as staged changes to one guarded response instead of projection/source-absence containment returning early. Historical provenance, projection epistemics, and false-reread containment can consequently all be enforced on a single response. When the composed detail response has an exact bound detail, the deterministic result attributes that label to what the user said; an unbound detail retains the historical timing-only fallback.
 
 **OBSERVED:** `displayCalendarClock` is now the single presentation conversion for normalized comparison clocks at the mismatch seam. Equality normalization remains unchanged.
 

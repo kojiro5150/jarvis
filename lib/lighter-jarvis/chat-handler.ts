@@ -13,6 +13,8 @@ import { isAmbiguousPrivateReadFollowUp, isPrivateAcquisitionHandoffRequest } fr
 import { guardOrdinaryModelReply } from "@/lib/lighter-jarvis/ordinary-model-reply-guard";
 import { resolveProductionDriveSearch, type ProductionDriveSearchDependencies } from "@/lib/lighter-jarvis/production-drive-search";
 import { resolveProductionDriveRead, type ProductionDriveReadDependencies } from "@/lib/lighter-jarvis/production-drive-read";
+import { projectCalendarContext } from "@/lib/lighter-jarvis/calendar-governed-context";
+import { createGovernedContext, type GovernedContext } from "@/lib/lighter-jarvis/governed-context";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -25,6 +27,7 @@ type ModelCall = (
   systemPrompt: string,
   messages: ChatMessage[],
   tools?: ClaudeTool[],
+  governedContext?: GovernedContext,
 ) => Promise<string | ClaudeResult>;
 
 const ORACLE_TOOLS: ClaudeTool[] = [
@@ -273,8 +276,25 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         pendingAuthorizationReference: calendar.pendingAuthorizationReference });
     }
     if (calendar?.decision === "ALLOW") {
+      const fallback = formatCalendarReadResponse(calendar.evidence!, calendar.window ?? undefined);
+      if (calendar.evidence!.status !== "available" || !calendar.window) {
+        return NextResponse.json({ reply: fallback, specialistId: specialist.id, execution: "none",
+          calendarAuthority: { decision: "ALLOW", reason: calendar.reason } });
+      }
+      const governedContext = createGovernedContext(projectCalendarContext(calendar.evidence!.evidence, calendar.window));
+      try {
+        const systemPrompt = await buildSpecialistPrompt(specialist);
+        const modelMessages = sanitizeModelHistory(body.messages);
+        const result = await callModel(systemPrompt, modelMessages, JARVIS_TOOLS, governedContext);
+        const modelReply = typeof result === "string" ? result : result.text;
+        const reply = guardOrdinaryModelReply(modelReply, currentUserUtterance, false);
+        return NextResponse.json({ reply, specialistId: specialist.id, execution: "none",
+          calendarAuthority: { decision: "ALLOW", reason: calendar.reason } });
+      } catch (error) {
+        console.error("[/api/lighter/chat] Governed Calendar model invocation failed:", error);
+      }
       return NextResponse.json({
-        reply: formatCalendarReadResponse(calendar.evidence!, calendar.window ?? undefined),
+        reply: fallback,
         specialistId: specialist.id,
         execution: "none",
         calendarAuthority: { decision: "ALLOW", reason: calendar.reason },

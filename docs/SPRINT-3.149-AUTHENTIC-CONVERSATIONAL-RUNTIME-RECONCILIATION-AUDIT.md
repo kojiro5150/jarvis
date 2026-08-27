@@ -29,6 +29,7 @@ Evidence notation in this document is `Commit; File; Symbol; Lines`. All entries
 ### UNKNOWN
 
 - Repository code does not establish the deployed value of `CONSOLE_PRESENTATION_MODE`; therefore which client contract a particular deployment exposes is unresolved (B; `app/page.tsx`; `Home`; lines 10–17).
+- The admitted lower non-Gmail `/api/chat` capability is statically known to be exactly `executive_context`; what repository code cannot establish is whether an external/deployed caller invokes it (B; `lib/chat-capabilities/router.ts`; `parseChatCapabilityRequest`; lines 7–13; B; `app/api/chat/route.ts`; `POST`; lines 47–81).
 - The module-private in-memory pending registry has no persistence or cross-instance coordination in the cited implementation; repository unit tests prove process-local behavior, not deployment topology/restart reliability (B; `lib/lighter-jarvis/pending-authorization.ts`; `pendingAuthorizations`; lines 48–60).
 
 ## 3. End-to-end runtime map
@@ -58,7 +59,7 @@ Evidence notation in this document is `Commit; File; Symbol; Lines`. All entries
 | 19 Governed rendering | B; same; message render/composer; 746–862 | conversation state → paragraph/UI | C/presentation | yes, when deterministic reply retained | represented only | canonical | `components/console/UnifiedOpsConsole.test.ts`, 76–84 | F-13 |
 | 20 Legacy dashboard submit | B; `lib/useAgentConversation.ts`; `send`; 31–56 | dock → `/api/chat` | C | no governed acquisition | absent | legacy/parallel | `app/api/chat/route.test.ts`, 54–77 | F-06 |
 | 21 Legacy route parse/Gmail gate | B; `app/api/chat/route.ts`; `POST`; 39–52 | raw JSON → hard containment response | D | no | consumed | legacy/parallel | `app/api/chat/route.test.ts`, 79–137 | F-07 |
-| 22 Physically present lower capability router | B; same; `POST`; 54–83 | capability parser → generic router; Gmail subbranch lies below gate | D | conditional | decided/consumed | legacy/parallel | `app/api/chat/route.test.ts`, 79–137 | F-07, F-15 |
+| 22 Lower capability router | B; `lib/chat-capabilities/router.ts`; `parseChatCapabilityRequest`; 7–13; B; `app/api/chat/route.ts`; `POST`; 47–81 | Gmail gate → parser admitting `executive_context` or gated Gmail only → `routeChatCapability` | D | no for `executive_context`; Gmail contained | absent for `executive_context` | legacy/parallel | `lib/chat-capabilities/router.test.ts`, 22–52; `app/api/chat/route.test.ts`, 79–137 | F-07, F-15, F-25 |
 | 23 Legacy ordinary model | B; same; `POST`; 87–119 | messages → audited Claude execution → JSON | M | no implicit OperationalState | absent | legacy/parallel | `app/api/chat/route.test.ts`, 54–77 | F-06, F-18 |
 | 24 Dashboard final rendering | B; `components/dashboard/ConversationDock.tsx`; `handleSubmit`/message rendering; 183–188, 233–256 | input → `onSend`; messages → `AgentDocument` | C/presentation | no governed acquisition | absent | legacy/parallel | `app/api/chat/route.test.ts`, 54–77 | F-06, F-18 |
 
@@ -111,7 +112,7 @@ Evidence notation in this document is `Commit; File; Symbol; Lines`. All entries
 
 - **`/api/chat`, actively user-reachable conditionally:** root non-governed presentation renders `DashboardShell`, which calls `useAgentConversation`, which fetches `/api/chat` (B; `app/page.tsx`; `Home`; 10–17; B; `components/dashboard/DashboardShell.tsx`; `DashboardShell`; 65–77; B; `lib/useAgentConversation.ts`; `send`; 31–56).
 - **Legacy Gmail capability, contained beneath a fail-closed gate:** raw JSON is parsed at `app/api/chat/route.ts`, `POST`, 39–45; an object whose operation is `governed_gmail_retrieval` returns at 47–52. The Gmail-capable parser/authorization/connector code remains physically and syntactically below at 54–81, but for that operation it is not semantically or production reachable because the earlier predicate returns. Tests exercise raw gate, fabricated pending, and model non-reentry at `app/api/chat/route.test.ts`, 79–137.
-- **Generic legacy capability router, conditionally production-reachable:** a non-`governed_gmail_retrieval` `body.capability` passes the hard Gmail predicate and reaches parser/router at `app/api/chat/route.ts`, `POST`, 54–83. Its actual supported non-Gmail operation set is unresolved by this route alone and is not labeled dead.
+- **Lower legacy capability router, statically bounded:** the parser admits exactly `executive_context` and `governed_gmail_retrieval` and rejects every other operation (B; `lib/chat-capabilities/router.ts`; `parseChatCapabilityRequest`; 7–13). The earlier raw-body gate returns for `governed_gmail_retrieval` (B; `app/api/chat/route.ts`; `POST`; 47–52), leaving `executive_context` as the one admitted non-Gmail operation reaching the lower generic router at 54–81. A baseline production-source search (`rg -n 'executive_context|parseChatCapabilityRequest|routeChatCapability' --glob '!docs/**' --glob '!**/*.test.ts' --glob '!**/*.test.tsx' .`) found the route import/calls at `app/api/chat/route.ts`, 9 and 56–80, the parser/router definitions at `lib/chat-capabilities/router.ts`, 7–50, and type declarations at `lib/chat-capabilities/types.ts`, 7–20; it found no in-repository production request constructor or client caller for `capability.operation = "executive_context"`. External/deployed invocation remains unresolved because repository search cannot observe traffic.
 - **`/api/lighter/chat`, governed runtime:** its only route export creates `createLighterChatHandler` (B; `app/api/lighter/chat/route.ts`; 1–6), consumed by governed console fetches (B; `components/console/UnifiedOpsConsole.tsx`; `submitMessage`; 313–373).
 - **Older agent/coordinator path:** `/api/chat` calls `executeAuditedChat` with the BOA/agent prompt (B; `app/api/chat/route.ts`; `POST`; 103–119); it is parallel to lighter specialist routing, not part of the latter.
 - **OperationalState consumers:** dashboard mounts `useOperationalState` and uses it for dashboard/opening presentation (B; `components/dashboard/DashboardShell.tsx`; `DashboardShell`; 65–77; B; `components/dashboard/ConversationDock.tsx`; `openingBriefContent`; 107–181). `/api/chat` ordinary execution receives only agent/messages/systemPrompt and has no OperationalState argument (B; `app/api/chat/route.ts`; `POST`; 103–117). Thus OperationalState influences parallel client presentation, not cited conversational model context.
@@ -221,7 +222,7 @@ Evidence:
 Runtime consequence: The lower Gmail branch is syntactically present but semantically unreachable for the gated operation.  
 Authority consequence: Legacy Gmail cannot create or resume authority.  
 Evidence/privacy consequence: Legacy Gmail connector construction is contained.  
-What is NOT proven: That generic non-Gmail capabilities are unreachable.  
+What is NOT proven: Whether an external or deployed caller invokes the one admitted non-Gmail operation, `executive_context`.
 Follow-up disposition: none
 
 ### F-08
@@ -330,19 +331,19 @@ What is NOT proven: Transcription accuracy.
 Follow-up disposition: none
 
 ### F-15
-Finding ID: F-15  
-Category: Unresolved ambiguity  
-Observed fact: `/api/chat` routes non-Gmail capability objects through a generic parser/router after the Gmail gate.  
+Finding ID: F-15
+Category: Legacy or parallel runtime behavior
+Observed fact: The lower `/api/chat` parser statically admits exactly `executive_context` and `governed_gmail_retrieval`; the route's earlier raw-body Gmail gate leaves `executive_context` as the only admitted non-Gmail operation that can reach generic capability routing.
 Evidence:
 - Commit SHA: `2348d2bc90575633cbadf90900e1f43a31f48c80`
-- File: `app/api/chat/route.ts`
-- Symbol/function: `POST`
-- Lines: 54–83
-Runtime consequence: A parallel capability surface may remain conditionally reachable.  
-Authority consequence: unknown for each non-Gmail operation  
-Evidence/privacy consequence: unknown for each non-Gmail operation  
-What is NOT proven: Production callers and admitted operation set for every generic capability.  
-Follow-up disposition: unresolved ambiguity
+- File: `lib/chat-capabilities/router.ts`; `app/api/chat/route.ts`
+- Symbol/function: `parseChatCapabilityRequest`; `POST`
+- Lines: 7–13; 47–52 and 54–81
+Runtime consequence: The parallel lower capability surface is statically bounded to `executive_context`; all other non-Gmail operation values return unknown-operation, while governed Gmail is contained by the earlier gate.
+Authority consequence: `executive_context` does not enter the Gmail authority subbranch; none observed beyond its validated snapshot/computation-window input.
+Evidence/privacy consequence: The admitted operation derives executive context; the gated Gmail operation cannot construct its connector through this route.
+What is NOT proven: Whether an external or deployed caller invokes the admitted `executive_context` operation.
+Follow-up disposition: none
 
 ### F-16
 Finding ID: F-16  
@@ -479,25 +480,40 @@ Evidence/privacy consequence: Excluded Drive history can suppress provenance cla
 What is NOT proven: General semantic validation.  
 Follow-up disposition: none
 
+### F-25
+Finding ID: F-25
+Category: Unresolved ambiguity
+Observed fact: Baseline repository production-source search finds the `/api/chat` parser/router consumer and type/definition references, but no in-repository production request constructor or client caller setting `capability.operation` to `executive_context`; repository evidence cannot observe external/deployed traffic.
+Evidence:
+- Commit SHA: `2348d2bc90575633cbadf90900e1f43a31f48c80`
+- File: `app/api/chat/route.ts`; `lib/chat-capabilities/router.ts`; `lib/chat-capabilities/types.ts`
+- Symbol/function: `POST`; `parseChatCapabilityRequest`, `routeChatCapability`; `ExecutiveContextCapabilityRequest`
+- Lines: 9, 54–81; 7–50; 6–10, 17–20
+Runtime consequence: The endpoint surface is statically reachable for a valid request, but actual deployed use cannot be classified active or inactive from repository code alone.
+Authority consequence: none observed
+Evidence/privacy consequence: none observed beyond the statically admitted executive-context computation input/output
+What is NOT proven: Whether any deployed or external production caller sends `/api/chat` a capability whose operation is `executive_context`; deployment telemetry or equivalent runtime evidence is required.
+Follow-up disposition: unresolved ambiguity
+
 ### Finding totals
 
 1. Canonical governed runtime behavior: **3** (F-01, F-04, F-24)
-2. Legacy or parallel runtime behavior: **3** (F-06, F-07, F-18)
+2. Legacy or parallel runtime behavior: **4** (F-06, F-07, F-15, F-18)
 3. Authority / control boundary: **3** (F-02, F-03, F-05)
 4. Evidence / acquisition boundary: **3** (F-08, F-09, F-17)
 5. Context / model boundary: **3** (F-10, F-11, F-12)
 6. Client / presentation boundary: **3** (F-13, F-14, F-16)
-7. Unresolved ambiguity: **3** (F-15, F-19, F-20)
+7. Unresolved ambiguity: **3** (F-19, F-20, F-25)
 8. Candidate follow-up work: **3** (F-21, F-22, F-23)
 
 ## 9. Unresolved ambiguity register
 
-### A-01 — generic legacy capabilities (F-15)
-- **Known facts:** non-Gmail capability values reach parsing/routing (B; `app/api/chat/route.ts`; `POST`; 54–83).
-- **Unknown fact:** complete production caller set and real admitted non-Gmail operations.
-- **Why code/tests cannot resolve it:** route reachability proves acceptance, not external callers or deployed traffic.
-- **Evidence needed:** production request telemetry plus an exhaustive `parseChatCapabilityRequest` operation inventory tied to callers.
-- **Blocks next migration step:** no; blocks legacy-retirement claims.
+### A-01 — deployed/external `executive_context` callers (F-25)
+- **Known facts:** `parseChatCapabilityRequest` admits only `executive_context` and gated `governed_gmail_retrieval`, so `executive_context` is the sole admitted lower non-Gmail operation (B; `lib/chat-capabilities/router.ts`; `parseChatCapabilityRequest`; 7–13; B; `app/api/chat/route.ts`; `POST`; 47–81). The baseline production-source search command recorded in Section 7 found route/parser/type references but no in-repository request constructor or client caller.
+- **Unknown fact:** whether any deployed or external production caller invokes `/api/chat` with `capability.operation = "executive_context"`.
+- **Why code/tests cannot resolve it:** static repository search cannot observe external requests or deployed traffic.
+- **Evidence needed:** exact-baseline deployment telemetry or equivalent ingress/request evidence identifying the operation without exposing request content.
+- **Blocks next migration step:** no; blocks active/inactive classification and legacy-retirement claims for this surface.
 
 ### A-02 — selected deployed runtime (F-19)
 - **Known facts:** environment selection chooses one of two clients (B; `app/page.tsx`; `Home`; 10–17).
@@ -535,7 +551,7 @@ Proven seam: process-local registry at B; `lib/lighter-jarvis/pending-authorizat
 | acquisition → GOVERNED CONTEXT ASSEMBLY | Private evidence returns directly; no unified model-visible governed context object exists. | missing | F-11, F-21; `chat-handler.ts`, 213–281, 307–324 |
 | governed context → JARVIS reasoning | Ordinary reasoning receives sanitized history, not current private releases; specialist relay is a separate context path. | partial/parallel | F-10, F-16, F-21; `model-history-boundary.ts`, 41–65; `runtime.ts`, 14–29 |
 | reasoning → one coherent response | Deterministic private response is coherent but non-reasoned; specialist response is two calls orchestrated by client; ordinary response is guarded. | partial/parallel | F-12, F-16, F-24; `UnifiedOpsConsole.tsx`, 459–526; `ordinary-model-reply-guard.ts`, 70–103 |
-| One production runtime | Root can expose lighter or legacy contract. | parallel/unresolved | F-06, F-19, F-22; `app/page.tsx`, 10–17 |
+| One production runtime | Root can expose lighter or legacy contract; the legacy route statically admits `executive_context`, while external/deployed use is unresolved. | parallel/unresolved | F-06, F-15, F-19, F-22, F-25; `app/page.tsx`, 10–17; `lib/chat-capabilities/router.ts`, 7–13; `app/api/chat/route.ts`, 47–81 |
 
 Architecturally, the authority and deterministic acquisition spine is substantial, while the central aspirational seam—one governed context assembled for JARVIS reasoning—is missing. Runtime and presentation remain parallel. This conclusion is only the composition of the cited gaps; it is not a product-quality score.
 

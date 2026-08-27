@@ -9,7 +9,7 @@ export const CALENDAR_START_TIME_ATTENTION_POLICY = Object.freeze({
 });
 
 export interface CalendarAttentionPolicyMatch {
-  readonly attentionId: string;
+  readonly matchId: string;
   readonly entityId: string;
   readonly changeType: "modified";
   readonly previousObservedAt: string;
@@ -45,7 +45,7 @@ export function selectCalendarStartTimeAttention(
     });
 
     return [Object.freeze({
-      attentionId: [
+      matchId: [
         "calendar-attention",
         encodeURIComponent(changeSet.currentObservedAt),
         encodeURIComponent(change.id),

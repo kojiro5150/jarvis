@@ -632,11 +632,36 @@ describe("POST /api/lighter/chat", () => {
     const createConnector = vi.fn();
     const response = await createLighterChatHandler(model, { createConnector,
       clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "My 9 AM meeting is the finance review." },
+      { role: "assistant", content: "Thanks." },
       { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
       { role: "user", content: "What are the meetings about?" },
     ] }));
     const body = await response.json();
     expect(body.reply).toBe("The governed Calendar path available here includes timing information only, not titles or descriptions.");
+    expect(body.reply).not.toContain("finance review");
+    expect(body).not.toHaveProperty("calendarAuthority");
+    expect(body).not.toHaveProperty("pendingAuthorizationReference");
+    expect(body).not.toHaveProperty("routeTo");
+    expect(createConnector).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledOnce();
+  });
+
+  it("retains exact user-bound detail when a Calendar detail recollection model emits authority UX", async () => {
+    const model = vi.fn(async () => "Please explicitly confirm that I may read your Calendar.");
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, { createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "My 10 AM meeting is the project review." },
+      { role: "assistant", content: "Thanks — the 10 AM meeting is the project review." },
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments:\n10:00 AM – 11:00 AM\n3:00 PM – 4:00 PM." },
+      { role: "user", content: "What are the meetings about?" },
+    ] }));
+    const body = await response.json();
+    expect(body.reply).toContain("10 AM");
+    expect(body.reply).toContain("project review");
+    expect(body.reply).toContain("3 PM");
+    expect(body.reply).not.toBe("That request cannot be authorized through an ordinary model response.");
     expect(body).not.toHaveProperty("calendarAuthority");
     expect(body).not.toHaveProperty("pendingAuthorizationReference");
     expect(body).not.toHaveProperty("routeTo");

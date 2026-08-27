@@ -81,6 +81,8 @@ export type CalendarProvenanceState = Readonly<{
   unboundUserDetails?: readonly Readonly<{ clock: string; label: string }>[];
   currentCommitmentClocks?: readonly string[];
   currentCalendarFallback?: string;
+  boundUserDetails?: readonly Readonly<{ clock: string; label: string }>[];
+  unknownCommitmentClocks?: readonly string[];
 }>;
 
 export function guardOrdinaryModelReply(content: string, currentUserUtterance?: string, governedDriveHistoryExcluded = false,
@@ -108,6 +110,16 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
     if (calendarProvenance.isDetailFollowUp) {
       const withoutFalseReread = rewriteFalseCalendarRereadOffer(content);
       if (withoutFalseReread) return withoutFalseReread;
+      if (presentsPrivateAuthorityConfirmation(content)) {
+        const bound = calendarProvenance.boundUserDetails ?? [];
+        if (bound.length > 0) {
+          const known = bound.map(detail => `From what you told me earlier, the ${detail.clock} commitment is the ${detail.label}.`).join(" ");
+          const unknown = (calendarProvenance.unknownCommitmentClocks ?? [])
+            .map(clock => `I don't have information about what the ${clock} commitment is about`).join("; ");
+          return `${known}${unknown ? ` ${unknown} because the earlier Calendar result contained timing only.` : ""}`;
+        }
+        return "The governed Calendar path available here includes timing information only, not titles or descriptions.";
+      }
     }
   }
 

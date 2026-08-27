@@ -39,3 +39,9 @@
 - **UNKNOWN:** Free-form user statements outside the deliberately bounded assertion grammar remain ordinary conversation but do not bind.
 - **UNKNOWN:** A statement with a clock but no date may refer to another day. This sprint implements the required exact-clock rule; adding date identity would require a separately governed design decision.
 - **UNKNOWN:** Remote main advancement, issue creation, PR creation, and exact-head GitHub CI require authenticated GitHub access, which was unavailable in the supplied environment at implementation time.
+
+## PR #333 blocking review correction
+
+- **OBSERVED:** A pre-fix regression on PR head `3771624b2c2cdedff2d993ffdf768c90e5f3bb34` proved that a valid 10 AM user binding made `priorVisibleReportIsScheduleOnly` false. Fake Calendar authority UX then missed attribution, schedule-only fallback, and reread containment before falling through to ordinary authority neutralization.
+- **OBSERVED:** Recall diagnostics now deterministically retain exact user-bound details and the remaining unknown commitment clocks from the latest visible Calendar timing report. On a proven detail-recall turn, fake Calendar authority UX is contained regardless of the schedule-only boolean.
+- **OBSERVED:** The deterministic response attributes an exact bound label to the earlier user conversation, identifies unmatched commitment titles as unknown, and attributes their times to the earlier Calendar result. An unbound 9 AM detail continues to produce the timing-only limitation without attaching its label.

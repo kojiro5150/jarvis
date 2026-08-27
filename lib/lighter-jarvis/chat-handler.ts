@@ -409,6 +409,8 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         isCalendarRecollection: calendarRecall.isCalendarRecollection,
         priorVisibleReportIsScheduleOnly: calendarRecall.priorVisibleReportIsScheduleOnly,
         isDetailFollowUp: calendarRecall.isDetailFollowUp,
+        boundUserDetails: calendarRecall.boundUserDetails,
+        unknownCommitmentClocks: calendarRecall.unknownCommitmentClocks,
       });
       return NextResponse.json({ reply, specialistId: specialist.id, execution: "none" });
     } catch (error) {

@@ -79,6 +79,25 @@ describe("ordinary-model reply guard", () => {
       .toBe("The governed Calendar path available here includes timing information only, not titles or descriptions.");
   });
 
+  it("preserves exact user-bound detail when a detail recollection model emits authority UX", () => {
+    const messages = [
+      { role: "user" as const, content: "My 10 AM meeting is the project review." },
+      { role: "assistant" as const, content: "Thanks — the 10 AM meeting is the project review." },
+      { role: "assistant" as const, content: "Based on your calendar for tomorrow, you have two commitments:\n10:00 AM – 11:00 AM\n3:00 PM – 4:00 PM." },
+      { role: "user" as const, content: "What are the meetings about?" },
+    ];
+    const diagnostic = calendarRecallDiagnostics(messages);
+    expect(diagnostic).toMatchObject({ isCalendarRecollection: true, isDetailFollowUp: true,
+      priorVisibleReportIsScheduleOnly: false });
+    const reply = guardOrdinaryModelReply("Please explicitly confirm that I may read your Calendar.",
+      messages.at(-1)?.content, false, diagnostic);
+    expect(reply).toContain("10 AM");
+    expect(reply).toContain("project review");
+    expect(reply).toContain("3 PM");
+    expect(reply).toContain("earlier Calendar result contained timing only");
+    expect(reply).not.toBe(NEUTRALIZED_ORDINARY_AUTHORITY_REPLY);
+  });
+
   it.each([
     "[Governed private result omitted from ordinary model context.]",
     "[Prior governed Gmail read request omitted from ordinary model context.]",

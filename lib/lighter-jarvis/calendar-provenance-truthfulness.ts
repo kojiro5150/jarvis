@@ -48,6 +48,30 @@ function hasBoundUserCalendarDetail(messages: readonly ChatMessage[], currentUse
   });
 }
 
+function calendarRecallBindingDetails(messages: readonly ChatMessage[], currentUserIndex: number,
+  report: ChatMessage | undefined) {
+  if (!report) return { boundUserDetails: [], unknownCommitmentClocks: [] } as const;
+  const starts = new Map<string, string>();
+  for (const match of report.content.matchAll(SCHEDULE_INTERVAL_PARTS)) {
+    const meridiem = match[3] ?? match[4];
+    const clock = normalizedCalendarClock(match[1], match[2], meridiem);
+    const display = `${Number(match[1])}${Number(match[2] ?? "0") ? `:${match[2]}` : ""} ${meridiem.toUpperCase()}`;
+    starts.set(clock, display);
+  }
+  const boundUserDetails: { clock: string; label: string }[] = [];
+  messages.forEach((message, index) => {
+    if (message.role !== "user" || index >= currentUserIndex) return;
+    const detail = userSuppliedTimedCalendarDetail(message.content);
+    const display = detail && starts.get(detail.clock);
+    if (detail && display) boundUserDetails.push({ clock: display, label: detail.label });
+  });
+  const boundClocks = new Set(boundUserDetails.map(detail => detail.clock));
+  return {
+    boundUserDetails,
+    unknownCommitmentClocks: [...starts.values()].filter(clock => !boundClocks.has(clock)),
+  } as const;
+}
+
 export function isCalendarRecallFollowUp(utterance: string | undefined): boolean {
   if (!utterance) return false;
   return CALENDAR_RECALL_FOLLOW_UP.test(utterance.normalize("NFKC").replace(/\s+/g, " ").trim());
@@ -85,6 +109,12 @@ export function calendarRecallDiagnostics(messages: readonly ChatMessage[],
   const priorCalendarReportPresent = hasPriorVisibleCalendarReport(messages);
   const calendarRecallFollowUp = isCalendarRecallFollowUp(currentUserUtterance);
   const isCalendarRecollection = priorCalendarReportPresent && calendarRecallFollowUp;
+  const currentUserIndex = messages.findLastIndex(message => message.role === "user");
+  const report = messages.findLast((message, index) => index < currentUserIndex
+    && message.role === "assistant" && PRIOR_CALENDAR_REPORT.test(message.content));
+  const bindingDetails = isCalendarRecollection
+    ? calendarRecallBindingDetails(messages, currentUserIndex, report)
+    : { boundUserDetails: [], unknownCommitmentClocks: [] };
   return {
     messageCount: messages.length,
     orderedRoles: messages.map(message => message.role),
@@ -96,6 +126,7 @@ export function calendarRecallDiagnostics(messages: readonly ChatMessage[],
     isCalendarRecollection,
     isDetailFollowUp: isCalendarRecollection
       && isCalendarDetailRecallFollowUp(currentUserUtterance),
+    ...bindingDetails,
   } as const;
 }
 

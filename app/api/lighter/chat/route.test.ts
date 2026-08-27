@@ -183,11 +183,12 @@ describe("POST /api/lighter/chat", () => {
       pendingAuthorizationReference: ask.pendingAuthorizationReference }))).json();
 
     expect(confirmation[authorityKey]).toMatchObject({ decision: "ALLOW", reason: "pending_authorization_confirmed" });
+    if (owner === "calendar") expect(confirmation.reply).toBe("Tomorrow is clear.");
     expect(calendarConnector).toHaveBeenCalledTimes(owner === "calendar" ? 1 : 0);
     expect(gmailSearchConnector).toHaveBeenCalledTimes(owner === "gmail" ? 1 : 0);
     expect(driveConnector).toHaveBeenCalledTimes(owner === "drive" ? 1 : 0);
     expect(gmailReadConnector).not.toHaveBeenCalled();
-    expect(model).toHaveBeenCalledTimes(owner === "calendar" ? 1 : 0);
+    expect(model).not.toHaveBeenCalled();
   });
 
   it("uses the same long-session pending path for typed and capture-identified voice confirmations", async () => {

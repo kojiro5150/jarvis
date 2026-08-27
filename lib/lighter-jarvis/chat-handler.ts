@@ -281,6 +281,10 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         return NextResponse.json({ reply: fallback, specialistId: specialist.id, execution: "none",
           calendarAuthority: { decision: "ALLOW", reason: calendar.reason } });
       }
+      if (!areValidMessages(body.messages)) {
+        return NextResponse.json({ reply: fallback, specialistId: specialist.id, execution: "none",
+          calendarAuthority: { decision: "ALLOW", reason: calendar.reason } });
+      }
       const governedContext = createGovernedContext(projectCalendarContext(calendar.evidence!.evidence, calendar.window));
       try {
         const systemPrompt = await buildSpecialistPrompt(specialist);

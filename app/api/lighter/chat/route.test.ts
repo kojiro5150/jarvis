@@ -424,6 +424,57 @@ describe("POST /api/lighter/chat", () => {
     expect(model).toHaveBeenCalledOnce();
   });
 
+  it.each([
+    ["I can see those times: 10:00–11:00 AM and 3:00–4:00 PM.",
+      "From the calendar result I reported earlier, those times: 10:00–11:00 AM and 3:00–4:00 PM."],
+    ["I saw two commitments, at 10 AM and 3 PM.",
+      "From the calendar result I reported earlier, two commitments, at 10 AM and 3 PM."],
+  ])("attributes bare schedule perception through the shared typed/voice route: %s", async (modelReply, expected) => {
+    const model = vi.fn(async () => modelReply);
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, { createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis", messages: [
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
+      { role: "user", content: "What are the meetings about?" },
+    ] }));
+    expect(await response.json()).toEqual({ reply: expected, specialistId: "jarvis", execution: "none" });
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
+  it("recognizes the exact live precursor and attributes the live bare timing reply", async () => {
+    const modelReply = "I can see the timing of your two meetings tomorrow (10:00 AM–11:00 AM and 3:00 PM–4:00 PM), but I don't have access to the subject lines, titles, or other details.";
+    const model = vi.fn(async () => modelReply);
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, { createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis", messages: [
+      { role: "assistant", content: "Looking at your calendar for tomorrow (28 August 2026, Melbourne time), you have two commitments:\n\n1. 10:00 AM – 11:00 AM\n2. 3:00 PM – 4:00 PM" },
+      { role: "user", content: "What are the meetings about?" },
+    ] }));
+    const body = await response.json();
+    expect(body.reply).toBe("From the calendar result I reported earlier, the timing of your two meetings tomorrow (10:00 AM–11:00 AM and 3:00 PM–4:00 PM), but I don't have access to the subject lines, titles, or other details.");
+    expect(body).not.toHaveProperty("pendingAuthorizationReference");
+    expect(body).not.toHaveProperty("calendarAuthority");
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])("preserves mixed user detail with the exact live precursor (false reread: %s)", async includeReread => {
+    const modelReply = `I can see the timing of two meetings tomorrow.\nYou told me the 10 AM meeting is the project review.\nI don't have details for the 3 PM meeting.${includeReread ? "\nIf you'd like, I can check Calendar again for the 3 PM title." : ""}`;
+    const model = vi.fn(async () => modelReply);
+    const createConnector = vi.fn();
+    const response = await createLighterChatHandler(model, { createConnector,
+      clock: () => new Date("2026-08-25T00:00:00Z") })(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "My 10 AM meeting is the project review." },
+      { role: "assistant", content: "Thanks — the 10 AM meeting is the project review." },
+      { role: "assistant", content: "Looking at your calendar for tomorrow (28 August 2026, Melbourne time), you have two commitments:\n\n1. 10:00 AM – 11:00 AM\n2. 3:00 PM – 4:00 PM" },
+      { role: "user", content: "What are the meetings about?" },
+    ] }));
+    const body = await response.json();
+    expect(body.reply).toBe(`From the calendar result I reported earlier, the timing of two meetings tomorrow.\nYou told me the 10 AM meeting is the project review.\nI don't have details for the 3 PM meeting.${includeReread ? "\nThe governed Calendar path available here does not expose titles or descriptions." : ""}`);
+    expect(body).not.toHaveProperty("pendingAuthorizationReference");
+    expect(body).not.toHaveProperty("calendarAuthority");
+    expect(createConnector).not.toHaveBeenCalled();
+  });
+
   it("attributes a multi-sentence Calendar recollection through the shared typed/voice server path", async () => {
     const model = vi.fn(async () => "I saw:\n\n1. 10:00 AM – 11:00 AM\n2. 3:00 PM – 4:00 PM\n\nThose are the two time slots I reported from your calendar for tomorrow.");
     const createConnector = vi.fn();
@@ -473,7 +524,7 @@ describe("POST /api/lighter/chat", () => {
     const handler = createLighterChatHandler(model, { createConnector,
       clock: () => new Date("2026-08-25T00:00:00Z") });
     const history: ChatMessage[] = [
-      { role: "assistant", content: "Based on your calendar for tomorrow, you have one commitment: 10:00–11:00 AM." },
+      { role: "assistant", content: "Looking at your calendar for tomorrow, you have one commitment: 10:00–11:00 AM." },
       { role: "user", content: "What times did you just see?" },
     ];
     await handler(request({ specialistId: "jarvis", messages: history }));

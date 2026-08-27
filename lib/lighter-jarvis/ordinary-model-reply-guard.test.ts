@@ -7,7 +7,10 @@ import {
   EXCLUDED_DRIVE_PROVENANCE_REPLY,
   UNSUPPORTED_DRIVE_PATH_REPLY,
 } from "./ordinary-model-reply-guard";
-import { priorVisibleCalendarReportIsScheduleOnly } from "./calendar-provenance-truthfulness";
+import {
+  hasPriorVisibleCalendarReport,
+  priorVisibleCalendarReportIsScheduleOnly,
+} from "./calendar-provenance-truthfulness";
 
 describe("ordinary-model reply guard", () => {
   it.each([
@@ -64,6 +67,19 @@ describe("ordinary-model reply guard", () => {
     expect(guardOrdinaryModelReply(reply, "What times did you just see?", false, recollection)).toBe(expected);
   });
 
+  it.each([
+    ["I can see the timing of your two meetings tomorrow (10:00 AM–11:00 AM and 3:00 PM–4:00 PM), but I don't have access to the subject lines, titles, or other details.",
+      "From the calendar result I reported earlier, the timing of your two meetings tomorrow (10:00 AM–11:00 AM and 3:00 PM–4:00 PM), but I don't have access to the subject lines, titles, or other details."],
+    ["I can see those times: 10:00–11:00 AM and 3:00–4:00 PM.",
+      "From the calendar result I reported earlier, those times: 10:00–11:00 AM and 3:00–4:00 PM."],
+    ["I saw two commitments, at 10 AM and 3 PM.",
+      "From the calendar result I reported earlier, two commitments, at 10 AM and 3 PM."],
+  ])("attributes bounded bare schedule perception: %s", (reply, expected) => {
+    expect(guardOrdinaryModelReply(reply, "What are the meetings about?", false, {
+      ...recollection, priorVisibleReportIsScheduleOnly: false, isDetailFollowUp: true,
+    })).toBe(expected);
+  });
+
   it("allows current Calendar language when current governed evidence exists", () => {
     const reply = "Based on your calendar for tomorrow, you have two commitments.";
     expect(guardOrdinaryModelReply(reply, "What is on tomorrow?", false, {
@@ -75,9 +91,24 @@ describe("ordinary-model reply guard", () => {
     "The information I saw in the text you pasted...", "I saw two options in your note.",
     "I can see two options in the text you pasted.", "I saw that you wrote Atlas.",
     "I can see the difference between those approaches.",
+    "I can see two options in your note.", "I can see the data in the table.",
     "The data I can see in the table has three rows.",
     "I have access to the variable inside this function.", "The note shows two options."])("does not overmatch non-Calendar sight language: %s", reply => {
     expect(guardOrdinaryModelReply(reply, "ordinary question", false, recollection)).toBe(reply);
+  });
+
+  it("does not rewrite bare schedule perception when current governed evidence exists", () => {
+    const reply = "I can see two commitments in the current Calendar evidence.";
+    expect(guardOrdinaryModelReply(reply, "What is on tomorrow?", false, {
+      hasCurrentCalendarGovernedContext: true, isCalendarRecollection: true,
+    })).toBe(reply);
+  });
+
+  it("attributes bare timing while preserving user detail and containing a false reread", () => {
+    const reply = "I can see the timing of two meetings tomorrow.\nYou told me the 10 AM meeting is the project review.\nI don't have details for the 3 PM meeting.\nIf you'd like, I can check Calendar again for the 3 PM title.";
+    expect(guardOrdinaryModelReply(reply, "What are the meetings about?", false, {
+      ...recollection, priorVisibleReportIsScheduleOnly: false, isDetailFollowUp: true,
+    })).toBe("From the calendar result I reported earlier, the timing of two meetings tomorrow.\nYou told me the 10 AM meeting is the project review.\nI don't have details for the 3 PM meeting.\nThe governed Calendar path available here does not expose titles or descriptions.");
   });
 
   it("contains invented meeting metadata when the visible report supplied only times", () => {
@@ -134,6 +165,28 @@ describe("ordinary-model reply guard", () => {
       { role: "assistant", content: "Thanks — the 10 AM meeting is the project review." },
       { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments: 10:00–11:00 AM and 3:00–4:00 PM." },
       current,
+    ])).toBe(false);
+  });
+
+  it("recognizes both bounded prior Calendar report presentation families", () => {
+    const current = { role: "user" as const, content: "What are the meetings about?" };
+    expect(hasPriorVisibleCalendarReport([
+      { role: "assistant", content: "Looking at your calendar for tomorrow (28 August 2026, Melbourne time), you have two commitments:\n\n1. 10:00 AM – 11:00 AM\n2. 3:00 PM – 4:00 PM" },
+      current,
+    ])).toBe(true);
+    expect(hasPriorVisibleCalendarReport([
+      { role: "assistant", content: "Based on your calendar for tomorrow, you have two commitments." },
+      current,
+    ])).toBe(true);
+  });
+
+  it.each([
+    "Looking at your message, I think...", "Looking at the table...", "Looking at the document...",
+    "Looking at your note...", "Looking at tomorrow's weather...", "Looking at your schedule options...",
+  ])("does not mistake ordinary looking-at prose for a prior Calendar report: %s", content => {
+    expect(hasPriorVisibleCalendarReport([
+      { role: "assistant", content },
+      { role: "user", content: "What are the meetings about?" },
     ])).toBe(false);
   });
 

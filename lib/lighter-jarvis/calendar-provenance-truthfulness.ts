@@ -1,7 +1,7 @@
 import type { ChatMessage } from "@/lib/agents/types";
 
 const CALENDAR_RECALL_FOLLOW_UP = /^(?:what (?:times? did you (?:just )?(?:see|give me)|did you (?:just )?(?:say|tell me)(?: (?:my schedule was|about tomorrow))?|did you report for tomorrow)|when were those (?:two )?(?:commitments|meetings)|what are the meetings about)[?!.]*$/i;
-const PRIOR_CALENDAR_REPORT = /(?:\bbased on (?:the result from )?your calendar\b|\bcalendar result (?:I )?reported\b|\b(?:today|tomorrow|this (?:morning|afternoon|evening|week)|next seven days) (?:is clear|you have \d+ commitments?)\b|\byour calendar (?:is clear|has \d+ commitments?)\b)/i;
+const PRIOR_CALENDAR_REPORT = /(?:\bbased on (?:the result from )?your calendar\b|\blooking at your calendar for (?:today|tomorrow|this (?:morning|afternoon|evening|week)|next seven days)\b[\s\S]*?\byou have (?:\d+|one|two|three|four|five) commitments?\b|\bcalendar result (?:I )?reported\b|\b(?:today|tomorrow|this (?:morning|afternoon|evening|week)|next seven days) (?:is clear|you have \d+ commitments?)\b|\byour calendar (?:is clear|has \d+ commitments?)\b)/i;
 const SCHEDULE_INTERVAL_TEXT = String.raw`\d{1,2}(?::\d{2})?\s*(?:AM|PM)?\s*[–-]\s*\d{1,2}(?::\d{2})?\s*(?:AM|PM)`;
 const SCHEDULE_ONLY_CALENDAR_REPORT = new RegExp(
   String.raw`^Based on your calendar(?: for [^,.\n]+)?,?\s+you have (?:\d+|one|two|three|four|five) commitments?:\s*${SCHEDULE_INTERVAL_TEXT}(?:\s*(?:,|and|\n)\s*${SCHEDULE_INTERVAL_TEXT})*[.!]?$`,
@@ -138,4 +138,17 @@ export function attributeCalendarRecollection(content: string): string | undefin
     if (match) return rewrite(match);
   }
   return undefined;
+}
+
+/**
+ * Attributes only leading schedule-result perception language. The caller must
+ * have already established Calendar recollection from server-owned history;
+ * this helper neither detects Calendar intent nor supplies authority.
+ */
+export function attributeBareCalendarRecollection(content: string): string | undefined {
+  const match = content.match(
+    /^I (?:can see|saw) ((?:(?:the|those|these) )?(?:timing|times|time blocks?|time slots?)(?:\b[\s\S]*)|(?:the |those |these |two |\d+ )?(?:meetings?|commitments?|appointments?)\b[\s\S]*)$/i,
+  );
+  if (!match) return undefined;
+  return `From the calendar result I reported earlier, ${match[1]}`;
 }

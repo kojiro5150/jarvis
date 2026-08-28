@@ -81,7 +81,7 @@ async function askThenConfirm(handler: ReturnType<typeof createLighterChatHandle
 
 describe("live governed Calendar factual query", () => {
   it("asks fresh authority and returns the next events deterministically without a model call", async () => {
-    const model = vi.fn(async () => "model must not run");
+    const model = vi.fn(async (_systemPrompt: string) => "model must not run");
     const c = connector();
     const handler = createLighterChatHandler(model, {
       createConnector: () => c.value,
@@ -132,7 +132,7 @@ describe("live governed Calendar factual query", () => {
     ["When do I next have scheduled JARVIS testing?", "JARVIS Testing — Sat, 29 Aug, 11:00 AM–12:00 PM"],
     ["When do I next go shopping?", "Shopping — Sat, 29 Aug, 3:00 PM–4:00 PM"],
   ])("answers the deterministic named query without model interpretation: %s", async (utterance, expected) => {
-    const model = vi.fn(async () => "model must not run");
+    const model = vi.fn(async (_systemPrompt: string) => "model must not run");
     const c = connector();
     const handler = createLighterChatHandler(model, {
       createConnector: () => c.value,
@@ -144,7 +144,7 @@ describe("live governed Calendar factual query", () => {
   });
 
   it("answers a bounded next-week presence query without model interpretation", async () => {
-    const model = vi.fn(async () => "model must not run");
+    const model = vi.fn(async (_systemPrompt: string) => "model must not run");
     const c = connector();
     const handler = createLighterChatHandler(model, {
       createConnector: () => c.value,
@@ -156,7 +156,7 @@ describe("live governed Calendar factual query", () => {
   });
 
   it("answers a compact voice-style weekday-presence question without model interpretation", async () => {
-    const model = vi.fn(async () => "model must not run");
+    const model = vi.fn(async (_systemPrompt: string) => "model must not run");
     const c = connector();
     const handler = createLighterChatHandler(model, {
       createConnector: () => c.value,
@@ -168,7 +168,7 @@ describe("live governed Calendar factual query", () => {
   });
 
   it("answers a deterministic weekday-presence question without model interpretation", async () => {
-    const model = vi.fn(async () => "model must not run");
+    const model = vi.fn(async (_systemPrompt: string) => "model must not run");
     const c = connector();
     const handler = createLighterChatHandler(model, {
       createConnector: () => c.value,
@@ -278,7 +278,7 @@ describe("live governed Calendar factual query", () => {
   });
 
   it("keeps pronoun-led weather wording out of Calendar", async () => {
-    const model = vi.fn(async () => "Ordinary weather conversation.");
+    const model = vi.fn(async (_systemPrompt: string) => "Ordinary weather conversation.");
     const c = connector();
     const handler = createLighterChatHandler(model, {
       createConnector: () => c.value,
@@ -295,7 +295,7 @@ describe("live governed Calendar factual query", () => {
   });
 
   it("contains doing-something Level-2 wording without Calendar authority or acquisition", async () => {
-    const model = vi.fn(async () => "ordinary model must not run");
+    const model = vi.fn(async (_systemPrompt: string) => "ordinary model must not run");
     const c = connector();
     const handler = createLighterChatHandler(model, {
       createConnector: () => c.value,
@@ -315,7 +315,7 @@ describe("live governed Calendar factual query", () => {
   });
 
   it("contains what-form relational Calendar wording before ordinary model authority", async () => {
-    const model = vi.fn(async () => "Please explicitly confirm that I may read your Calendar.");
+    const model = vi.fn(async (_systemPrompt: string) => "Please explicitly confirm that I may read your Calendar.");
     const c = connector();
     const handler = createLighterChatHandler(model, {
       createConnector: () => c.value,
@@ -333,7 +333,7 @@ describe("live governed Calendar factual query", () => {
   });
 
   it("does not reassign an older Calendar result to an immediately contained query", async () => {
-    const model = vi.fn(async () =>
+    const model = vi.fn(async (_systemPrompt: string) =>
       "I see you're indicating that the Calendar result should answer your question. However, the Calendar result I received showed no matching event.");
     const c = connector();
     const handler = createLighterChatHandler(model, {
@@ -380,7 +380,7 @@ describe("live governed Calendar factual query", () => {
   });
 
   it("does not let a malformed follow-up turn a prior negative factual result into a commitment", async () => {
-    const model = vi.fn(async () =>
+    const model = vi.fn(async (_systemPrompt: string) =>
       "From the earlier result you confirmed, the next commitment was scheduled for a specific time.");
     const c = connector();
     const handler = createLighterChatHandler(model, {
@@ -407,7 +407,7 @@ describe("live governed Calendar factual query", () => {
   });
 
   it("withholds factual title answers when bounded acquisition is partial", async () => {
-    const model = vi.fn(async () => "model must not run");
+    const model = vi.fn(async (_systemPrompt: string) => "model must not run");
     const listBetweenWithCompleteness = vi.fn(async (start: string, end: string, limit = 100) => ({
       events: [],
       completeness: {

@@ -485,6 +485,21 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     ])).toBe(false);
   });
 
+  it("scopes Calendar containment provenance to a deictic follow-up only", () => {
+    const containment = "I can check your Calendar for that, but I couldn't resolve the factual query safely from that wording.";
+    expect(calendarRecallDiagnostics([
+      { role: "user", content: "When am I next doing something on JARVIS?" },
+      { role: "assistant", content: containment },
+      { role: "user", content: "There tells you." },
+    ])).toMatchObject({ previousAssistantWasCalendarContainment: true });
+
+    expect(calendarRecallDiagnostics([
+      { role: "user", content: "When am I next doing something on JARVIS?" },
+      { role: "assistant", content: containment },
+      { role: "user", content: "Will it rain in Geelong tomorrow?" },
+    ])).toMatchObject({ previousAssistantWasCalendarContainment: false });
+  });
+
   it("recognizes both bounded prior Calendar report presentation families", () => {
     const current = { role: "user" as const, content: "What are the meetings about?" };
     expect(hasPriorVisibleCalendarReport([

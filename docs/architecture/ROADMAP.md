@@ -381,6 +381,52 @@ not through regex accumulation.
 
 These numbers are sequencing aids, not the governing principle. The governing principle is always the capability-level test above.
 
+### Two implementation cadences
+
+The default JARVIS development cadence is:
+
+```text
+small boundary
+→ small implementation
+→ live conversation
+→ observe failure
+→ classify
+→ next smallest change
+```
+
+This remains the preferred loop for Level 1 grammar/phrasing, deterministic factual queries, rendering, bounded authority handoffs, connector/projection wiring, and ordinary UX improvements.
+
+**Private semantic exposure is an explicit exception.** Sprint 3.181 and any later change that materially widens what private evidence a model may inspect must use:
+
+```text
+audit
+→ contract
+→ adversarial paper tests
+→ implementation
+→ synthetic / fixture tests
+→ bounded live acceptance
+```
+
+The governing consequence rule is:
+
+> **When failure would first expose real private evidence to an ungoverned reasoning path, do not use live failure as the discovery mechanism.**
+
+This is consequence-proportionate governance, not a universal slowdown. Fast iteration remains the default everywhere the consequence class permits it.
+
+### Level 2 → Level 3 sequencing
+
+Sprint 3.181 defines the first legitimate private-evidence reasoning boundary. It does **not** itself create a useful Level 2 product capability.
+
+Sprint 3.182 should prove one bounded **Understand** capability inside that contract.
+
+Only after that should JARVIS begin a bounded **Advise** case that relates governed evidence to goals, plans, constraints, trade-offs or recommended action.
+
+A worked example may span Know → Understand → Advise to illustrate the eventual destination, but it must be labelled as a destination example rather than presented as evidence that 3.181 or 3.182 alone makes the full conversation reachable.
+
+The operating posture is:
+
+> **Spend the trust we've earned, carefully, one level at a time.**
+
 ### Why this exists
 
 This classification discipline is intended to catch the exact category of drift already encountered in the system:

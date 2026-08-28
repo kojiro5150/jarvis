@@ -147,6 +147,43 @@ A capability such as `What matters tomorrow?` is Level 2 because it requires sem
 
 A capability such as `What should I do about tomorrow?` is Level 3 because it relates evidence to goals or recommended action.
 
+## Worked-example labeling rule
+
+Worked examples are useful for keeping the product destination visible, but they must not imply that the next architecture milestone alone makes the full interaction reachable.
+
+Any example that crosses capability levels must be labelled with the highest level it actually reaches.
+
+For example:
+
+- `The panel composition changed.` — **Know**, if directly evidenced.
+- `The change appears relevant to the focus of your preparation.` — **Understand**, if semantically inferred within the approved private-evidence reasoning contract.
+- `I'd put more emphasis on how you've translated lived experience into system-level policy.` — **Advise**, because it recommends a change in preparation.
+
+Therefore:
+
+> **A destination example that spans Know → Understand → Advise must be labelled as a Level 3 destination example, not as evidence that Sprint 3.181 or Sprint 3.182 alone makes it reachable.**
+
+Shipping Sprint 3.181 means the private semantic-exposure boundary has been defined. Shipping a later Level 2 proving capability means bounded understanding has been demonstrated. Neither should be described as having earned advisory reasoning until the Level 3 contract and implementation exist.
+
+## Private-semantic boundary cadence
+
+The normal product-development loop is fast and empirical, but new private semantic-exposure boundaries require pre-implementation adversarial governance.
+
+For Sprint 3.181 and any later material widening of model-visible private evidence:
+
+```text
+audit
+→ contract
+→ adversarial paper tests
+→ implementation
+→ synthetic / fixture tests
+→ bounded live acceptance
+```
+
+This exception exists because a first live failure at this boundary could expose real private evidence through an ungoverned reasoning path.
+
+> **When failure would first expose real private evidence to an ungoverned reasoning path, do not use live failure as the discovery mechanism.**
+
 ## Drift tests
 
 Every future feature should fail design review if any of these are true:

@@ -9,6 +9,7 @@ describe("calendar.read proposal boundary", () => {
     "What's on for tomorrow?",
     "What do I have today?",
     "How does this week look?",
+    "How does next week look?",
   ])("proposes an explicit high-precision Calendar request: %s", (utterance) => {
     expect(proposeCalendarRead(utterance)).toMatchObject({ capability: "calendar.read" });
   });
@@ -88,6 +89,30 @@ describe("calendar.read proposal boundary", () => {
       capability: "calendar.read",
       purpose: "calendar_weekly_allocation",
       window: { period: "this_week", timeZone: "Australia/Melbourne" },
+    });
+    expect(evaluateCalendarReadAuthority({
+      proposedOperation: proposedOperation!,
+      currentUserUtterance: utterance,
+    })).toMatchObject({ decision: "ASK", authorityEvidence: [] });
+  });
+
+  it.each([
+    "How is next week allocated?",
+    "How does next week break down?",
+    "Show me how next week is allocated.",
+  ])("proposes a bounded next-week allocation read without granting authority: %s", (utterance) => {
+    const clock = () => new Date("2026-08-28T08:00:00.000Z");
+    const proposedOperation = proposeCalendarRead(utterance, clock);
+
+    expect(proposedOperation).toMatchObject({
+      capability: "calendar.read",
+      purpose: "calendar_weekly_allocation",
+      window: {
+        period: "next_week",
+        start: "2026-08-30T14:00:00.000Z",
+        end: "2026-09-06T14:00:00.000Z",
+        timeZone: "Australia/Melbourne",
+      },
     });
     expect(evaluateCalendarReadAuthority({
       proposedOperation: proposedOperation!,

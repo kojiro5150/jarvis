@@ -89,6 +89,7 @@ export type CalendarProvenanceState = Readonly<{
   isCalendarRecollection: boolean;
   priorVisibleReportIsScheduleOnly?: boolean;
   priorNegativeCalendarFactualResult?: boolean;
+  previousAssistantWasCalendarContainment?: boolean;
   isDetailFollowUp?: boolean;
   unboundUserDetails?: readonly Readonly<{ clock: string; label: string }>[];
   currentCommitmentClocks?: readonly string[];
@@ -103,6 +104,11 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
   const ordinaryCalendarFact = currentUserUtterance
     ? userSuppliedTimedCalendarDetail(currentUserUtterance) !== undefined
     : false;
+  if (calendarProvenance?.previousAssistantWasCalendarContainment
+    && /\b(?:calendar|result|matching event|no matching|found|search)\b/i.test(content)) {
+    return "That wording was contained and no Calendar read was performed for it.";
+  }
+
   if (calendarProvenance?.priorNegativeCalendarFactualResult
     && /\b(?:earlier|prior|previous)\b[\s\S]{0,120}\b(?:result|calendar)\b[\s\S]{0,160}\b(?:commitment|event|meeting|appointment)\b/i.test(content)
     && /\b(?:scheduled|was|were|next|at|on)\b/i.test(content)) {

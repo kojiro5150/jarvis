@@ -1743,4 +1743,87 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     const modelMessages = (model.mock.calls as unknown as [string, ChatMessage[]][])[0][1];
     expect(JSON.stringify(modelMessages)).not.toMatch(/provider_317|private content/);
   });
+  it("runs the live bounded Calendar attention flow without model involvement", async () => {
+    let currentStart = "2026-08-28T01:00:00.000Z";
+    const listBetween = vi.fn(async () => [{
+      id: "evt-attention-1",
+      title: "Undisclosed title",
+      start: currentStart,
+      end: "2026-08-28T02:00:00.000Z",
+      day: "FRI",
+      time: "11:00",
+      source: "google" as const,
+      calendarId: "primary",
+      calendarName: "Work",
+    }]);
+    const model = vi.fn(async () => "model must not run");
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => ({ source: "google" as const, listBetween }),
+      clock: () => new Date("2026-08-28T01:00:00.000Z"),
+    });
+
+    const firstAsk = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "What needs my attention?" }],
+    }))).json();
+
+    expect(firstAsk).toMatchObject({
+      reply: "Please explicitly confirm that I may read your Calendar.",
+      calendarAuthority: { decision: "ASK" },
+      pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) },
+    });
+    expect(listBetween).not.toHaveBeenCalled();
+    expect(model).not.toHaveBeenCalled();
+
+    const firstAllow = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Yes" }],
+      pendingAuthorizationReference: firstAsk.pendingAuthorizationReference,
+    }))).json();
+
+    expect(firstAllow).toMatchObject({
+      reply: "I have established a bounded Calendar baseline for today. A later authorised check can compare against it for start-time changes.",
+      calendarAuthority: { decision: "ALLOW", reason: "pending_authorization_confirmed" },
+      calendarAttentionObservationReference: {
+        calendarAttentionObservationReferenceId: expect.any(String),
+      },
+    });
+    const baselineReference = firstAllow.calendarAttentionObservationReference;
+    expect(JSON.stringify(baselineReference)).not.toContain("evt-attention-1");
+    expect(JSON.stringify(firstAllow)).not.toContain("Undisclosed title");
+    expect(model).not.toHaveBeenCalled();
+
+    currentStart = "2026-08-28T01:30:00.000Z";
+
+    const secondAsk = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "What needs my attention?" }],
+      calendarAttentionObservationReference: baselineReference,
+    }))).json();
+
+    expect(secondAsk).toMatchObject({
+      calendarAuthority: { decision: "ASK" },
+      pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) },
+    });
+    expect(model).not.toHaveBeenCalled();
+
+    const secondAllow = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Yes" }],
+      pendingAuthorizationReference: secondAsk.pendingAuthorizationReference,
+      calendarAttentionObservationReference: baselineReference,
+    }))).json();
+
+    expect(secondAllow).toMatchObject({
+      reply: "A Calendar commitment changed start time from 2026-08-28T01:00:00.000Z to 2026-08-28T01:30:00.000Z.",
+      calendarAuthority: { decision: "ALLOW", reason: "pending_authorization_confirmed" },
+      calendarAttentionObservationReference: {
+        calendarAttentionObservationReferenceId: expect.any(String),
+      },
+    });
+    expect(secondAllow.calendarAttentionObservationReference).not.toEqual(baselineReference);
+    expect(JSON.stringify(secondAllow)).not.toContain("Undisclosed title");
+    expect(model).not.toHaveBeenCalled();
+    expect(listBetween).toHaveBeenCalledTimes(2);
+  });
 });

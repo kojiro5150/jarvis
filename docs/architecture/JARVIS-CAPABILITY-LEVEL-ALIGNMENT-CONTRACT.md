@@ -147,6 +147,42 @@ A capability such as `What matters tomorrow?` is Level 2 because it requires sem
 
 A capability such as `What should I do about tomorrow?` is Level 3 because it relates evidence to goals or recommended action.
 
+## Four-proof progression — trust must be re-earned
+
+The capability levels are not only a vocabulary. Each level is a separate proof obligation.
+
+### Proof 1 — Know
+
+**Question:** Can JARVIS separate model fluency from factual truth?
+
+**Current status:** Substantially demonstrated for bounded reads. This status does not imply that broader semantic reasoning, advice, memory, or consequential execution have inherited the same trust.
+
+### Proof 2 — Understand
+
+**Question:** Can JARVIS reason over governed private evidence without turning inference into fact?
+
+**Current status:** Not yet demonstrated. Sprint 3.181 defines the exposure boundary; a later bounded Level 2 capability must prove the behaviour under adversarial and live acceptance conditions.
+
+### Proof 3 — Advise
+
+**Question:** Can JARVIS make useful judgments without disguising recommendation as fact or authority?
+
+**Current status:** Not yet demonstrated. Level 3 must independently govern goals, plans, constraints, uncertainty, recommendation semantics and reversal conditions.
+
+### Proof 4 — Act
+
+**Question:** Can JARVIS execute consequential actions while keeping model intent, human authority, external state and verification separate?
+
+**Current status:** Not yet demonstrated. Success in bounded read authority is not evidence that consequential writes have passed this proof.
+
+### Standing rule
+
+> **The project does not get to win the argument once and live off that reputation. Each capability level must re-earn trust independently.**
+
+Know succeeding does not confer legitimacy on Understand. Understand succeeding does not confer legitimacy on Advise. Advise succeeding does not confer legitimacy on Act.
+
+The purpose of the roadmap is therefore not to assume the destination is reachable. It is to build a sequence of proofs that determines whether increasingly capable JARVIS behaviour can remain truthful, governed and useful as consequence increases.
+
 ## Worked-example labeling rule
 
 Worked examples are useful for keeping the product destination visible, but they must not imply that the next architecture milestone alone makes the full interaction reachable.

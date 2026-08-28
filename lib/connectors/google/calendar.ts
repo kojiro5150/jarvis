@@ -4,6 +4,13 @@ import type { CalendarEvent } from "../calendar-event";
 import { normalizeGoogleEvent } from "../calendar-event";
 import { getValidGoogleAccessToken } from "./access-token";
 import { GoogleServiceAuthError } from "./auth-error";
+import {
+  deriveCalendarAcquisitionCompleteness,
+  type CalendarAcquisitionContinuation,
+  type CalendarAcquisitionResult,
+  type CalendarAcquisitionTargetRecord,
+  type CalendarTargetDiscovery,
+} from "../calendar-acquisition-completeness";
 
 /**
  * Kept as an alias — this used to be its own class defined here. Now
@@ -72,7 +79,10 @@ export class GoogleCalendarConnector implements CalendarConnector {
     limit: number,
     start: string,
     end: string,
-  ): Promise<CalendarEvent[]> {
+  ): Promise<Readonly<{
+    events: readonly CalendarEvent[];
+    target: CalendarAcquisitionTargetRecord;
+  }>> {
     const params = new URLSearchParams({
       timeMin: start,
       timeMax: end,
@@ -94,18 +104,45 @@ export class GoogleCalendarConnector implements CalendarConnector {
       console.warn(
         `[google/calendar] events fetch failed for calendar "${calendar.id}": ${res.status} — skipping this calendar.`
       );
-      return [];
+      return Object.freeze({
+        events: Object.freeze([]),
+        target: Object.freeze({
+          calendarId: calendar.id,
+          status: "unavailable" as const,
+          returnedCount: 0,
+          continuation: "unknown" as const,
+        }),
+      });
     }
 
     const json = (await res.json()) as {
       items?: Parameters<typeof normalizeGoogleEvent>[0][];
+      nextPageToken?: unknown;
     };
     const meta = {
       calendarId: calendar.id,
       calendarName: calendar.summary && calendar.summary.trim().length > 0 ? calendar.summary : calendar.id,
       calendarColor: calendar.backgroundColor,
     };
-    return (json.items ?? []).map((item, i) => normalizeGoogleEvent(item, i, meta));
+    const events = Object.freeze(
+      (json.items ?? []).map((item, i) => normalizeGoogleEvent(item, i, meta)),
+    );
+    const continuation: CalendarAcquisitionContinuation =
+      typeof json.nextPageToken === "string" && json.nextPageToken.trim() !== ""
+        ? "present"
+        : json.nextPageToken === undefined
+          ? "none"
+          : "unknown";
+
+    return Object.freeze({
+      events,
+      target: Object.freeze({
+        calendarId: calendar.id,
+        status: continuation === "none" ? "complete" as const : "partial" as const,
+        returnedCount: events.length,
+        continuation,
+      }),
+    });
   }
 
   /**
@@ -118,23 +155,53 @@ export class GoogleCalendarConnector implements CalendarConnector {
     return this.listBetween(now.toISOString(), new Date(now.getTime() + 7 * 86_400_000).toISOString(), limit);
   }
 
-  /** Fetches only the caller-authorized half-open interval. */
-  async listBetween(start: string, end: string, limit = 5): Promise<CalendarEvent[]> {
+  /** Fetches only the caller-authorized half-open interval and preserves retrieval completeness facts. */
+  async listBetweenWithCompleteness(start: string, end: string, limit = 5): Promise<CalendarAcquisitionResult> {
     const accessToken = await getValidGoogleAccessToken();
     const calendars = await this.listCalendars(accessToken);
+    const observedAt = new Date().toISOString();
 
-    // An empty (non-hidden) calendarList is unusual but not impossible —
-    // fall back to "primary" so a fresh connection still shows something.
+    const targetDiscovery: CalendarTargetDiscovery =
+      calendars.length > 0 ? "calendar_list" : "primary_fallback";
     const targets: GoogleCalendarListEntry[] =
       calendars.length > 0 ? calendars : [{ id: "primary" }];
 
     const perCalendar = await Promise.all(
-      targets.map((cal) => this.listEventsForCalendar(accessToken, cal, limit, start, end))
+      targets.map((cal) => this.listEventsForCalendar(accessToken, cal, limit, start, end)),
     );
 
-    return perCalendar
-      .flat()
-      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
-      .slice(0, limit);
+    const merged = perCalendar
+      .flatMap(result => [...result.events])
+      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+    const mergeTruncated = merged.length > limit;
+    const events = Object.freeze(merged.slice(0, limit));
+    const targetRecords = Object.freeze(perCalendar.map(result => result.target));
+    const completeness = deriveCalendarAcquisitionCompleteness({
+      targetDiscovery,
+      targets: targetRecords,
+      mergeTruncated,
+    });
+
+    return Object.freeze({
+      events,
+      completeness: Object.freeze({
+        sourceId: "google-calendar" as const,
+        windowStart: start,
+        windowEnd: end,
+        requestedLimit: limit,
+        targetDiscovery,
+        targetCount: targets.length,
+        targets: targetRecords,
+        mergedReturnedCount: events.length,
+        mergeTruncated,
+        completeness,
+        observedAt,
+      }),
+    });
+  }
+
+  /** Compatibility surface for existing Calendar consumers. */
+  async listBetween(start: string, end: string, limit = 5): Promise<CalendarEvent[]> {
+    return [...(await this.listBetweenWithCompleteness(start, end, limit)).events];
   }
 }

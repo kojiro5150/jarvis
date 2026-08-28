@@ -109,6 +109,104 @@ describe("live governed weekly Calendar allocation", () => {
     expect(model).not.toHaveBeenCalled();
   });
 
+  it("renders next week from more than five events and exercises the real Barwon-style carve-out", async () => {
+    const model = vi.fn(async () => "model must not run");
+    const barwonDays = [
+      ["2026-08-30T23:00:00.000Z", "2026-08-31T06:00:00.000Z"],
+      ["2026-08-31T23:00:00.000Z", "2026-09-01T06:00:00.000Z"],
+      ["2026-09-01T23:00:00.000Z", "2026-09-02T06:00:00.000Z"],
+      ["2026-09-02T23:00:00.000Z", "2026-09-03T06:00:00.000Z"],
+      ["2026-09-03T23:00:00.000Z", "2026-09-04T06:00:00.000Z"],
+    ] as const;
+    const events = [
+      ...barwonDays.map(([start, end], index) => ({
+        id: `barwon-${index + 1}`,
+        title: "hidden",
+        start,
+        end,
+        day: "WEEKDAY",
+        time: "09:00",
+        source: "google" as const,
+        calendarId: "barwon",
+        calendarName: "Barwon Health",
+        timeMode: "routine" as const,
+      })),
+      {
+        id: "monday-lunch",
+        title: "hidden",
+        start: "2026-08-31T02:00:00.000Z",
+        end: "2026-08-31T03:00:00.000Z",
+        day: "MON",
+        time: "12:00",
+        source: "google" as const,
+        calendarId: "personal",
+        calendarName: "Personal",
+        timeMode: "self_care" as const,
+      },
+    ];
+    const listBetweenWithCompleteness = vi.fn(async (start: string, end: string, limit = 5) => ({
+      events,
+      completeness: {
+        sourceId: "google-calendar" as const,
+        windowStart: start,
+        windowEnd: end,
+        requestedLimit: limit,
+        targetDiscovery: "calendar_list" as const,
+        targetCount: 2,
+        targets: [
+          { calendarId: "barwon", status: "complete" as const, returnedCount: 5, continuation: "none" as const },
+          { calendarId: "personal", status: "complete" as const, returnedCount: 1, continuation: "none" as const },
+        ],
+        mergedReturnedCount: 6,
+        mergeTruncated: false,
+        completeness: "complete" as const,
+        observedAt: "2026-08-28T08:00:00.000Z",
+      },
+    }));
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => ({
+        source: "google" as const,
+        listBetween: vi.fn(),
+        listBetweenWithCompleteness,
+      }),
+      clock: () => new Date("2026-08-28T08:00:00.000Z"),
+    });
+
+    const ask = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "How is next week allocated?" }],
+    }))).json();
+
+    expect(ask).toMatchObject({
+      reply: "Please explicitly confirm that I may read your Calendar.",
+      calendarAuthority: { decision: "ASK" },
+    });
+
+    const allow = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Yes." }],
+      pendingAuthorizationReference: ask.pendingAuthorizationReference,
+    }))).json();
+
+    expect(listBetweenWithCompleteness).toHaveBeenCalledWith(
+      "2026-08-30T14:00:00.000Z",
+      "2026-09-06T14:00:00.000Z",
+      100,
+    );
+    expect(allow.reply).toBe([
+      "Next week's resolved Calendar allocation:",
+      "- Routine / Transactional: 34h",
+      "- Deep Work / Discovery: 0m",
+      "- Reflection: 0m",
+      "- Development: 0m",
+      "- Self-Care: 1h",
+      "- Unclassified: 0m",
+      "Resolved occupied timed-event total: 35h.",
+      "Coverage: complete for this bounded weekly Calendar read.",
+    ].join("\n"));
+    expect(model).not.toHaveBeenCalled();
+  });
+
   it("withholds a full-week allocation when acquisition is partial", async () => {
     const model = vi.fn(async () => "model must not run");
     const connector = {

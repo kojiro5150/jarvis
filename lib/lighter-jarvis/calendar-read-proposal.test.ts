@@ -129,6 +129,8 @@ describe("calendar.read proposal boundary", () => {
     ["When am I going shopping?", { kind: "next_title_match", terms: ["shop"] }],
     ["When am I testing JARVIS again?", { kind: "next_title_match", terms: ["test", "jarvis"] }],
     ["Am I at Barwon Health on Monday?", { kind: "title_presence_on_weekday", terms: ["barwon", "health"], weekday: "monday" }],
+    ["Am I shopping Saturday?", { kind: "title_presence_on_weekday", terms: ["shop"], weekday: "saturday" }],
+    ["When's my next JARVIS test?", { kind: "next_title_match", terms: ["jarvis", "test"] }],
   ] as const)("proposes a bounded factual Calendar query without granting authority: %s", (utterance, factualQuery) => {
     const clock = () => new Date("2026-08-28T09:00:00.000Z");
     const proposedOperation = proposeCalendarRead(utterance, clock);
@@ -146,6 +148,21 @@ describe("calendar.read proposal boundary", () => {
     expect(evaluateCalendarReadAuthority({
       proposedOperation: proposedOperation!,
       currentUserUtterance: utterance,
+    })).toMatchObject({ decision: "ASK", authorityEvidence: [] });
+  });
+
+  it("uses the explicit next-week window for a bounded title-presence query", () => {
+    const clock = () => new Date("2026-08-28T09:00:00.000Z");
+    const proposedOperation = proposeCalendarRead("Do I have an LLEGC meeting next week?", clock);
+    expect(proposedOperation).toMatchObject({
+      capability: "calendar.read",
+      purpose: "calendar_factual_query",
+      factualQuery: { kind: "title_presence_in_period", terms: ["llegc", "meeting"] },
+      window: { period: "next_week", timeZone: "Australia/Melbourne" },
+    });
+    expect(evaluateCalendarReadAuthority({
+      proposedOperation: proposedOperation!,
+      currentUserUtterance: "Do I have an LLEGC meeting next week?",
     })).toMatchObject({ decision: "ASK", authorityEvidence: [] });
   });
 

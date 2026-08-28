@@ -36,6 +36,7 @@ describe("deterministic Calendar factual query", () => {
     ["Am I at Barwon Health on Monday?", { kind: "title_presence_on_weekday", terms: ["barwon", "health"], weekday: "monday" }],
     ["Am I shopping Saturday?", { kind: "title_presence_on_weekday", terms: ["shop"], weekday: "saturday" }],
     ["When's my next JARVIS test?", { kind: "next_title_match", terms: ["jarvis", "test"] }],
+    ["When do I next have scheduled JARVIS testing?", { kind: "next_title_match", terms: ["jarvis", "test"] }],
     ["Do I have an LLEGC meeting next week?", { kind: "title_presence_in_period", terms: ["llegc", "meeting"] }],
   ] as const)("parses the closed Level-1 factual request: %s", (utterance, expected) => {
     expect(parseCalendarFactualQuery(utterance)).toEqual(expected);
@@ -120,6 +121,7 @@ describe("deterministic Calendar factual query", () => {
   it("detects unsupported personal Calendar factual wording for containment", () => {
     expect(isUnsupportedCalendarFactualWording("When am I next doing some work on JARVIS?")).toBe(true);
     expect(isUnsupportedCalendarFactualWording("What meetings next week relate to governance work?")).toBe(true);
+    expect(isUnsupportedCalendarFactualWording("When do I next have something related to JARVIS?")).toBe(true);
     expect(isUnsupportedCalendarFactualWording("My 9 a.m. meeting tomorrow is a finance review.")).toBe(false);
     expect(isUnsupportedCalendarFactualWording("When was the Eiffel Tower built?")).toBe(false);
     expect(isUnsupportedCalendarFactualWording("Help me draft a note")).toBe(false);

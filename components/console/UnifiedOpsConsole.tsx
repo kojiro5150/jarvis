@@ -19,6 +19,7 @@ type Specialist = {
   invokedOnly: boolean;
 };
 type Message = { role: "user" | "assistant"; content: string; error?: boolean };
+type OpaqueCalendarAttentionObservation = Readonly<{ calendarAttentionObservationReferenceId: string }>;
 type PendingHandoff = {
   sourceId: string;
   targetId: string;
@@ -122,6 +123,7 @@ export default function UnifiedOpsConsole() {
     null,
   );
   const authorityTurnStateRef = useRef(new ClientAuthorityTurnState());
+  const calendarAttentionObservationRef = useRef<OpaqueCalendarAttentionObservation | null>(null);
   const conversationHistoryRef = useRef(new ConversationTransportHistory());
   const [listError, setListError] = useState("");
   const [connectorStatuses, setConnectorStatuses] = useState<Record<
@@ -340,6 +342,9 @@ export default function UnifiedOpsConsole() {
           ...(authorityRequest?.pendingAuthorizationReference
             ? { pendingAuthorizationReference: authorityRequest.pendingAuthorizationReference }
             : {}),
+          ...(specialist.id === "jarvis" && calendarAttentionObservationRef.current
+            ? { calendarAttentionObservationReference: calendarAttentionObservationRef.current }
+            : {}),
         }),
       });
       const data = (await response.json()) as {
@@ -348,6 +353,7 @@ export default function UnifiedOpsConsole() {
         taskSummary?: string;
         marketScopes?: string[];
         pendingAuthorizationReference?: OpaquePendingAuthorization | null;
+        calendarAttentionObservationReference?: OpaqueCalendarAttentionObservation;
         error?: string;
       };
       if (!response.ok)
@@ -360,6 +366,9 @@ export default function UnifiedOpsConsole() {
           authorityRequest.requestId,
           data.pendingAuthorizationReference ?? null,
         );
+      }
+      if (data.calendarAttentionObservationReference !== undefined) {
+        calendarAttentionObservationRef.current = data.calendarAttentionObservationReference;
       }
       const acceptedMessages = conversationHistoryRef.current.acceptAssistant(specialist.id, reply);
       setConversations((current) => ({ ...current, [specialist.id]: acceptedMessages }));

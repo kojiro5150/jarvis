@@ -75,4 +75,18 @@ describe("calendar.read proposal boundary", () => {
   it("does not propose Calendar acquisition for unrelated conversation", () => {
     expect(proposeCalendarRead("Help me draft a note")).toBeNull();
   });
+  it("proposes 'What needs my attention?' as a bounded today Calendar read without granting authority", () => {
+    const clock = () => new Date("2026-08-28T01:00:00.000Z");
+    const proposedOperation = proposeCalendarRead("What needs my attention?", clock);
+
+    expect(proposedOperation).toMatchObject({
+      capability: "calendar.read",
+      purpose: "calendar_attention",
+      window: { period: "today", timeZone: "Australia/Melbourne" },
+    });
+    expect(evaluateCalendarReadAuthority({
+      proposedOperation: proposedOperation!,
+      currentUserUtterance: "What needs my attention?",
+    })).toMatchObject({ decision: "ASK", authorityEvidence: [] });
+  });
 });

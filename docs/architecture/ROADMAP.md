@@ -1,6 +1,6 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Last reconciled 2026-08-28 after Sprint 3.160. The August 1 roadmap state is superseded: governed conversational source inputs, operation-level authority for bounded Calendar/Gmail/Drive reads, private-history containment, voice turn integrity, live Calendar GovernedContext/recall truthfulness, deterministic Calendar projection-fidelity protection, and the first live authority-gated Calendar attention path have now been implemented and verified. The current transition is from proving one same-identity attention condition to establishing the completeness semantics required before membership changes such as added/removed Calendar commitments can be inferred.
+**Status:** Living document. Last reconciled 2026-08-28 after Sprint 3.180b2 and capability-level alignment review. The August 1 roadmap state is superseded: governed conversational source inputs, operation-level authority for bounded Calendar/Gmail/Drive reads, private-history containment, voice turn integrity, live Calendar GovernedContext/recall truthfulness, deterministic Calendar projection-fidelity protection, and the first live authority-gated Calendar attention path have now been implemented and verified. The current transition is from proving one same-identity attention condition to establishing the completeness semantics required before membership changes such as added/removed Calendar commitments can be inferred.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
 
@@ -272,6 +272,180 @@ Sprint 3.177 removes a lower-level executive burden before attempting schedule a
 The deferred trigger for crossing this boundary is now explicit: a future query requiring semantic relation over title text or prior conversation (for example, `what meetings next week relate to the governance work we discussed?`) is a new model-exposure capability and must not ship until a dedicated instruction boundary, deterministic reply guard, and regression suite prevent title-derived fabrication of mode, priority, category, urgency, or other unsupported attributes.
 
 ---
+
+## Capability-Level Alignment Test — Know / Understand / Advise / Act
+
+This is the standing classification test for every future JARVIS capability. It is not a delivery schedule. It exists to prevent a feature from claiming to operate at one level while quietly depending on a higher one.
+
+Before implementation, ask:
+
+> **Which level is this actually operating at, and does the implementation match what the feature claims?**
+
+### Level 1 — Know
+
+Truthful factual retrieval and deterministic rendering from governed evidence.
+
+Allowed:
+- bounded source acquisition under existing authority;
+- deterministic selection, comparison and contradiction detection;
+- bounded deterministic template grammar;
+- governed evidence inserted into approved output slots.
+
+Not allowed:
+- model-selected facts, omissions, emphasis or contrast;
+- model-written factual prose over private evidence;
+- semantic ranking, summarisation or interpretation of why something matters.
+
+**Natural-sounding does not imply model-composed.** A Level 1 renderer may produce fluent factual sentences, but the server owns the composition rules.
+
+Example: if a requested day and matched event day differ, a deterministic correction template may render `[event] is [matched day], not [requested day]`. The model does not decide that the contrast matters.
+
+### Level 2 — Understand
+
+Semantic interpretation of governed private evidence.
+
+This is the first level at which a model may receive approved private evidence for semantic composition, synthesis, interpretation or prioritisation. It requires an explicit Private Evidence Reasoning Contract before implementation.
+
+The contract must define:
+- what private evidence may become model-visible;
+- raw evidence versus derived projections;
+- subject/body/title scope;
+- item-count and time-window bounds;
+- provenance and freshness;
+- current-turn versus persistent exposure;
+- whether derived interpretations may persist;
+- cross-source reasoning permissions;
+- allowed absence inferences;
+- prohibited authority effects;
+- containment of unsupported semantic conclusions.
+
+Core invariant:
+
+> **Model visibility of private evidence grants reasoning context only. It grants neither authority nor truth status beyond the governed evidence supplied.**
+
+And:
+
+> **Private evidence exposure must be purpose-bounded and minimal; acquisition authority does not imply unrestricted semantic exposure.**
+
+### Level 3 — Advise
+
+Reasoning that relates governed evidence to goals, plans, constraints, trade-offs or recommended action.
+
+A feature crosses into Level 3 when it says not merely what evidence means, but what should change because of it.
+
+For example, after reading two emails, saying `one is administrative and one confirms interview panel details` is Level 2. Saying `nothing changes your preparation plan` is Level 3 because the evidence is being related to an existing plan and a judgment is being made.
+
+Level 3 therefore requires Level 2's evidence boundary plus an explicit advisory contract over goals, plans and recommendation semantics.
+
+### Level 4 — Act
+
+Governed execution of external operations under explicit authority.
+
+Model output may propose an operation, but may not manufacture permission, execution success or external state. Authority remains independently adjudicated and server-owned.
+
+### Immediate boundary sequence
+
+The current conversational-intent work remains deliberately below Level 2:
+
+- **3.180c — natural intent → governed authority handoff.** Model interprets the current user utterance into a typed private operation candidate. It sees no private source evidence.
+- **3.180d — governed acquisition → deterministic factual completion.** Private evidence may be acquired, selected, compared and rendered by bounded deterministic server logic. Model composition over private evidence remains prohibited.
+- **3.181 — Private Evidence Reasoning Contract.** Defines the first legitimate Level 2 boundary. It is an architecture/governance milestone, not permission to start situational synthesis by default.
+- **3.182 — Situational Awareness only after 3.181.** Any capability that semantically synthesises private Calendar/Gmail/Drive state must prove it operates within the 3.181 contract before implementation.
+
+These numbers are sequencing aids, not the governing principle. The governing principle is always the capability-level test above.
+
+### Why this exists
+
+This classification discipline is intended to catch the exact category of drift already encountered in the system:
+- model-generated `task_summary` fields appearing harmless while carrying authority-like implications;
+- factual title output drifting from deterministic rendering toward model composition;
+- natural-language intent interpretation being conflated with semantic reasoning over private evidence;
+- attractive UX examples silently escalating from Know to Understand or Advise.
+
+The standard response to such findings is to tighten the boundary, not argue around it.
+
+
+## JARVIS Eight-Question Review — Personal Training Discipline
+
+JARVIS is also the environment in which its design discipline is practised. The capability-level map asks what kind of capability is being built. The Eight-Question Review asks whether the problem, interaction, trust basis, verification method, dissent, institutional implications and authority model are sound.
+
+For every meaningful JARVIS decision, ask:
+
+### Nadler — Problem
+
+> **What human cognitive burden are we removing?**
+
+This prevents technically interesting work from becoming an end in itself. A feature should be able to name the human burden it reduces.
+
+### Anandkumar — First principles
+
+> **What must remain true regardless of implementation?**
+
+This forces invariants before code and prevents implementation convenience from redefining the architecture.
+
+### Truell / Pichai — Product
+
+> **What is the simplest possible human interaction?**
+
+The target remains natural human intent, not requiring the user to learn the system's grammar, routing or internal capability names.
+
+### Ibrahim — Trust
+
+> **What would make a reasonable person trust this behaviour?**
+
+Trust must have an observable basis: evidence, provenance, bounded authority, truthful uncertainty and behaviour that can be independently checked.
+
+### Raman — Verification
+
+> **How could we prove that claim false?**
+
+Every meaningful claim should admit a falsification or regression test. "Works as designed" is insufficient unless the claim can be challenged.
+
+### Pineau — Dissent
+
+> **What is the strongest argument against this design?**
+
+The review must actively seek the best counter-case rather than treating architectural momentum as evidence.
+
+### Bogdan-Martin — Institution
+
+> **What happens if millions of systems eventually behave this way?**
+
+Local convenience can establish a dangerous general precedent. Consider the institutional and societal effect of normalising the behaviour at scale.
+
+### Sam — Authority
+
+> **Where does legitimate authority come from, and can JARVIS ever manufacture it?**
+
+This remains the constitutional question underneath the entire system. Model fluency, task summaries, private evidence, inferred intent, specialist routing or successful past execution can never manufacture authority.
+
+### Relationship to Know / Understand / Advise / Act
+
+These frameworks answer different questions:
+
+- **Eight Questions:** *Should we build it this way?*
+- **Know / Understand / Advise / Act:** *What capability boundary are we actually crossing?*
+
+Both should be applied before implementation.
+
+### Anti-overengineering rule
+
+> **Do not force all eight questions to produce work. Their job is to expose what matters, not manufacture complexity.**
+
+A question may confirm that no additional mechanism is required. "No new work needed" is a valid outcome.
+
+### Review use
+
+The Eight-Question Review should be used for:
+- new sprint contracts;
+- meaningful architecture changes;
+- new authority or evidence boundaries;
+- new private semantic exposure;
+- recommendation or action capabilities;
+- appealing UX examples that may conceal a higher capability level.
+
+It need not be mechanically applied to trivial implementation details or maintenance changes where the governing contract is already settled.
+
 
 ## What Not To Do
 

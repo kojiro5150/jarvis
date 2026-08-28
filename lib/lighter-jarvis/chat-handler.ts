@@ -23,6 +23,7 @@ import {
   renderCalendarFactualSelection,
   selectCalendarFactualQuery,
 } from "@/lib/lighter-jarvis/calendar-factual-query";
+import { interpretCalendarConversationalIntent } from "@/lib/lighter-jarvis/calendar-conversational-intent";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -305,12 +306,28 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           ? { pendingAuthorizationReference: gmail.pendingAuthorizationReference }
           : {}) });
     }
+    let interpretedCalendarFactualQuery: import("@/lib/lighter-jarvis/calendar-factual-query").CalendarFactualQuery | null = null;
+    if (specialist.id === "jarvis"
+      && !body.relaySpecialistReply
+      && currentUserUtterance !== undefined
+      && !Object.hasOwn(body, "pendingAuthorizationReference")
+      && isUnsupportedCalendarFactualWording(currentUserUtterance)) {
+      try {
+        interpretedCalendarFactualQuery = await interpretCalendarConversationalIntent({
+          utterance: currentUserUtterance,
+          callModel,
+        });
+      } catch (error) {
+        console.error("[/api/lighter/chat] Calendar conversational intent interpretation failed:", error);
+      }
+    }
     const calendar = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
       ? await resolveProductionCalendarRead({
           currentUserUtterance,
           ...(Object.hasOwn(body, "pendingAuthorizationReference")
             ? { pendingAuthorizationReference: body.pendingAuthorizationReference }
             : {}),
+          ...(interpretedCalendarFactualQuery ? { interpretedFactualQuery: interpretedCalendarFactualQuery } : {}),
         }, calendarDependencies)
       : null;
     if (calendar?.handled && calendar.decision !== "ALLOW") {

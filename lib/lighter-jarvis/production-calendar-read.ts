@@ -53,6 +53,7 @@ const defaults: ProductionCalendarDependencies = {
 export async function resolveProductionCalendarRead(input: {
   readonly currentUserUtterance: string;
   readonly pendingAuthorizationReference?: unknown;
+  readonly interpretedFactualQuery?: import("./calendar-factual-query").CalendarFactualQuery | null;
 }, dependencies: ProductionCalendarDependencies = defaults): Promise<ProductionCalendarReadResult> {
   const hasTransportReference = input.pendingAuthorizationReference !== undefined;
 
@@ -84,7 +85,7 @@ export async function resolveProductionCalendarRead(input: {
       purpose: operation.purpose ?? null, factualQuery: operation.factualQuery ?? null });
   }
 
-  const proposedOperation = proposeCalendarRead(input.currentUserUtterance, dependencies.clock);
+  const proposedOperation = proposeCalendarRead(input.currentUserUtterance, dependencies.clock, input.interpretedFactualQuery);
   if (proposedOperation === null) {
     return Object.freeze({ handled: false, decision: null, reason: null, evidence: null,
       pendingAuthorizationReference: null, authorityEvidence: Object.freeze([]), window: null, purpose: null, factualQuery: null });

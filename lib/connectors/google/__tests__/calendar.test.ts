@@ -26,17 +26,26 @@ describe("GoogleCalendarConnector bounded reads", () => {
     expect(eventsUrl.searchParams.get("eventLabelVersion")).toBe("1");
   });
 
-  it("preserves an eventLabelId returned by the label-aware Google events request", async () => {
+  it("resolves a real event label definition into a governed time mode", async () => {
     const fetch = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "primary", summary: "Primary" }] }), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({
         items: [{
           id: "evt-labeled",
-          summary: "LLEGC Agenda",
+          summary: "JARVIS Testing",
           eventLabelId: "label-native-456",
           start: { dateTime: "2026-08-28T10:00:00+10:00" },
           end: { dateTime: "2026-08-28T11:00:00+10:00" },
         }],
+      }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        labelProperties: {
+          eventLabels: [{
+            id: "label-native-456",
+            name: "Deep Work / Discovery",
+            backgroundColor: "#3f51b5",
+          }],
+        },
       }), { status: 200 }));
     vi.stubGlobal("fetch", fetch);
 
@@ -48,8 +57,39 @@ describe("GoogleCalendarConnector bounded reads", () => {
 
     const eventsUrl = new URL(fetch.mock.calls[1][0] as string);
     expect(eventsUrl.searchParams.get("eventLabelVersion")).toBe("1");
+    expect(fetch.mock.calls[2][0]).toBe(
+      "https://www.googleapis.com/calendar/v3/calendars/primary",
+    );
     expect(result.events).toHaveLength(1);
+    expect(result.events[0]).toMatchObject({
+      eventLabelId: "label-native-456",
+      timeMode: "deep_work",
+    });
+  });
+
+  it("does not manufacture unclassified when provider label definitions are unavailable", async () => {
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "primary", summary: "Primary" }] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        items: [{
+          id: "evt-labeled",
+          summary: "JARVIS Testing",
+          eventLabelId: "label-native-456",
+          start: { dateTime: "2026-08-28T10:00:00+10:00" },
+          end: { dateTime: "2026-08-28T11:00:00+10:00" },
+        }],
+      }), { status: 200 }))
+      .mockResolvedValueOnce(new Response("unavailable", { status: 503 }));
+    vi.stubGlobal("fetch", fetch);
+
+    const result = await new GoogleCalendarConnector().listBetweenWithCompleteness(
+      "2026-08-27T14:00:00.000Z",
+      "2026-08-28T14:00:00.000Z",
+      5,
+    );
+
     expect(result.events[0].eventLabelId).toBe("label-native-456");
+    expect(result.events[0].timeMode).toBeUndefined();
   });
   it("proves complete bounded membership only when every discovered target is complete and the merge is not truncated", async () => {
     const fetch = vi.fn()

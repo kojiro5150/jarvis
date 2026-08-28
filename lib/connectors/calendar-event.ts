@@ -1,4 +1,5 @@
 import type { CalendarEventRecord, ConnectorSource } from "./types";
+import type { CalendarTimeMode } from "./calendar-time-mode";
 
 /**
  * The one calendar event shape every consumer above the connector layer
@@ -34,6 +35,8 @@ export interface CalendarEvent {
   calendarColor?: string;
   /** Provider-supplied per-event label identity when Google returns one. Opaque at the connector boundary. */
   eventLabelId?: string;
+  /** Deterministic governed mode, present only when provider label definitions were successfully resolved. */
+  timeMode?: CalendarTimeMode;
   /** Provider observation when available; consumers must not infer beyond it. */
   status?: "confirmed" | "tentative" | "cancelled";
   /** Provider-supplied recurrence identity; presence means this is an observed recurring instance. */

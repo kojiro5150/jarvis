@@ -2,6 +2,11 @@ import type { CalendarConnector } from "../calendar";
 import type { ConnectorSource } from "../types";
 import type { CalendarEvent } from "../calendar-event";
 import { normalizeGoogleEvent } from "../calendar-event";
+import {
+  classifyCalendarEventTimeMode,
+  resolveCalendarEventLabelModeMap,
+  type CalendarEventLabelDefinition,
+} from "../calendar-time-mode";
 import { getValidGoogleAccessToken } from "./access-token";
 import { GoogleServiceAuthError } from "./auth-error";
 import {
@@ -23,6 +28,12 @@ export { GoogleServiceAuthError as GoogleCalendarAuthError };
 
 const CALENDAR_LIST_URL = "https://www.googleapis.com/calendar/v3/users/me/calendarList";
 const CALENDAR_EVENTS_BASE_URL = "https://www.googleapis.com/calendar/v3/calendars";
+
+type GoogleCalendarResource = Readonly<{
+  labelProperties?: Readonly<{
+    eventLabels?: readonly CalendarEventLabelDefinition[];
+  }>;
+}>;
 
 interface GoogleCalendarListEntry {
   id: string;
@@ -125,9 +136,36 @@ export class GoogleCalendarConnector implements CalendarConnector {
       calendarName: calendar.summary && calendar.summary.trim().length > 0 ? calendar.summary : calendar.id,
       calendarColor: calendar.backgroundColor,
     };
-    const events = Object.freeze(
-      (json.items ?? []).map((item, i) => normalizeGoogleEvent(item, i, meta)),
-    );
+    const normalizedEvents = (json.items ?? []).map((item, i) => normalizeGoogleEvent(item, i, meta));
+
+    let events: readonly CalendarEvent[] = Object.freeze(normalizedEvents);
+    if (normalizedEvents.some((event) => event.eventLabelId !== undefined)) {
+      const labelsResponse = await fetch(
+        `${CALENDAR_EVENTS_BASE_URL}/${encodeURIComponent(calendar.id)}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      );
+
+      if (!labelsResponse.ok) {
+        if (labelsResponse.status === 401) {
+          throw new GoogleServiceAuthError(
+            "refresh_failed",
+            "Calendar API rejected the access token while reading label definitions."
+          );
+        }
+      } else {
+        const calendarResource = (await labelsResponse.json()) as GoogleCalendarResource;
+        const modeMap = resolveCalendarEventLabelModeMap(
+          calendarResource.labelProperties?.eventLabels ?? [],
+        );
+        events = Object.freeze(
+          normalizedEvents.map((event) => Object.freeze({
+            ...event,
+            timeMode: classifyCalendarEventTimeMode(event, modeMap),
+          })),
+        );
+      }
+    }
+
     const continuation: CalendarAcquisitionContinuation =
       typeof json.nextPageToken === "string" && json.nextPageToken.trim() !== ""
         ? "present"

@@ -67,6 +67,13 @@ describe("deterministic Calendar factual query", () => {
     expect(renderCalendarFactualSelection(selected, query)).toContain("JARVIS Testing");
   });
 
+  it("renders complete negative presence evidence as deterministic no", () => {
+    const query = parseCalendarFactualQuery("Am I shopping Monday?")!;
+    const selected = selectCalendarFactualQuery({ events, query, window });
+    expect(selected.status).toBe("not_found");
+    expect(renderCalendarFactualSelection(selected, query)).toBe("Calendar factual result:\nNo.");
+  });
+
   it("answers compact speech-style weekday presence from provider evidence", () => {
     const query = parseCalendarFactualQuery("Am I shopping Saturday?")!;
     const selected = selectCalendarFactualQuery({ events, query, window });

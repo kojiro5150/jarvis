@@ -47,7 +47,7 @@ describe("ordinary-model history boundary", () => {
       { role: "user", content: "[Prior governed Calendar factual request omitted from ordinary model context.]" },
       history[1],
       history[2],
-      { role: "assistant", content: "[Governed private result omitted from ordinary model context.]" },
+      { role: "assistant", content: "[Prior governed Calendar factual result: no matching event.]" },
       history[4],
     ]);
   });

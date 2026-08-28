@@ -195,6 +195,54 @@ describe("production calendar.read authority ordering", () => {
     );
   });
 
+  it("retains a factual selector through pending confirmation and uses the bounded factual limit", async () => {
+    const deps = dependencies();
+    const pending = await resolveProductionCalendarRead({
+      currentUserUtterance: "What time is the interview on Tuesday?",
+    }, {
+      ...deps.value,
+      clock: () => new Date("2026-08-28T09:00:00.000Z"),
+    });
+
+    expect(pending).toMatchObject({
+      decision: "ASK",
+      purpose: "calendar_factual_query",
+      factualQuery: {
+        kind: "title_match_on_weekday",
+        terms: ["interview"],
+        weekday: "tuesday",
+      },
+      window: {
+        period: "default",
+        start: "2026-08-28T09:00:00.000Z",
+        end: "2026-09-04T09:00:00.000Z",
+      },
+    });
+
+    const confirmed = await resolveProductionCalendarRead({
+      currentUserUtterance: "Yes",
+      pendingAuthorizationReference: pending.pendingAuthorizationReference,
+    }, {
+      ...deps.value,
+      clock: () => new Date("2026-08-28T09:00:00.000Z"),
+    });
+
+    expect(confirmed).toMatchObject({
+      decision: "ALLOW",
+      purpose: "calendar_factual_query",
+      factualQuery: {
+        kind: "title_match_on_weekday",
+        terms: ["interview"],
+        weekday: "tuesday",
+      },
+    });
+    expect(deps.listBetween).toHaveBeenCalledWith(
+      "2026-08-28T09:00:00.000Z",
+      "2026-09-04T09:00:00.000Z",
+      100,
+    );
+  });
+
   it("leaves bare confirmation outside the Calendar authority flow", async () => {
     const deps = dependencies();
     expect(await resolveProductionCalendarRead({ currentUserUtterance: "yes" }, deps.value))

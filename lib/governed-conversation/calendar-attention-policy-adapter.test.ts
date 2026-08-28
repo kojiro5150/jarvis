@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { commitmentStartTimeChangePolicy } from "../executive-operating-system/attention/policies";
+import {
+  commitmentRemovalPolicy,
+  commitmentStartTimeChangePolicy,
+} from "../executive-operating-system/attention/policies";
 import type { CanonicalAttentionChange } from "../executive-operating-system/attention/types";
 import {
+  CALENDAR_REMOVAL_ATTENTION_POLICY,
   CALENDAR_START_TIME_ATTENTION_POLICY,
+  selectCalendarRemovalAttention,
   selectCalendarStartTimeAttention,
 } from "./calendar-attention-policy-adapter";
 import type { CalendarAttentionObservationChangeSet } from "./calendar-attention-observation-comparison";
@@ -148,6 +153,122 @@ describe("Calendar attention policy adapter", () => {
     });
 
     expect(selectCalendarStartTimeAttention(set([
+      make("google-calendar:calendar:primary:event:z"),
+      make("google-calendar:calendar:primary:event:a"),
+    ])).map(match => match.entityId)).toEqual([
+      "google-calendar:calendar:primary:event:a",
+      "google-calendar:calendar:primary:event:z",
+    ]);
+  });
+
+  it("selects a removed commitment using the accepted bounded removal semantics", () => {
+    const id = "google-calendar:calendar:primary:event:evt-1";
+    const previous = observation(id, "2026-08-29T00:00:00Z", "2026-08-29T01:00:00Z");
+
+    const matches = selectCalendarRemovalAttention(set([
+      Object.freeze({ type: "removed", id, previous }),
+    ]));
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0]).toMatchObject({
+      entityId: id,
+      changeType: "removed",
+      policy: {
+        id: "attention.commitment.removed",
+        version: "1.0.0",
+      },
+      reason: {
+        code: "commitment.absent-from-current-snapshot",
+        message: "The commitment was present in the previous snapshot and is absent from the current snapshot.",
+        evidence: [
+          { field: "commitment.id", value: id },
+          { field: "previous.startsAt", value: "2026-08-29T00:00:00Z" },
+        ],
+      },
+    });
+    expect(Object.isFrozen(matches)).toBe(true);
+    expect(Object.isFrozen(matches[0])).toBe(true);
+    expect(Object.isFrozen(matches[0].reason)).toBe(true);
+    expect(Object.isFrozen(matches[0].reason.evidence)).toBe(true);
+
+    const serialized = JSON.stringify(matches[0]);
+    for (const forbidden of ["cancelled", "deleted", "completed", "declined", "resolved"]) {
+      expect(serialized.toLowerCase()).not.toContain(forbidden);
+    }
+  });
+
+  it("preserves EOS removal policy identity and reason semantics without synthesizing unavailable status evidence", () => {
+    expect(CALENDAR_REMOVAL_ATTENTION_POLICY.id).toBe(commitmentRemovalPolicy.id);
+    expect(CALENDAR_REMOVAL_ATTENTION_POLICY.version).toBe(commitmentRemovalPolicy.version);
+
+    const id = "google-calendar:calendar:primary:event:evt-1";
+    const canonical = {
+      domain: "commitments",
+      changeType: "removed",
+      entityId: id,
+      previousSnapshotId: "previous",
+      currentSnapshotId: "current",
+      previous: {
+        id,
+        title: "Not disclosed to governed adapter",
+        kind: "meeting",
+        status: "scheduled",
+        roleIds: [],
+        projectIds: [],
+        startsAt: "2026-08-29T00:00:00Z",
+        dueAt: "2026-08-29T01:00:00Z",
+      },
+    } satisfies CanonicalAttentionChange;
+
+    const eos = commitmentRemovalPolicy.evaluate(canonical, {
+      previousSnapshotId: "previous",
+      currentSnapshotId: "current",
+    });
+    expect(eos.matched).toBe(true);
+
+    const governed = selectCalendarRemovalAttention(set([
+      Object.freeze({
+        type: "removed",
+        id,
+        previous: observation(id, "2026-08-29T00:00:00Z", "2026-08-29T01:00:00Z"),
+      }),
+    ]))[0];
+
+    if (eos.matched) {
+      expect(governed.policy).toEqual({
+        id: commitmentRemovalPolicy.id,
+        version: commitmentRemovalPolicy.version,
+      });
+      expect(governed.reason.code).toBe(eos.reason.code);
+      expect(governed.reason.message).toBe(eos.reason.message);
+    }
+
+    expect(governed.reason.evidence).toEqual([
+      { field: "commitment.id", value: id },
+      { field: "previous.startsAt", value: "2026-08-29T00:00:00Z" },
+    ]);
+    expect(governed.reason.evidence.some(item => item.field === "previous.status")).toBe(false);
+  });
+
+  it("does not select added or modified changes as removal attention", () => {
+    const id = "google-calendar:calendar:primary:event:evt-1";
+    const previous = observation(id, "2026-08-29T00:00:00Z", "2026-08-29T01:00:00Z");
+    const current = observation(id, "2026-08-29T01:00:00Z", "2026-08-29T02:00:00Z");
+
+    expect(selectCalendarRemovalAttention(set([
+      Object.freeze({ type: "added", id, current }),
+      Object.freeze({ type: "modified", id, previous, current }),
+    ]))).toEqual([]);
+  });
+
+  it("orders removal matches deterministically by governed entity identity", () => {
+    const make = (id: string) => Object.freeze({
+      type: "removed" as const,
+      id,
+      previous: observation(id, "2026-08-29T00:00:00Z", "2026-08-29T01:00:00Z"),
+    });
+
+    expect(selectCalendarRemovalAttention(set([
       make("google-calendar:calendar:primary:event:z"),
       make("google-calendar:calendar:primary:event:a"),
     ])).map(match => match.entityId)).toEqual([

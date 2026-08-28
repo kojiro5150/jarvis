@@ -224,7 +224,7 @@ describe("live governed Calendar factual query", () => {
     );
     expect(response.pendingAuthorizationReference).toBeUndefined();
     expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
-    expect(model).toHaveBeenCalledTimes(1);
+    expect(model).not.toHaveBeenCalled();
   });
 
   it("keeps relational Level-2 Calendar wording contained after bounded interpretation declines it", async () => {

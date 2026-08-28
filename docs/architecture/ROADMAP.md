@@ -57,6 +57,8 @@ Known strategic directions, not yet earned
     Role-specific operational context
     Governed action approval/execution records
     Full voice-first experience
+    Governed memory with explicit fact / inference / plan / decision / recommendation / staleness semantics
+    One-JARVIS UI convergence with user-facing specialist controls retired once governed natural-intent parity is earned
     Proactive anomaly detection and cross-role continuity
     Durable/distributed authority state
 ```
@@ -361,6 +363,7 @@ The current conversational-intent work remains deliberately below Level 2:
 - **3.180d — governed acquisition → deterministic factual completion.** Private evidence may be acquired, selected, compared and rendered by bounded deterministic server logic. Model composition over private evidence remains prohibited.
 - **3.181 — Private Evidence Reasoning Contract.** Defines and owns the first legitimate Level 2 private semantic-exposure boundary. Successful acquisition does not authorize model visibility. No earlier selector, authority handoff, Calendar/Gmail/Drive result path, specialist handoff, or ambient context builder may smuggle private evidence into model reasoning.
 - **3.182 — Situational Awareness only after 3.181.** Any capability that semantically synthesises private Calendar/Gmail/Drive state must prove it operates within the 3.181 contract before implementation.
+- **Post-3.182 checkpoint — pause before deeper semantic expansion.** After one bounded Level 2 **Understand** capability has been implemented and live-accepted, reassess whether it materially reduced human cognitive burden before proceeding to broader semantic reasoning or Level 3 **Advise**. The roadmap is not a queue to clear: if governed understanding did not make JARVIS meaningfully more useful, diagnose why before adding more reasoning machinery.
 
 ### Parser-family maintenance rule
 

@@ -140,7 +140,7 @@ export function formatCalendarReadResponse(calendar: NonNullable<Awaited<ReturnT
   if (calendar.status !== "available") return "I couldn't access your Calendar right now.";
   if (calendar.evidence.length === 0 && window) return clearCalendarPeriod(window.period);
   if (calendar.evidence.length > 0 && window) {
-    const includeDate = window.period === "this_week" || window.period === "default";
+    const includeDate = window.period === "this_week" || window.period === "next_week" || window.period === "default";
     const bindingByStart = new Map((bindingState?.bindings ?? []).map(binding => [binding.commitmentStart, binding.label]));
     const commitments = calendar.evidence.map(({ start, end }) => {
       const label = bindingByStart.get(start);
@@ -168,6 +168,7 @@ function calendarPeriodHeading(period: NonNullable<Awaited<ReturnType<typeof res
     this_afternoon: "This afternoon",
     this_evening: "This evening",
     this_week: "This week",
+    next_week: "Next week",
     default: "Next seven days",
   } as const;
   return copy[period];
@@ -181,6 +182,7 @@ function clearCalendarPeriod(period: NonNullable<Awaited<ReturnType<typeof resol
     this_afternoon: "This afternoon is clear.",
     this_evening: "This evening is clear.",
     this_week: "This week is clear.",
+    next_week: "Next week is clear.",
     default: "Your Calendar is clear for the next seven days.",
   } as const;
   return copy[period];

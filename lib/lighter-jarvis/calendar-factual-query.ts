@@ -103,7 +103,7 @@ export function parseCalendarFactualQuery(utterance: string): CalendarFactualQue
     return Object.freeze({ kind: "title_presence_on_weekday", terms, weekday: day });
   }
 
-  const periodPresence = normalized.match(/^do\s+i\s+have\s+(.+?)\s+(?:on|in)\s+(today|tomorrow|this\s+week|next\s+week)[?!.]?$/i);
+  const periodPresence = normalized.match(/^do\s+i\s+have\s+(.+?)\s+(?:(?:on|in)\s+)?(today|tomorrow|this\s+week|next\s+week)[?!.]?$/i);
   if (periodPresence) {
     const terms = queryTerms(periodPresence[1]);
     if (terms.length === 0) return null;
@@ -248,6 +248,9 @@ function when(event: CalendarFactualEvent): string {
 /** Deterministic private-data renderer. No model participates. */
 export function renderCalendarFactualSelection(selection: CalendarFactualSelection, query: CalendarFactualQuery): string {
   if (selection.status === "not_found") {
+    if (query.kind === "title_presence_on_weekday" || query.kind === "title_presence_in_period") {
+      return "Calendar factual result:\nNo.";
+    }
     return "Calendar factual result:\nNo matching timed Calendar event was found in this bounded read.";
   }
   if (selection.status === "ambiguous") {
@@ -260,7 +263,7 @@ export function renderCalendarFactualSelection(selection: CalendarFactualSelecti
     ].join("\n");
   }
   const event = selection.events[0];
-  if (query.kind === "title_presence_on_weekday") {
+  if (query.kind === "title_presence_on_weekday" || query.kind === "title_presence_in_period") {
     return `Calendar factual result:\nYes. ${event.title} — ${when(event)}`;
   }
   return `Calendar factual result:\n- ${event.title} — ${when(event)}`;

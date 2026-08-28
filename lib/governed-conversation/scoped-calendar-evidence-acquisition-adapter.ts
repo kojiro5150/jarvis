@@ -14,9 +14,9 @@ import {
   type GovernedWeeklyCalendarAllocationPublication,
 } from "./calendar-weekly-allocation-publisher";
 import {
-  projectCalendarFactualEvents,
-  type CalendarFactualEvent,
-} from "../lighter-jarvis/calendar-factual-query";
+  publishCalendarFactualEvidence,
+  type GovernedCalendarFactualEvent,
+} from "./calendar-factual-evidence";
 
 export type GovernedCalendarCoverageState =
   | "bounded_complete_request"
@@ -27,7 +27,7 @@ export type ScopedCalendarEvidenceResult = SourceAdapterResult<GovernedCalendarE
   coverageState?: GovernedCalendarCoverageState;
   completeness?: CalendarAcquisitionCompletenessEnvelope;
   weeklyAllocation?: GovernedWeeklyCalendarAllocationPublication;
-  factualEvents?: readonly CalendarFactualEvent[];
+  factualEvents?: readonly GovernedCalendarFactualEvent[];
 }>;
 
 export interface ScopedCalendarAcquisitionPort {
@@ -53,7 +53,7 @@ function withCoverage(
   coverageState: GovernedCalendarCoverageState,
   completeness?: CalendarAcquisitionCompletenessEnvelope,
   weeklyAllocation?: GovernedWeeklyCalendarAllocationPublication | null,
-  factualEvents?: readonly CalendarFactualEvent[],
+  factualEvents?: readonly GovernedCalendarFactualEvent[],
 ): ScopedCalendarEvidenceResult {
   return Object.freeze({
     ...result,
@@ -132,7 +132,7 @@ export async function acquireScopedCalendarEvidence(input: {
         coverageState,
         acquisition.completeness,
         weeklyAllocation,
-        projectCalendarFactualEvents(inWindow),
+        publishCalendarFactualEvidence(inWindow),
       );
     }
 
@@ -164,7 +164,7 @@ export async function acquireScopedCalendarEvidence(input: {
       "bounded",
       undefined,
       undefined,
-      projectCalendarFactualEvents(inWindow),
+      publishCalendarFactualEvidence(inWindow),
     );
   } catch {
     return sourceResult("unavailable", [], {

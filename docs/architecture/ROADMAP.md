@@ -1,6 +1,6 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Last reconciled 2026-08-28 after Sprint 3.180b2 and capability-level alignment review. The August 1 roadmap state is superseded: governed conversational source inputs, operation-level authority for bounded Calendar/Gmail/Drive reads, private-history containment, voice turn integrity, live Calendar GovernedContext/recall truthfulness, deterministic Calendar projection-fidelity protection, and the first live authority-gated Calendar attention path have now been implemented and verified. The current transition is from proving one same-identity attention condition to establishing the completeness semantics required before membership changes such as added/removed Calendar commitments can be inferred.
+**Status:** Living document. Last reconciled 2026-08-28 after Sprint 3.180b2, capability-level alignment review, and drift-risk reconciliation. The August 1 roadmap state is superseded: governed conversational source inputs, operation-level authority for bounded Calendar/Gmail/Drive reads, private-history containment, voice turn integrity, live Calendar GovernedContext/recall truthfulness, deterministic Calendar projection-fidelity protection, and bounded conversational capability selection have now been implemented and verified. The current transition is from bounded deterministic factual capability selection toward natural intent-to-authority handoff and evidence-bound factual completion, before opening the private semantic reasoning boundary.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
 
@@ -99,7 +99,7 @@ Phase III is no longer blocked on the old projection-input gap. The governed con
 
 It is **not complete in the sense of universal convergence**:
 
-- `/api/chat` remains a parallel legacy/compatibility path;
+- `/api/chat` remains a parallel legacy/compatibility path and is **compatibility-only**. No new private capability, authority model, conversational cognition, or product behavior should be implemented there. New governed conversational work belongs on `/api/lighter/chat`. Retirement should occur only after all production callers have migrated and compatibility evidence shows no required behavior remains;
 - PendingAuthorization remains process-local rather than durable/distributed;
 - private capabilities are still intentionally bounded rather than ambient;
 - Calendar is the strongest live GovernedContext proof; Gmail and Drive remain primarily deterministic release paths;
@@ -261,6 +261,16 @@ The goal — an executive operating system that identifies environment, roles, a
 - **Executive cognition is grounded in deterministic state and structured reasoning.** Phase V's unwired Candidate Construction/Evaluation/Comparison stages are classical, explainable reasoning over real evidence. Situational awareness, prioritisation, dependency analysis, conflict detection, and planning all emerge from that same deterministic foundation — priority-ranking is one manifestation among several, not the scope of the phase.
 - **An LLM's honest role, if used at all, is interface, not intelligence.** Reasoning over verified facts and articulating trade-offs in natural language is a categorically safer and more limited job than inventing the facts — and it's the only part of "collaborative" assistance that genuinely still requires the flexibility an LLM provides. Fully replacing that flexibility with rules would trade away the actual collaborative quality being asked for.
 
+### What "non-LLM-dependent" means
+
+The roadmap title does **not** mean JARVIS should avoid advanced models wherever semantic intelligence is useful.
+
+It means authority, source truth, evidence existence, deterministic invariants, execution truth, provenance, and acquisition status must not depend on probabilistic model output.
+
+Models may be used, within explicit governed boundaries, for natural-language intent interpretation, semantic understanding, synthesis, bounded cross-evidence reasoning, challenge, explanation, and natural conversational expression.
+
+The architecture therefore rejects both extremes: facts and authority must not be outsourced to a model, but semantic intelligence should not be reimplemented as an ever-growing deterministic parser.
+
 The full Iron-Man vision — fully autonomous, understands anything, acts on everything — should stay aspirational rather than promised. But the ordinary, everyday version of it is no longer science fiction: something that wakes up every morning and reliably answers *what's happening, what changed, what needs attention* — using real evidence, only reaching for language-model flexibility where it's genuinely needed, and only occasionally surfacing something that looks like a decision to weigh. Most of the foundation for that is proven. The rest is a short, specific, identifiable list of next steps — not a leap.
 
 ### Sprint 3.177 — governed factual Calendar retrieval
@@ -349,8 +359,25 @@ The current conversational-intent work remains deliberately below Level 2:
 
 - **3.180c — natural intent → governed authority handoff.** Model interprets the current user utterance into a typed private operation candidate. It sees no private source evidence.
 - **3.180d — governed acquisition → deterministic factual completion.** Private evidence may be acquired, selected, compared and rendered by bounded deterministic server logic. Model composition over private evidence remains prohibited.
-- **3.181 — Private Evidence Reasoning Contract.** Defines the first legitimate Level 2 boundary. It is an architecture/governance milestone, not permission to start situational synthesis by default.
+- **3.181 — Private Evidence Reasoning Contract.** Defines and owns the first legitimate Level 2 private semantic-exposure boundary. Successful acquisition does not authorize model visibility. No earlier selector, authority handoff, Calendar/Gmail/Drive result path, specialist handoff, or ambient context builder may smuggle private evidence into model reasoning.
 - **3.182 — Situational Awareness only after 3.181.** Any capability that semantically synthesises private Calendar/Gmail/Drive state must prove it operates within the 3.181 contract before implementation.
+
+### Parser-family maintenance rule
+
+The 3.178–3.180 deterministic grammar family is now a **closed high-confidence fast path, not an extensible natural-language coverage strategy**.
+
+After Sprint 3.180d, parser expansion is maintenance/safety work only. A new deterministic phrase or morphology rule is justified only when it closes a verified authority, evidence, provenance, or factual-truthfulness defect; defines a genuinely stable closed command surface; or is demonstrably cheaper and safer than adaptive interpretation for a bounded form.
+
+Convenience paraphrase coverage alone is not a product milestone. General growth should proceed through:
+
+```text
+natural language
+→ bounded interpretation
+→ typed intent
+→ deterministic governance
+```
+
+not through regex accumulation.
 
 These numbers are sequencing aids, not the governing principle. The governing principle is always the capability-level test above.
 
@@ -446,6 +473,18 @@ The Eight-Question Review should be used for:
 
 It need not be mechanically applied to trivial implementation details or maintenance changes where the governing contract is already settled.
 
+
+## Product-boundary reconciliation
+
+The current product architecture is:
+
+```text
+USER ↔ JARVIS
+```
+
+Named specialists may remain as internal governed capability or reasoning modules, but they are **implementation architecture, not the user's mental model**. Historical language that implies the user must manually select, coordinate, or understand named specialists is superseded by the August 2026 one-JARVIS North Star.
+
+Direct specialist selection may remain temporarily for diagnostics, expert access, or migration, but no new capability should require the user to know a specialist name in order to use JARVIS naturally.
 
 ## What Not To Do
 

@@ -132,6 +132,7 @@ describe("calendar.read proposal boundary", () => {
     ["Am I shopping Saturday?", { kind: "title_presence_on_weekday", terms: ["shop"], weekday: "saturday" }],
     ["When's my next JARVIS test?", { kind: "next_title_match", terms: ["jarvis", "test"] }],
     ["When do I next have scheduled JARVIS testing?", { kind: "next_title_match", terms: ["jarvis", "test"] }],
+    ["When do I next go shopping?", { kind: "next_title_match", terms: ["shop"] }],
   ] as const)("proposes a bounded factual Calendar query without granting authority: %s", (utterance, factualQuery) => {
     const clock = () => new Date("2026-08-28T09:00:00.000Z");
     const proposedOperation = proposeCalendarRead(utterance, clock);

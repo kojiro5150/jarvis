@@ -9,6 +9,7 @@ import { isProviderIdLike } from "./private-capability-handoff-guard";
  * it is genuine or fabricated.
  */
 const OMITTED_PRIVATE_RELEASE = "[Governed private result omitted from ordinary model context.]";
+const OMITTED_CALENDAR_FACTUAL_REQUEST = "[Prior governed Calendar factual request omitted from ordinary model context.]";
 const OMITTED_GMAIL_READ_REQUEST = "[Prior governed Gmail read request omitted from ordinary model context.]";
 const OMITTED_DRIVE_READ_REQUEST = "[Prior governed Drive read request omitted from ordinary model context.]";
 const OMITTED_DRIVE_PROVIDER_ID_FOLLOW_UP = "[Prior governed Drive provider-ID follow-up omitted from ordinary model context.]";
@@ -19,6 +20,23 @@ const DRIVE_RELEASE = /^(?:No Drive files found\.|Drive files:\n-)/;
 const DRIVE_CONTENT_RELEASE = /^Drive document \([A-Za-z0-9_-]+\):\n/;
 const EXACT_GMAIL_READ_REQUEST = /^gmail\.read [^\s\[\],<>]+ \[(?:subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata)(?:,(?:subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata))*\]$/;
 const EXACT_DRIVE_READ_REQUEST = /^drive\.read [A-Za-z0-9_-]+ \[text\]$/;
+const EXPLICIT_CONFIRMATION = /^(?:yes|yes,?\s+please|confirm|confirmed|proceed|go\s+ahead)[.!]?$/i;
+
+function priorCalendarRequestIndexes(messages: readonly ChatMessage[], currentUserIndex: number): ReadonlySet<number> {
+  const requestIndexes = new Set<number>();
+  messages.forEach((message, releaseIndex) => {
+    if (releaseIndex >= currentUserIndex || message.role !== "assistant" || !CALENDAR_RELEASE.test(message.content)) return;
+    for (let index = releaseIndex - 1; index >= 0; index -= 1) {
+      const candidate = messages[index];
+      if (candidate.role !== "user") continue;
+      if (EXPLICIT_CONFIRMATION.test(candidate.content.trim())) continue;
+      requestIndexes.add(index);
+      break;
+    }
+  });
+  return requestIndexes;
+}
+
 
 /** Content-derived signal used only by downstream deny/presentation guards. */
 export function hasGovernedDriveHistory(messages: readonly ChatMessage[]): boolean {
@@ -41,6 +59,7 @@ export function isDeterministicPrivateRelease(content: string): boolean {
 /** Returns a fresh model-only history; the client-visible transcript is never mutated. */
 export function sanitizeModelHistory(messages: readonly ChatMessage[]): ChatMessage[] {
   const currentUserIndex = messages.findLastIndex(message => message.role === "user");
+  const calendarRequestIndexes = priorCalendarRequestIndexes(messages, currentUserIndex);
   let governedDriveHistorySeen = false;
   return messages.map((message, index) => {
     const hadPriorGovernedDriveHistory = governedDriveHistorySeen;
@@ -50,6 +69,9 @@ export function sanitizeModelHistory(messages: readonly ChatMessage[]): ChatMess
     }
     if (message.role === "assistant" && isDeterministicPrivateRelease(message.content)) {
       return { role: "assistant", content: OMITTED_PRIVATE_RELEASE };
+    }
+    if (message.role === "user" && index !== currentUserIndex && calendarRequestIndexes.has(index)) {
+      return { role: "user", content: OMITTED_CALENDAR_FACTUAL_REQUEST };
     }
     if (message.role === "user" && index !== currentUserIndex && EXACT_GMAIL_READ_REQUEST.test(message.content.trim())) {
       return { role: "user", content: OMITTED_GMAIL_READ_REQUEST };

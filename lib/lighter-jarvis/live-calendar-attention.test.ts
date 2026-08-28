@@ -32,7 +32,7 @@ const evidence = (
     observedAt,
   }),
   start: startsAt,
-  end: "2026-08-28T02:00:00.000Z",
+  end: "2026-08-28T04:00:00.000Z",
   timezone: "Z",
   provenanceReference: `google-calendar:calendar:primary:event:${id}#provenance`,
   available: true,
@@ -167,7 +167,7 @@ describe("live Calendar attention composition", () => {
     ].join("\n"));
   });
 
-  it("fails closed on membership disappearance when current coverage is not complete", () => {
+  it("fails closed by rotating the baseline when membership coverage is no longer compatible", () => {
     const previousSet = projectGovernedCalendarAttentionObservationSet({
       sourceId: "google-calendar",
       available: true,
@@ -187,13 +187,18 @@ describe("live Calendar attention composition", () => {
     });
     const reference = createCalendarAttentionObservationReference(previousSet);
 
-    expect(() => resolveLiveCalendarAttention({
+    const result = resolveLiveCalendarAttention({
       evidence: sourceResult("available", [], {
         observedAt: "2026-08-28T01:00:00.000Z",
       }),
       window,
       previousObservationReference: reference,
-    })).toThrow("membership comparison requires bounded_complete_request coverage");
+    });
+
+    expect(result.baselineEstablished).toBe(true);
+    expect(result.reply).toBe(
+      "I have a current Calendar baseline, but the previous baseline covered a different bounded window, so I cannot compare them.",
+    );
   });
 
   it("renders a bounded zero-match answer rather than inventing priority or action", () => {

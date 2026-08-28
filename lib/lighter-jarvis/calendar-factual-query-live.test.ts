@@ -130,6 +130,7 @@ describe("live governed Calendar factual query", () => {
     ["When am I testing JARVIS again?", "JARVIS Testing — Sat, 29 Aug, 11:00 AM–12:00 PM"],
     ["When's my next JARVIS test?", "JARVIS Testing — Sat, 29 Aug, 11:00 AM–12:00 PM"],
     ["When do I next have scheduled JARVIS testing?", "JARVIS Testing — Sat, 29 Aug, 11:00 AM–12:00 PM"],
+    ["When do I next go shopping?", "Shopping — Sat, 29 Aug, 3:00 PM–4:00 PM"],
   ])("answers the deterministic named query without model interpretation: %s", async (utterance, expected) => {
     const model = vi.fn(async () => "model must not run");
     const c = connector();
@@ -208,6 +209,31 @@ describe("live governed Calendar factual query", () => {
     const response = await (await handler(request({
       specialistId: "jarvis",
       messages: [{ role: "user", content: "When do I next have something related to JARVIS?" }],
+    }))).json();
+    expect(response.reply).toBe(
+      "I can check your Calendar for that, but I couldn't resolve the factual query safely from that wording.",
+    );
+    expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
+    expect(model).not.toHaveBeenCalled();
+  });
+
+
+
+  it("contains unsupported when-do-I-next wording before the ordinary model can invent Calendar facts", async () => {
+    const model = vi.fn(async () => [
+      "I don't have any calendar entry for shopping in the commitments I can see.",
+      "Jarvis testing on Tuesday, 7 January at 10:00 AM",
+      "Team standup on Wednesday, 8 January at 9:00 AM",
+      "Dentist appointment on Friday, 10 January at 2:00 PM",
+    ].join("\n"));
+    const c = connector();
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => c.value,
+      clock: () => new Date("2026-08-28T09:00:00.000Z"),
+    });
+    const response = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "When do I next turn 60?" }],
     }))).json();
     expect(response.reply).toBe(
       "I can check your Calendar for that, but I couldn't resolve the factual query safely from that wording.",

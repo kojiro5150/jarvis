@@ -123,12 +123,12 @@ export function isCalendarDetailRecallFollowUp(utterance: string | undefined): b
 /** Metadata-only audit seam used by the ordinary-model path; it exposes no message content. */
 export function calendarRecallDiagnostics(messages: readonly ChatMessage[],
   hasCurrentCalendarGovernedContext = false) {
+  const currentUserIndex = messages.findLastIndex(message => message.role === "user");
   const previousAssistant = messages.slice(0, currentUserIndex).findLast(message => message.role === "assistant");
   const currentUserUtterance = messages.findLast(message => message.role === "user")?.content;
   const priorCalendarReportPresent = hasPriorVisibleCalendarReport(messages);
   const calendarRecallFollowUp = isCalendarRecallFollowUp(currentUserUtterance);
   const isCalendarRecollection = priorCalendarReportPresent && calendarRecallFollowUp;
-  const currentUserIndex = messages.findLastIndex(message => message.role === "user");
   const report = messages.findLast((message, index) => index < currentUserIndex
     && message.role === "assistant" && PRIOR_CALENDAR_REPORT.test(message.content));
   const bindingDetails = isCalendarRecollection

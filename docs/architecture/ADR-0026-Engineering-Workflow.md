@@ -1,4 +1,4 @@
-# ADR-0025 — Engineering Workflow
+# ADR-0026 — Engineering Workflow
 
 - **Status:** Accepted
 - **Date:** 2026-07-25

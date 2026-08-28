@@ -1,4 +1,4 @@
-import type { CalendarEvent } from "../connectors/calendar-event";
+import type { GovernedCalendarFactualEvent as CalendarFactualEvent } from "../governed-conversation/calendar-factual-evidence";
 import type { CalendarReadWindow } from "./calendar-read-window";
 
 export type CalendarFactualQuery =
@@ -7,13 +7,6 @@ export type CalendarFactualQuery =
   | Readonly<{ kind: "title_match_on_weekday"; terms: readonly string[]; weekday: CalendarWeekday }>;
 
 export type CalendarWeekday = "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";
-
-export type CalendarFactualEvent = Readonly<{
-  title: string;
-  start: string;
-  end: string;
-  calendarName: string;
-}>;
 
 export type CalendarFactualSelection = Readonly<{
   kind: CalendarFactualQuery["kind"];
@@ -56,28 +49,6 @@ function normalizeToken(value: string): string {
 
 function tokens(value: string): readonly string[] {
   return Object.freeze(normalizeToken(value).split(/\s+/).filter(Boolean));
-}
-
-function isTimedEvent(event: CalendarEvent): boolean {
-  return Number.isFinite(Date.parse(event.start)) && Number.isFinite(Date.parse(event.end))
-    && /(?:Z|[+-]\d{2}:\d{2})$/.test(event.start)
-    && /(?:Z|[+-]\d{2}:\d{2})$/.test(event.end);
-}
-
-/**
- * Closed server-owned factual projection. Title is allowed here for deterministic
- * selection/presentation only. No provider object is retained or spread upward.
- */
-export function projectCalendarFactualEvents(events: readonly CalendarEvent[]): readonly CalendarFactualEvent[] {
-  return Object.freeze(events.flatMap(event => {
-    if (!isTimedEvent(event) || typeof event.title !== "string" || !event.title.trim()) return [];
-    return [Object.freeze({
-      title: event.title,
-      start: event.start,
-      end: event.end,
-      calendarName: event.calendarName,
-    })];
-  }));
 }
 
 function titleMatches(event: CalendarFactualEvent, queryTerms: readonly string[]): boolean {

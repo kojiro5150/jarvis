@@ -113,6 +113,7 @@ describe("deterministic Calendar factual query", () => {
   it("detects unsupported personal Calendar factual wording for containment", () => {
     expect(isUnsupportedCalendarFactualWording("When am I next doing some work on JARVIS?")).toBe(true);
     expect(isUnsupportedCalendarFactualWording("What meetings next week relate to governance work?")).toBe(true);
+    expect(isUnsupportedCalendarFactualWording("My 9 a.m. meeting tomorrow is a finance review.")).toBe(false);
     expect(isUnsupportedCalendarFactualWording("When was the Eiffel Tower built?")).toBe(false);
     expect(isUnsupportedCalendarFactualWording("Help me draft a note")).toBe(false);
   });

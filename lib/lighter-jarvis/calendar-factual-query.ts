@@ -38,6 +38,8 @@ const QUERY_FILLER_TOKENS = Object.freeze(new Set([
   "going", "go", "to", "at", "in", "on", "for",
 ]));
 
+const LEVEL_2_RELATIONAL_PATTERN = /\b(?:doing some work|work on|related to|relate to|connected to|associated with)\b/;
+
 const SPOKEN_LIMITS: Readonly<Record<string, number>> = Object.freeze({
   one: 1,
   two: 2,
@@ -74,6 +76,7 @@ function weekday(value: string): CalendarWeekday | null {
 
 export function parseCalendarFactualQuery(utterance: string): CalendarFactualQuery | null {
   const normalized = utterance.trim().replace(/[‘’]/g, "'");
+  if (LEVEL_2_RELATIONAL_PATTERN.test(normalizeText(normalized))) return null;
 
   const nextEvents = normalized.match(/^what\s+are\s+(?:my\s+)?next\s+([1-5]|one|two|three|four|five)\s+(?:meetings?|calendar\s+events?)[?!.]?$/i);
   if (nextEvents) {

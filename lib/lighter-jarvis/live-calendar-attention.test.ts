@@ -106,7 +106,7 @@ describe("live Calendar attention composition", () => {
       previousObservationReference: reference,
     });
 
-    expect(result.reply).toBe("No Calendar start-time changes matched this bounded check.");
+    expect(result.reply).toBe("No supported Calendar attention changes matched this bounded check.");
     expect(result.reply.toLowerCase()).not.toContain("priority");
     expect(result.reply.toLowerCase()).not.toContain("action");
   });

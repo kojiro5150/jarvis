@@ -23,6 +23,33 @@ describe("GoogleCalendarConnector bounded reads", () => {
     const eventsUrl = new URL(fetch.mock.calls[1][0] as string);
     expect(eventsUrl.searchParams.get("timeMin")).toBe("2026-08-25T14:00:00.000Z");
     expect(eventsUrl.searchParams.get("timeMax")).toBe("2026-08-26T14:00:00.000Z");
+    expect(eventsUrl.searchParams.get("eventLabelVersion")).toBe("1");
+  });
+
+  it("preserves an eventLabelId returned by the label-aware Google events request", async () => {
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "primary", summary: "Primary" }] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        items: [{
+          id: "evt-labeled",
+          summary: "LLEGC Agenda",
+          eventLabelId: "label-native-456",
+          start: { dateTime: "2026-08-28T10:00:00+10:00" },
+          end: { dateTime: "2026-08-28T11:00:00+10:00" },
+        }],
+      }), { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+
+    const result = await new GoogleCalendarConnector().listBetweenWithCompleteness(
+      "2026-08-27T14:00:00.000Z",
+      "2026-08-28T14:00:00.000Z",
+      5,
+    );
+
+    const eventsUrl = new URL(fetch.mock.calls[1][0] as string);
+    expect(eventsUrl.searchParams.get("eventLabelVersion")).toBe("1");
+    expect(result.events).toHaveLength(1);
+    expect(result.events[0].eventLabelId).toBe("label-native-456");
   });
   it("proves complete bounded membership only when every discovered target is complete and the merge is not truncated", async () => {
     const fetch = vi.fn()

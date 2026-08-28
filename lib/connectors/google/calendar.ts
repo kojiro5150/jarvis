@@ -89,6 +89,7 @@ export class GoogleCalendarConnector implements CalendarConnector {
       singleEvents: "true",
       orderBy: "startTime",
       maxResults: String(limit),
+      eventLabelVersion: "1",
     });
 
     const url = `${CALENDAR_EVENTS_BASE_URL}/${encodeURIComponent(calendar.id)}/events?${params.toString()}`;

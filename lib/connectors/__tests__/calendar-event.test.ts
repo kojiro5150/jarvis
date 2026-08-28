@@ -60,6 +60,18 @@ describe("normalizeGoogleEvent", () => {
     expect(event.day).toMatch(/^[A-Z]{3}$/);
   });
 
+  it("carries a provider eventLabelId through normalization without interpretation", () => {
+    const event = normalizeGoogleEvent({
+      id: "labeled-1",
+      summary: "JARVIS Testing",
+      eventLabelId: "label-opaque-123",
+      start: { dateTime: "2026-08-28T14:00:00+10:00" },
+      end: { dateTime: "2026-08-28T15:00:00+10:00" },
+    }, 0);
+
+    expect(event.eventLabelId).toBe("label-opaque-123");
+  });
+
   it("maps an all-day Google event without a dateTime field", () => {
     const raw = {
       id: "allday-1",

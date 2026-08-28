@@ -75,6 +75,26 @@ describe("calendar.read proposal boundary", () => {
   it("does not propose Calendar acquisition for unrelated conversation", () => {
     expect(proposeCalendarRead("Help me draft a note")).toBeNull();
   });
+  it.each([
+    "How is my week allocated?",
+    "How is this week allocated?",
+    "What's my weekly allocation?",
+    "Show me how my week is allocated.",
+  ])("proposes a bounded weekly allocation read without granting authority: %s", (utterance) => {
+    const clock = () => new Date("2026-08-28T01:00:00.000Z");
+    const proposedOperation = proposeCalendarRead(utterance, clock);
+
+    expect(proposedOperation).toMatchObject({
+      capability: "calendar.read",
+      purpose: "calendar_weekly_allocation",
+      window: { period: "this_week", timeZone: "Australia/Melbourne" },
+    });
+    expect(evaluateCalendarReadAuthority({
+      proposedOperation: proposedOperation!,
+      currentUserUtterance: utterance,
+    })).toMatchObject({ decision: "ASK", authorityEvidence: [] });
+  });
+
   it("proposes 'What needs my attention?' as a bounded today Calendar read without granting authority", () => {
     const clock = () => new Date("2026-08-28T01:00:00.000Z");
     const proposedOperation = proposeCalendarRead("What needs my attention?", clock);

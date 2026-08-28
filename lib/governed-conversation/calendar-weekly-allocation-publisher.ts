@@ -11,6 +11,7 @@ export type GovernedWeeklyCalendarAllocationPublication = Readonly<{
   sourceId: "google-calendar";
   windowStart: string;
   windowEnd: string;
+  period: "this_week" | "next_week";
   coverageState: "bounded_complete_request";
   observedAt: string;
   minutesByMode: Readonly<Record<CalendarTimeMode, number>>;
@@ -33,7 +34,7 @@ function reconciles(allocation: CalendarTimeAllocation): boolean {
 }
 
 /**
- * Publishes only a complete bounded weekly allocation.
+ * Publishes only a complete bounded current- or next-week allocation.
  *
  * Coverage truth is part of the publication contract: partial, fallback, or
  * unavailable acquisition must never be surfaced as "the week".
@@ -45,11 +46,11 @@ function reconciles(allocation: CalendarTimeAllocation): boolean {
  */
 export function publishGovernedWeeklyCalendarAllocation(input: {
   readonly allocation: CalendarTimeAllocation;
-  readonly period: "this_week" | string;
+  readonly period: "this_week" | "next_week" | string;
   readonly coverageState: "bounded_complete_request" | "bounded_partial_request" | "bounded";
   readonly observedAt: string;
 }): GovernedWeeklyCalendarAllocationPublication | null {
-  if (input.period !== "this_week") return null;
+  if (input.period !== "this_week" && input.period !== "next_week") return null;
   if (input.coverageState !== "bounded_complete_request") return null;
   if (!Number.isFinite(Date.parse(input.observedAt))) return null;
   if (!reconciles(input.allocation)) return null;
@@ -61,6 +62,7 @@ export function publishGovernedWeeklyCalendarAllocation(input: {
     sourceId: "google-calendar",
     windowStart: input.allocation.windowStart,
     windowEnd: input.allocation.windowEnd,
+    period: input.period,
     coverageState: "bounded_complete_request",
     observedAt: input.observedAt,
     minutesByMode: Object.freeze({ ...input.allocation.minutesByMode }),

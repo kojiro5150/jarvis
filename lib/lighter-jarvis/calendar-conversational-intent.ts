@@ -10,6 +10,8 @@ export type CalendarConversationalIntentModelCall = (
   messages: ChatMessage[],
 ) => Promise<string | Readonly<{ text: string }>>;
 
+const INTERPRETER_FORBIDDEN_TERMS = new Set(["when", "what", "where", "which", "who", "why", "how", "i", "me", "we", "you", "am", "is", "are", "do", "does", "did", "have", "has"]);
+
 const INTERPRETER_PROMPT = [
   "You are a bounded Calendar factual-intent interpreter.",
   "You receive only the user's current utterance. You receive no Calendar data, no event titles, no conversation history, and no authority state.",

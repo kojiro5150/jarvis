@@ -15,10 +15,18 @@ export type CalendarTimeAllocation = Readonly<{
   windowEnd: string;
   minutesByMode: Readonly<Record<CalendarTimeMode, number>>;
   semanticUnavailableMinutes: number;
+  precedenceTieMinutes: number;
   totalTimedMinutes: number;
   timedEventCount: number;
   allDayEventCount: number;
   invalidEventCount: number;
+}>;
+
+type AllocationCandidate = Readonly<{
+  startMs: number;
+  endMs: number;
+  durationMs: number;
+  timeMode?: CalendarTimeMode;
 }>;
 
 function emptyModeMinutes(): Record<CalendarTimeMode, number> {
@@ -38,17 +46,20 @@ function isAllDay(event: Pick<CalendarEvent, "start" | "end">): boolean {
 }
 
 /**
- * Aggregates observed timed-event duration inside one already-authorised
- * bounded window.
+ * Resolves observed timed Calendar events into one non-overlapping allocation
+ * inside an already-authorised bounded window.
  *
- * This is descriptive scheduled event-duration, not unique occupied wall-clock
- * time: overlapping events are each counted. All-day events are reported by
- * count and excluded from minute totals because a date-only event does not
- * evidence a cognitive-capacity duration.
+ * "Most specific wins" is a deterministic policy: for every atomic interval
+ * created by the event boundaries, the active event with the shortest total
+ * event duration receives that slice. Shorter duration is an explicit proxy
+ * for specificity, not an inferred universal truth.
  *
- * A missing timeMode is kept separate from "unclassified". The former means
- * semantic evidence was unavailable; the latter means classification ran and
- * produced the explicit governed fallback.
+ * If two or more active events share the same shortest total duration, the
+ * overlapping slice fails closed to "unclassified". A missing timeMode remains
+ * semantic unavailability rather than being manufactured into "unclassified".
+ *
+ * All-day events are reported by count and excluded from minute totals because
+ * a date-only event does not evidence a cognitive-capacity duration.
  */
 export function aggregateCalendarTimeAllocation(input: {
   readonly events: readonly Pick<CalendarEvent, "start" | "end" | "timeMode">[];
@@ -63,9 +74,7 @@ export function aggregateCalendarTimeAllocation(input: {
   }
 
   const minutesByMode = emptyModeMinutes();
-  let semanticUnavailableMinutes = 0;
-  let totalTimedMinutes = 0;
-  let timedEventCount = 0;
+  const candidates: AllocationCandidate[] = [];
   let allDayEventCount = 0;
   let invalidEventCount = 0;
 
@@ -86,14 +95,48 @@ export function aggregateCalendarTimeAllocation(input: {
     const clippedEnd = Math.min(endMs, windowEndMs);
     if (clippedStart >= clippedEnd) continue;
 
-    const minutes = (clippedEnd - clippedStart) / 60_000;
-    timedEventCount += 1;
-    totalTimedMinutes += minutes;
+    candidates.push(Object.freeze({
+      startMs: clippedStart,
+      endMs: clippedEnd,
+      durationMs: endMs - startMs,
+      timeMode: event.timeMode,
+    }));
+  }
 
-    if (event.timeMode === undefined) {
-      semanticUnavailableMinutes += minutes;
+  const boundaries = [...new Set(candidates.flatMap(candidate => [candidate.startMs, candidate.endMs]))]
+    .sort((left, right) => left - right);
+
+  let semanticUnavailableMinutes = 0;
+  let precedenceTieMinutes = 0;
+  let totalTimedMinutes = 0;
+
+  for (let index = 0; index < boundaries.length - 1; index += 1) {
+    const segmentStart = boundaries[index];
+    const segmentEnd = boundaries[index + 1];
+    if (segmentStart >= segmentEnd) continue;
+
+    const active = candidates.filter(candidate =>
+      candidate.startMs < segmentEnd && candidate.endMs > segmentStart
+    );
+    if (active.length === 0) continue;
+
+    const segmentMinutes = (segmentEnd - segmentStart) / 60_000;
+    totalTimedMinutes += segmentMinutes;
+
+    const shortestDuration = Math.min(...active.map(candidate => candidate.durationMs));
+    const shortest = active.filter(candidate => candidate.durationMs === shortestDuration);
+
+    if (shortest.length !== 1) {
+      minutesByMode.unclassified += segmentMinutes;
+      precedenceTieMinutes += segmentMinutes;
+      continue;
+    }
+
+    const winner = shortest[0];
+    if (winner.timeMode === undefined) {
+      semanticUnavailableMinutes += segmentMinutes;
     } else {
-      minutesByMode[event.timeMode] += minutes;
+      minutesByMode[winner.timeMode] += segmentMinutes;
     }
   }
 
@@ -102,8 +145,9 @@ export function aggregateCalendarTimeAllocation(input: {
     windowEnd: input.windowEnd,
     minutesByMode: Object.freeze(minutesByMode),
     semanticUnavailableMinutes,
+    precedenceTieMinutes,
     totalTimedMinutes,
-    timedEventCount,
+    timedEventCount: candidates.length,
     allDayEventCount,
     invalidEventCount,
   });

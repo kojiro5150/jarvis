@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  CALENDAR_FACTUAL_MORPHOLOGY,
   isUnsupportedCalendarFactualWording,
   parseCalendarFactualQuery,
   renderCalendarFactualSelection,
@@ -33,6 +34,9 @@ describe("deterministic Calendar factual query", () => {
     ["When am I going shopping?", { kind: "next_title_match", terms: ["shop"] }],
     ["When am I testing JARVIS again?", { kind: "next_title_match", terms: ["test", "jarvis"] }],
     ["Am I at Barwon Health on Monday?", { kind: "title_presence_on_weekday", terms: ["barwon", "health"], weekday: "monday" }],
+    ["Am I shopping Saturday?", { kind: "title_presence_on_weekday", terms: ["shop"], weekday: "saturday" }],
+    ["When's my next JARVIS test?", { kind: "next_title_match", terms: ["jarvis", "test"] }],
+    ["Do I have an LLEGC meeting next week?", { kind: "title_presence_in_period", terms: ["llegc", "meeting"] }],
   ] as const)("parses the closed Level-1 factual request: %s", (utterance, expected) => {
     expect(parseCalendarFactualQuery(utterance)).toEqual(expected);
   });
@@ -48,9 +52,12 @@ describe("deterministic Calendar factual query", () => {
   });
 
   it("uses only the explicit closed morphology table", () => {
+    expect(CALENDAR_FACTUAL_MORPHOLOGY).toEqual(expect.objectContaining({
+      test: "test", testing: "test", meeting: "meeting", meetings: "meeting", shop: "shop", shopping: "shop",
+    }));
     expect(parseCalendarFactualQuery("When am I testing JARVIS again?"))
       .toEqual({ kind: "next_title_match", terms: ["test", "jarvis"] });
-    expect(parseCalendarFactualQuery("When is my next LLEGC meetings?")).toBeNull();
+    expect(CALENDAR_FACTUAL_MORPHOLOGY.worked).toBeUndefined();
   });
 
   it("returns the next named event by deterministic title-token match", () => {
@@ -58,6 +65,12 @@ describe("deterministic Calendar factual query", () => {
     const selected = selectCalendarFactualQuery({ events, query, window });
     expect(selected).toMatchObject({ status: "matched", events: [{ title: "JARVIS Testing" }] });
     expect(renderCalendarFactualSelection(selected, query)).toContain("JARVIS Testing");
+  });
+
+  it("answers compact speech-style weekday presence from provider evidence", () => {
+    const query = parseCalendarFactualQuery("Am I shopping Saturday?")!;
+    const selected = selectCalendarFactualQuery({ events, query, window });
+    expect(selected).toMatchObject({ status: "matched", events: [{ title: "Shopping" }] });
   });
 
   it("answers a deterministic weekday-presence query from provider evidence", () => {

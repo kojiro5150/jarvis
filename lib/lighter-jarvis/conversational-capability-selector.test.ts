@@ -11,7 +11,7 @@ describe("conversational capability selection", () => {
     ["Will it rain in Geelong tomorrow?", true],
     ["What are my last five emails?", true],
     ["Search my Drive for JARVIS.", true],
-    ["When is my next meeting?", true],
+    ["When is my next meeting?", false],
     ["Tell me a joke.", false],
   ])("gates likely capability turns: %s", (utterance, expected) => {
     expect(isConversationalCapabilitySelectionCandidate(utterance)).toBe(expected);

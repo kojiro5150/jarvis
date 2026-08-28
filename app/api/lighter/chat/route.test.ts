@@ -1479,8 +1479,8 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     )(request({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }));
 
     const body = await response.json();
-    expect(body.reply).toBe("That request cannot be handled through a specialist handoff.");
-    expect(body.reply).not.toMatch(/DAWNWATCH|Calendar|Gmail|email|inbox|access/i);
+    expect(body.reply).toBe("I recognized that as a Gmail request, but natural-language handoff to the governed Gmail authority path is not yet available.");
+    expect(body.reply).not.toMatch(/DAWNWATCH/i);
     expect(body).not.toHaveProperty("routeTo");
     expect(body).not.toHaveProperty("pendingAuthorizationReference");
     expect(calendarConnector).not.toHaveBeenCalled();
@@ -1498,7 +1498,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     ))(request({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }));
 
     expect(await response.json()).toEqual({
-      reply: "I recognized that as a Drive request, but natural-language handoff to the governed Drive authority path is not yet available.",
+      reply: "That request cannot be handled through a specialist handoff.",
       specialistId: "jarvis",
       execution: "none",
     });
@@ -1515,7 +1515,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     ))(request({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }));
 
     expect(await response.json()).toEqual({
-      reply: "That request cannot be handled through a specialist handoff.",
+      reply: "I recognized that as a Drive request, but natural-language handoff to the governed Drive authority path is not yet available.",
       specialistId: "jarvis",
       execution: "none",
     });

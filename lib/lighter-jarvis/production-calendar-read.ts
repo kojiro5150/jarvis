@@ -27,7 +27,7 @@ export type ProductionCalendarReadResult = Readonly<{
   pendingAuthorizationReference: PendingAuthorizationReference | null;
   authorityEvidence: readonly unknown[];
   window: import("./calendar-read-window").CalendarReadWindow | null;
-  purpose: "calendar_attention" | null;
+  purpose: "calendar_attention" | "calendar_weekly_allocation" | null;
 }>;
 
 const defaults: ProductionCalendarDependencies = {

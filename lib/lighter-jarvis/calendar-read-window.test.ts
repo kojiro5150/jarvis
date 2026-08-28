@@ -11,8 +11,18 @@ describe("Melbourne Calendar read windows", () => {
     ["this_afternoon", "2026-08-25T02:00:00.000Z", "2026-08-25T07:00:00.000Z"],
     ["this_evening", "2026-08-25T07:00:00.000Z", "2026-08-25T14:00:00.000Z"],
     ["this_week", "2026-08-23T14:00:00.000Z", "2026-08-30T14:00:00.000Z"],
+    ["next_week", "2026-08-30T14:00:00.000Z", "2026-09-06T14:00:00.000Z"],
   ] as const)("resolves %s from the injected clock", (period, start, end) => {
     expect(resolveCalendarReadWindow(period, now)).toEqual({ start, end, timeZone: "Australia/Melbourne", period });
+  });
+
+  it("uses Melbourne civil midnights for next week", () => {
+    expect(resolveCalendarReadWindow("next_week", new Date("2026-08-28T08:00:00Z"))).toEqual({
+      start: "2026-08-30T14:00:00.000Z",
+      end: "2026-09-06T14:00:00.000Z",
+      timeZone: "Australia/Melbourne",
+      period: "next_week",
+    });
   });
 
   it("uses civil midnights across the spring DST boundary", () => {

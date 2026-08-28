@@ -17,7 +17,10 @@ import {
 } from "./calendar-attention-observation-reference";
 
 const REQUESTED_LIMIT = 5;
-const COVERAGE_STATE = "bounded" as const;
+type LiveCalendarCoverageState =
+  | "bounded_complete_request"
+  | "bounded_partial_request"
+  | "bounded";
 const CALENDAR_DISCLOSURE_POLICY_REFERENCE = "governed-calendar-conversational-metadata-disclosure.v1";
 
 export type LiveCalendarAttentionResult = Readonly<{
@@ -27,13 +30,16 @@ export type LiveCalendarAttentionResult = Readonly<{
 }>;
 
 function currentObservationSet(
-  evidence: SourceAdapterResult<GovernedCalendarEvidenceInput>,
+  evidence: SourceAdapterResult<GovernedCalendarEvidenceInput> & Readonly<{
+    coverageState?: LiveCalendarCoverageState;
+  }>,
   window: CalendarReadWindow,
 ): CanonicalCalendarAttentionObservationSet {
   if (evidence.status !== "available" || typeof evidence.observedAt !== "string") {
     throw new Error("available governed Calendar evidence with observation time is required");
   }
-  const coverageLimit = `window=${window.start}/${window.end};max_events=${REQUESTED_LIMIT};scope=visible_non_hidden_calendars;completeness=${COVERAGE_STATE}`;
+  const coverageState = evidence.coverageState ?? "bounded";
+  const coverageLimit = `window=${window.start}/${window.end};max_events=${REQUESTED_LIMIT};scope=visible_non_hidden_calendars;completeness=${coverageState}`;
 
   return projectGovernedCalendarAttentionObservationSet({
     sourceId: "google-calendar",
@@ -42,7 +48,7 @@ function currentObservationSet(
     windowStart: window.start,
     windowEnd: window.end,
     requestedLimit: REQUESTED_LIMIT,
-    coverageState: COVERAGE_STATE,
+    coverageState,
     coverageLimit,
     policyReference: CALENDAR_DISCLOSURE_POLICY_REFERENCE,
     evidence: evidence.evidence,
@@ -60,7 +66,9 @@ function incompatibleBaselineReply(): string {
  * This function performs no acquisition and grants no authority.
  */
 export function resolveLiveCalendarAttention(input: {
-  readonly evidence: SourceAdapterResult<GovernedCalendarEvidenceInput>;
+  readonly evidence: SourceAdapterResult<GovernedCalendarEvidenceInput> & Readonly<{
+    coverageState?: LiveCalendarCoverageState;
+  }>;
   readonly window: CalendarReadWindow;
   readonly previousObservationReference?: unknown;
 }): LiveCalendarAttentionResult {

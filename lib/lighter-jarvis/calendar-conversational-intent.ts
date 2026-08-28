@@ -12,6 +12,7 @@ export type CalendarConversationalIntentModelCall = (
 ) => Promise<string | Readonly<{ text: string }>>;
 
 const INTERPRETER_FORBIDDEN_TERMS = new Set(["when", "what", "where", "which", "who", "why", "how", "i", "me", "we", "you", "am", "is", "are", "do", "does", "did", "have", "has"]);
+const RELATIONAL_LEVEL_2_PATTERN = /\\b(?:doing some work|doing work|work on|related to|relate to|connected to|associated with|something about|something connected to|something related to)\\b/i;
 
 const INTERPRETER_PROMPT = [
   "You are a bounded Calendar factual-intent interpreter.",
@@ -55,6 +56,7 @@ export function validateCalendarConversationalIntent(
   raw: unknown,
 ): CalendarFactualQuery | null {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
+  if (RELATIONAL_LEVEL_2_PATTERN.test(normalizeText(utterance))) return null;
   const record = raw as Record<string, unknown>;
   if (record.kind === "unsupported") {
     return Object.keys(record).every(key => key === "kind") ? null : null;

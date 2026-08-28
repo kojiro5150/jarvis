@@ -375,8 +375,7 @@ describe("live governed Calendar factual query", () => {
 
     expect(response.reply).toBe("I recognized that as a public-information request, but public lookup is not yet available in this runtime.");
     expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
-    expect(model).toHaveBeenCalledTimes(2);
-    expect(model.mock.calls[0][0]).toContain("bounded conversational capability selector");
+    expect(model).toHaveBeenCalledTimes(1);
     expect(model.mock.calls[0][0]).toContain("bounded conversational capability selector");
   });
 

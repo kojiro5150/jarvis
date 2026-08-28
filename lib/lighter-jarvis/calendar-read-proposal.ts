@@ -3,7 +3,7 @@ import {
   type ProposedOperation,
 } from "./calendar-read-authority";
 import { resolveCalendarReadWindow, type CalendarReadPeriod } from "./calendar-read-window";
-import { parseCalendarFactualQuery } from "./calendar-factual-query";
+import { parseCalendarFactualQuery, type CalendarFactualQuery } from "./calendar-factual-query";
 
 const TEMPORAL_PERIOD = String.raw`(?:today|tomorrow|this\s+(?:morning|afternoon|evening|week)|next\s+week)`;
 const CALENDAR_READ_VERB = String.raw`(?:show|check|view|see|list|read|open)`;
@@ -22,11 +22,11 @@ const CALENDAR_WEEKLY_ALLOCATION_REQUEST =
   /^(?:how\s+(?:is|does)\s+(?:(?:my|this|next)\s+week)\s+(?:allocated|break\s+down)|what(?:'s|\s+is)\s+(?:my\s+)?weekly\s+allocation|show\s+me\s+how\s+(?:(?:my|this|next)\s+week)\s+is\s+allocated)[?!.]?$/i;
 
 /** Proposes a closed operation; it supplies no evidence that the operation is authorized. */
-export function proposeCalendarRead(currentUserUtterance: string, clock: () => Date = () => new Date()): ProposedOperation | null {
+export function proposeCalendarRead(currentUserUtterance: string, clock: () => Date = () => new Date(), interpretedFactualQuery?: CalendarFactualQuery | null): ProposedOperation | null {
   const utterance = currentUserUtterance.trim().replace(/[‘’]/g, "'");
   const attentionRequest = CALENDAR_ATTENTION_REQUEST.test(utterance);
   const weeklyAllocationRequest = CALENDAR_WEEKLY_ALLOCATION_REQUEST.test(utterance);
-  const factualQuery = parseCalendarFactualQuery(utterance);
+  const factualQuery = parseCalendarFactualQuery(utterance) ?? interpretedFactualQuery ?? null;
   if (!attentionRequest && !weeklyAllocationRequest && !factualQuery && !CALENDAR_REQUEST.test(utterance) && !TEMPORAL_SCHEDULE_QUESTION.test(utterance)) return null;
   const match = utterance.match(/\b(today|tomorrow|this\s+morning|this\s+afternoon|this\s+evening|this\s+week|next\s+week)\b/i);
   const period = (attentionRequest

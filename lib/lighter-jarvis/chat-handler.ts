@@ -17,6 +17,7 @@ import { bindUserCalendarDetails, projectCalendarContext, type CalendarBindingSt
 import { createGovernedContext, type GovernedContext } from "@/lib/lighter-jarvis/governed-context";
 import { calendarRecallDiagnostics, displayCalendarClock, normalizedCalendarClock } from "@/lib/lighter-jarvis/calendar-provenance-truthfulness";
 import { resolveLiveCalendarAttention } from "@/lib/lighter-jarvis/live-calendar-attention";
+import { renderGovernedWeeklyCalendarAllocation } from "@/lib/lighter-jarvis/calendar-weekly-allocation-renderer";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -345,6 +346,28 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
             calendarAuthority: { decision: "ALLOW", reason: calendar.reason },
           });
         }
+      }
+
+      if (calendar.purpose === "calendar_weekly_allocation") {
+        if (calendar.evidence!.status !== "available" || !calendar.window) {
+          return NextResponse.json({ reply: fallback, specialistId: specialist.id, execution: "none",
+            calendarAuthority: { decision: "ALLOW", reason: calendar.reason } });
+        }
+        if (!calendar.evidence!.weeklyAllocation) {
+          const reply = calendar.evidence!.coverageState === "bounded_partial_request"
+            || calendar.evidence!.coverageState === "bounded"
+            ? "I can't truthfully report your full weekly allocation because this bounded Calendar read was not complete."
+            : "I couldn't safely publish this weekly allocation from the governed Calendar result.";
+          return NextResponse.json({ reply, specialistId: specialist.id, execution: "none",
+            calendarAuthority: { decision: "ALLOW", reason: calendar.reason } });
+        }
+        const rendered = renderGovernedWeeklyCalendarAllocation(calendar.evidence!.weeklyAllocation);
+        return NextResponse.json({
+          reply: rendered ?? "I couldn't safely render this weekly allocation because the governed totals did not reconcile.",
+          specialistId: specialist.id,
+          execution: "none",
+          calendarAuthority: { decision: "ALLOW", reason: calendar.reason },
+        });
       }
       if (calendar.evidence!.status !== "available" || !calendar.window) {
         return NextResponse.json({ reply: fallback, specialistId: specialist.id, execution: "none",

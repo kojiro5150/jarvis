@@ -26,6 +26,7 @@ export type ProductionCalendarReadResult = Readonly<{
   pendingAuthorizationReference: PendingAuthorizationReference | null;
   authorityEvidence: readonly unknown[];
   window: import("./calendar-read-window").CalendarReadWindow | null;
+  purpose: "calendar_attention" | null;
 }>;
 
 const defaults: ProductionCalendarDependencies = {
@@ -60,18 +61,20 @@ export async function resolveProductionCalendarRead(input: {
         pendingAuthorizationReference: resolution.pendingAuthorizationReference,
         authorityEvidence: resolution.authorityEvidence,
         window: operation?.window ?? null,
+        purpose: operation?.purpose ?? null,
       });
     }
 
     return Object.freeze({ handled: true, decision: "ALLOW", reason: resolution.reason,
       evidence: acquired.evidence, pendingAuthorizationReference: null,
-      authorityEvidence: resolution.authorityEvidence, window: operation.window });
+      authorityEvidence: resolution.authorityEvidence, window: operation.window,
+      purpose: operation.purpose ?? null });
   }
 
   const proposedOperation = proposeCalendarRead(input.currentUserUtterance, dependencies.clock);
   if (proposedOperation === null) {
     return Object.freeze({ handled: false, decision: null, reason: null, evidence: null,
-      pendingAuthorizationReference: null, authorityEvidence: Object.freeze([]), window: null });
+      pendingAuthorizationReference: null, authorityEvidence: Object.freeze([]), window: null, purpose: null });
   }
 
   const authority = evaluateCalendarReadAuthority({
@@ -86,9 +89,11 @@ export async function resolveProductionCalendarRead(input: {
     });
     return Object.freeze({ handled: true, decision: "ALLOW", reason: acquired.authority.reason,
       evidence: acquired.evidence, pendingAuthorizationReference: null,
-      authorityEvidence: acquired.authority.authorityEvidence, window: proposedOperation.window });
+      authorityEvidence: acquired.authority.authorityEvidence, window: proposedOperation.window,
+      purpose: proposedOperation.purpose ?? null });
   }
   return Object.freeze({ handled: true, decision: "ASK", reason: authority.reason,
     evidence: null, pendingAuthorizationReference: createPendingAuthorization(proposedOperation),
-    authorityEvidence: authority.authorityEvidence, window: proposedOperation.window });
+    authorityEvidence: authority.authorityEvidence, window: proposedOperation.window,
+    purpose: proposedOperation.purpose ?? null });
 }

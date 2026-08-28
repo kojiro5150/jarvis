@@ -126,6 +126,7 @@ describe("live governed Calendar factual query", () => {
     ["When is JARVIS Testing scheduled next?", "JARVIS Testing — Sat, 29 Aug, 11:00 AM–12:00 PM"],
     ["When am I going shopping?", "Shopping — Sat, 29 Aug, 3:00 PM–4:00 PM"],
     ["When am I testing JARVIS again?", "JARVIS Testing — Sat, 29 Aug, 11:00 AM–12:00 PM"],
+    ["When's my next JARVIS test?", "JARVIS Testing — Sat, 29 Aug, 11:00 AM–12:00 PM"],
   ])("answers the deterministic named query without model interpretation: %s", async (utterance, expected) => {
     const model = vi.fn(async () => "model must not run");
     const c = connector();
@@ -135,6 +136,18 @@ describe("live governed Calendar factual query", () => {
     });
     const { allow } = await askThenConfirm(handler, utterance);
     expect(allow.reply).toBe(`Calendar factual result:\n- ${expected}`);
+    expect(model).not.toHaveBeenCalled();
+  });
+
+  it("answers a compact voice-style weekday-presence question without model interpretation", async () => {
+    const model = vi.fn(async () => "model must not run");
+    const c = connector();
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => c.value,
+      clock: () => new Date("2026-08-28T09:00:00.000Z"),
+    });
+    const { allow } = await askThenConfirm(handler, "Am I shopping Saturday?");
+    expect(allow.reply).toBe("Calendar factual result:\nYes. Shopping — Sat, 29 Aug, 3:00 PM–4:00 PM");
     expect(model).not.toHaveBeenCalled();
   });
 

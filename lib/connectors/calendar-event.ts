@@ -36,7 +36,6 @@ export interface CalendarEvent {
   eventLabelId?: string;
   /** Provider observation when available; consumers must not infer beyond it. */
   status?: "confirmed" | "tentative" | "cancelled";
-  eventLabelId?: string;
   /** Provider-supplied recurrence identity; presence means this is an observed recurring instance. */
   recurringEventId?: string;
   /** Authenticated user's provider-supplied attendee response, when Google identifies it. */
@@ -48,6 +47,7 @@ interface GoogleEventLike {
   summary?: string;
   start?: { dateTime?: string; date?: string };
   end?: { dateTime?: string; date?: string };
+  eventLabelId?: string;
   status?: "confirmed" | "tentative" | "cancelled";
   recurringEventId?: string;
   attendees?: Array<{ self?: boolean; responseStatus?: "needsAction" | "declined" | "tentative" | "accepted" }>;

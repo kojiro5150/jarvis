@@ -73,8 +73,12 @@ export function renderGovernedWeeklyCalendarAllocation(
     );
   }
 
+  const heading = publication.period === "next_week"
+    ? "Next week's resolved Calendar allocation:"
+    : "This week's resolved Calendar allocation:";
+
   return [
-    "This week's resolved Calendar allocation:",
+    heading,
     ...rows,
     `Resolved occupied timed-event total: ${formatMinutes(publication.totalTimedMinutes)}.`,
     "Coverage: complete for this bounded weekly Calendar read.",

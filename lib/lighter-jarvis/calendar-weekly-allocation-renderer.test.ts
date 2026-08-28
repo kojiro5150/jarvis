@@ -9,6 +9,7 @@ const publication: GovernedWeeklyCalendarAllocationPublication = Object.freeze({
   sourceId: "google-calendar",
   windowStart: "2026-08-24T00:00:00.000Z",
   windowEnd: "2026-08-31T00:00:00.000Z",
+  period: "this_week",
   coverageState: "bounded_complete_request",
   observedAt: "2026-08-28T07:30:00.000Z",
   minutesByMode: Object.freeze({
@@ -46,6 +47,17 @@ describe("renderGovernedWeeklyCalendarAllocation", () => {
         "1 timed event could not be allocated safely.",
       ].join("\n")
     );
+  });
+
+  it("renders a next-week heading from the governed period", () => {
+    const rendered = renderGovernedWeeklyCalendarAllocation({
+      ...publication,
+      period: "next_week",
+      windowStart: "2026-08-31T00:00:00.000Z",
+      windowEnd: "2026-09-07T00:00:00.000Z",
+    });
+
+    expect(rendered).toMatch(/^Next week's resolved Calendar allocation:/);
   });
 
   it("does not double-count precedence tie minutes in the displayed total", () => {

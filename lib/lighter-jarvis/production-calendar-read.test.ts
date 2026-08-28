@@ -161,6 +161,40 @@ describe("production calendar.read authority ordering", () => {
     });
   });
 
+  it("retains next-week allocation bounds and uses the larger bounded weekly limit after confirmation", async () => {
+    const deps = dependencies();
+    const pending = await resolveProductionCalendarRead({
+      currentUserUtterance: "How is next week allocated?",
+    }, {
+      ...deps.value,
+      clock: () => new Date("2026-08-28T08:00:00.000Z"),
+    });
+
+    expect(pending).toMatchObject({
+      decision: "ASK",
+      purpose: "calendar_weekly_allocation",
+      window: {
+        period: "next_week",
+        start: "2026-08-30T14:00:00.000Z",
+        end: "2026-09-06T14:00:00.000Z",
+      },
+    });
+
+    await resolveProductionCalendarRead({
+      currentUserUtterance: "Yes",
+      pendingAuthorizationReference: pending.pendingAuthorizationReference,
+    }, {
+      ...deps.value,
+      clock: () => new Date("2026-08-28T08:00:00.000Z"),
+    });
+
+    expect(deps.listBetween).toHaveBeenCalledWith(
+      "2026-08-30T14:00:00.000Z",
+      "2026-09-06T14:00:00.000Z",
+      100,
+    );
+  });
+
   it("leaves bare confirmation outside the Calendar authority flow", async () => {
     const deps = dependencies();
     expect(await resolveProductionCalendarRead({ currentUserUtterance: "yes" }, deps.value))

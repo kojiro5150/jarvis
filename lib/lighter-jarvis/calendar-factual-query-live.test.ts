@@ -293,6 +293,26 @@ describe("live governed Calendar factual query", () => {
     expect(model).toHaveBeenCalledTimes(1);
   });
 
+  it("contains doing-something Level-2 wording without Calendar authority or acquisition", async () => {
+    const model = vi.fn(async () => "ordinary model must not run");
+    const c = connector();
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => c.value,
+      clock: () => new Date("2026-08-28T09:00:00.000Z"),
+    });
+    const response = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "When am I next doing something on JARVIS?" }],
+    }))).json();
+    expect(response.reply).toBe(
+      "I can check your Calendar for that, but I couldn't resolve the factual query safely from that wording.",
+    );
+    expect(response.pendingAuthorizationReference).toBeUndefined();
+    expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(1);
+    expect(model.mock.calls[0][0]).toContain("bounded Calendar factual-intent interpreter");
+  });
+
   it("contains what-form relational Calendar wording before ordinary model authority", async () => {
     const model = vi.fn(async () => "Please explicitly confirm that I may read your Calendar.");
     const c = connector();

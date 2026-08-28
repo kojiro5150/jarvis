@@ -29,10 +29,13 @@ describe("route-level drive.read acceptance", () => {
   it("malformed syntax never acquires and natural Drive prose may be selector-examined without acquisition", async () => {
     const h = harness(); await h.handler(request([{ role: "user", content: "drive.read provider-315" }]));
     expect(h.createReadConnector).not.toHaveBeenCalled(); expect(h.model).not.toHaveBeenCalled();
-    await h.handler(request([{ role: "user", content: "Please read my Drive report" }]));
+    const response = await h.handler(request([{ role: "user", content: "Please read my Drive report" }]));
     expect(h.createReadConnector).not.toHaveBeenCalled();
-    expect(h.model).toHaveBeenCalledTimes(2);
+    expect(h.model).toHaveBeenCalledTimes(1);
     expect(h.model.mock.calls[0][0]).toContain("bounded conversational capability selector");
+    expect((await response.json()).reply).toBe(
+      "I recognized that as a Drive request, but natural-language handoff to the governed Drive authority path is not yet available.",
+    );
   });
 
   it("does not transit search results or later confirmations, anaphora, or provider IDs into read authority", async () => {

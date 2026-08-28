@@ -26,11 +26,29 @@ const PUBLIC_INFORMATION_SIGNAL = /\b(?:weather|rain|forecast|temperature)\b/i;
 const GMAIL_SIGNAL = /\b(?:gmail|email|emails|inbox)\b/i;
 const DRIVE_SIGNAL = /\bdrive\b/i;
 
-export function isConversationalCapabilitySelectionCandidate(utterance: string): boolean {
+export type DeterministicCapabilityConstraint = Readonly<{
+  capability: "public_information" | "gmail" | "drive";
+  fallbackOperation: "lookup" | "search" | "read";
+}>;
+
+export function deterministicCapabilityConstraint(utterance: string): DeterministicCapabilityConstraint | null {
   const normalized = utterance.normalize("NFKC");
-  return PUBLIC_INFORMATION_SIGNAL.test(normalized)
-    || GMAIL_SIGNAL.test(normalized)
-    || DRIVE_SIGNAL.test(normalized);
+  if (PUBLIC_INFORMATION_SIGNAL.test(normalized)) {
+    return Object.freeze({ capability: "public_information", fallbackOperation: "lookup" });
+  }
+  if (GMAIL_SIGNAL.test(normalized)) {
+    const readLike = /\b(?:read|open|show me|summari[sz]e)\b/i.test(normalized);
+    return Object.freeze({ capability: "gmail", fallbackOperation: readLike ? "read" : "search" });
+  }
+  if (DRIVE_SIGNAL.test(normalized)) {
+    const searchLike = /\b(?:search|find|look for)\b/i.test(normalized);
+    return Object.freeze({ capability: "drive", fallbackOperation: searchLike ? "search" : "read" });
+  }
+  return null;
+}
+
+export function isConversationalCapabilitySelectionCandidate(utterance: string): boolean {
+  return deterministicCapabilityConstraint(utterance) !== null;
 }
 
 function parseModelJson(text: string): unknown {
@@ -59,11 +77,23 @@ export async function selectConversationalCapability(input: {
   readonly utterance: string;
   readonly callModel: ConversationalCapabilitySelectorModelCall;
 }): Promise<ConversationalIntentCandidate | null> {
+  const constraint = deterministicCapabilityConstraint(input.utterance);
   const result = await input.callModel(SELECTOR_PROMPT, [
     { role: "user", content: input.utterance },
   ]);
   const text = typeof result === "string" ? result : result.text;
-  return validateSelectedConversationalIntent(input.utterance, parseModelJson(text));
+  const selected = validateSelectedConversationalIntent(input.utterance, parseModelJson(text));
+
+  if (!constraint) return selected;
+  if (selected?.kind === "capability_request" && selected.capability === constraint.capability) {
+    return selected;
+  }
+
+  return Object.freeze({
+    kind: "capability_request",
+    capability: constraint.capability,
+    operation: constraint.fallbackOperation,
+  });
 }
 
 export const CONVERSATIONAL_CAPABILITY_SELECTOR_PROMPT = SELECTOR_PROMPT;

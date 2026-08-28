@@ -288,9 +288,9 @@ describe("live governed Calendar factual query", () => {
       specialistId: "jarvis",
       messages: [{ role: "user", content: "When is it going to rain next?" }],
     }))).json();
-    expect(response.reply).toBe("Ordinary weather conversation.");
+    expect(response.reply).toBe("I recognized that as a public-information request, but public lookup is not yet available in this runtime.");
     expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
-    expect(model).toHaveBeenCalledTimes(2);
+    expect(model).toHaveBeenCalledTimes(1);
     expect(model.mock.calls[0][0]).toContain("bounded conversational capability selector");
   });
 
@@ -373,11 +373,10 @@ describe("live governed Calendar factual query", () => {
       messages: [{ role: "user", content: "When will it rain again?" }],
     }))).json();
 
-    expect(response.reply).toBe("Ordinary weather conversation.");
+    expect(response.reply).toBe("I recognized that as a public-information request, but public lookup is not yet available in this runtime.");
     expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
-    expect(model).toHaveBeenCalledTimes(2);
+    expect(model).toHaveBeenCalledTimes(1);
     expect(model.mock.calls[0][0]).toContain("bounded conversational capability selector");
-    expect(model.mock.calls[1][0]).not.toContain("bounded Calendar factual-intent interpreter");
   });
 
   it("does not let a malformed follow-up turn a prior negative factual result into a commitment", async () => {

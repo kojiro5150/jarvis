@@ -1,4 +1,3 @@
-import { CALENDAR_CONVERSATIONAL_DISCLOSURE_POLICY } from "../governed-conversation/calendar-evidence-publisher";
 import {
   projectGovernedCalendarAttentionObservationSet,
   type CanonicalCalendarAttentionObservationSet,
@@ -19,6 +18,7 @@ import {
 
 const REQUESTED_LIMIT = 5;
 const COVERAGE_STATE = "bounded" as const;
+const CALENDAR_DISCLOSURE_POLICY_REFERENCE = "governed-calendar-conversational-metadata-disclosure.v1";
 
 export type LiveCalendarAttentionResult = Readonly<{
   reply: string;
@@ -44,7 +44,7 @@ function currentObservationSet(
     requestedLimit: REQUESTED_LIMIT,
     coverageState: COVERAGE_STATE,
     coverageLimit,
-    policyReference: CALENDAR_CONVERSATIONAL_DISCLOSURE_POLICY,
+    policyReference: CALENDAR_DISCLOSURE_POLICY_REFERENCE,
     evidence: evidence.evidence,
   });
 }

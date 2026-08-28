@@ -1,6 +1,7 @@
 import type { ChatMessage } from "@/lib/agents/types";
 
 const CALENDAR_CONTAINMENT_REPLY = "I can check your Calendar for that, but I couldn\'t resolve the factual query safely from that wording.";
+const CALENDAR_CONTAINMENT_DEICTIC_FOLLOW_UP = /^(?:there|that|this|it|so)\b[\s\S]{0,80}[?!.]*$/i;
 const CALENDAR_RECALL_FOLLOW_UP = /^(?:what (?:times? did you (?:just )?(?:see|give me)|did you (?:just )?(?:say|tell me)(?: (?:my schedule was|about tomorrow))?|did you report for tomorrow)|when were those (?:two )?(?:commitments|meetings)|what are (?:those|the) (?:meetings|commitments) about)[?!.]*$/i;
 const PRIOR_CALENDAR_REPORT = /(?:\bbased on (?:the result from )?your calendar\b|\blooking at your calendar for (?:today|tomorrow|this (?:morning|afternoon|evening|week)|next seven days)\b[\s\S]*?\byou have (?:\d+|one|two|three|four|five) commitments?\b|\bcalendar result (?:I )?reported\b|\b(?:today|tomorrow|this (?:morning|afternoon|evening|week)|next seven days) (?:is clear|you have \d+ commitments?)\b|\byour calendar (?:is clear|has \d+ commitments?)\b)/i;
 const SCHEDULE_INTERVAL_TEXT = String.raw`\d{1,2}(?::\d{2})?\s*(?:AM|PM)?\s*[–-]\s*\d{1,2}(?::\d{2})?\s*(?:AM|PM)`;
@@ -139,7 +140,8 @@ export function calendarRecallDiagnostics(messages: readonly ChatMessage[],
     orderedRoles: messages.map(message => message.role),
     priorCalendarReportPresent,
     priorNegativeCalendarFactualResult: hasPriorNegativeCalendarFactualResult(messages),
-    previousAssistantWasCalendarContainment: previousAssistant?.content === CALENDAR_CONTAINMENT_REPLY,
+    previousAssistantWasCalendarContainment: previousAssistant?.content === CALENDAR_CONTAINMENT_REPLY
+      && Boolean(currentUserUtterance && CALENDAR_CONTAINMENT_DEICTIC_FOLLOW_UP.test(currentUserUtterance.normalize("NFKC").replace(/\s+/g, " ").trim())),
     calendarRecallFollowUp,
     priorVisibleReportIsScheduleOnly: isCalendarRecollection
       && priorVisibleCalendarReportIsScheduleOnly(messages),

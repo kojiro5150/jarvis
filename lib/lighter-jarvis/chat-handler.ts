@@ -24,6 +24,7 @@ import {
   selectCalendarFactualQuery,
 } from "@/lib/lighter-jarvis/calendar-factual-query";
 import { interpretCalendarConversationalIntent, isCalendarConversationalIntentCandidate } from "@/lib/lighter-jarvis/calendar-conversational-intent";
+import { isConversationalCapabilitySelectionCandidate, selectConversationalCapability } from "@/lib/lighter-jarvis/conversational-capability-selector";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -468,6 +469,39 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         specialistId: specialist.id,
         execution: "none",
       });
+    }
+    if (specialist.id === "jarvis"
+      && !body.relaySpecialistReply
+      && currentUserUtterance !== undefined
+      && !Object.hasOwn(body, "pendingAuthorizationReference")
+      && isConversationalCapabilitySelectionCandidate(currentUserUtterance)) {
+      try {
+        const selectedIntent = await selectConversationalCapability({
+          utterance: currentUserUtterance,
+          callModel,
+        });
+        if (selectedIntent?.kind === "capability_request") {
+          if (selectedIntent.capability === "public_information") {
+            return NextResponse.json({
+              reply: "I recognized that as a public-information request, but public lookup is not yet available in this runtime.",
+              specialistId: specialist.id,
+              execution: "none",
+            });
+          }
+          const sourceLabel = selectedIntent.capability === "gmail"
+            ? "Gmail"
+            : selectedIntent.capability === "drive"
+              ? "Drive"
+              : "Calendar";
+          return NextResponse.json({
+            reply: `I recognized that as a ${sourceLabel} request, but natural-language handoff to the governed ${sourceLabel} authority path is not yet available.`,
+            specialistId: specialist.id,
+            execution: "none",
+          });
+        }
+      } catch (error) {
+        console.error("[/api/lighter/chat] Conversational capability selection failed:", error);
+      }
     }
     if (!areValidMessages(body.messages)) {
       return NextResponse.json({ error: "`messages` must contain 1-40 valid conversation messages." }, { status: 400 });

@@ -26,11 +26,13 @@ describe("route-level drive.read acceptance", () => {
     expect(body).not.toHaveProperty("routeTo");
   });
 
-  it("malformed syntax never acquires and unsupported prose remains ordinary prose", async () => {
+  it("malformed syntax never acquires and natural Drive prose may be selector-examined without acquisition", async () => {
     const h = harness(); await h.handler(request([{ role: "user", content: "drive.read provider-315" }]));
     expect(h.createReadConnector).not.toHaveBeenCalled(); expect(h.model).not.toHaveBeenCalled();
     await h.handler(request([{ role: "user", content: "Please read my Drive report" }]));
-    expect(h.createReadConnector).not.toHaveBeenCalled(); expect(h.model).toHaveBeenCalledOnce();
+    expect(h.createReadConnector).not.toHaveBeenCalled();
+    expect(h.model).toHaveBeenCalledTimes(2);
+    expect(h.model.mock.calls[0][0]).toContain("bounded conversational capability selector");
   });
 
   it("does not transit search results or later confirmations, anaphora, or provider IDs into read authority", async () => {

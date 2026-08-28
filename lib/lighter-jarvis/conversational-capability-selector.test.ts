@@ -67,6 +67,46 @@ describe("conversational capability selection", () => {
     })).toBeNull();
   });
 
+  it("deterministically retains public-information class when the model declines it", async () => {
+    const model = vi.fn(async () => JSON.stringify({ kind: "ordinary_conversation" }));
+    await expect(selectConversationalCapability({
+      utterance: "Will it rain in Geelong tomorrow?",
+      callModel: model,
+    })).resolves.toEqual({
+      kind: "capability_request",
+      capability: "public_information",
+      operation: "lookup",
+    });
+  });
+
+  it("deterministically retains Gmail class when model output is invalid", async () => {
+    const model = vi.fn(async () => "ordinary prose");
+    await expect(selectConversationalCapability({
+      utterance: "What are my last five emails?",
+      callModel: model,
+    })).resolves.toEqual({
+      kind: "capability_request",
+      capability: "gmail",
+      operation: "search",
+    });
+  });
+
+  it("rejects a contradictory model capability and keeps the explicit Drive class", async () => {
+    const model = vi.fn(async () => JSON.stringify({
+      kind: "capability_request",
+      capability: "gmail",
+      operation: "search",
+    }));
+    await expect(selectConversationalCapability({
+      utterance: "Please read my Drive report.",
+      callModel: model,
+    })).resolves.toEqual({
+      kind: "capability_request",
+      capability: "drive",
+      operation: "read",
+    });
+  });
+
   it("can represent Calendar selection", () => {
     expect(validateSelectedConversationalIntent("When is my next meeting?", {
       kind: "capability_request",

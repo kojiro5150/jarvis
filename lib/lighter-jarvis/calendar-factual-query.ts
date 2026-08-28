@@ -114,16 +114,30 @@ export function selectCalendarFactualQuery(input: {
   return Object.freeze({ kind: input.query.kind, status: "matched", events: Object.freeze([matches[0]]) });
 }
 
-const dateFormatter = new Intl.DateTimeFormat("en-AU", {
-  timeZone: MELBOURNE_ZONE, weekday: "short", day: "numeric", month: "short",
+const datePartsFormatter = new Intl.DateTimeFormat("en-AU", {
+  timeZone: MELBOURNE_ZONE, weekday: "short", day: "numeric", month: "2-digit",
 });
+const MONTH_LABELS = Object.freeze([
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+] as const);
 const timeFormatter = new Intl.DateTimeFormat("en-AU", {
   timeZone: MELBOURNE_ZONE, hour: "numeric", minute: "2-digit", hour12: true,
 });
 const upperMeridiem = (value: string): string => value.replace(/\b(am|pm)\b/gi, match => match.toUpperCase());
 
+function formatMelbourneDate(value: string): string {
+  const parts = datePartsFormatter.formatToParts(new Date(value));
+  const part = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find(item => item.type === type)?.value ?? "";
+  const monthIndex = Number(part("month")) - 1;
+  const month = MONTH_LABELS[monthIndex];
+  if (!month) throw new Error("Calendar factual event month is invalid");
+  return `${part("weekday")}, ${part("day")} ${month}`;
+}
+
 function when(event: CalendarFactualEvent): string {
-  return `${dateFormatter.format(new Date(event.start))}, ${upperMeridiem(timeFormatter.format(new Date(event.start)))}–${upperMeridiem(timeFormatter.format(new Date(event.end)))}`;
+  return `${formatMelbourneDate(event.start)}, ${upperMeridiem(timeFormatter.format(new Date(event.start)))}–${upperMeridiem(timeFormatter.format(new Date(event.end)))}`;
 }
 
 /** Deterministic private-data renderer. No model participates. */

@@ -108,10 +108,12 @@ describe("live governed Calendar factual query", () => {
 
     expect(allow.reply).toBe([
       "Calendar factual result:",
-      "Next 3 timed Calendar events:",
+      "Next 5 timed Calendar events:",
+      "- JARVIS Testing — Sat, 29 Aug, 11:00 AM–12:00 PM",
       "- URGENT Board Crisis — Deep Work — Sat, 29 Aug, 11:00 AM–12:00 PM",
+      "- Shopping — Sat, 29 Aug, 3:00 PM–4:00 PM",
+      "- Barwon Health — Mon, 31 Aug, 9:00 AM–4:00 PM",
       "- Interview: Manager - Lived Experience Strategy & Policy — Tue, 1 Sep, 10:00 AM–11:00 AM",
-      "- LLEGC September Meeting — Thu, 3 Sep, 6:00 PM–7:30 PM",
     ].join("\n"));
     expect(allow.reply).not.toMatch(/Priority:|Mode:|Category:|Urgency:/i);
     expect(c.listBetweenWithCompleteness).toHaveBeenCalledWith(

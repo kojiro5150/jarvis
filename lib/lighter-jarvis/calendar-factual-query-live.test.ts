@@ -253,6 +253,29 @@ describe("live governed Calendar factual query", () => {
     expect(model.mock.calls[0][0]).toContain("bounded Calendar factual-intent interpreter");
   });
 
+  it("returns a non-Calendar when-again question to ordinary conversation when interpretation is unsupported", async () => {
+    const model = vi.fn(async (systemPrompt: string) =>
+      systemPrompt.includes("bounded Calendar factual-intent interpreter")
+        ? '{"kind":"unsupported"}'
+        : "Ordinary weather conversation.");
+    const c = connector();
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => c.value,
+      clock: () => new Date("2026-08-28T09:00:00.000Z"),
+    });
+
+    const response = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "When will it rain again?" }],
+    }))).json();
+
+    expect(response.reply).toBe("Ordinary weather conversation.");
+    expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(2);
+    expect(model.mock.calls[0][0]).toContain("bounded Calendar factual-intent interpreter");
+    expect(model.mock.calls[1][0]).not.toContain("bounded Calendar factual-intent interpreter");
+  });
+
   it("withholds factual title answers when bounded acquisition is partial", async () => {
     const model = vi.fn(async () => "model must not run");
     const listBetweenWithCompleteness = vi.fn(async (start: string, end: string, limit = 100) => ({

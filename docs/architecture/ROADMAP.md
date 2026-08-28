@@ -127,7 +127,7 @@ live deterministic JARVIS reply
 
 The next deliberate question is whether the same attention path may truthfully expand to Calendar **membership changes** such as additions/removals.
 
-Sprint 3.161 audits that exact seam. The current comparison layer already fails closed unless both observation sets prove `bounded_complete_request`; the production Google Calendar connector currently returns only bounded event arrays and does not preserve enough per-calendar/pagination/truncation evidence to establish that completeness. The next implementation work must therefore govern retrieval-completeness evidence before any removal/addition attention policy is attempted.
+Sprint 3.161 audited that exact seam and found one named missing contract: a Calendar acquisition completeness envelope. Sprint 3.162 now governs the deterministic evidence required before `bounded_complete_request` may be emitted: authoritative target discovery, per-target success/continuation state, exact authorised bounds, and cross-calendar truncation state. No membership attention policy is authorised yet. The next implementation step is Sprint 3.163 — implement that completeness envelope and its mapping to the existing governed coverage vocabulary.
 
 ---
 

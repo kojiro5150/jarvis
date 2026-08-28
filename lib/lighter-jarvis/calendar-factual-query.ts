@@ -39,7 +39,7 @@ export const CALENDAR_FACTUAL_FILLER_TOKENS = Object.freeze(new Set([
   "going", "go", "to", "at", "in", "on", "for",
 ]));
 
-const LEVEL_2_RELATIONAL_PATTERN = /\b(?:doing some work|work on|related to|relate to|connected to|associated with)\b/;
+const LEVEL_2_RELATIONAL_PATTERN = /\b(?:doing some work|doing something on|doing something about|work on|related to|relate to|connected to|associated with)\b/;
 
 const SPOKEN_LIMITS: Readonly<Record<string, number>> = Object.freeze({
   one: 1,

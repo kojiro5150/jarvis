@@ -34,6 +34,24 @@ describe("ordinary-model history boundary", () => {
     expect(history[1].content).toBe(release);
   });
 
+  it("omits the prior governed Calendar factual request as well as a negative deterministic result", () => {
+    const history = [
+      { role: "user" as const, content: "When is my next JavaScript test?" },
+      { role: "assistant" as const, content: "Please explicitly confirm that I may read your Calendar." },
+      { role: "user" as const, content: "Yes." },
+      { role: "assistant" as const, content: "Calendar factual result:\nNo matching timed Calendar event was found in this bounded read." },
+      { role: "user" as const, content: "Is the next Java test." },
+    ];
+
+    expect(sanitizeModelHistory(history)).toEqual([
+      { role: "user", content: "[Prior governed Calendar factual request omitted from ordinary model context.]" },
+      history[1],
+      history[2],
+      { role: "assistant", content: "[Governed private result omitted from ordinary model context.]" },
+      history[4],
+    ]);
+  });
+
   it("prevents a surfaced Calendar title from reaching a later ordinary model turn", () => {
     const history = [
       { role: "user" as const, content: "When is my next LLEGC meeting?" },

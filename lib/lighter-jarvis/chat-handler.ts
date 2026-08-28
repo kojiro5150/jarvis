@@ -23,7 +23,7 @@ import {
   renderCalendarFactualSelection,
   selectCalendarFactualQuery,
 } from "@/lib/lighter-jarvis/calendar-factual-query";
-import { interpretCalendarConversationalIntent } from "@/lib/lighter-jarvis/calendar-conversational-intent";
+import { interpretCalendarConversationalIntent, isCalendarConversationalIntentCandidate } from "@/lib/lighter-jarvis/calendar-conversational-intent";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -311,7 +311,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       && !body.relaySpecialistReply
       && currentUserUtterance !== undefined
       && !Object.hasOwn(body, "pendingAuthorizationReference")
-      && isUnsupportedCalendarFactualWording(currentUserUtterance)) {
+      && isCalendarConversationalIntentCandidate(currentUserUtterance)) {
       try {
         interpretedCalendarFactualQuery = await interpretCalendarConversationalIntent({
           utterance: currentUserUtterance,

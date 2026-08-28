@@ -290,7 +290,8 @@ describe("live governed Calendar factual query", () => {
     }))).json();
     expect(response.reply).toBe("Ordinary weather conversation.");
     expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
-    expect(model).toHaveBeenCalledTimes(1);
+    expect(model).toHaveBeenCalledTimes(2);
+    expect(model.mock.calls[0][0]).toContain("bounded conversational capability selector");
   });
 
   it("contains doing-something Level-2 wording without Calendar authority or acquisition", async () => {
@@ -374,8 +375,9 @@ describe("live governed Calendar factual query", () => {
 
     expect(response.reply).toBe("Ordinary weather conversation.");
     expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
-    expect(model).toHaveBeenCalledTimes(1);
-    expect(model.mock.calls[0][0]).not.toContain("bounded Calendar factual-intent interpreter");
+    expect(model).toHaveBeenCalledTimes(2);
+    expect(model.mock.calls[0][0]).toContain("bounded conversational capability selector");
+    expect(model.mock.calls[1][0]).not.toContain("bounded Calendar factual-intent interpreter");
   });
 
   it("does not let a malformed follow-up turn a prior negative factual result into a commitment", async () => {

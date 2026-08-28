@@ -6,7 +6,7 @@ export type ProposedCalendarReadOperation = Readonly<{
    * Optional presentation intent retained inside the server-owned pending
    * operation. It never grants authority or widens the Calendar read.
    */
-  purpose?: "calendar_attention";
+  purpose?: "calendar_attention" | "calendar_weekly_allocation";
 }>;
 /** Retained name for the closed Calendar proposal API. */
 export type ProposedOperation = ProposedCalendarReadOperation;

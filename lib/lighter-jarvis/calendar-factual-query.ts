@@ -83,35 +83,40 @@ export function selectCalendarFactualQuery(input: {
   if (input.query.kind === "next_events") {
     const limit = Number.isInteger(input.query.limit) && input.query.limit > 0 && input.query.limit <= 5
       ? input.query.limit : 0;
-    if (limit === 0) return Object.freeze({ kind: input.query.kind, status: "not_found", events: Object.freeze([]) });
+    if (limit === 0) return Object.freeze({ kind: namedQuery.kind, status: "not_found", events: Object.freeze([]) });
     const selected = future.slice(0, limit);
     return Object.freeze({
-      kind: input.query.kind,
+      kind: namedQuery.kind,
       status: selected.length > 0 ? "matched" : "not_found",
       events: Object.freeze(selected),
     });
   }
 
-  const matches = future.filter(event => titleMatches(event, input.query.terms))
-    .filter(event => input.query.kind !== "title_match_on_weekday" || weekdayOf(event.start) === input.query.weekday);
-
-  if (matches.length === 0) {
-    return Object.freeze({ kind: input.query.kind, status: "not_found", events: Object.freeze([]) });
+  const namedQuery = input.query;
+  if (namedQuery.kind === "next_events") {
+    return Object.freeze({ kind: namedQuery.kind, status: "not_found", events: Object.freeze([]) });
   }
 
-  if (input.query.kind === "next_title_match") {
+  const matches = future.filter(event => titleMatches(event, namedQuery.terms))
+    .filter(event => namedQuery.kind !== "title_match_on_weekday" || weekdayOf(event.start) === namedQuery.weekday);
+
+  if (matches.length === 0) {
+    return Object.freeze({ kind: namedQuery.kind, status: "not_found", events: Object.freeze([]) });
+  }
+
+  if (namedQuery.kind === "next_title_match") {
     const firstStart = matches[0].start;
     const earliest = matches.filter(event => event.start === firstStart);
     if (earliest.length !== 1) {
-      return Object.freeze({ kind: input.query.kind, status: "ambiguous", events: Object.freeze([]) });
+      return Object.freeze({ kind: namedQuery.kind, status: "ambiguous", events: Object.freeze([]) });
     }
-    return Object.freeze({ kind: input.query.kind, status: "matched", events: Object.freeze([earliest[0]]) });
+    return Object.freeze({ kind: namedQuery.kind, status: "matched", events: Object.freeze([earliest[0]]) });
   }
 
   if (matches.length !== 1) {
-    return Object.freeze({ kind: input.query.kind, status: "ambiguous", events: Object.freeze([]) });
+    return Object.freeze({ kind: namedQuery.kind, status: "ambiguous", events: Object.freeze([]) });
   }
-  return Object.freeze({ kind: input.query.kind, status: "matched", events: Object.freeze([matches[0]]) });
+  return Object.freeze({ kind: namedQuery.kind, status: "matched", events: Object.freeze([matches[0]]) });
 }
 
 const datePartsFormatter = new Intl.DateTimeFormat("en-AU", {

@@ -64,6 +64,77 @@ describe("production calendar.read authority ordering", () => {
     );
   });
 
+
+  it("carries a complete governed weekly allocation through the production read result", async () => {
+    const weeklyEvents = [
+      {
+        ...event,
+        id: "routine",
+        start: "2026-08-24T09:00:00Z",
+        end: "2026-08-24T16:00:00Z",
+        timeMode: "routine" as const,
+      },
+      {
+        ...event,
+        id: "self-care",
+        start: "2026-08-24T12:00:00Z",
+        end: "2026-08-24T13:00:00Z",
+        timeMode: "self_care" as const,
+      },
+    ];
+    const listBetween = vi.fn();
+    const listBetweenWithCompleteness = vi.fn(async (start: string, end: string) => ({
+      events: weeklyEvents,
+      completeness: {
+        sourceId: "google-calendar" as const,
+        windowStart: start,
+        windowEnd: end,
+        requestedLimit: 5,
+        targetDiscovery: "calendar_list" as const,
+        targetCount: 1,
+        targets: [{
+          calendarId: "primary",
+          status: "complete" as const,
+          returnedCount: 2,
+          continuation: "none" as const,
+        }],
+        mergedReturnedCount: 2,
+        mergeTruncated: false,
+        completeness: "complete" as const,
+        observedAt: "2026-08-25T00:00:00.000Z",
+      },
+    }));
+    const deps = {
+      createConnector: () => ({
+        source: "google" as const,
+        listBetween,
+        listBetweenWithCompleteness,
+      }),
+      clock: () => new Date("2026-08-25T00:00:00Z"),
+    };
+
+    const pending = await resolveProductionCalendarRead({
+      currentUserUtterance: "How does this week look?",
+    }, deps);
+    const confirmed = await resolveProductionCalendarRead({
+      currentUserUtterance: "yes",
+      pendingAuthorizationReference: pending.pendingAuthorizationReference,
+    }, deps);
+
+    expect(confirmed).toMatchObject({
+      decision: "ALLOW",
+      window: { period: "this_week" },
+      evidence: {
+        coverageState: "bounded_complete_request",
+        weeklyAllocation: {
+          publicationType: "calendar_weekly_time_allocation",
+          minutesByMode: { routine: 360, self_care: 60 },
+          totalTimedMinutes: 420,
+        },
+      },
+    });
+  });
+
   it("leaves bare confirmation outside the Calendar authority flow", async () => {
     const deps = dependencies();
     expect(await resolveProductionCalendarRead({ currentUserUtterance: "yes" }, deps.value))

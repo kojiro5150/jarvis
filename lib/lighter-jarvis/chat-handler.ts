@@ -564,6 +564,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         isCalendarRecollection: calendarRecall.isCalendarRecollection,
         priorVisibleReportIsScheduleOnly: calendarRecall.priorVisibleReportIsScheduleOnly,
         priorNegativeCalendarFactualResult: calendarRecall.priorNegativeCalendarFactualResult,
+        previousAssistantWasCalendarContainment: calendarRecall.previousAssistantWasCalendarContainment,
         isDetailFollowUp: calendarRecall.isDetailFollowUp,
         boundUserDetails: calendarRecall.boundUserDetails,
         unknownCommitmentClocks: calendarRecall.unknownCommitmentClocks,

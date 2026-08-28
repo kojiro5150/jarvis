@@ -1,3 +1,4 @@
+import type { CalendarFactualQuery } from "./calendar-factual-query";
 export const CALENDAR_READ_CAPABILITY = "calendar.read" as const;
 export type ProposedCalendarReadOperation = Readonly<{
   capability: typeof CALENDAR_READ_CAPABILITY;
@@ -6,7 +7,9 @@ export type ProposedCalendarReadOperation = Readonly<{
    * Optional presentation intent retained inside the server-owned pending
    * operation. It never grants authority or widens the Calendar read.
    */
-  purpose?: "calendar_attention" | "calendar_weekly_allocation";
+  purpose?: "calendar_attention" | "calendar_weekly_allocation" | "calendar_factual_query";
+  /** Server-owned deterministic factual selector intent; never model context. */
+  factualQuery?: CalendarFactualQuery;
 }>;
 /** Retained name for the closed Calendar proposal API. */
 export type ProposedOperation = ProposedCalendarReadOperation;

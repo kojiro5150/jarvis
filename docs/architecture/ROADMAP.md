@@ -263,6 +263,14 @@ The goal — an executive operating system that identifies environment, roles, a
 
 The full Iron-Man vision — fully autonomous, understands anything, acts on everything — should stay aspirational rather than promised. But the ordinary, everyday version of it is no longer science fiction: something that wakes up every morning and reliably answers *what's happening, what changed, what needs attention* — using real evidence, only reaching for language-model flexibility where it's genuinely needed, and only occasionally surfacing something that looks like a decision to weigh. Most of the foundation for that is proven. The rest is a short, specific, identifiable list of next steps — not a leap.
 
+### Sprint 3.177 — governed factual Calendar retrieval
+
+Sprint 3.177 removes a lower-level executive burden before attempting schedule adequacy: basic factual retrieval from Calendar titles. The new path supports bounded deterministic questions such as `What are my next 5 meetings?`, `When is my next LLEGC meeting?`, and `What time is the interview on Tuesday?`.
+
+`CalendarEvent.title` remains outside model context. It may enter only a closed server-owned factual projection (`title`, `start`, `end`, `calendarName`) used by deterministic token matching and deterministic rendering. Factual answers require fresh Calendar authority and complete bounded acquisition; partial reads withhold the answer. Returned factual releases are stripped from later ordinary model history.
+
+The deferred trigger for crossing this boundary is now explicit: a future query requiring semantic relation over title text or prior conversation (for example, `what meetings next week relate to the governance work we discussed?`) is a new model-exposure capability and must not ship until a dedicated instruction boundary, deterministic reply guard, and regression suite prevent title-derived fabrication of mode, priority, category, urgency, or other unsupported attributes.
+
 ---
 
 ## What Not To Do

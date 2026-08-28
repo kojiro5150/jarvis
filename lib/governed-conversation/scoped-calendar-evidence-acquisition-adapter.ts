@@ -13,6 +13,10 @@ import {
   publishGovernedWeeklyCalendarAllocation,
   type GovernedWeeklyCalendarAllocationPublication,
 } from "./calendar-weekly-allocation-publisher";
+import {
+  publishCalendarFactualEvidence,
+  type GovernedCalendarFactualEvent,
+} from "./calendar-factual-evidence";
 
 export type GovernedCalendarCoverageState =
   | "bounded_complete_request"
@@ -23,6 +27,7 @@ export type ScopedCalendarEvidenceResult = SourceAdapterResult<GovernedCalendarE
   coverageState?: GovernedCalendarCoverageState;
   completeness?: CalendarAcquisitionCompletenessEnvelope;
   weeklyAllocation?: GovernedWeeklyCalendarAllocationPublication;
+  factualEvents?: readonly GovernedCalendarFactualEvent[];
 }>;
 
 export interface ScopedCalendarAcquisitionPort {
@@ -48,12 +53,14 @@ function withCoverage(
   coverageState: GovernedCalendarCoverageState,
   completeness?: CalendarAcquisitionCompletenessEnvelope,
   weeklyAllocation?: GovernedWeeklyCalendarAllocationPublication | null,
+  factualEvents?: readonly GovernedCalendarFactualEvent[],
 ): ScopedCalendarEvidenceResult {
   return Object.freeze({
     ...result,
     coverageState,
     ...(completeness === undefined ? {} : { completeness }),
     ...(weeklyAllocation ? { weeklyAllocation } : {}),
+    ...(factualEvents ? { factualEvents } : {}),
   });
 }
 
@@ -125,6 +132,7 @@ export async function acquireScopedCalendarEvidence(input: {
         coverageState,
         acquisition.completeness,
         weeklyAllocation,
+        publishCalendarFactualEvidence(inWindow),
       );
     }
 
@@ -154,6 +162,9 @@ export async function acquireScopedCalendarEvidence(input: {
         { observedAt: retrievedAt },
       ),
       "bounded",
+      undefined,
+      undefined,
+      publishCalendarFactualEvidence(inWindow),
     );
   } catch {
     return sourceResult("unavailable", [], {

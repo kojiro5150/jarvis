@@ -14,7 +14,7 @@ const OMITTED_DRIVE_READ_REQUEST = "[Prior governed Drive read request omitted f
 const OMITTED_DRIVE_PROVIDER_ID_FOLLOW_UP = "[Prior governed Drive provider-ID follow-up omitted from ordinary model context.]";
 
 const GMAIL_FIELD_RELEASE = /^(?:Subject|Snippet|Plain text body|Attachment filenames|Attachment MIME metadata):/;
-const CALENDAR_RELEASE = /^(?:(?:Today|Tomorrow|This morning|This afternoon|This evening|This week) is clear\.|Your Calendar is clear for the next seven days\.|(?:Today|Tomorrow|This morning|This afternoon|This evening|This week|Next seven days) you have \d+ commitments?:\n-|Your Calendar has (?:no|\d+) commitments? in )/;
+const CALENDAR_RELEASE = /^(?:(?:Today|Tomorrow|This morning|This afternoon|This evening|This week|Next week) is clear\.|Your Calendar is clear for the next seven days\.|(?:Today|Tomorrow|This morning|This afternoon|This evening|This week|Next week|Next seven days) you have \d+ commitments?:\n-|Your Calendar has (?:no|\d+) commitments? in |(?:This|Next) week's resolved Calendar allocation:|Calendar factual result:\n)/;
 const DRIVE_RELEASE = /^(?:No Drive files found\.|Drive files:\n-)/;
 const DRIVE_CONTENT_RELEASE = /^Drive document \([A-Za-z0-9_-]+\):\n/;
 const EXACT_GMAIL_READ_REQUEST = /^gmail\.read [^\s\[\],<>]+ \[(?:subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata)(?:,(?:subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata))*\]$/;

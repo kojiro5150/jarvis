@@ -224,7 +224,7 @@ describe("live governed Calendar factual query", () => {
     );
     expect(response.pendingAuthorizationReference).toBeUndefined();
     expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
-    expect(model).toHaveBeenCalledTimes(1);
+    expect(model).not.toHaveBeenCalled();
   });
 
   it("keeps relational Level-2 Calendar wording contained after bounded interpretation declines it", async () => {
@@ -277,7 +277,7 @@ describe("live governed Calendar factual query", () => {
     expect(model.mock.calls[0][0]).toContain("bounded Calendar factual-intent interpreter");
   });
 
-  it("returns a non-Calendar when-again question to ordinary conversation when interpretation is unsupported", async () => {
+  it("keeps a non-schedule when-again question entirely on ordinary conversation", async () => {
     const model = vi.fn(async (systemPrompt: string) =>
       systemPrompt.includes("bounded Calendar factual-intent interpreter")
         ? '{"kind":"unsupported"}'
@@ -295,9 +295,35 @@ describe("live governed Calendar factual query", () => {
 
     expect(response.reply).toBe("Ordinary weather conversation.");
     expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
-    expect(model).toHaveBeenCalledTimes(2);
-    expect(model.mock.calls[0][0]).toContain("bounded Calendar factual-intent interpreter");
-    expect(model.mock.calls[1][0]).not.toContain("bounded Calendar factual-intent interpreter");
+    expect(model).toHaveBeenCalledTimes(1);
+    expect(model.mock.calls[0][0]).not.toContain("bounded Calendar factual-intent interpreter");
+  });
+
+  it("does not let a malformed follow-up turn a prior negative factual result into a commitment", async () => {
+    const model = vi.fn(async () =>
+      "From the earlier result you confirmed, the next commitment was scheduled for a specific time.");
+    const c = connector();
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => c.value,
+      clock: () => new Date("2026-08-28T09:00:00.000Z"),
+    });
+
+    const response = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [
+        { role: "user", content: "When is my next JavaScript test?" },
+        { role: "assistant", content: "Please explicitly confirm that I may read your Calendar." },
+        { role: "user", content: "Yes." },
+        { role: "assistant", content: "Calendar factual result:\nNo matching timed Calendar event was found in this bounded read." },
+        { role: "user", content: "Is the next Java test." },
+      ],
+    }))).json();
+
+    expect(response.reply).toBe(
+      "The earlier governed Calendar factual query found no matching event. I don't have current Calendar evidence for this turn.",
+    );
+    expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(1);
   });
 
   it("withholds factual title answers when bounded acquisition is partial", async () => {

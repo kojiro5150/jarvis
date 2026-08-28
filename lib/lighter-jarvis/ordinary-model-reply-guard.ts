@@ -88,6 +88,7 @@ export type CalendarProvenanceState = Readonly<{
   hasCurrentCalendarGovernedContext: boolean;
   isCalendarRecollection: boolean;
   priorVisibleReportIsScheduleOnly?: boolean;
+  priorNegativeCalendarFactualResult?: boolean;
   isDetailFollowUp?: boolean;
   unboundUserDetails?: readonly Readonly<{ clock: string; label: string }>[];
   currentCommitmentClocks?: readonly string[];
@@ -102,6 +103,12 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
   const ordinaryCalendarFact = currentUserUtterance
     ? userSuppliedTimedCalendarDetail(currentUserUtterance) !== undefined
     : false;
+  if (calendarProvenance?.priorNegativeCalendarFactualResult
+    && /\b(?:earlier|prior|previous)\b[\s\S]{0,120}\b(?:result|calendar)\b[\s\S]{0,160}\b(?:commitment|event|meeting|appointment)\b/i.test(content)
+    && /\b(?:scheduled|was|were|next|at|on)\b/i.test(content)) {
+    return "The earlier governed Calendar factual query found no matching event. I don't have current Calendar evidence for this turn.";
+  }
+
 
   // A narrow timed Calendar fact is ordinary user-provided conversation.
   // Once classified, presentation is deterministic: model wording cannot turn

@@ -9,6 +9,7 @@ import { isProviderIdLike } from "./private-capability-handoff-guard";
  * it is genuine or fabricated.
  */
 const OMITTED_PRIVATE_RELEASE = "[Governed private result omitted from ordinary model context.]";
+const NEGATIVE_CALENDAR_FACTUAL_RELEASE = "[Prior governed Calendar factual result: no matching event.]";
 const OMITTED_CALENDAR_FACTUAL_REQUEST = "[Prior governed Calendar factual request omitted from ordinary model context.]";
 const OMITTED_GMAIL_READ_REQUEST = "[Prior governed Gmail read request omitted from ordinary model context.]";
 const OMITTED_DRIVE_READ_REQUEST = "[Prior governed Drive read request omitted from ordinary model context.]";
@@ -56,6 +57,11 @@ export function hasGovernedDriveHistory(messages: readonly ChatMessage[]): boole
   );
 }
 
+function isNegativeCalendarFactualRelease(content: string): boolean {
+  return content === "Calendar factual result:\nNo matching timed Calendar event was found in this bounded read."
+    || content === "Calendar factual result:\nNo.";
+}
+
 export function isDeterministicPrivateRelease(content: string): boolean {
   return content === "No Gmail message IDs found."
     || content.startsWith("Gmail message IDs:\n-")
@@ -75,6 +81,9 @@ export function sanitizeModelHistory(messages: readonly ChatMessage[]): ChatMess
     if ((message.role === "assistant" && (DRIVE_RELEASE.test(message.content) || DRIVE_CONTENT_RELEASE.test(message.content)))
       || (message.role === "user" && EXACT_DRIVE_READ_REQUEST.test(message.content))) {
       governedDriveHistorySeen = true;
+    }
+    if (message.role === "assistant" && isNegativeCalendarFactualRelease(message.content)) {
+      return { role: "assistant", content: NEGATIVE_CALENDAR_FACTUAL_RELEASE };
     }
     if (message.role === "assistant" && isDeterministicPrivateRelease(message.content)) {
       return { role: "assistant", content: OMITTED_PRIVATE_RELEASE };

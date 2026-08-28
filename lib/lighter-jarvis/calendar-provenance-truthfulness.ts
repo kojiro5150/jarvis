@@ -107,6 +107,14 @@ export function priorVisibleCalendarReportIsScheduleOnly(messages: readonly Chat
     && !hasBoundUserCalendarDetail(messages, currentUserIndex, report));
 }
 
+export function hasPriorNegativeCalendarFactualResult(messages: readonly ChatMessage[]): boolean {
+  const currentUserIndex = messages.findLastIndex(message => message.role === "user");
+  return messages.some((message, index) => index < currentUserIndex
+    && message.role === "assistant"
+    && (message.content === "Calendar factual result:\nNo matching timed Calendar event was found in this bounded read."
+      || message.content === "Calendar factual result:\nNo."));
+}
+
 export function isCalendarDetailRecallFollowUp(utterance: string | undefined): boolean {
   return Boolean(utterance && DETAIL_FOLLOW_UP.test(utterance.normalize("NFKC").replace(/\s+/g, " ").trim()));
 }
@@ -128,6 +136,7 @@ export function calendarRecallDiagnostics(messages: readonly ChatMessage[],
     messageCount: messages.length,
     orderedRoles: messages.map(message => message.role),
     priorCalendarReportPresent,
+    priorNegativeCalendarFactualResult: hasPriorNegativeCalendarFactualResult(messages),
     calendarRecallFollowUp,
     priorVisibleReportIsScheduleOnly: isCalendarRecollection
       && priorVisibleCalendarReportIsScheduleOnly(messages),

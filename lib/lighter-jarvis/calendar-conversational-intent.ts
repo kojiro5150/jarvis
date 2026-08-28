@@ -80,9 +80,13 @@ export function validateCalendarConversationalIntent(
 export function isCalendarConversationalIntentCandidate(utterance: string): boolean {
   if (parseCalendarFactualQuery(utterance)) return false;
   const normalized = normalizeText(utterance);
-  return /\bwhen\b/.test(normalized) && /\b(?:next|again)\b/.test(normalized);
-}
+  if (!/\bwhen\b/.test(normalized) || !/\b(?:next|again)\b/.test(normalized)) return false;
 
+  const hasPersonalScheduleShape = /\b(?:i|me|my)\b/.test(normalized);
+  const hasClosedCalendarLexeme = Object.keys(CALENDAR_FACTUAL_MORPHOLOGY)
+    .some(token => new RegExp(`\\b${token}\\b`).test(normalized));
+  return hasPersonalScheduleShape || hasClosedCalendarLexeme;
+}
 export async function interpretCalendarConversationalIntent(input: {
   readonly utterance: string;
   readonly callModel: CalendarConversationalIntentModelCall;

@@ -243,6 +243,45 @@ describe("production calendar.read authority ordering", () => {
     );
   });
 
+  it("binds a validated conversational interpretation into pending server state before acquisition", async () => {
+    const deps = dependencies();
+    const pending = await resolveProductionCalendarRead({
+      currentUserUtterance: "Can you tell me when the JARVIS test is again?",
+      interpretedFactualQuery: { kind: "next_title_match", terms: ["jarvis", "test"] },
+    }, {
+      ...deps.value,
+      clock: () => new Date("2026-08-28T09:00:00.000Z"),
+    });
+
+    expect(pending).toMatchObject({
+      decision: "ASK",
+      purpose: "calendar_factual_query",
+      factualQuery: { kind: "next_title_match", terms: ["jarvis", "test"] },
+      pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) },
+    });
+    expect(deps.createConnector).not.toHaveBeenCalled();
+
+    const confirmed = await resolveProductionCalendarRead({
+      currentUserUtterance: "Yes.",
+      pendingAuthorizationReference: pending.pendingAuthorizationReference,
+    }, {
+      ...deps.value,
+      clock: () => new Date("2026-08-28T09:00:00.000Z"),
+    });
+
+    expect(confirmed).toMatchObject({
+      decision: "ALLOW",
+      reason: "pending_authorization_confirmed",
+      purpose: "calendar_factual_query",
+      factualQuery: { kind: "next_title_match", terms: ["jarvis", "test"] },
+    });
+    expect(deps.listBetween).toHaveBeenCalledWith(
+      "2026-08-28T09:00:00.000Z",
+      "2026-09-04T09:00:00.000Z",
+      100,
+    );
+  });
+
   it("leaves bare confirmation outside the Calendar authority flow", async () => {
     const deps = dependencies();
     expect(await resolveProductionCalendarRead({ currentUserUtterance: "yes" }, deps.value))

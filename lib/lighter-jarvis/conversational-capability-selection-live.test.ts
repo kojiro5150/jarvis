@@ -39,6 +39,23 @@ describe("Sprint 3.180b live capability selection", () => {
     expect(model).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps identical weather wording public even when the selector declines it", async () => {
+    const model = vi.fn(async () => JSON.stringify({ kind: "ordinary_conversation" }));
+    const handler = createLighterChatHandler(model);
+
+    const first = await (await handler(request([
+      { role: "user", content: "Will it rain in Geelong tomorrow?" },
+    ]))).json();
+    const second = await (await handler(request([
+      { role: "user", content: "Will it rain in Geelong tomorrow?" },
+    ]))).json();
+
+    expect(first.reply).toBe(
+      "I recognized that as a public-information request, but public lookup is not yet available in this runtime.",
+    );
+    expect(second.reply).toBe(first.reply);
+  });
+
   it("recognizes natural Gmail wording without pretending Gmail is unavailable", async () => {
     const model = vi.fn(async () => JSON.stringify({
       kind: "capability_request",

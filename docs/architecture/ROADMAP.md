@@ -1,6 +1,6 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Last reconciled 2026-08-28 after Sprint 3.152d. The August 1 roadmap state is superseded: governed conversational source inputs, operation-level authority for bounded Calendar/Gmail/Drive reads, private-history containment, voice turn integrity, live Calendar GovernedContext/recall truthfulness, and deterministic Calendar projection-fidelity protection have since been implemented and verified. The next deliberate transition is from source/authority hardening to audit-led discovery of the minimum sufficient Executive Cognition architecture for real everyday questions.
+**Status:** Living document. Last reconciled 2026-08-28 after Sprint 3.160. The August 1 roadmap state is superseded: governed conversational source inputs, operation-level authority for bounded Calendar/Gmail/Drive reads, private-history containment, voice turn integrity, live Calendar GovernedContext/recall truthfulness, deterministic Calendar projection-fidelity protection, and the first live authority-gated Calendar attention path have now been implemented and verified. The current transition is from proving one same-identity attention condition to establishing the completeness semantics required before membership changes such as added/removed Calendar commitments can be inferred.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
 
@@ -109,12 +109,25 @@ These are explicit boundaries, not reasons to delay the next audit.
 
 ### Immediate next step
 
+Sprints 3.153–3.160 have now taken the first proving question from audit through live UI verification:
+
 ```text
-3.153 — Executive Cognition Activation Audit
-        Proving question: "What needs my attention?"
+"What needs my attention?"
+        ↓
+authorised Calendar evidence
+        ↓
+same-identity start-time change detection
+        ↓
+deterministic attention policy
+        ↓
+bounded Attention Brief
+        ↓
+live deterministic JARVIS reply
 ```
 
-Sprint 3.153 must start from the real question rather than from the existing EOS pipeline. It must identify the minimum deterministic information transformations required to answer “What needs my attention?” honestly, then map only those transformations to existing stages where they genuinely fit. It must not wire the pipeline merely because the stages exist. Its job is to identify the smallest truthful path from governed operational evidence to an inspectable Attention Brief, and to leave every non-required stage unwired.
+The next deliberate question is whether the same attention path may truthfully expand to Calendar **membership changes** such as additions/removals.
+
+Sprint 3.161 audits that exact seam. The current comparison layer already fails closed unless both observation sets prove `bounded_complete_request`; the production Google Calendar connector currently returns only bounded event arrays and does not preserve enough per-calendar/pagination/truncation evidence to establish that completeness. The next implementation work must therefore govern retrieval-completeness evidence before any removal/addition attention policy is attempted.
 
 ---
 
@@ -124,13 +137,13 @@ Everything built so far is generic Calendar/Gmail. Nothing yet reflects the thre
 
 ---
 
-## Phase V — Deterministic Executive Cognition — Built Foundation, Activation Now Next
+## Phase V — Deterministic Executive Cognition — First Live Attention Path Proven
 
 JARVIS is not PHDSS scaled down to one person. Its everyday purpose is continuous executive cognition: awareness, orientation, attention, dependency recognition, conflict detection, capacity understanding and planning support. A decision recommendation is not the centre of gravity.
 
 The repository already contains the deterministic EOS stages needed to explore that purpose. In particular, the Observation/Situational Awareness and Executive Attention layers are real, typed and policy-bound; later Situation Formation, Assessment, Executive Context, Candidate Construction, Candidate Evaluation, Candidate Comparison and Executive Reasoning stages also exist. Their existence, however, is not evidence that the current governed conversational runtime can truthfully drive them end to end.
 
-The next proving capability is deliberately narrower than "wire Executive Reasoning":
+The first proving capability was deliberately narrower than "wire Executive Reasoning":
 
 > **What needs my attention?**
 
@@ -162,7 +175,7 @@ optional conversational rendering
 
 The LLM may eventually explain an Attention Brief; it must not originate the underlying facts, manufacture a change, invent priority, or silently turn structural queue ordering into importance.
 
-**Sprint 3.153 is audit-only.** It is the first operational test of `EXECUTIVE-COGNITION-SCOPE-DISCIPLINE.md`, which is a binding scope constraint for Executive Cognition work beneath the Engineering Constitution and North Star. The audit must derive the minimum deterministic transformations from the question first, then determine which existing stages are load-bearing, not required for this capability, or still unproven. A sparse result is an acceptable—and potentially preferable—outcome. Implementation follows only from that evidence.
+**Sprints 3.153–3.160 completed the first bounded activation.** The production path now answers the proving question for one deterministic condition: a same-identity Calendar commitment start-time change within a compatible authorised `today` window. It does not yet imply general executive attention, priority, or comprehensive Calendar membership awareness. Sprint 3.161 resumes audit-first discipline before expanding that claim.
 
 ---
 

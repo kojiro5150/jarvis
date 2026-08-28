@@ -10,6 +10,24 @@ const request = (body: unknown) => new Request("http://localhost/api/lighter/cha
 function connector() {
   const events = [
     {
+      id: "jarvis-testing", title: "JARVIS Testing",
+      start: "2026-08-29T01:00:00.000Z", end: "2026-08-29T02:00:00.000Z",
+      day: "SAT", time: "11:00", source: "google" as const, calendarId: "primary", calendarName: "Work",
+      timeMode: "routine" as const,
+    },
+    {
+      id: "shopping", title: "Shopping",
+      start: "2026-08-29T05:00:00.000Z", end: "2026-08-29T06:00:00.000Z",
+      day: "SAT", time: "15:00", source: "google" as const, calendarId: "primary", calendarName: "Work",
+      timeMode: "routine" as const,
+    },
+    {
+      id: "barwon", title: "Barwon Health",
+      start: "2026-08-30T23:00:00.000Z", end: "2026-08-31T06:00:00.000Z",
+      day: "MON", time: "09:00", source: "google" as const, calendarId: "primary", calendarName: "Work",
+      timeMode: "routine" as const,
+    },
+    {
       id: "adversarial", title: "URGENT Board Crisis — Deep Work",
       start: "2026-08-29T01:00:00.000Z", end: "2026-08-29T02:00:00.000Z",
       day: "SAT", time: "11:00", source: "google" as const, calendarId: "primary", calendarName: "Work",
@@ -33,8 +51,8 @@ function connector() {
     completeness: {
       sourceId: "google-calendar" as const, windowStart: start, windowEnd: end, requestedLimit: limit,
       targetDiscovery: "calendar_list" as const, targetCount: 1,
-      targets: [{ calendarId: "primary", status: "complete" as const, returnedCount: 3, continuation: "none" as const }],
-      mergedReturnedCount: 3, mergeTruncated: false, completeness: "complete" as const,
+      targets: [{ calendarId: "primary", status: "complete" as const, returnedCount: 6, continuation: "none" as const }],
+      mergedReturnedCount: 6, mergeTruncated: false, completeness: "complete" as const,
       observedAt: "2026-08-28T09:00:00.000Z",
     },
   }));
@@ -105,6 +123,9 @@ describe("live governed Calendar factual query", () => {
   it.each([
     ["When is my next LLEGC meeting?", "LLEGC September Meeting — Thu, 3 Sep, 6:00 PM–7:30 PM"],
     ["What time is the interview on Tuesday?", "Interview: Manager - Lived Experience Strategy & Policy — Tue, 1 Sep, 10:00 AM–11:00 AM"],
+    ["When is JARVIS Testing scheduled next?", "JARVIS Testing — Sat, 29 Aug, 11:00 AM–12:00 PM"],
+    ["When am I going shopping?", "Shopping — Sat, 29 Aug, 3:00 PM–4:00 PM"],
+    ["When am I testing JARVIS again?", "JARVIS Testing — Sat, 29 Aug, 11:00 AM–12:00 PM"],
   ])("answers the deterministic named query without model interpretation: %s", async (utterance, expected) => {
     const model = vi.fn(async () => "model must not run");
     const c = connector();
@@ -114,6 +135,36 @@ describe("live governed Calendar factual query", () => {
     });
     const { allow } = await askThenConfirm(handler, utterance);
     expect(allow.reply).toBe(`Calendar factual result:\n- ${expected}`);
+    expect(model).not.toHaveBeenCalled();
+  });
+
+  it("answers a deterministic weekday-presence question without model interpretation", async () => {
+    const model = vi.fn(async () => "model must not run");
+    const c = connector();
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => c.value,
+      clock: () => new Date("2026-08-28T09:00:00.000Z"),
+    });
+    const { allow } = await askThenConfirm(handler, "Am I at Barwon Health on Monday?");
+    expect(allow.reply).toBe("Calendar factual result:\nYes. Barwon Health — Mon, 31 Aug, 9:00 AM–4:00 PM");
+    expect(model).not.toHaveBeenCalled();
+  });
+
+  it("contains unsupported personal Calendar factual wording without a model call or Calendar acquisition", async () => {
+    const model = vi.fn(async () => "model must not run");
+    const c = connector();
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => c.value,
+      clock: () => new Date("2026-08-28T09:00:00.000Z"),
+    });
+    const response = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "When am I next doing some work on JARVIS?" }],
+    }))).json();
+    expect(response.reply).toBe(
+      "I can check your Calendar for that, but I couldn't resolve the factual query safely from that wording.",
+    );
+    expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
     expect(model).not.toHaveBeenCalled();
   });
 

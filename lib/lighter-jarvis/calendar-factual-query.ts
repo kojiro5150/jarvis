@@ -19,8 +19,20 @@ const WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "satur
 export function parseCalendarFactualQuery(utterance: string): CalendarFactualQuery | null {
   const normalized = utterance.trim().replace(/[‘’]/g, "'");
 
-  const nextEvents = normalized.match(/^what\s+are\s+(?:my\s+)?next\s+([1-5])\s+(?:meetings?|calendar\s+events?)[?!.]?$/i);
-  if (nextEvents) return Object.freeze({ kind: "next_events", limit: Number(nextEvents[1]) });
+  const nextEvents = normalized.match(/^what\s+are\s+(?:my\s+)?next\s+([1-5]|one|two|three|four|five)\s+(?:meetings?|calendar\s+events?)[?!.]?$/i);
+  if (nextEvents) {
+    const rawLimit = nextEvents[1].toLowerCase();
+    const spokenLimits: Readonly<Record<string, number>> = Object.freeze({
+      one: 1,
+      two: 2,
+      three: 3,
+      four: 4,
+      five: 5,
+    });
+    const limit = /^[1-5]$/.test(rawLimit) ? Number(rawLimit) : spokenLimits[rawLimit];
+    if (!limit) return null;
+    return Object.freeze({ kind: "next_events", limit });
+  }
 
   const nextMeeting = normalized.match(/^when\s+is\s+(?:my\s+)?next\s+(.+?)\s+meeting[?!.]?$/i);
   if (nextMeeting) {

@@ -177,46 +177,47 @@ export function selectCalendarFactualQuery(input: {
   query: CalendarFactualQuery;
   window: CalendarReadWindow;
 }): CalendarFactualSelection {
+  const query = input.query;
   const future = chronological(input.events.filter(event =>
     Date.parse(event.end) > Date.parse(input.window.start)
     && Date.parse(event.start) < Date.parse(input.window.end)
   ));
 
-  if (input.query.kind === "next_events") {
-    const limit = Number.isInteger(input.query.limit) && input.query.limit > 0 && input.query.limit <= 5
-      ? input.query.limit : 0;
-    if (limit === 0) return Object.freeze({ kind: input.query.kind, status: "not_found", events: Object.freeze([]) });
+  if (query.kind === "next_events") {
+    const limit = Number.isInteger(query.limit) && query.limit > 0 && query.limit <= 5
+      ? query.limit : 0;
+    if (limit === 0) return Object.freeze({ kind: query.kind, status: "not_found", events: Object.freeze([]) });
     const selected = future.slice(0, limit);
     return Object.freeze({
-      kind: input.query.kind,
+      kind: query.kind,
       status: selected.length > 0 ? "matched" : "not_found",
       events: Object.freeze(selected),
     });
   }
 
-  const matches = future.filter(event => titleMatches(event, input.query.terms))
+  const matches = future.filter(event => titleMatches(event, query.terms))
     .filter(event =>
-      (input.query.kind !== "title_match_on_weekday" && input.query.kind !== "title_presence_on_weekday")
-      || weekdayOf(event.start) === input.query.weekday
+      (query.kind !== "title_match_on_weekday" && query.kind !== "title_presence_on_weekday")
+      || weekdayOf(event.start) === query.weekday
     );
 
   if (matches.length === 0) {
-    return Object.freeze({ kind: input.query.kind, status: "not_found", events: Object.freeze([]) });
+    return Object.freeze({ kind: query.kind, status: "not_found", events: Object.freeze([]) });
   }
 
-  if (input.query.kind === "next_title_match") {
+  if (query.kind === "next_title_match") {
     const firstStart = matches[0].start;
     const earliest = matches.filter(event => event.start === firstStart);
     if (earliest.length !== 1) {
-      return Object.freeze({ kind: input.query.kind, status: "ambiguous", events: Object.freeze([]) });
+      return Object.freeze({ kind: query.kind, status: "ambiguous", events: Object.freeze([]) });
     }
-    return Object.freeze({ kind: input.query.kind, status: "matched", events: Object.freeze([earliest[0]]) });
+    return Object.freeze({ kind: query.kind, status: "matched", events: Object.freeze([earliest[0]]) });
   }
 
   if (matches.length !== 1) {
-    return Object.freeze({ kind: input.query.kind, status: "ambiguous", events: Object.freeze([]) });
+    return Object.freeze({ kind: query.kind, status: "ambiguous", events: Object.freeze([]) });
   }
-  return Object.freeze({ kind: input.query.kind, status: "matched", events: Object.freeze([matches[0]]) });
+  return Object.freeze({ kind: query.kind, status: "matched", events: Object.freeze([matches[0]]) });
 }
 
 const datePartsFormatter = new Intl.DateTimeFormat("en-AU", {

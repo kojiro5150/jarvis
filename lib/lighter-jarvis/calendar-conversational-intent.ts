@@ -54,8 +54,11 @@ export function validateCalendarConversationalIntent(
 ): CalendarFactualQuery | null {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
   const record = raw as Record<string, unknown>;
-  if (record.kind === "unsupported") return null;
+  if (record.kind === "unsupported") {
+    return Object.keys(record).every(key => key === "kind") ? null : null;
+  }
   if (record.kind !== "next_title_match" || !hasExplicitNextCue(utterance)) return null;
+  if (Object.keys(record).some(key => key !== "kind" && key !== "terms")) return null;
   if (!Array.isArray(record.terms) || record.terms.length === 0 || record.terms.length > 6) return null;
 
   const allowed = allowedUtteranceTerms(utterance);
@@ -63,7 +66,7 @@ export function validateCalendarConversationalIntent(
   for (const value of record.terms) {
     if (typeof value !== "string") return null;
     const token = canonicalToken(value);
-    if (!token || !allowed.has(token)) return null;
+    if (!token || !allowed.has(token) || INTERPRETER_FORBIDDEN_TERMS.has(token)) return null;
     if (!terms.includes(token)) terms.push(token);
   }
   if (terms.length === 0) return null;

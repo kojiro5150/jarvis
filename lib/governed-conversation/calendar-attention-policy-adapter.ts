@@ -8,10 +8,27 @@ export const CALENDAR_START_TIME_ATTENTION_POLICY = Object.freeze({
   reasonMessage: "The commitment start time changed.",
 });
 
+export const CALENDAR_REMOVAL_ATTENTION_POLICY = Object.freeze({
+  id: "attention.commitment.removed",
+  version: "1.0.0",
+  reasonCode: "commitment.absent-from-current-snapshot",
+  reasonMessage: "The commitment was present in the previous snapshot and is absent from the current snapshot.",
+});
+
 export interface CalendarAttentionPolicyMatch {
   readonly matchId: string;
   readonly entityId: string;
   readonly changeType: "modified";
+  readonly previousObservedAt: string;
+  readonly currentObservedAt: string;
+  readonly policy: Readonly<{ readonly id: string; readonly version: string }>;
+  readonly reason: AttentionReason;
+}
+
+export interface CalendarRemovalAttentionPolicyMatch {
+  readonly matchId: string;
+  readonly entityId: string;
+  readonly changeType: "removed";
   readonly previousObservedAt: string;
   readonly currentObservedAt: string;
   readonly policy: Readonly<{ readonly id: string; readonly version: string }>;
@@ -65,5 +82,60 @@ export function selectCalendarStartTimeAttention(
   });
 
   matches.sort((left, right) => left.entityId < right.entityId ? -1 : left.entityId > right.entityId ? 1 : 0);
+  return Object.freeze(matches);
+}
+
+
+/**
+ * Applies only the accepted commitment-removal Attention Policy semantics to
+ * an already-bounded Calendar observation change set.
+ *
+ * Removal means only "present previously and absent currently". It does not
+ * mean deleted, cancelled, completed, declined or resolved.
+ *
+ * Completeness is not re-evaluated here. The comparison layer is responsible
+ * for failing closed before it can emit a removed change.
+ */
+export function selectCalendarRemovalAttention(
+  changeSet: CalendarAttentionObservationChangeSet,
+): readonly CalendarRemovalAttentionPolicyMatch[] {
+  if (!changeSet || !Array.isArray(changeSet.changes)) {
+    throw new Error("Calendar attention observation change set is required");
+  }
+
+  const matches = changeSet.changes.flatMap(change => {
+    if (change.type !== "removed") return [];
+
+    const reason: AttentionReason = Object.freeze({
+      code: CALENDAR_REMOVAL_ATTENTION_POLICY.reasonCode,
+      message: CALENDAR_REMOVAL_ATTENTION_POLICY.reasonMessage,
+      evidence: Object.freeze([
+        Object.freeze({ field: "commitment.id", value: change.id }),
+        Object.freeze({ field: "previous.startsAt", value: change.previous.startsAt }),
+      ]),
+    });
+
+    return [Object.freeze({
+      matchId: [
+        "calendar-attention",
+        encodeURIComponent(changeSet.currentObservedAt),
+        encodeURIComponent(change.id),
+        encodeURIComponent(CALENDAR_REMOVAL_ATTENTION_POLICY.id),
+        encodeURIComponent(CALENDAR_REMOVAL_ATTENTION_POLICY.version),
+      ].join(":"),
+      entityId: change.id,
+      changeType: "removed" as const,
+      previousObservedAt: changeSet.previousObservedAt,
+      currentObservedAt: changeSet.currentObservedAt,
+      policy: Object.freeze({
+        id: CALENDAR_REMOVAL_ATTENTION_POLICY.id,
+        version: CALENDAR_REMOVAL_ATTENTION_POLICY.version,
+      }),
+      reason,
+    })];
+  });
+
+  matches.sort((left, right) =>
+    left.entityId < right.entityId ? -1 : left.entityId > right.entityId ? 1 : 0);
   return Object.freeze(matches);
 }

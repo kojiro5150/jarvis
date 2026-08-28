@@ -2,6 +2,11 @@ export const CALENDAR_READ_CAPABILITY = "calendar.read" as const;
 export type ProposedCalendarReadOperation = Readonly<{
   capability: typeof CALENDAR_READ_CAPABILITY;
   window: import("./calendar-read-window").CalendarReadWindow;
+  /**
+   * Optional presentation intent retained inside the server-owned pending
+   * operation. It never grants authority or widens the Calendar read.
+   */
+  purpose?: "calendar_attention";
 }>;
 /** Retained name for the closed Calendar proposal API. */
 export type ProposedOperation = ProposedCalendarReadOperation;

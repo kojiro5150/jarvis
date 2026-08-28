@@ -25,14 +25,23 @@ const EXPLICIT_CONFIRMATION = /^(?:yes|yes,?\s+please|confirm|confirmed|proceed|
 function priorCalendarRequestIndexes(messages: readonly ChatMessage[], currentUserIndex: number): ReadonlySet<number> {
   const requestIndexes = new Set<number>();
   messages.forEach((message, releaseIndex) => {
-    if (releaseIndex >= currentUserIndex || message.role !== "assistant" || !CALENDAR_RELEASE.test(message.content)) return;
-    for (let index = releaseIndex - 1; index >= 0; index -= 1) {
-      const candidate = messages[index];
-      if (candidate.role !== "user") continue;
-      if (EXPLICIT_CONFIRMATION.test(candidate.content.trim())) continue;
-      requestIndexes.add(index);
-      break;
-    }
+    if (releaseIndex >= currentUserIndex
+      || message.role !== "assistant"
+      || !message.content.startsWith("Calendar factual result:\n")) return;
+
+    const confirmationIndex = releaseIndex - 1;
+    const promptIndex = releaseIndex - 2;
+    const requestIndex = releaseIndex - 3;
+    const confirmation = messages[confirmationIndex];
+    const prompt = messages[promptIndex];
+    const request = messages[requestIndex];
+
+    if (!confirmation || confirmation.role !== "user" || !EXPLICIT_CONFIRMATION.test(confirmation.content.trim())) return;
+    if (!prompt || prompt.role !== "assistant"
+      || prompt.content !== "Please explicitly confirm that I may read your Calendar.") return;
+    if (!request || request.role !== "user") return;
+
+    requestIndexes.add(requestIndex);
   });
   return requestIndexes;
 }

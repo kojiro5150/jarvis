@@ -69,6 +69,7 @@ describe("governed Calendar conversational intent", () => {
     "When is something connected to Governance Engineering next?",
     "When do I next have something related to JARVIS?",
     "When am I next doing work on JARVIS?",
+    "When am I next doing something on JARVIS?",
   ])("rejects relational Level-2 wording in server validation even if the model proposes literal terms: %s", (utterance) => {
     expect(validateCalendarConversationalIntent(
       utterance,

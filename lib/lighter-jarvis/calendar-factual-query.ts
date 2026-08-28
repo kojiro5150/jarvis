@@ -133,6 +133,7 @@ export function parseCalendarFactualQuery(utterance: string): CalendarFactualQue
 
   const scheduledNext = normalized.match(/^when\s+is\s+(?:my\s+|the\s+)?(.+?)\s+(?:scheduled\s+)?(?:next|again)[?!.]?$/i);
   if (scheduledNext) {
+    if (/^(?:it|he|she|they|we|you|i)\b/i.test(normalizeText(scheduledNext[1]))) return null;
     const terms = queryTerms(scheduledNext[1]);
     if (terms.length === 0) return null;
     return Object.freeze({ kind: "next_title_match", terms });
@@ -157,7 +158,8 @@ export function parseCalendarFactualQuery(utterance: string): CalendarFactualQue
 export function isUnsupportedCalendarFactualWording(utterance: string): boolean {
   if (parseCalendarFactualQuery(utterance)) return false;
   const normalized = normalizeText(utterance);
-  if (/^when\b/.test(normalized) && LEVEL_2_RELATIONAL_PATTERN.test(normalized)) return true;
+  if (/^(?:when|what|where|which|do|did|am|are|is|have|has|can)\b/.test(normalized)
+    && LEVEL_2_RELATIONAL_PATTERN.test(normalized)) return true;
   if (/^when am i\b/.test(normalized)) return true;
   if (/^when is my\b/.test(normalized)) return true;
   if (/^when do i next\b/.test(normalized)) return true;

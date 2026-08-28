@@ -179,8 +179,35 @@ describe("live governed Calendar factual query", () => {
     expect(model).not.toHaveBeenCalled();
   });
 
-  it("contains unsupported personal Calendar factual wording without a model call or Calendar acquisition", async () => {
-    const model = vi.fn(async () => "model must not run");
+  it("interprets a conversational named-event paraphrase, then preserves fresh authority and deterministic answering", async () => {
+    const model = vi.fn(async (systemPrompt: string) =>
+      systemPrompt.includes("bounded Calendar factual-intent interpreter")
+        ? '{"kind":"next_title_match","terms":["jarvis","test"]}'
+        : "ordinary model must not run");
+    const c = connector();
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => c.value,
+      clock: () => new Date("2026-08-28T09:00:00.000Z"),
+    });
+
+    const { ask, allow } = await askThenConfirm(handler, "Can you tell me when the JARVIS test is again?");
+
+    expect(ask).toMatchObject({
+      reply: "Please explicitly confirm that I may read your Calendar.",
+      calendarAuthority: { decision: "ASK" },
+      pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) },
+    });
+    expect(allow.reply).toBe("Calendar factual result:\n- JARVIS Testing — Sat, 29 Aug, 11:00 AM–12:00 PM");
+    expect(c.listBetweenWithCompleteness).toHaveBeenCalledTimes(1);
+    expect(model).toHaveBeenCalledTimes(1);
+    expect(model.mock.calls[0][0]).toContain("bounded Calendar factual-intent interpreter");
+  });
+
+  it("keeps relational Level-2 Calendar wording contained after bounded interpretation declines it", async () => {
+    const model = vi.fn(async (systemPrompt: string) =>
+      systemPrompt.includes("bounded Calendar factual-intent interpreter")
+        ? '{"kind":"unsupported"}'
+        : "ordinary model must not run");
     const c = connector();
     const handler = createLighterChatHandler(model, {
       createConnector: () => c.value,
@@ -190,42 +217,24 @@ describe("live governed Calendar factual query", () => {
       specialistId: "jarvis",
       messages: [{ role: "user", content: "When am I next doing some work on JARVIS?" }],
     }))).json();
+
     expect(response.reply).toBe(
       "I can check your Calendar for that, but I couldn't resolve the factual query safely from that wording.",
     );
     expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
-    expect(model).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(1);
+    expect(model.mock.calls[0][0]).toContain("bounded Calendar factual-intent interpreter");
   });
 
-
-
-  it("contains relational when-do-I wording before the ordinary model can manufacture Calendar authority", async () => {
-    const model = vi.fn(async () => "Please explicitly confirm that I may read your Calendar.");
-    const c = connector();
-    const handler = createLighterChatHandler(model, {
-      createConnector: () => c.value,
-      clock: () => new Date("2026-08-28T09:00:00.000Z"),
-    });
-    const response = await (await handler(request({
-      specialistId: "jarvis",
-      messages: [{ role: "user", content: "When do I next have something related to JARVIS?" }],
-    }))).json();
-    expect(response.reply).toBe(
-      "I can check your Calendar for that, but I couldn't resolve the factual query safely from that wording.",
-    );
-    expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
-    expect(model).not.toHaveBeenCalled();
-  });
-
-
-
-  it("contains unsupported when-do-I-next wording before the ordinary model can invent Calendar facts", async () => {
-    const model = vi.fn(async () => [
-      "I don't have any calendar entry for shopping in the commitments I can see.",
-      "Jarvis testing on Tuesday, 7 January at 10:00 AM",
-      "Team standup on Wednesday, 8 January at 9:00 AM",
-      "Dentist appointment on Friday, 10 January at 2:00 PM",
-    ].join("\n"));
+  it("contains unsupported when-do-I-next wording without allowing ordinary-model Calendar facts", async () => {
+    const model = vi.fn(async (systemPrompt: string) =>
+      systemPrompt.includes("bounded Calendar factual-intent interpreter")
+        ? '{"kind":"unsupported"}'
+        : [
+            "Jarvis testing on Tuesday, 7 January at 10:00 AM",
+            "Team standup on Wednesday, 8 January at 9:00 AM",
+            "Dentist appointment on Friday, 10 January at 2:00 PM",
+          ].join("\n"));
     const c = connector();
     const handler = createLighterChatHandler(model, {
       createConnector: () => c.value,
@@ -235,11 +244,13 @@ describe("live governed Calendar factual query", () => {
       specialistId: "jarvis",
       messages: [{ role: "user", content: "When do I next turn 60?" }],
     }))).json();
+
     expect(response.reply).toBe(
       "I can check your Calendar for that, but I couldn't resolve the factual query safely from that wording.",
     );
     expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
-    expect(model).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(1);
+    expect(model.mock.calls[0][0]).toContain("bounded Calendar factual-intent interpreter");
   });
 
   it("withholds factual title answers when bounded acquisition is partial", async () => {

@@ -85,7 +85,7 @@ describe("Calendar attention conversational renderer", () => {
     expect(() => renderCalendarAttentionBrief(brief({
       items: Object.freeze([Object.freeze({
         ...item,
-        policy: Object.freeze({ id: "attention.commitment.removed", version: "1.0.0" }),
+        policy: Object.freeze({ id: "attention.commitment.unsupported", version: "1.0.0" }),
       })]),
     }))).toThrow("unsupported Calendar attention brief policy");
 

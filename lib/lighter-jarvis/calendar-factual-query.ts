@@ -5,7 +5,8 @@ export type CalendarFactualQuery =
   | Readonly<{ kind: "next_events"; limit: number }>
   | Readonly<{ kind: "next_title_match"; terms: readonly string[] }>
   | Readonly<{ kind: "title_match_on_weekday"; terms: readonly string[]; weekday: CalendarWeekday }>
-  | Readonly<{ kind: "title_presence_on_weekday"; terms: readonly string[]; weekday: CalendarWeekday }>;
+  | Readonly<{ kind: "title_presence_on_weekday"; terms: readonly string[]; weekday: CalendarWeekday }>
+  | Readonly<{ kind: "title_presence_in_period"; terms: readonly string[] }>;
 
 export type CalendarWeekday = "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";
 
@@ -23,7 +24,7 @@ const weekdayFormatter = new Intl.DateTimeFormat("en-US", { timeZone: MELBOURNE_
  * Closed, hand-maintained morphology table. This is deliberately not a stemmer
  * or lemmatizer: every equivalence is explicit, reviewable and regression-testable.
  */
-const MORPHOLOGY_CANONICAL: Readonly<Record<string, string>> = Object.freeze({
+export const CALENDAR_FACTUAL_MORPHOLOGY: Readonly<Record<string, string>> = Object.freeze({
   test: "test",
   tests: "test",
   testing: "test",
@@ -33,7 +34,7 @@ const MORPHOLOGY_CANONICAL: Readonly<Record<string, string>> = Object.freeze({
   shopping: "shop",
 });
 
-const QUERY_FILLER_TOKENS = Object.freeze(new Set([
+export const CALENDAR_FACTUAL_FILLER_TOKENS = Object.freeze(new Set([
   "a", "an", "the", "my", "please", "scheduled", "schedule", "again", "next",
   "going", "go", "to", "at", "in", "on", "for",
 ]));
@@ -54,13 +55,13 @@ function normalizeText(value: string): string {
 
 function canonicalToken(token: string): string {
   const normalized = normalizeText(token);
-  return MORPHOLOGY_CANONICAL[normalized] ?? normalized;
+  return CALENDAR_FACTUAL_MORPHOLOGY[normalized] ?? normalized;
 }
 
 function queryTerms(value: string): readonly string[] {
   const normalized = normalizeText(value).split(/\s+/).filter(Boolean);
   return Object.freeze(normalized
-    .filter(token => !QUERY_FILLER_TOKENS.has(token))
+    .filter(token => !CALENDAR_FACTUAL_FILLER_TOKENS.has(token))
     .map(canonicalToken)
     .filter(Boolean));
 }
@@ -94,7 +95,7 @@ export function parseCalendarFactualQuery(utterance: string): CalendarFactualQue
     return Object.freeze({ kind: "title_match_on_weekday", terms, weekday: day });
   }
 
-  const weekdayPresence = normalized.match(/^am\s+i\s+(?:at|in|on)\s+(.+?)\s+on\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)[?!.]?$/i);
+  const weekdayPresence = normalized.match(/^am\s+i\s+(?:(?:at|in|on)\s+)?(.+?)(?:\s+on)?\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)[?!.]?$/i);
   if (weekdayPresence) {
     const terms = queryTerms(weekdayPresence[1]);
     const day = weekday(weekdayPresence[2]);
@@ -102,10 +103,17 @@ export function parseCalendarFactualQuery(utterance: string): CalendarFactualQue
     return Object.freeze({ kind: "title_presence_on_weekday", terms, weekday: day });
   }
 
-  const nextNamedMeeting = normalized.match(/^when\s+is\s+(?:my\s+)?next\s+(.+?)\s+meeting[?!.]?$/i);
-  if (nextNamedMeeting) {
-    const terms = Object.freeze([...queryTerms(nextNamedMeeting[1]), canonicalToken("meeting")]);
-    if (terms.length <= 1) return null;
+  const periodPresence = normalized.match(/^do\s+i\s+have\s+(.+?)\s+(?:on|in)\s+(today|tomorrow|this\s+week|next\s+week)[?!.]?$/i);
+  if (periodPresence) {
+    const terms = queryTerms(periodPresence[1]);
+    if (terms.length === 0) return null;
+    return Object.freeze({ kind: "title_presence_in_period", terms });
+  }
+
+  const nextNamed = normalized.match(/^when(?:'s|\s+is)\s+(?:my\s+)?next\s+(.+?)[?!.]?$/i);
+  if (nextNamed) {
+    const terms = queryTerms(nextNamed[1]);
+    if (terms.length === 0) return null;
     return Object.freeze({ kind: "next_title_match", terms });
   }
 

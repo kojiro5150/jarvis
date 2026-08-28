@@ -147,7 +147,9 @@ export function isUnsupportedCalendarFactualWording(utterance: string): boolean 
   if (/^when is my\b/.test(normalized)) return true;
   if (/^am i (?:at|in|on)\b.*\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/.test(normalized)) return true;
   if (/^what time is (?:my|the)\b.*\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/.test(normalized)) return true;
-  if (/\bmeetings?\b/.test(normalized) && /\b(?:today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|this week|next week)\b/.test(normalized)) return true;
+  if (/^(?:what|when|where|which|do|did|am|are|is|have|has|can)\b/.test(normalized)
+    && /\bmeetings?\b/.test(normalized)
+    && /\b(?:today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|this week|next week)\b/.test(normalized)) return true;
   return false;
 }
 

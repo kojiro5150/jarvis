@@ -1782,7 +1782,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     }))).json();
 
     expect(firstAllow).toMatchObject({
-      reply: "I have established a bounded Calendar baseline for today. A later authorised check can compare against it for start-time changes.",
+      reply: "I have established a bounded Calendar baseline for today. A later authorised check can compare against it for supported attention changes.",
       calendarAuthority: { decision: "ALLOW", reason: "pending_authorization_confirmed" },
       calendarAttentionObservationReference: {
         calendarAttentionObservationReferenceId: expect.any(String),

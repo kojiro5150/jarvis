@@ -127,6 +127,8 @@ describe("deterministic Calendar factual query", () => {
     expect(isUnsupportedCalendarFactualWording("When am I next doing some work on JARVIS?")).toBe(true);
     expect(isUnsupportedCalendarFactualWording("What meetings next week relate to governance work?")).toBe(true);
     expect(isUnsupportedCalendarFactualWording("When do I next have something related to JARVIS?")).toBe(true);
+    expect(isUnsupportedCalendarFactualWording("When am I next doing something on JARVIS?")).toBe(true);
+    expect(isUnsupportedCalendarFactualWording("What am I next doing something about JARVIS?")).toBe(true);
     expect(isUnsupportedCalendarFactualWording("When is something connected to Governance Engineering next?")).toBe(true);
     expect(isUnsupportedCalendarFactualWording("What am I next doing work on JARVIS.")).toBe(true);
     expect(isUnsupportedCalendarFactualWording("When do I next turn 60?")).toBe(true);

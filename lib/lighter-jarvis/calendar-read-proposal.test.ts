@@ -122,6 +122,7 @@ describe("calendar.read proposal boundary", () => {
 
   it.each([
     ["What are my next 5 meetings?", { kind: "next_events", limit: 5 }],
+    ["What are my next five meetings?", { kind: "next_events", limit: 5 }],
     ["When is my next LLEGC meeting?", { kind: "next_title_match", terms: ["llegc", "meeting"] }],
     ["What time is the interview on Tuesday?", { kind: "title_match_on_weekday", terms: ["interview"], weekday: "tuesday" }],
   ] as const)("proposes a bounded factual Calendar query without granting authority: %s", (utterance, factualQuery) => {

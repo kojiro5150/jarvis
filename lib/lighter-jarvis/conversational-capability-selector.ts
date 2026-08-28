@@ -22,11 +22,15 @@ const SELECTOR_PROMPT = [
   "This selection is not authorization and must never answer the user's question.",
 ].join("\n");
 
-const CAPABILITY_SELECTION_SIGNAL =
-  /\b(?:weather|rain|forecast|temperature|calendar|schedule|meeting|gmail|email|emails|inbox|drive|document|file)\b/i;
+const PUBLIC_INFORMATION_SIGNAL = /\b(?:weather|rain|forecast|temperature)\b/i;
+const GMAIL_SIGNAL = /\b(?:gmail|email|emails|inbox)\b/i;
+const DRIVE_SIGNAL = /\bdrive\b/i;
 
 export function isConversationalCapabilitySelectionCandidate(utterance: string): boolean {
-  return CAPABILITY_SELECTION_SIGNAL.test(utterance.normalize("NFKC"));
+  const normalized = utterance.normalize("NFKC");
+  return PUBLIC_INFORMATION_SIGNAL.test(normalized)
+    || GMAIL_SIGNAL.test(normalized)
+    || DRIVE_SIGNAL.test(normalized);
 }
 
 function parseModelJson(text: string): unknown {

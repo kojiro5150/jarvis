@@ -38,6 +38,22 @@ describe("publishGovernedWeeklyCalendarAllocation", () => {
     expect(reconciled).toBe(publication!.totalTimedMinutes);
   });
 
+  it("publishes a complete next-week allocation under the same truth gates", () => {
+    const publication = publishGovernedWeeklyCalendarAllocation({
+      allocation,
+      period: "next_week",
+      coverageState: "bounded_complete_request",
+      observedAt: "2026-08-28T07:30:00.000Z",
+    });
+
+    expect(publication).toMatchObject({
+      publicationType: "calendar_weekly_time_allocation",
+      period: "next_week",
+      coverageState: "bounded_complete_request",
+      totalTimedMinutes: 420,
+    });
+  });
+
   it("withholds publication for partial weekly coverage", () => {
     expect(publishGovernedWeeklyCalendarAllocation({
       allocation,

@@ -365,6 +365,88 @@ This classification discipline is intended to catch the exact category of drift 
 The standard response to such findings is to tighten the boundary, not argue around it.
 
 
+## JARVIS Eight-Question Review — Personal Training Discipline
+
+JARVIS is also the environment in which its design discipline is practised. The capability-level map asks what kind of capability is being built. The Eight-Question Review asks whether the problem, interaction, trust basis, verification method, dissent, institutional implications and authority model are sound.
+
+For every meaningful JARVIS decision, ask:
+
+### Nadler — Problem
+
+> **What human cognitive burden are we removing?**
+
+This prevents technically interesting work from becoming an end in itself. A feature should be able to name the human burden it reduces.
+
+### Anandkumar — First principles
+
+> **What must remain true regardless of implementation?**
+
+This forces invariants before code and prevents implementation convenience from redefining the architecture.
+
+### Truell / Pichai — Product
+
+> **What is the simplest possible human interaction?**
+
+The target remains natural human intent, not requiring the user to learn the system's grammar, routing or internal capability names.
+
+### Ibrahim — Trust
+
+> **What would make a reasonable person trust this behaviour?**
+
+Trust must have an observable basis: evidence, provenance, bounded authority, truthful uncertainty and behaviour that can be independently checked.
+
+### Raman — Verification
+
+> **How could we prove that claim false?**
+
+Every meaningful claim should admit a falsification or regression test. "Works as designed" is insufficient unless the claim can be challenged.
+
+### Pineau — Dissent
+
+> **What is the strongest argument against this design?**
+
+The review must actively seek the best counter-case rather than treating architectural momentum as evidence.
+
+### Bogdan-Martin — Institution
+
+> **What happens if millions of systems eventually behave this way?**
+
+Local convenience can establish a dangerous general precedent. Consider the institutional and societal effect of normalising the behaviour at scale.
+
+### Sam — Authority
+
+> **Where does legitimate authority come from, and can JARVIS ever manufacture it?**
+
+This remains the constitutional question underneath the entire system. Model fluency, task summaries, private evidence, inferred intent, specialist routing or successful past execution can never manufacture authority.
+
+### Relationship to Know / Understand / Advise / Act
+
+These frameworks answer different questions:
+
+- **Eight Questions:** *Should we build it this way?*
+- **Know / Understand / Advise / Act:** *What capability boundary are we actually crossing?*
+
+Both should be applied before implementation.
+
+### Anti-overengineering rule
+
+> **Do not force all eight questions to produce work. Their job is to expose what matters, not manufacture complexity.**
+
+A question may confirm that no additional mechanism is required. "No new work needed" is a valid outcome.
+
+### Review use
+
+The Eight-Question Review should be used for:
+- new sprint contracts;
+- meaningful architecture changes;
+- new authority or evidence boundaries;
+- new private semantic exposure;
+- recommendation or action capabilities;
+- appealing UX examples that may conceal a higher capability level.
+
+It need not be mechanically applied to trivial implementation details or maintenance changes where the governing contract is already settled.
+
+
 ## What Not To Do
 
 Consistent with the discipline established across this session:

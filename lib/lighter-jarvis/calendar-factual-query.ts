@@ -83,19 +83,16 @@ export function selectCalendarFactualQuery(input: {
   if (input.query.kind === "next_events") {
     const limit = Number.isInteger(input.query.limit) && input.query.limit > 0 && input.query.limit <= 5
       ? input.query.limit : 0;
-    if (limit === 0) return Object.freeze({ kind: namedQuery.kind, status: "not_found", events: Object.freeze([]) });
+    if (limit === 0) return Object.freeze({ kind: input.query.kind, status: "not_found", events: Object.freeze([]) });
     const selected = future.slice(0, limit);
     return Object.freeze({
-      kind: namedQuery.kind,
+      kind: input.query.kind,
       status: selected.length > 0 ? "matched" : "not_found",
       events: Object.freeze(selected),
     });
   }
 
   const namedQuery = input.query;
-  if (namedQuery.kind === "next_events") {
-    return Object.freeze({ kind: namedQuery.kind, status: "not_found", events: Object.freeze([]) });
-  }
 
   const matches = future.filter(event => titleMatches(event, namedQuery.terms))
     .filter(event => namedQuery.kind !== "title_match_on_weekday" || weekdayOf(event.start) === namedQuery.weekday);

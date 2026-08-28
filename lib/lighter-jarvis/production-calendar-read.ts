@@ -27,16 +27,17 @@ export type ProductionCalendarReadResult = Readonly<{
   pendingAuthorizationReference: PendingAuthorizationReference | null;
   authorityEvidence: readonly unknown[];
   window: import("./calendar-read-window").CalendarReadWindow | null;
-  purpose: "calendar_attention" | "calendar_weekly_allocation" | null;
+  purpose: "calendar_attention" | "calendar_weekly_allocation" | "calendar_factual_query" | null;
 }>;
 
 const CALENDAR_DEFAULT_REQUESTED_LIMIT = 5;
 const CALENDAR_WEEKLY_ALLOCATION_REQUESTED_LIMIT = 100;
+const CALENDAR_FACTUAL_QUERY_REQUESTED_LIMIT = 100;
 
 function requestedLimitFor(operation: import("./calendar-read-authority").ProposedCalendarReadOperation): number {
-  return operation.purpose === "calendar_weekly_allocation"
-    ? CALENDAR_WEEKLY_ALLOCATION_REQUESTED_LIMIT
-    : CALENDAR_DEFAULT_REQUESTED_LIMIT;
+  if (operation.purpose === "calendar_weekly_allocation") return CALENDAR_WEEKLY_ALLOCATION_REQUESTED_LIMIT;
+  if (operation.purpose === "calendar_factual_query") return CALENDAR_FACTUAL_QUERY_REQUESTED_LIMIT;
+  return CALENDAR_DEFAULT_REQUESTED_LIMIT;
 }
 
 const defaults: ProductionCalendarDependencies = {

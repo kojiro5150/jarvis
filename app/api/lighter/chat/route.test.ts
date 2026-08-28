@@ -954,10 +954,10 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
   it.each([
     ["Show my calendar Monday", "I don't have access to your calendar.", "The governed Calendar path supports calendar.read, but it does not support this request."],
     ["What Calendar capabilities do you have?", "That capability does not exist.", "The governed Calendar path supports calendar.read, but it does not support this request."],
-    ["Show me my emails", "I don't have access to Gmail.", "The governed Gmail path supports gmail.search and identified-message gmail.read, but it does not support this request."],
-    ["Check my Gmail", "Gmail is not connected.", "The governed Gmail path supports gmail.search and identified-message gmail.read, but it does not support this request."],
-    ["Read my latest email", "I cannot read email.", "The governed Gmail path supports gmail.search and identified-message gmail.read, but it does not support this request."],
-    ["Get my inbox", "I don't have that capability.", "The governed Gmail path supports gmail.search and identified-message gmail.read, but it does not support this request."],
+    ["Show me my emails", "I don't have access to Gmail.", "I recognized that as a Gmail request, but natural-language handoff to the governed Gmail authority path is not yet available."],
+    ["Check my Gmail", "Gmail is not connected.", "I recognized that as a Gmail request, but natural-language handoff to the governed Gmail authority path is not yet available."],
+    ["Read my latest email", "I cannot read email.", "I recognized that as a Gmail request, but natural-language handoff to the governed Gmail authority path is not yet available."],
+    ["Get my inbox", "I don't have that capability.", "I recognized that as a Gmail request, but natural-language handoff to the governed Gmail authority path is not yet available."],
   ])("corrects unsupported private request capability representation without acquiring: %s", async (utterance, modelReply, expected) => {
     const model = vi.fn(async () => modelReply);
     const calendarConnector = vi.fn();
@@ -1453,8 +1453,8 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     )(request({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }));
 
     const body = await response.json();
-    expect(body.reply).toBe("That request cannot be handled through a specialist handoff.");
-    expect(body.reply).not.toMatch(/DAWNWATCH|Calendar|Gmail|email|inbox|access/i);
+    expect(body.reply).toBe("I recognized that as a Gmail request, but natural-language handoff to the governed Gmail authority path is not yet available.");
+    expect(body.reply).not.toMatch(/DAWNWATCH/i);
     expect(body).not.toHaveProperty("routeTo");
     expect(body).not.toHaveProperty("pendingAuthorizationReference");
     expect(calendarConnector).not.toHaveBeenCalled();
@@ -1467,7 +1467,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     "Show me my emails",
     "Read my latest email",
     "Get my inbox",
-  ])("blocks a model-generated Gmail acquisition handoff without creating authority or running connectors: %s", async (utterance) => {
+  ])("stops explicit Gmail wording at typed capability selection without authority or connectors: %s", async (utterance) => {
     const calendarConnector = vi.fn();
     const gmailReadConnector = vi.fn();
     const gmailSearchConnector = vi.fn();
@@ -1498,7 +1498,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     ))(request({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }));
 
     expect(await response.json()).toEqual({
-      reply: "That request cannot be handled through a specialist handoff.",
+      reply: "I recognized that as a Drive request, but natural-language handoff to the governed Drive authority path is not yet available.",
       specialistId: "jarvis",
       execution: "none",
     });
@@ -1509,7 +1509,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     "Open Google Drive",
     "Search through my Drive for something similar to Atlas",
     "What did my Drive return?",
-  ])("blocks a model-generated Drive acquisition handoff from the raw utterance: %s", async utterance => {
+  ])("stops explicit Drive wording at typed capability selection without specialist handoff: %s", async utterance => {
     const response = await createLighterChatHandler(async () => handoffResult(
       "dawnwatch", "I'll hand this to DAWNWATCH.", "Review the private Drive request.",
     ))(request({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }));

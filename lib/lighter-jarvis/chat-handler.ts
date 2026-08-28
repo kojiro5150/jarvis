@@ -16,6 +16,7 @@ import { resolveProductionDriveRead, type ProductionDriveReadDependencies } from
 import { bindUserCalendarDetails, projectCalendarContext, type CalendarBindingState } from "@/lib/lighter-jarvis/calendar-governed-context";
 import { createGovernedContext, type GovernedContext } from "@/lib/lighter-jarvis/governed-context";
 import { calendarRecallDiagnostics, displayCalendarClock, normalizedCalendarClock } from "@/lib/lighter-jarvis/calendar-provenance-truthfulness";
+import { resolveLiveCalendarAttention } from "@/lib/lighter-jarvis/live-calendar-attention";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -23,6 +24,7 @@ interface LighterChatBody {
   relaySpecialistReply?: RelaySpecialistReply;
   marketScopes?: unknown;
   pendingAuthorizationReference?: unknown;
+  calendarAttentionObservationReference?: unknown;
 }
 type ModelCall = (
   systemPrompt: string,
@@ -313,6 +315,37 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
     if (calendar?.decision === "ALLOW") {
       const fallback = formatCalendarReadResponse(calendar.evidence!, calendar.window ?? undefined);
+
+      if (calendar.purpose === "calendar_attention") {
+        if (calendar.evidence!.status !== "available" || !calendar.window) {
+          return NextResponse.json({ reply: fallback, specialistId: specialist.id, execution: "none",
+            calendarAuthority: { decision: "ALLOW", reason: calendar.reason } });
+        }
+        try {
+          const attention = resolveLiveCalendarAttention({
+            evidence: calendar.evidence!,
+            window: calendar.window,
+            ...(Object.hasOwn(body, "calendarAttentionObservationReference")
+              ? { previousObservationReference: body.calendarAttentionObservationReference }
+              : {}),
+          });
+          return NextResponse.json({
+            reply: attention.reply,
+            specialistId: specialist.id,
+            execution: "none",
+            calendarAuthority: { decision: "ALLOW", reason: calendar.reason },
+            calendarAttentionObservationReference: attention.calendarAttentionObservationReference,
+          });
+        } catch (error) {
+          console.error("[/api/lighter/chat] Calendar attention comparison failed:", error);
+          return NextResponse.json({
+            reply: "I couldn't safely compare this Calendar observation with the previous bounded baseline.",
+            specialistId: specialist.id,
+            execution: "none",
+            calendarAuthority: { decision: "ALLOW", reason: calendar.reason },
+          });
+        }
+      }
       if (calendar.evidence!.status !== "available" || !calendar.window) {
         return NextResponse.json({ reply: fallback, specialistId: specialist.id, execution: "none",
           calendarAuthority: { decision: "ALLOW", reason: calendar.reason } });

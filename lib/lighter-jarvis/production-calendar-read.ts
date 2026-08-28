@@ -30,6 +30,15 @@ export type ProductionCalendarReadResult = Readonly<{
   purpose: "calendar_attention" | "calendar_weekly_allocation" | null;
 }>;
 
+const CALENDAR_DEFAULT_REQUESTED_LIMIT = 5;
+const CALENDAR_WEEKLY_ALLOCATION_REQUESTED_LIMIT = 100;
+
+function requestedLimitFor(operation: import("./calendar-read-authority").ProposedCalendarReadOperation): number {
+  return operation.purpose === "calendar_weekly_allocation"
+    ? CALENDAR_WEEKLY_ALLOCATION_REQUESTED_LIMIT
+    : CALENDAR_DEFAULT_REQUESTED_LIMIT;
+}
+
 const defaults: ProductionCalendarDependencies = {
   createConnector: () => getCalendarConnector() as unknown as ScopedCalendarAcquisitionPort,
   clock: () => new Date(),
@@ -49,7 +58,7 @@ export async function resolveProductionCalendarRead(input: {
     const acquired = await acquirePendingAuthorizedCalendarEvidence({
       ...input,
       acquisition: (operation) => ({ connector: dependencies.createConnector(), clock: dependencies.clock,
-        requestedLimit: 5, horizonDays: 7, window: operation.window }),
+        requestedLimit: requestedLimitFor(operation), horizonDays: 7, window: operation.window }),
     });
     const resolution = acquired.authority;
     const operation = resolution.proposedOperation?.capability === "calendar.read" ? resolution.proposedOperation : null;
@@ -86,7 +95,7 @@ export async function resolveProductionCalendarRead(input: {
     const acquired = await acquireAuthorizedCalendarEvidence({
       authority: { proposedOperation, currentUserUtterance: input.currentUserUtterance },
       acquisition: { connector: dependencies.createConnector(), clock: dependencies.clock,
-        requestedLimit: 5, horizonDays: 7, window: proposedOperation.window },
+        requestedLimit: requestedLimitFor(proposedOperation), horizonDays: 7, window: proposedOperation.window },
     });
     return Object.freeze({ handled: true, decision: "ALLOW", reason: acquired.authority.reason,
       evidence: acquired.evidence, pendingAuthorizationReference: null,

@@ -19,6 +19,7 @@ import { calendarRecallDiagnostics, displayCalendarClock, normalizedCalendarCloc
 import { resolveLiveCalendarAttention } from "@/lib/lighter-jarvis/live-calendar-attention";
 import { renderGovernedWeeklyCalendarAllocation } from "@/lib/lighter-jarvis/calendar-weekly-allocation-renderer";
 import {
+  isUnsupportedCalendarFactualWording,
   renderCalendarFactualSelection,
   selectCalendarFactualQuery,
 } from "@/lib/lighter-jarvis/calendar-factual-query";
@@ -439,6 +440,16 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         specialistId: specialist.id,
         execution: "none",
         calendarAuthority: { decision: "ALLOW", reason: calendar.reason },
+      });
+    }
+    if (specialist.id === "jarvis"
+      && !body.relaySpecialistReply
+      && currentUserUtterance !== undefined
+      && isUnsupportedCalendarFactualWording(currentUserUtterance)) {
+      return NextResponse.json({
+        reply: "I can check your Calendar for that, but I couldn't resolve the factual query safely from that wording.",
+        specialistId: specialist.id,
+        execution: "none",
       });
     }
     if (!areValidMessages(body.messages)) {

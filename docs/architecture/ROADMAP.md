@@ -127,7 +127,7 @@ live deterministic JARVIS reply
 
 The next deliberate question is whether the same attention path may truthfully expand to Calendar **membership changes** such as additions/removals.
 
-Sprint 3.161 audited the missing Calendar membership-completeness seam; Sprint 3.162 governed it; Sprint 3.163 implemented it in production; Sprint 3.164 selected **removed** as the only membership change currently ready for attention semantics. Sprint 3.165 now implements that removal policy as an isolated deterministic adapter, preserving the accepted EOS policy identity and snapshot-absence meaning without inventing status or cause. The live conversational path remains unchanged. The next deliberate step is Sprint 3.166 — audit whether the existing Calendar Attention Brief and renderer can safely admit removal matches before any live wiring.
+Sprint 3.161 audited the missing Calendar membership-completeness seam; Sprint 3.162 governed it; Sprint 3.163 implemented it in production; Sprint 3.164 selected **removed** as the only membership change currently ready for attention semantics; Sprint 3.165 implemented that removal policy as an isolated deterministic adapter. Sprint 3.166 now audits publication readiness and finds that the existing `calendar_attention_brief` artefact is already semantically general enough for removal, but its TypeScript contract is still narrowed to the original start-time match. The renderer remains intentionally start-time-specific and must stay fail-closed. The next step is Sprint 3.167 — widen only the brief publication contract to a closed start-time-or-removal policy-match union, with no renderer or live wiring changes.
 
 ---
 

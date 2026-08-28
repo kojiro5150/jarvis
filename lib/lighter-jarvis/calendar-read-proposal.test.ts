@@ -125,6 +125,10 @@ describe("calendar.read proposal boundary", () => {
     ["What are my next five meetings?", { kind: "next_events", limit: 5 }],
     ["When is my next LLEGC meeting?", { kind: "next_title_match", terms: ["llegc", "meeting"] }],
     ["What time is the interview on Tuesday?", { kind: "title_match_on_weekday", terms: ["interview"], weekday: "tuesday" }],
+    ["When is JARVIS Testing scheduled next?", { kind: "next_title_match", terms: ["jarvis", "test"] }],
+    ["When am I going shopping?", { kind: "next_title_match", terms: ["shop"] }],
+    ["When am I testing JARVIS again?", { kind: "next_title_match", terms: ["test", "jarvis"] }],
+    ["Am I at Barwon Health on Monday?", { kind: "title_presence_on_weekday", terms: ["barwon", "health"], weekday: "monday" }],
   ] as const)("proposes a bounded factual Calendar query without granting authority: %s", (utterance, factualQuery) => {
     const clock = () => new Date("2026-08-28T09:00:00.000Z");
     const proposedOperation = proposeCalendarRead(utterance, clock);
@@ -143,6 +147,13 @@ describe("calendar.read proposal boundary", () => {
       proposedOperation: proposedOperation!,
       currentUserUtterance: utterance,
     })).toMatchObject({ decision: "ASK", authorityEvidence: [] });
+  });
+
+  it.each([
+    "When am I next doing some work on JARVIS?",
+    "What meetings next week relate to governance work?",
+  ])("does not manufacture a Calendar operation for deferred Level-2 wording: %s", (utterance) => {
+    expect(proposeCalendarRead(utterance)).toBeNull();
   });
 
   it("proposes 'What needs my attention?' as a bounded today Calendar read without granting authority", () => {

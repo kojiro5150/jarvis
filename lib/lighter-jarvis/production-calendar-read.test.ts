@@ -135,6 +135,32 @@ describe("production calendar.read authority ordering", () => {
     });
   });
 
+  it("retains weekly allocation purpose through pending confirmation", async () => {
+    const deps = dependencies();
+    const pending = await resolveProductionCalendarRead({
+      currentUserUtterance: "How is my week allocated?",
+    }, deps.value);
+
+    expect(pending).toMatchObject({
+      decision: "ASK",
+      purpose: "calendar_weekly_allocation",
+      window: { period: "this_week" },
+      pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) },
+    });
+    expect(deps.createConnector).not.toHaveBeenCalled();
+
+    const confirmed = await resolveProductionCalendarRead({
+      currentUserUtterance: "Yes",
+      pendingAuthorizationReference: pending.pendingAuthorizationReference,
+    }, deps.value);
+
+    expect(confirmed).toMatchObject({
+      decision: "ALLOW",
+      purpose: "calendar_weekly_allocation",
+      window: { period: "this_week" },
+    });
+  });
+
   it("leaves bare confirmation outside the Calendar authority flow", async () => {
     const deps = dependencies();
     expect(await resolveProductionCalendarRead({ currentUserUtterance: "yes" }, deps.value))

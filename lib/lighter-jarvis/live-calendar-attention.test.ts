@@ -16,21 +16,27 @@ const window: CalendarReadWindow = Object.freeze({
 });
 
 const coverageLimit = "window=2026-08-27T14:00:00.000Z/2026-08-28T14:00:00.000Z;max_events=5;scope=visible_non_hidden_calendars;completeness=bounded";
+const completeCoverageLimit = "window=2026-08-27T14:00:00.000Z/2026-08-28T14:00:00.000Z;max_events=5;scope=visible_non_hidden_calendars;completeness=bounded_complete_request";
 
-const evidence = (observedAt: string, startsAt: string): GovernedCalendarEvidenceInput => Object.freeze({
-  commitmentReference: "google-calendar:calendar:primary:event:evt-1",
+const evidence = (
+  observedAt: string,
+  startsAt: string,
+  id = "evt-1",
+  itemCoverageLimit = coverageLimit,
+): GovernedCalendarEvidenceInput => Object.freeze({
+  commitmentReference: `google-calendar:calendar:primary:event:${id}`,
   sourceReference: Object.freeze({
     sourceId: "google-calendar",
-    resourceId: "calendar:primary:event:evt-1",
+    resourceId: `calendar:primary:event:${id}`,
     field: "schedule_interval",
     observedAt,
   }),
   start: startsAt,
   end: "2026-08-28T02:00:00.000Z",
   timezone: "Z",
-  provenanceReference: "google-calendar:calendar:primary:event:evt-1#provenance",
+  provenanceReference: `google-calendar:calendar:primary:event:${id}#provenance`,
   available: true,
-  coverageLimit,
+  coverageLimit: itemCoverageLimit,
   policyReference: "governed-calendar-conversational-metadata-disclosure.v1",
 });
 
@@ -45,7 +51,7 @@ describe("live Calendar attention composition", () => {
 
     expect(result).toMatchObject({
       baselineEstablished: true,
-      reply: "I have established a bounded Calendar baseline for today. A later authorised check can compare against it for start-time changes.",
+      reply: "I have established a bounded Calendar baseline for today. A later authorised check can compare against it for supported attention changes.",
       calendarAttentionObservationReference: {
         calendarAttentionObservationReferenceId: expect.any(String),
       },
@@ -81,6 +87,113 @@ describe("live Calendar attention composition", () => {
     );
     expect(result.calendarAttentionObservationReference.calendarAttentionObservationReferenceId)
       .not.toBe(reference.calendarAttentionObservationReferenceId);
+  });
+
+  it("renders a bounded removal after two complete authorised Calendar observations", () => {
+    const previousSet = projectGovernedCalendarAttentionObservationSet({
+      sourceId: "google-calendar",
+      available: true,
+      observedAt: "2026-08-28T00:00:00.000Z",
+      windowStart: window.start,
+      windowEnd: window.end,
+      requestedLimit: 5,
+      coverageState: "bounded_complete_request",
+      coverageLimit: completeCoverageLimit,
+      policyReference: "governed-calendar-conversational-metadata-disclosure.v1",
+      evidence: [evidence(
+        "2026-08-28T00:00:00.000Z",
+        "2026-08-28T01:00:00.000Z",
+        "evt-1",
+        completeCoverageLimit,
+      )],
+    });
+    const reference = createCalendarAttentionObservationReference(previousSet);
+
+    const result = resolveLiveCalendarAttention({
+      evidence: Object.freeze({
+        ...sourceResult("available", [], {
+          observedAt: "2026-08-28T01:00:00.000Z",
+        }),
+        coverageState: "bounded_complete_request" as const,
+      }),
+      window,
+      previousObservationReference: reference,
+    });
+
+    expect(result.baselineEstablished).toBe(false);
+    expect(result.reply).toBe(
+      "A Calendar commitment previously scheduled for 2026-08-28T01:00:00.000Z is no longer present in this bounded Calendar window.",
+    );
+    for (const forbidden of ["cancelled", "deleted", "completed", "declined", "resolved"]) {
+      expect(result.reply.toLowerCase()).not.toContain(forbidden);
+    }
+  });
+
+  it("renders mixed start-time and removal attention after complete authorised observations", () => {
+    const previousSet = projectGovernedCalendarAttentionObservationSet({
+      sourceId: "google-calendar",
+      available: true,
+      observedAt: "2026-08-28T00:00:00.000Z",
+      windowStart: window.start,
+      windowEnd: window.end,
+      requestedLimit: 5,
+      coverageState: "bounded_complete_request",
+      coverageLimit: completeCoverageLimit,
+      policyReference: "governed-calendar-conversational-metadata-disclosure.v1",
+      evidence: [
+        evidence("2026-08-28T00:00:00.000Z", "2026-08-28T01:00:00.000Z", "evt-1", completeCoverageLimit),
+        evidence("2026-08-28T00:00:00.000Z", "2026-08-28T03:00:00.000Z", "evt-2", completeCoverageLimit),
+      ],
+    });
+    const reference = createCalendarAttentionObservationReference(previousSet);
+
+    const result = resolveLiveCalendarAttention({
+      evidence: Object.freeze({
+        ...sourceResult("available", [
+          evidence("2026-08-28T01:00:00.000Z", "2026-08-28T01:30:00.000Z", "evt-1", completeCoverageLimit),
+        ], {
+          observedAt: "2026-08-28T01:00:00.000Z",
+        }),
+        coverageState: "bounded_complete_request" as const,
+      }),
+      window,
+      previousObservationReference: reference,
+    });
+
+    expect(result.reply).toBe([
+      "2 Calendar attention changes matched this bounded check:",
+      "- changed start time from 2026-08-28T01:00:00.000Z to 2026-08-28T01:30:00.000Z.",
+      "- previously scheduled for 2026-08-28T03:00:00.000Z is no longer present in this bounded Calendar window.",
+    ].join("\n"));
+  });
+
+  it("fails closed on membership disappearance when current coverage is not complete", () => {
+    const previousSet = projectGovernedCalendarAttentionObservationSet({
+      sourceId: "google-calendar",
+      available: true,
+      observedAt: "2026-08-28T00:00:00.000Z",
+      windowStart: window.start,
+      windowEnd: window.end,
+      requestedLimit: 5,
+      coverageState: "bounded_complete_request",
+      coverageLimit: completeCoverageLimit,
+      policyReference: "governed-calendar-conversational-metadata-disclosure.v1",
+      evidence: [evidence(
+        "2026-08-28T00:00:00.000Z",
+        "2026-08-28T01:00:00.000Z",
+        "evt-1",
+        completeCoverageLimit,
+      )],
+    });
+    const reference = createCalendarAttentionObservationReference(previousSet);
+
+    expect(() => resolveLiveCalendarAttention({
+      evidence: sourceResult("available", [], {
+        observedAt: "2026-08-28T01:00:00.000Z",
+      }),
+      window,
+      previousObservationReference: reference,
+    })).toThrow("membership comparison requires bounded_complete_request coverage");
   });
 
   it("renders a bounded zero-match answer rather than inventing priority or action", () => {

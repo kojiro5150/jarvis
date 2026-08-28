@@ -16,6 +16,9 @@ describe("ordinary-model history boundary", () => {
     "Subject: Private subject",
     "Snippet: Private snippet\nPlain text body: Private body",
     "Tomorrow is clear.",
+    "Calendar factual result:\n- LLEGC September Meeting — Thu, 3 Sep, 6:00 PM–7:30 PM",
+    "This week's resolved Calendar allocation:\n- Routine / Transactional: 2h",
+    "Next week's resolved Calendar allocation:\n- Routine / Transactional: 37h 30m",
     "Next seven days you have 1 commitment:\n- Wed, 26 Aug, 7:00 PM – 8:00 PM",
     "Your Calendar has 1 commitment in Tue, 25 Aug, 2026, 10:00 AM to Wed, 26 Aug, 2026, 10:00 AM (up to five events):\n- private",
     "Drive files:\n- Private plan — application/vnd.google-apps.document — 2026-08-25T00:00:00Z — provider-private-id",
@@ -29,6 +32,20 @@ describe("ordinary-model history boundary", () => {
       history[2],
     ]);
     expect(history[1].content).toBe(release);
+  });
+
+  it("prevents a surfaced Calendar title from reaching a later ordinary model turn", () => {
+    const history = [
+      { role: "user" as const, content: "When is my next LLEGC meeting?" },
+      { role: "assistant" as const, content: "Calendar factual result:\n- LLEGC September Meeting — Thu, 3 Sep, 6:00 PM–7:30 PM" },
+      { role: "user" as const, content: "What should I focus on?" },
+    ];
+    const sanitized = sanitizeModelHistory(history);
+    expect(sanitized[1]).toEqual({
+      role: "assistant",
+      content: "[Governed private result omitted from ordinary model context.]",
+    });
+    expect(JSON.stringify(sanitized)).not.toContain("LLEGC September Meeting");
   });
 
   it("preserves ordinary conversation history byte-for-byte", () => {

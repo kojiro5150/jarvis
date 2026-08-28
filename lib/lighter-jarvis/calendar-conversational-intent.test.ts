@@ -86,12 +86,13 @@ describe("governed Calendar conversational intent", () => {
     expect(model).toHaveBeenCalledTimes(1);
   });
 
-  it("lets non-Calendar conversational questions remain ordinary-model eligible when interpretation says unsupported", async () => {
-    const model = vi.fn(async () => '{"kind":"unsupported"}');
-    expect(isCalendarConversationalIntentCandidate("When will it rain again?")).toBe(true);
+  it("keeps non-schedule when-again questions outside Calendar interpretation entirely", async () => {
+    const model = vi.fn(async () => '{"kind":"next_title_match","terms":["rain"]}');
+    expect(isCalendarConversationalIntentCandidate("When will it rain again?")).toBe(false);
     expect(await interpretCalendarConversationalIntent({
       utterance: "When will it rain again?",
       callModel: model,
     })).toBeNull();
+    expect(model).not.toHaveBeenCalled();
   });
 });

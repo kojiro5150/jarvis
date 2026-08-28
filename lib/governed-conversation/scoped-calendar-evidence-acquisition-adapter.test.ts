@@ -108,6 +108,89 @@ describe("scoped Calendar completeness mapping", () => {
     });
   });
 
+
+  it("publishes allocation only for a complete this-week acquisition", async () => {
+    const weeklyWindow: CalendarReadWindow = Object.freeze({
+      start: "2026-08-24T00:00:00.000Z",
+      end: "2026-08-31T00:00:00.000Z",
+      timeZone: "Australia/Melbourne",
+      period: "this_week",
+    });
+    const routine: CalendarEvent = {
+      ...event,
+      id: "routine",
+      start: "2026-08-25T09:00:00.000Z",
+      end: "2026-08-25T16:00:00.000Z",
+      timeMode: "routine",
+    };
+    const selfCare: CalendarEvent = {
+      ...event,
+      id: "self-care",
+      start: "2026-08-25T12:00:00.000Z",
+      end: "2026-08-25T13:00:00.000Z",
+      timeMode: "self_care",
+    };
+    const weeklyAcquisition: CalendarAcquisitionResult = Object.freeze({
+      events: Object.freeze([routine, selfCare]),
+      completeness: Object.freeze({
+        ...acquisition("complete", [routine, selfCare]).completeness,
+        windowStart: weeklyWindow.start,
+        windowEnd: weeklyWindow.end,
+        mergedReturnedCount: 2,
+        targets: Object.freeze([
+          Object.freeze({
+            calendarId: "primary",
+            status: "complete",
+            returnedCount: 2,
+            continuation: "none",
+          }),
+        ]),
+      }),
+    });
+
+    const result = await acquireScopedCalendarEvidence({
+      connector: {
+        source: "google",
+        listBetween: vi.fn(),
+        listBetweenWithCompleteness: vi.fn(async () => weeklyAcquisition),
+      },
+      clock: () => new Date("2026-08-28T00:00:00.000Z"),
+      requestedLimit: 5,
+      window: weeklyWindow,
+    });
+
+    expect(result.weeklyAllocation).toMatchObject({
+      publicationType: "calendar_weekly_time_allocation",
+      coverageState: "bounded_complete_request",
+      minutesByMode: { routine: 360, self_care: 60 },
+      totalTimedMinutes: 420,
+    });
+  });
+
+  it("withholds weekly allocation when this-week coverage is partial", async () => {
+    const weeklyWindow: CalendarReadWindow = Object.freeze({
+      start: "2026-08-24T00:00:00.000Z",
+      end: "2026-08-31T00:00:00.000Z",
+      timeZone: "Australia/Melbourne",
+      period: "this_week",
+    });
+    const partial = acquisition("partial", [{ ...event, timeMode: "routine" }]);
+
+    const result = await acquireScopedCalendarEvidence({
+      connector: {
+        source: "google",
+        listBetween: vi.fn(),
+        listBetweenWithCompleteness: vi.fn(async () => partial),
+      },
+      clock: () => new Date("2026-08-28T00:00:00.000Z"),
+      requestedLimit: 5,
+      window: weeklyWindow,
+    });
+
+    expect(result.coverageState).toBe("bounded_partial_request");
+    expect(result.weeklyAllocation).toBeUndefined();
+  });
+
   it("preserves legacy bounded semantics when the connector has no completeness method", async () => {
     const result = await acquireScopedCalendarEvidence({
       connector: {

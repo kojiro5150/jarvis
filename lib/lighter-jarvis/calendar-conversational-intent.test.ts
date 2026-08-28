@@ -65,6 +65,17 @@ describe("governed Calendar conversational intent", () => {
     )).toBeNull();
   });
 
+  it.each([
+    "When is something connected to Governance Engineering next?",
+    "When do I next have something related to JARVIS?",
+    "When am I next doing work on JARVIS?",
+  ])("rejects relational Level-2 wording in server validation even if the model proposes literal terms: %s", (utterance) => {
+    expect(validateCalendarConversationalIntent(
+      utterance,
+      { kind: "next_title_match", terms: ["governance", "engineering"] },
+    )).toBeNull();
+  });
+
   it("keeps relational Level-2 meaning outside this interpreter contract", async () => {
     const model = vi.fn(async () => '{"kind":"unsupported"}');
     expect(isCalendarConversationalIntentCandidate("When am I next doing some work on JARVIS?")).toBe(true);

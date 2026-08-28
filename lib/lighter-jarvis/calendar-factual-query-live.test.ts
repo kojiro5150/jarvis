@@ -203,6 +203,30 @@ describe("live governed Calendar factual query", () => {
     expect(model.mock.calls[0][0]).toContain("bounded Calendar factual-intent interpreter");
   });
 
+  it("contains connected-to relational wording even if the interpreter proposes literal title terms", async () => {
+    const model = vi.fn(async (systemPrompt: string) =>
+      systemPrompt.includes("bounded Calendar factual-intent interpreter")
+        ? '{"kind":"next_title_match","terms":["governance","engineering"]}'
+        : "ordinary model must not run");
+    const c = connector();
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => c.value,
+      clock: () => new Date("2026-08-28T09:00:00.000Z"),
+    });
+
+    const response = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "When is something connected to Governance Engineering next?" }],
+    }))).json();
+
+    expect(response.reply).toBe(
+      "I can check your Calendar for that, but I couldn't resolve the factual query safely from that wording.",
+    );
+    expect(response.pendingAuthorizationReference).toBeUndefined();
+    expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps relational Level-2 Calendar wording contained after bounded interpretation declines it", async () => {
     const model = vi.fn(async (systemPrompt: string) =>
       systemPrompt.includes("bounded Calendar factual-intent interpreter")

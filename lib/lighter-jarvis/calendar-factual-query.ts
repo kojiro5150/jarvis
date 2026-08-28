@@ -157,6 +157,7 @@ export function parseCalendarFactualQuery(utterance: string): CalendarFactualQue
 export function isUnsupportedCalendarFactualWording(utterance: string): boolean {
   if (parseCalendarFactualQuery(utterance)) return false;
   const normalized = normalizeText(utterance);
+  if (/^when\b/.test(normalized) && LEVEL_2_RELATIONAL_PATTERN.test(normalized)) return true;
   if (/^when am i\b/.test(normalized)) return true;
   if (/^when is my\b/.test(normalized)) return true;
   if (/^when do i next\b/.test(normalized)) return true;

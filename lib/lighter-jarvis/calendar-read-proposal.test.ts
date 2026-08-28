@@ -120,6 +120,30 @@ describe("calendar.read proposal boundary", () => {
     })).toMatchObject({ decision: "ASK", authorityEvidence: [] });
   });
 
+  it.each([
+    ["What are my next 5 meetings?", { kind: "next_events", limit: 5 }],
+    ["When is my next LLEGC meeting?", { kind: "next_title_match", terms: ["llegc", "meeting"] }],
+    ["What time is the interview on Tuesday?", { kind: "title_match_on_weekday", terms: ["interview"], weekday: "tuesday" }],
+  ] as const)("proposes a bounded factual Calendar query without granting authority: %s", (utterance, factualQuery) => {
+    const clock = () => new Date("2026-08-28T09:00:00.000Z");
+    const proposedOperation = proposeCalendarRead(utterance, clock);
+
+    expect(proposedOperation).toMatchObject({
+      capability: "calendar.read",
+      purpose: "calendar_factual_query",
+      factualQuery,
+      window: {
+        period: "default",
+        start: "2026-08-28T09:00:00.000Z",
+        end: "2026-09-04T09:00:00.000Z",
+      },
+    });
+    expect(evaluateCalendarReadAuthority({
+      proposedOperation: proposedOperation!,
+      currentUserUtterance: utterance,
+    })).toMatchObject({ decision: "ASK", authorityEvidence: [] });
+  });
+
   it("proposes 'What needs my attention?' as a bounded today Calendar read without granting authority", () => {
     const clock = () => new Date("2026-08-28T01:00:00.000Z");
     const proposedOperation = proposeCalendarRead("What needs my attention?", clock);

@@ -277,6 +277,65 @@ describe("live governed Calendar factual query", () => {
     expect(model.mock.calls[0][0]).toContain("bounded Calendar factual-intent interpreter");
   });
 
+  it("keeps pronoun-led weather wording out of Calendar", async () => {
+    const model = vi.fn(async () => "Ordinary weather conversation.");
+    const c = connector();
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => c.value,
+      clock: () => new Date("2026-08-28T09:00:00.000Z"),
+    });
+    const response = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "When is it going to rain next?" }],
+    }))).json();
+    expect(response.reply).toBe("Ordinary weather conversation.");
+    expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(1);
+  });
+
+  it("contains what-form relational Calendar wording before ordinary model authority", async () => {
+    const model = vi.fn(async () => "Please explicitly confirm that I may read your Calendar.");
+    const c = connector();
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => c.value,
+      clock: () => new Date("2026-08-28T09:00:00.000Z"),
+    });
+    const response = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "What am I next doing work on JARVIS." }],
+    }))).json();
+    expect(response.reply).toBe(
+      "I can check your Calendar for that, but I couldn't resolve the factual query safely from that wording.",
+    );
+    expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
+    expect(model).not.toHaveBeenCalled();
+  });
+
+  it("does not reassign an older Calendar result to an immediately contained query", async () => {
+    const model = vi.fn(async () =>
+      "I see you're indicating that the Calendar result should answer your question. However, the Calendar result I received showed no matching event.");
+    const c = connector();
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => c.value,
+      clock: () => new Date("2026-08-28T09:00:00.000Z"),
+    });
+    const response = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [
+        { role: "user", content: "When is our next JavaScript test?" },
+        { role: "assistant", content: "Please explicitly confirm that I may read your Calendar." },
+        { role: "user", content: "Yes." },
+        { role: "assistant", content: "Calendar factual result:\nNo matching timed Calendar event was found in this bounded read." },
+        { role: "user", content: "When is something connected to governance engineering next?" },
+        { role: "assistant", content: "I can check your Calendar for that, but I couldn't resolve the factual query safely from that wording." },
+        { role: "user", content: "There tells you." },
+      ],
+    }))).json();
+    expect(response.reply).toBe("That wording was contained and no Calendar read was performed for it.");
+    expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps a non-schedule when-again question entirely on ordinary conversation", async () => {
     const model = vi.fn(async (systemPrompt: string) =>
       systemPrompt.includes("bounded Calendar factual-intent interpreter")

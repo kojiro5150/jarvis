@@ -10,6 +10,7 @@ describe("conversational capability selection", () => {
   it.each([
     ["Will it rain in Geelong tomorrow?", true],
     ["What are my last five emails?", true],
+    ["What are my last five Gmails?", true],
     ["Search my Drive for JARVIS.", true],
     ["When is my next meeting?", false],
     ["Tell me a joke.", false],
@@ -76,6 +77,18 @@ describe("conversational capability selection", () => {
       kind: "capability_request",
       capability: "public_information",
       operation: "lookup",
+    });
+  });
+
+  it("treats the closed spoken plural Gmails as Gmail", async () => {
+    const model = vi.fn(async () => JSON.stringify({ kind: "ordinary_conversation" }));
+    await expect(selectConversationalCapability({
+      utterance: "What are my last five Gmails?",
+      callModel: model,
+    })).resolves.toEqual({
+      kind: "capability_request",
+      capability: "gmail",
+      operation: "search",
     });
   });
 

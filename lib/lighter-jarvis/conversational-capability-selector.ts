@@ -22,6 +22,13 @@ const SELECTOR_PROMPT = [
   "This selection is not authorization and must never answer the user's question.",
 ].join("\n");
 
+const CAPABILITY_SELECTION_SIGNAL =
+  /\b(?:weather|rain|forecast|temperature|calendar|schedule|meeting|gmail|email|emails|inbox|drive|document|file)\b/i;
+
+export function isConversationalCapabilitySelectionCandidate(utterance: string): boolean {
+  return CAPABILITY_SELECTION_SIGNAL.test(utterance.normalize("NFKC"));
+}
+
 function parseModelJson(text: string): unknown {
   const trimmed = text.trim().replace(/^\`\`\`(?:json)?\s*/i, "").replace(/\s*\`\`\`$/, "");
   try { return JSON.parse(trimmed); }

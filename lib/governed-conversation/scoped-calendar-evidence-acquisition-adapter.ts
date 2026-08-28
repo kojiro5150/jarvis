@@ -8,6 +8,11 @@ import { publishCalendarEvidence } from "./calendar-evidence-publisher";
 import type { GovernedCalendarEvidenceInput } from "./projection-composer";
 import { sourceResult, type SourceAdapterResult } from "./source-adapter-result";
 import type { CalendarReadWindow } from "../lighter-jarvis/calendar-read-window";
+import { aggregateCalendarTimeAllocation } from "../connectors/calendar-time-allocation";
+import {
+  publishGovernedWeeklyCalendarAllocation,
+  type GovernedWeeklyCalendarAllocationPublication,
+} from "./calendar-weekly-allocation-publisher";
 
 export type GovernedCalendarCoverageState =
   | "bounded_complete_request"
@@ -17,6 +22,7 @@ export type GovernedCalendarCoverageState =
 export type ScopedCalendarEvidenceResult = SourceAdapterResult<GovernedCalendarEvidenceInput> & Readonly<{
   coverageState?: GovernedCalendarCoverageState;
   completeness?: CalendarAcquisitionCompletenessEnvelope;
+  weeklyAllocation?: GovernedWeeklyCalendarAllocationPublication;
 }>;
 
 export interface ScopedCalendarAcquisitionPort {
@@ -41,11 +47,13 @@ function withCoverage(
   result: SourceAdapterResult<GovernedCalendarEvidenceInput>,
   coverageState: GovernedCalendarCoverageState,
   completeness?: CalendarAcquisitionCompletenessEnvelope,
+  weeklyAllocation?: GovernedWeeklyCalendarAllocationPublication | null,
 ): ScopedCalendarEvidenceResult {
   return Object.freeze({
     ...result,
     coverageState,
     ...(completeness === undefined ? {} : { completeness }),
+    ...(weeklyAllocation ? { weeklyAllocation } : {}),
   });
 }
 
@@ -88,6 +96,17 @@ export async function acquireScopedCalendarEvidence(input: {
         Date.parse(event.end) > Date.parse(input.window.start) &&
         Date.parse(event.start) < Date.parse(input.window.end));
 
+      const weeklyAllocation = publishGovernedWeeklyCalendarAllocation({
+        allocation: aggregateCalendarTimeAllocation({
+          events: inWindow,
+          windowStart: input.window.start,
+          windowEnd: input.window.end,
+        }),
+        period: input.window.period,
+        coverageState,
+        observedAt: retrievedAt,
+      });
+
       return withCoverage(
         sourceResult(
           "available",
@@ -105,6 +124,7 @@ export async function acquireScopedCalendarEvidence(input: {
         ),
         coverageState,
         acquisition.completeness,
+        weeklyAllocation,
       );
     }
 

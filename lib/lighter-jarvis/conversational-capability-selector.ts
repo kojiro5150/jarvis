@@ -23,7 +23,7 @@ const SELECTOR_PROMPT = [
 ].join("\n");
 
 const PUBLIC_INFORMATION_SIGNAL = /\b(?:weather|rain|forecast|temperature)\b/i;
-const GMAIL_SIGNAL = /\b(?:gmail|email|emails|inbox)\b/i;
+const GMAIL_SIGNAL = /\b(?:gmail|gmails|email|emails|inbox)\b/i;
 const DRIVE_SIGNAL = /\bdrive\b/i;
 
 export type DeterministicCapabilityConstraint = Readonly<{

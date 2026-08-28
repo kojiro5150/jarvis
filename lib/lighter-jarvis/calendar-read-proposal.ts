@@ -17,20 +17,29 @@ const TEMPORAL_SCHEDULE_QUESTION = new RegExp(
   "i",
 );
 const CALENDAR_ATTENTION_REQUEST = /^what\s+needs\s+my\s+attention[?!.]?$/i;
+const CALENDAR_WEEKLY_ALLOCATION_REQUEST =
+  /^(?:how\s+(?:is|does)\s+(?:my|this)\s+week\s+(?:allocated|break\s+down)|what(?:'s|\s+is)\s+(?:my\s+)?weekly\s+allocation|show\s+me\s+how\s+my\s+week\s+is\s+allocated)[?!.]?$/i;
 
 /** Proposes a closed operation; it supplies no evidence that the operation is authorized. */
 export function proposeCalendarRead(currentUserUtterance: string, clock: () => Date = () => new Date()): ProposedOperation | null {
   const utterance = currentUserUtterance.trim().replace(/[‘’]/g, "'");
   const attentionRequest = CALENDAR_ATTENTION_REQUEST.test(utterance);
-  if (!attentionRequest && !CALENDAR_REQUEST.test(utterance) && !TEMPORAL_SCHEDULE_QUESTION.test(utterance)) return null;
+  const weeklyAllocationRequest = CALENDAR_WEEKLY_ALLOCATION_REQUEST.test(utterance);
+  if (!attentionRequest && !weeklyAllocationRequest && !CALENDAR_REQUEST.test(utterance) && !TEMPORAL_SCHEDULE_QUESTION.test(utterance)) return null;
   const match = utterance.match(/\b(today|tomorrow|this\s+morning|this\s+afternoon|this\s+evening|this\s+week)\b/i);
   const period = (attentionRequest
     ? "today"
-    : (match?.[1].toLowerCase().replace(/\s+/g, "_") ?? "default")) as CalendarReadPeriod;
+    : weeklyAllocationRequest
+      ? "this_week"
+      : (match?.[1].toLowerCase().replace(/\s+/g, "_") ?? "default")) as CalendarReadPeriod;
 
   return Object.freeze({
     capability: CALENDAR_READ_CAPABILITY,
     window: resolveCalendarReadWindow(period, clock()),
-    ...(attentionRequest ? { purpose: "calendar_attention" as const } : {}),
+    ...(attentionRequest
+      ? { purpose: "calendar_attention" as const }
+      : weeklyAllocationRequest
+        ? { purpose: "calendar_weekly_allocation" as const }
+        : {}),
   });
 }

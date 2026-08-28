@@ -86,4 +86,30 @@ describe("production calendar.read authority ordering", () => {
       pendingAuthorizationReference: pending.pendingAuthorizationReference }, deps.value)).decision).toBe("DENY");
     expect(deps.createConnector).not.toHaveBeenCalled();
   });
+  it("retains Calendar attention purpose through pending confirmation before acquisition", async () => {
+    const deps = dependencies();
+    const pending = await resolveProductionCalendarRead({
+      currentUserUtterance: "What needs my attention?",
+    }, deps.value);
+
+    expect(pending).toMatchObject({
+      decision: "ASK",
+      purpose: "calendar_attention",
+      window: { period: "today" },
+      pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) },
+    });
+    expect(deps.createConnector).not.toHaveBeenCalled();
+
+    const confirmed = await resolveProductionCalendarRead({
+      currentUserUtterance: "Yes",
+      pendingAuthorizationReference: pending.pendingAuthorizationReference,
+    }, deps.value);
+
+    expect(confirmed).toMatchObject({
+      decision: "ALLOW",
+      purpose: "calendar_attention",
+      window: { period: "today" },
+    });
+    expect(deps.listBetween).toHaveBeenCalledOnce();
+  });
 });

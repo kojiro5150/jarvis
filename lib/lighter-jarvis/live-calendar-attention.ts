@@ -3,7 +3,10 @@ import {
   type CanonicalCalendarAttentionObservationSet,
 } from "../governed-conversation/calendar-attention-observation";
 import { compareCalendarAttentionObservationSets } from "../governed-conversation/calendar-attention-observation-comparison";
-import { selectCalendarStartTimeAttention } from "../governed-conversation/calendar-attention-policy-adapter";
+import {
+  selectCalendarRemovalAttention,
+  selectCalendarStartTimeAttention,
+} from "../governed-conversation/calendar-attention-policy-adapter";
 import { publishCalendarAttentionBrief } from "../governed-conversation/calendar-attention-brief-publisher";
 import { renderCalendarAttentionBrief } from "../governed-conversation/calendar-attention-conversational-renderer";
 import type { GovernedCalendarEvidenceInput } from "../governed-conversation/projection-composer";
@@ -79,7 +82,7 @@ export function resolveLiveCalendarAttention(input: {
 
   if (previous === null) {
     return Object.freeze({
-      reply: "I have established a bounded Calendar baseline for today. A later authorised check can compare against it for start-time changes.",
+      reply: "I have established a bounded Calendar baseline for today. A later authorised check can compare against it for supported attention changes.",
       calendarAttentionObservationReference: createCalendarAttentionObservationReference(current),
       baselineEstablished: true,
     });
@@ -87,7 +90,10 @@ export function resolveLiveCalendarAttention(input: {
 
   try {
     const changeSet = compareCalendarAttentionObservationSets(previous, current);
-    const matches = selectCalendarStartTimeAttention(changeSet);
+    const matches = Object.freeze([
+      ...selectCalendarStartTimeAttention(changeSet),
+      ...selectCalendarRemovalAttention(changeSet),
+    ]);
     const brief = publishCalendarAttentionBrief({
       previousObservedAt: changeSet.previousObservedAt,
       currentObservedAt: changeSet.currentObservedAt,

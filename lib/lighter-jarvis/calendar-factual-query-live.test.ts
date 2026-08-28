@@ -309,7 +309,8 @@ describe("live governed Calendar factual query", () => {
     );
     expect(response.pendingAuthorizationReference).toBeUndefined();
     expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
-    expect(model).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(1);
+    expect(model.mock.calls[0][0]).toContain("bounded Calendar factual-intent interpreter");
   });
 
   it("contains what-form relational Calendar wording before ordinary model authority", async () => {

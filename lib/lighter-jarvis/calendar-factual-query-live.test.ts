@@ -141,6 +141,18 @@ describe("live governed Calendar factual query", () => {
     expect(model).not.toHaveBeenCalled();
   });
 
+  it("answers a bounded next-week presence query without model interpretation", async () => {
+    const model = vi.fn(async () => "model must not run");
+    const c = connector();
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => c.value,
+      clock: () => new Date("2026-08-28T09:00:00.000Z"),
+    });
+    const { allow } = await askThenConfirm(handler, "Do I have an LLEGC meeting next week?");
+    expect(allow.reply).toBe("Calendar factual result:\nYes. LLEGC September Meeting — Thu, 3 Sep, 6:00 PM–7:30 PM");
+    expect(model).not.toHaveBeenCalled();
+  });
+
   it("answers a compact voice-style weekday-presence question without model interpretation", async () => {
     const model = vi.fn(async () => "model must not run");
     const c = connector();

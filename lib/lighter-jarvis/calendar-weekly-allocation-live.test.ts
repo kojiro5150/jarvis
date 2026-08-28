@@ -111,25 +111,28 @@ describe("live governed weekly Calendar allocation", () => {
 
   it("withholds a full-week allocation when acquisition is partial", async () => {
     const model = vi.fn(async () => "model must not run");
-    const connector = completeConnector();
-    connector.listBetweenWithCompleteness = vi.fn(async (start: string, end: string, limit = 5) => ({
-      events: [],
-      completeness: {
-        sourceId: "google-calendar" as const,
-        windowStart: start,
-        windowEnd: end,
-        requestedLimit: limit,
-        targetDiscovery: "calendar_list" as const,
-        targetCount: 1,
-        targets: [
-          { calendarId: "barwon", status: "partial" as const, returnedCount: 0, continuation: "unknown" as const },
-        ],
-        mergedReturnedCount: 0,
-        mergeTruncated: false,
-        completeness: "partial" as const,
-        observedAt: "2026-08-28T00:00:00.000Z",
-      },
-    }));
+    const connector = {
+      source: "google" as const,
+      listBetween: vi.fn(),
+      listBetweenWithCompleteness: vi.fn(async (start: string, end: string, limit = 5) => ({
+        events: [],
+        completeness: {
+          sourceId: "google-calendar" as const,
+          windowStart: start,
+          windowEnd: end,
+          requestedLimit: limit,
+          targetDiscovery: "calendar_list" as const,
+          targetCount: 1,
+          targets: [
+            { calendarId: "barwon", status: "partial" as const, returnedCount: 0, continuation: "unknown" as const },
+          ],
+          mergedReturnedCount: 0,
+          mergeTruncated: false,
+          completeness: "partial" as const,
+          observedAt: "2026-08-28T00:00:00.000Z",
+        },
+      })),
+    };
 
     const handler = createLighterChatHandler(model, {
       createConnector: () => connector,

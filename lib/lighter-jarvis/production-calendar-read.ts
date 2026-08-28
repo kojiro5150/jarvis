@@ -1,7 +1,8 @@
 import { getCalendarConnector } from "../connectors/calendar";
-import type { ScopedCalendarAcquisitionPort } from "../governed-conversation/scoped-calendar-evidence-acquisition-adapter";
-import type { GovernedCalendarEvidenceInput } from "../governed-conversation/projection-composer";
-import type { SourceAdapterResult } from "../governed-conversation/source-adapter-result";
+import type {
+  ScopedCalendarAcquisitionPort,
+  ScopedCalendarEvidenceResult,
+} from "../governed-conversation/scoped-calendar-evidence-acquisition-adapter";
 import {
   acquireAuthorizedCalendarEvidence,
   acquirePendingAuthorizedCalendarEvidence,
@@ -22,7 +23,7 @@ export type ProductionCalendarReadResult = Readonly<{
   handled: boolean;
   decision: "ALLOW" | "ASK" | "DENY" | null;
   reason: string | null;
-  evidence: SourceAdapterResult<GovernedCalendarEvidenceInput> | null;
+  evidence: ScopedCalendarEvidenceResult | null;
   pendingAuthorizationReference: PendingAuthorizationReference | null;
   authorityEvidence: readonly unknown[];
   window: import("./calendar-read-window").CalendarReadWindow | null;

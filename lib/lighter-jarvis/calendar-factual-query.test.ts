@@ -22,6 +22,7 @@ const events = Object.freeze([
 describe("deterministic Calendar factual query", () => {
   it.each([
     ["What are my next 5 meetings?", { kind: "next_events", limit: 5 }],
+    ["What are my next five meetings?", { kind: "next_events", limit: 5 }],
     ["When is my next LLEGC meeting?", { kind: "next_title_match", terms: ["llegc", "meeting"] }],
     ["What time is the interview on Tuesday?", { kind: "title_match_on_weekday", terms: ["interview"], weekday: "tuesday" }],
   ] as const)("parses the closed factual request: %s", (utterance, expected) => {

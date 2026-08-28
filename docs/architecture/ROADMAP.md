@@ -127,7 +127,7 @@ live deterministic JARVIS reply
 
 The next deliberate question is whether the same attention path may truthfully expand to Calendar **membership changes** such as additions/removals.
 
-Sprint 3.161 audited that exact seam and found one named missing contract: a Calendar acquisition completeness envelope. Sprint 3.162 governed the deterministic evidence required before `bounded_complete_request` may be emitted. Sprint 3.163 now implements that envelope in the production Google Calendar connector and scoped acquisition adapter: authoritative target discovery, per-target success/continuation state, exact authorised bounds, cross-calendar truncation state, and deterministic mapping to `bounded_complete_request` / `bounded_partial_request` / unavailable. No membership attention policy is authorised yet. The next deliberate step is Sprint 3.164 — audit which Calendar membership-change semantics, if any, should earn an attention policy.
+Sprint 3.161 audited the missing Calendar membership-completeness seam; Sprint 3.162 governed it; Sprint 3.163 implemented it in production. Sprint 3.164 now audits the three candidate membership semantics. The result is deliberately asymmetric: **removed** is ready for one bounded policy adapter because complete-membership comparison and an accepted provider-independent EOS removal policy already exist; **added** is structurally observable but has no accepted attention policy; **explicit cancellation** remains blocked because provider status is not carried through governed Calendar evidence into the canonical attention observation. The next step is Sprint 3.165 — implement only the bounded Calendar removal Attention Policy adapter, without live wiring.
 
 ---
 

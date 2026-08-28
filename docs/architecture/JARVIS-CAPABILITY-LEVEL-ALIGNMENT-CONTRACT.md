@@ -174,6 +174,29 @@ The trust chassis must enable the product, not become the product.
 
 The architecture should therefore move upward from parser growth toward governed reasoning over trustworthy state, while preserving the capability-level boundary test above.
 
+## Companion Eight-Question Review
+
+The capability-level test is paired with the JARVIS Eight-Question Review:
+
+1. **Nadler — Problem:** What human cognitive burden are we removing?
+2. **Anandkumar — First principles:** What must remain true regardless of implementation?
+3. **Truell / Pichai — Product:** What is the simplest possible human interaction?
+4. **Ibrahim — Trust:** What would make a reasonable person trust this behaviour?
+5. **Raman — Verification:** How could we prove that claim false?
+6. **Pineau — Dissent:** What is the strongest argument against this design?
+7. **Bogdan-Martin — Institution:** What happens if millions of systems eventually behave this way?
+8. **Sam — Authority:** Where does legitimate authority come from, and can JARVIS ever manufacture it?
+
+The two frameworks serve different purposes:
+
+- **Eight Questions:** *Should we build it this way?*
+- **Know / Understand / Advise / Act:** *What capability boundary are we actually crossing?*
+
+The Eight-Question Review is diagnostic, not generative:
+
+> **Do not force all eight questions to produce work. Their job is to expose what matters, not manufacture complexity.**
+
+
 ## Standing review question
 
 For every new feature, every sprint contract, and every appealing worked example:

@@ -26,6 +26,7 @@ describe("aggregateCalendarTimeAllocation", () => {
     });
     expect(result.totalTimedMinutes).toBe(180);
     expect(result.semanticUnavailableMinutes).toBe(0);
+    expect(result.precedenceTieMinutes).toBe(0);
     expect(result.timedEventCount).toBe(3);
   });
 
@@ -59,19 +60,87 @@ describe("aggregateCalendarTimeAllocation", () => {
     expect(result.totalTimedMinutes).toBe(60);
   });
 
-  it("counts overlapping events separately as scheduled event-duration", () => {
+  it("lets a shorter nested event carve time out of a broad Barwon block", () => {
     const result = aggregateCalendarTimeAllocation({
       windowStart,
       windowEnd,
       events: [
-        { start: "2026-08-25T00:00:00.000Z", end: "2026-08-25T01:00:00.000Z", timeMode: "routine" },
-        { start: "2026-08-25T00:30:00.000Z", end: "2026-08-25T01:30:00.000Z", timeMode: "deep_work" },
+        { start: "2026-08-25T09:00:00.000Z", end: "2026-08-25T16:00:00.000Z", timeMode: "routine" },
+        { start: "2026-08-25T12:00:00.000Z", end: "2026-08-25T13:00:00.000Z", timeMode: "self_care" },
       ],
     });
 
-    expect(result.minutesByMode.routine).toBe(60);
-    expect(result.minutesByMode.deep_work).toBe(60);
-    expect(result.totalTimedMinutes).toBe(120);
+    expect(result.minutesByMode.routine).toBe(360);
+    expect(result.minutesByMode.self_care).toBe(60);
+    expect(result.totalTimedMinutes).toBe(420);
+  });
+
+  it("applies shorter-duration precedence to a partial overlap", () => {
+    const result = aggregateCalendarTimeAllocation({
+      windowStart,
+      windowEnd,
+      events: [
+        { start: "2026-08-25T09:00:00.000Z", end: "2026-08-25T12:00:00.000Z", timeMode: "routine" },
+        { start: "2026-08-25T11:00:00.000Z", end: "2026-08-25T13:00:00.000Z", timeMode: "deep_work" },
+      ],
+    });
+
+    expect(result.minutesByMode.routine).toBe(120);
+    expect(result.minutesByMode.deep_work).toBe(120);
+    expect(result.totalTimedMinutes).toBe(240);
+  });
+
+  it("fails equal-shortest overlap closed to unclassified", () => {
+    const result = aggregateCalendarTimeAllocation({
+      windowStart,
+      windowEnd,
+      events: [
+        { start: "2026-08-25T12:00:00.000Z", end: "2026-08-25T13:00:00.000Z", timeMode: "self_care" },
+        { start: "2026-08-25T12:30:00.000Z", end: "2026-08-25T13:30:00.000Z", timeMode: "deep_work" },
+      ],
+    });
+
+    expect(result.minutesByMode.self_care).toBe(30);
+    expect(result.minutesByMode.deep_work).toBe(30);
+    expect(result.minutesByMode.unclassified).toBe(30);
+    expect(result.precedenceTieMinutes).toBe(30);
+    expect(result.totalTimedMinutes).toBe(90);
+  });
+
+  it("generalizes to three-way overlap using the unique shortest event", () => {
+    const result = aggregateCalendarTimeAllocation({
+      windowStart,
+      windowEnd,
+      events: [
+        { start: "2026-08-25T09:00:00.000Z", end: "2026-08-25T16:00:00.000Z", timeMode: "routine" },
+        { start: "2026-08-25T11:00:00.000Z", end: "2026-08-25T14:00:00.000Z", timeMode: "development" },
+        { start: "2026-08-25T12:00:00.000Z", end: "2026-08-25T13:00:00.000Z", timeMode: "self_care" },
+      ],
+    });
+
+    expect(result.minutesByMode.routine).toBe(240);
+    expect(result.minutesByMode.development).toBe(120);
+    expect(result.minutesByMode.self_care).toBe(60);
+    expect(result.totalTimedMinutes).toBe(420);
+  });
+
+  it("never reports more resolved minutes than real occupied elapsed time", () => {
+    const result = aggregateCalendarTimeAllocation({
+      windowStart,
+      windowEnd,
+      events: [
+        { start: "2026-08-25T09:00:00.000Z", end: "2026-08-25T16:00:00.000Z", timeMode: "routine" },
+        { start: "2026-08-25T12:00:00.000Z", end: "2026-08-25T13:00:00.000Z", timeMode: "self_care" },
+        { start: "2026-08-25T12:30:00.000Z", end: "2026-08-25T13:30:00.000Z", timeMode: "deep_work" },
+      ],
+    });
+
+    const classifiedMinutes = Object.values(result.minutesByMode)
+      .reduce((sum, minutes) => sum + minutes, 0)
+      + result.semanticUnavailableMinutes;
+
+    expect(classifiedMinutes).toBe(result.totalTimedMinutes);
+    expect(result.totalTimedMinutes).toBe(420);
   });
 
   it("reports all-day events separately and excludes them from minute totals", () => {

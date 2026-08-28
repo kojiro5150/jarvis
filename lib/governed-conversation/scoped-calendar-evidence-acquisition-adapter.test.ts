@@ -70,6 +70,35 @@ describe("scoped Calendar completeness mapping", () => {
     expect(listBetween).not.toHaveBeenCalled();
   });
 
+  it("retains title only in the governed server-owned factual projection", async () => {
+    const labelled: CalendarEvent = {
+      ...event,
+      title: "URGENT Board Crisis — Deep Work",
+      timeMode: "routine",
+      eventLabelId: "provider-label",
+    };
+    const result = await acquireScopedCalendarEvidence({
+      connector: {
+        source: "google",
+        listBetween: vi.fn(),
+        listBetweenWithCompleteness: vi.fn(async () => acquisition("complete", [labelled])),
+      },
+      clock: () => new Date("2026-08-28T00:00:00.000Z"),
+      requestedLimit: 5,
+      window,
+    });
+
+    expect(result.factualEvents).toEqual([{
+      title: "URGENT Board Crisis — Deep Work",
+      start: labelled.start,
+      end: labelled.end,
+      calendarName: "Primary",
+    }]);
+    expect(JSON.stringify(result.factualEvents)).not.toContain("provider-label");
+    expect(JSON.stringify(result.factualEvents)).not.toContain("routine");
+    expect(JSON.stringify(result.evidence)).not.toContain("URGENT Board Crisis");
+  });
+
   it("maps partial acquisition to bounded_partial_request while preserving usable evidence", async () => {
     const result = await acquireScopedCalendarEvidence({
       connector: {

@@ -2,7 +2,7 @@ export const CALENDAR_TIME_ZONE = "Australia/Melbourne" as const;
 export const DEFAULT_CALENDAR_READ_DAYS = 7;
 
 export type CalendarReadPeriod =
-  | "today" | "tomorrow" | "this_morning" | "this_afternoon" | "this_evening" | "this_week" | "default";
+  | "today" | "tomorrow" | "this_morning" | "this_afternoon" | "this_evening" | "this_week" | "next_week" | "default";
 
 export type CalendarReadWindow = Readonly<{
   start: string;
@@ -62,13 +62,14 @@ export function resolveCalendarReadWindow(period: CalendarReadPeriod, now: Date)
   if (period === "tomorrow") {
     const tomorrow = shiftDate(today, 1);
     start = boundary(tomorrow); end = boundary(shiftDate(today, 2));
-  } else if (period === "this_week") {
+  } else if (period === "this_week" || period === "next_week") {
     const weekdayName = new Intl.DateTimeFormat("en-US", { timeZone: CALENDAR_TIME_ZONE, weekday: "short" }).format(now);
     const index = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(weekdayName);
-    const monday = shiftDate(today, -index);
+    const thisMonday = shiftDate(today, -index);
+    const monday = period === "next_week" ? shiftDate(thisMonday, 7) : thisMonday;
     start = boundary(monday); end = boundary(shiftDate(monday, 7));
   } else {
-    const hours: Record<Exclude<CalendarReadPeriod, "tomorrow" | "this_week" | "default">, [number, number]> = {
+    const hours: Record<Exclude<CalendarReadPeriod, "tomorrow" | "this_week" | "next_week" | "default">, [number, number]> = {
       today: [0, 24], this_morning: [0, 12], this_afternoon: [12, 17], this_evening: [17, 24],
     };
     const [startHour, endHour] = hours[period];

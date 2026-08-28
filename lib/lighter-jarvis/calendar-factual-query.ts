@@ -110,6 +110,13 @@ export function parseCalendarFactualQuery(utterance: string): CalendarFactualQue
     return Object.freeze({ kind: "title_presence_in_period", terms });
   }
 
+  const nextGo = normalized.match(/^when\s+do\s+i\s+next\s+go\s+(.+?)[?!.]?$/i);
+  if (nextGo) {
+    const terms = queryTerms(nextGo[1]);
+    if (terms.length === 0) return null;
+    return Object.freeze({ kind: "next_title_match", terms });
+  }
+
   const nextHaveScheduled = normalized.match(/^when\s+do\s+i\s+next\s+have\s+(?:scheduled\s+)?(.+?)[?!.]?$/i);
   if (nextHaveScheduled) {
     const terms = queryTerms(nextHaveScheduled[1]);
@@ -152,6 +159,7 @@ export function isUnsupportedCalendarFactualWording(utterance: string): boolean 
   const normalized = normalizeText(utterance);
   if (/^when am i\b/.test(normalized)) return true;
   if (/^when is my\b/.test(normalized)) return true;
+  if (/^when do i next\b/.test(normalized)) return true;
   if (/^when do i next have\b/.test(normalized)) return true;
   if (/^when do i\b.*\bscheduled\b/.test(normalized)) return true;
   if (/^am i (?:at|in|on)\b.*\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/.test(normalized)) return true;

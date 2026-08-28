@@ -1,5 +1,7 @@
 # JARVIS System Architecture
 
+> **Supersession note — August 2026:** Sections below that describe specialist selection or named specialist coordination record the implementation architecture and historical UI, not the current user-facing product boundary. The governing direction is `USER ↔ JARVIS`: one persistent JARVIS identity may internally orchestrate bounded specialists/capabilities, but no capability should require the user to know or manually coordinate an internal specialist.
+
 ## Purpose
 
 JARVIS is a personal AI operating environment that coordinates specialised capabilities across situational awareness, research, communication, engineering, collaboration, reflection and governance reasoning.

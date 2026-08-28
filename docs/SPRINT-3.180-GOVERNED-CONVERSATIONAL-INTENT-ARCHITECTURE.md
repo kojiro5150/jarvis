@@ -297,15 +297,24 @@ Do not route into a private capability merely because words such as `next` or `a
 
 Sprint 3.178/3.179 remains as a deterministic compatibility and safety layer.
 
-After 3.179d, natural-language growth must not proceed by adding one regex for every newly observed paraphrase.
+The deterministic grammar family is a **closed high-confidence fast path, not an extensible natural-language coverage strategy**.
+
+After 3.179d — and especially after 3.180d — parser expansion is maintenance/safety work only. Natural-language growth must not proceed by adding one regex, morphology rule, or synonym for every newly observed paraphrase.
 
 A new deterministic phrase is justified only when it is:
 
 1. a high-confidence stable command surface;
-2. required to close a verified authority/evidence/provenance defect; or
+2. required to close a verified authority/evidence/provenance/factual-truthfulness defect; or
 3. demonstrably cheaper and safer than adaptive interpretation for a closed form.
 
-Otherwise the request belongs to governed conversational intent interpretation.
+Convenience paraphrase coverage alone is not meaningful product progress. Otherwise the request belongs to governed conversational intent interpretation:
+
+```text
+natural language
+→ bounded interpretation
+→ typed intent
+→ deterministic governance
+```
 
 ## Cognitive-burden success test
 
@@ -390,11 +399,17 @@ No model-generated permission UX.
 
 Prove that authorized acquisition and answer publication remain source-bound and that unsupported model facts are rejected or deterministically corrected.
 
-### Future — governed private semantic interpretation
+### 3.181 — Private Evidence Reasoning Contract
 
-Only after a separate exposure contract is designed should JARVIS semantically inspect private Calendar titles or other private content to answer conceptual queries such as “something on JARVIS”.
+**3.181 owns the private semantic-exposure boundary.**
 
-That is not silently included in 3.180a–d.
+Only after that explicit exposure contract is designed may JARVIS semantically inspect private Calendar titles, Gmail content, Drive content, or other private evidence to answer conceptual queries such as “something on JARVIS”.
+
+Successful acquisition is not permission for model visibility. No 3.180 selector, authority handoff, result renderer, specialist handoff, or ambient context builder may silently widen the evidence boundary.
+
+3.181 must define purpose, evidence class, representation, item/time bounds, provenance, freshness, persistence, cross-source permissions, allowed reasoning, and prohibited authority effects before Level 2 semantic reasoning begins.
+
+This is not silently included in 3.180a–d.
 
 ## Non-goals
 

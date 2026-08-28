@@ -1,4 +1,11 @@
-import type { CalendarAttentionPolicyMatch } from "./calendar-attention-policy-adapter";
+import type {
+  CalendarAttentionPolicyMatch,
+  CalendarRemovalAttentionPolicyMatch,
+} from "./calendar-attention-policy-adapter";
+
+export type PublishableCalendarAttentionPolicyMatch =
+  | CalendarAttentionPolicyMatch
+  | CalendarRemovalAttentionPolicyMatch;
 
 export const CALENDAR_ATTENTION_BRIEF_KIND = "calendar_attention_brief" as const;
 export const CALENDAR_ATTENTION_BRIEF_SEMANTICS = "deterministic_policy_match_not_priority" as const;
@@ -6,7 +13,7 @@ export const CALENDAR_ATTENTION_BRIEF_SEMANTICS = "deterministic_policy_match_no
 export interface CalendarAttentionBriefItem {
   readonly matchId: string;
   readonly entityId: string;
-  readonly changeType: "modified";
+  readonly changeType: "modified" | "removed";
   readonly policy: Readonly<{ readonly id: string; readonly version: string }>;
   readonly reason: Readonly<{
     readonly code: string;
@@ -26,13 +33,13 @@ export interface CalendarAttentionBrief {
 export interface CalendarAttentionBriefPublicationInput {
   readonly previousObservedAt: string;
   readonly currentObservedAt: string;
-  readonly matches: readonly CalendarAttentionPolicyMatch[];
+  readonly matches: readonly PublishableCalendarAttentionPolicyMatch[];
 }
 
 const timestamp = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0 && Number.isFinite(Date.parse(value));
 
-const cloneItem = (match: CalendarAttentionPolicyMatch): CalendarAttentionBriefItem => Object.freeze({
+const cloneItem = (match: PublishableCalendarAttentionPolicyMatch): CalendarAttentionBriefItem => Object.freeze({
   matchId: match.matchId,
   entityId: match.entityId,
   changeType: match.changeType,

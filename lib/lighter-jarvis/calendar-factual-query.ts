@@ -21,6 +21,32 @@ export type CalendarFactualSelection = Readonly<{
   events: readonly CalendarFactualEvent[];
 }>;
 
+const WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
+
+export function parseCalendarFactualQuery(utterance: string): CalendarFactualQuery | null {
+  const normalized = utterance.trim().replace(/[‘’]/g, "'");
+
+  const nextEvents = normalized.match(/^what\s+are\s+(?:my\s+)?next\s+([1-5])\s+(?:meetings?|calendar\s+events?)[?!.]?$/i);
+  if (nextEvents) return Object.freeze({ kind: "next_events", limit: Number(nextEvents[1]) });
+
+  const nextMeeting = normalized.match(/^when\s+is\s+(?:my\s+)?next\s+(.+?)\s+meeting[?!.]?$/i);
+  if (nextMeeting) {
+    const subject = normalizeToken(nextMeeting[1]);
+    const subjectTerms = subject.split(/\s+/).filter(Boolean);
+    if (subjectTerms.length === 0) return null;
+    return Object.freeze({ kind: "next_title_match", terms: Object.freeze([...subjectTerms, "meeting"]) });
+  }
+
+  const weekdayMatch = normalized.match(/^(?:what\s+time\s+is|when\s+is)\s+(?:my\s+|the\s+)?(.+?)\s+on\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)[?!.]?$/i);
+  if (weekdayMatch) {
+    const subjectTerms = normalizeToken(weekdayMatch[1]).split(/\s+/).filter(Boolean);
+    const weekday = weekdayMatch[2].toLowerCase() as CalendarWeekday;
+    if (subjectTerms.length === 0 || !WEEKDAYS.includes(weekday)) return null;
+    return Object.freeze({ kind: "title_match_on_weekday", terms: Object.freeze(subjectTerms), weekday });
+  }
+
+  return null;
+}
 const MELBOURNE_ZONE = "Australia/Melbourne";
 const weekdayFormatter = new Intl.DateTimeFormat("en-US", { timeZone: MELBOURNE_ZONE, weekday: "long" });
 

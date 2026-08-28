@@ -2,6 +2,7 @@ import type { ChatMessage } from "../agents/types";
 import {
   CALENDAR_FACTUAL_FILLER_TOKENS,
   CALENDAR_FACTUAL_MORPHOLOGY,
+  parseCalendarFactualQuery,
   type CalendarFactualQuery,
 } from "./calendar-factual-query";
 
@@ -17,7 +18,8 @@ const INTERPRETER_PROMPT = [
   "You receive only the user's current utterance. You receive no Calendar data, no event titles, no conversation history, and no authority state.",
   "Return JSON only.",
   'Allowed outputs: {"kind":"next_title_match","terms":["token"]} or {"kind":"unsupported"}.',
-  "Use next_title_match only when the user is asking when a personal scheduled activity/event occurs next or again.",
+  "Use next_title_match only when the user is asking when a literal named personal scheduled activity/event occurs next or again.",
+  "Return unsupported for conceptual or relational wording such as work on, related to, connected to, associated with, or something about; those require a later private-title semantic boundary.",
   "Terms identify literal title words the user supplied. You may omit conversational or relational scaffolding, but you must not invent synonyms, categories, names, priorities, urgency, or facts.",
   "Do not answer the Calendar question. Do not request permission. Do not claim Calendar access.",
 ].join("\n");
@@ -73,11 +75,17 @@ export function validateCalendarConversationalIntent(
   return Object.freeze({ kind: "next_title_match", terms: Object.freeze(terms) });
 }
 
+export function isCalendarConversationalIntentCandidate(utterance: string): boolean {
+  if (parseCalendarFactualQuery(utterance)) return false;
+  const normalized = normalizeText(utterance);
+  return /\bwhen\b/.test(normalized) && /\b(?:next|again)\b/.test(normalized);
+}
+
 export async function interpretCalendarConversationalIntent(input: {
   readonly utterance: string;
   readonly callModel: CalendarConversationalIntentModelCall;
 }): Promise<CalendarFactualQuery | null> {
-  if (!hasExplicitNextCue(input.utterance)) return null;
+  if (!isCalendarConversationalIntentCandidate(input.utterance)) return null;
   const result = await input.callModel(INTERPRETER_PROMPT, [
     { role: "user", content: input.utterance },
   ]);

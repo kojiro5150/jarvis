@@ -1,5 +1,3 @@
-import type { CalendarEvent } from "./calendar-event";
-
 export type CalendarTimeMode =
   | "routine"
   | "deep_work"
@@ -68,7 +66,7 @@ export function resolveCalendarEventLabelModeMap(
  * - event title never substitutes for mode
  */
 export function classifyCalendarEventTimeMode(
-  event: Pick<CalendarEvent, "eventLabelId">,
+  event: Readonly<{ eventLabelId?: string }>,
   modeMap: CalendarEventLabelModeMap,
 ): CalendarTimeMode {
   if (!event.eventLabelId) return "unclassified";

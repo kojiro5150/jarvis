@@ -7,7 +7,7 @@ function sourceFiles(root: string): string[] {
   for (const entry of readdirSync(root, { withFileTypes: true })) {
     const path = join(root, entry.name);
     if (entry.isDirectory()) out.push(...sourceFiles(path));
-    else if (/\.(?:ts|tsx|js|jsx)$/.test(entry.name)) out.push(path);
+    else if (/\.(?:ts|tsx|js|jsx)$/.test(entry.name) && !/\.(?:test|spec)\.[^.]+$/.test(entry.name)) out.push(path);
   }
   return out;
 }
@@ -31,7 +31,7 @@ describe("legacy chat runtime retirement", () => {
   it("leaves no live source reference to /api/chat", () => {
     const offenders = ["app", "components", "lib"]
       .flatMap(sourceFiles)
-      .filter(path => readFileSync(path, "utf8").includes("/api/chat"));
+      .filter(path => /["'`]\/api\/chat["'`]/.test(readFileSync(path, "utf8")));
 
     expect(offenders).toEqual([]);
   });

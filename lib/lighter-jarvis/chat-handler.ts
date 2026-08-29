@@ -117,7 +117,7 @@ export function resolveMarketScopeDomains(value: unknown): string[] | undefined 
 
 const PRIVATE_CAPABILITY_HANDOFF_BLOCKED_REPLY = "That request cannot be handled through a specialist handoff.";
 
-const PUBLIC_LOOKUP_UNAVAILABLE_REPLY = PUBLIC_LOOKUP_UNAVAILABLE_REPLY;
+const PUBLIC_LOOKUP_UNAVAILABLE_REPLY = "I recognized that as a public-information request, but public lookup is not yet available in this runtime.";
 
 function followsUnavailablePublicLookup(messages: unknown, utterance: string): boolean {
   if (!/^(?:yes|yes\.|yep|yeah|sure|ok|okay|go ahead)$/i.test(utterance.trim())) return false;
@@ -817,7 +817,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         if (selectedIntent?.kind === "capability_request") {
           if (selectedIntent.capability === "public_information") {
             return NextResponse.json({
-              reply: "I recognized that as a public-information request, but public lookup is not yet available in this runtime.",
+              reply: PUBLIC_LOOKUP_UNAVAILABLE_REPLY,
               specialistId: specialist.id,
               execution: "none",
             });

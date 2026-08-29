@@ -41,6 +41,20 @@ describe("materializeConversationalPrivateOperation", () => {
     },
   );
 
+  it("ignores only closed Gmail source nouns emitted as subject terms", () => {
+    expect(materializeConversationalPrivateOperation({
+      kind: "capability_request",
+      capability: "gmail",
+      operation: "search",
+      subjectTerms: ["emails"],
+      requestedOutput: "list",
+    })).toEqual({
+      capability: "gmail.search",
+      newerThan: "7d",
+      maxResults: 5,
+    });
+  });
+
   it("rejects subject terms rather than silently widening Gmail search semantics", () => {
     expect(materializeConversationalPrivateOperation({
       kind: "capability_request",

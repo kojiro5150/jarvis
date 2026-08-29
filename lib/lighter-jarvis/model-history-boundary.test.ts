@@ -14,6 +14,8 @@ describe("ordinary-model history boundary", () => {
   it.each([
     "Gmail message IDs:\n- private-id\n- another-id",
     "Recent Gmail messages:\n- Private subject one\n- Private subject two",
+    "Gmail messages from Georgia McDonald <georgia@example.com>:\n- Private sender subject",
+    "I found more than one real Gmail sender matching that reference:\n- Georgia McDonald <georgia@example.com>\n- Georgia Radford <radford@example.com>\nPlease be more specific.",
     "No recent Gmail messages found.",
     "Subject: Private subject",
     "Snippet: Private snippet\nPlain text body: Private body",
@@ -82,6 +84,21 @@ describe("ordinary-model history boundary", () => {
     expect(JSON.stringify(sanitized)).not.toContain("Jarvis Test email");
     expect(JSON.stringify(sanitized)).not.toContain("Private CI notice");
     expect(sanitized.at(-1)).toEqual(history.at(-1));
+  });
+
+  it("treats governed sender-search releases as Gmail history for deny-only follow-up containment", () => {
+    const history = [
+      { role: "user" as const, content: "Find the email from Georgia McDonald" },
+      { role: "assistant" as const, content: "Gmail messages from Georgia McDonald <georgia@example.com>:\n- Private sender subject" },
+      { role: "user" as const, content: "Yes, the most recent email." },
+    ];
+    expect(hasGovernedGmailHistory(history)).toBe(true);
+    const sanitized = sanitizeModelHistory(history);
+    expect(sanitized[1]).toEqual({
+      role: "assistant",
+      content: "[Governed private result omitted from ordinary model context.]",
+    });
+    expect(JSON.stringify(sanitized)).not.toContain("Private sender subject");
   });
 
   it("prevents a surfaced Calendar title from reaching a later ordinary model turn", () => {

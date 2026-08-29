@@ -7,6 +7,7 @@ const MESSAGE_URL = (id: string) => `https://www.googleapis.com/gmail/v1/users/m
 
 export type GmailSenderCandidateScan = Readonly<{
   complete: boolean;
+  incompleteReason?: "provider_truncated" | "metadata_incomplete";
   identities: readonly GmailSenderIdentity[];
 }>;
 
@@ -77,12 +78,32 @@ export class GoogleGmailSenderSearchConnector implements GmailSenderSearchConnec
         : undefined;
     } while (pageToken && ids.length < scanLimit);
 
-    const complete = !pageToken;
-    const identities = (await Promise.all(ids.map(readSenderIdentity)))
-      .filter((identity): identity is GmailSenderIdentity => identity !== null);
+    const providerTruncated = Boolean(pageToken);
+    let metadataIncomplete = false;
+    const identities: GmailSenderIdentity[] = [];
+
+    // Deliberately sequential: a burst of up to 100 parallel messages.get calls
+    // can trip provider throttling, and one transient failure must not collapse
+    // the entire scan into an opaque exception. Any failed metadata read marks
+    // the scan incomplete so uniqueness can never be claimed from partial evidence.
+    for (const id of ids) {
+      try {
+        const identity = await readSenderIdentity(id);
+        if (identity) identities.push(identity);
+      } catch (error) {
+        metadataIncomplete = true;
+        const detail = error instanceof Error ? error.message : String(error);
+        console.warn(`[gmail-sender-search] sender metadata read incomplete: ${detail}`);
+      }
+    }
 
     return Object.freeze({
-      complete,
+      complete: !providerTruncated && !metadataIncomplete,
+      ...(providerTruncated
+        ? { incompleteReason: "provider_truncated" as const }
+        : metadataIncomplete
+          ? { incompleteReason: "metadata_incomplete" as const }
+          : {}),
       identities: Object.freeze(identities),
     });
   }

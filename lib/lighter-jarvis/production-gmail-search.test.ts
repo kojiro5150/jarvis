@@ -21,7 +21,7 @@ describe("production gmail.search", () => {
   it("requires confirmation before executing a natural-language subject-list proposal", async () => {
     const search = vi.fn(async () => ["one"]);
     const createConnector = vi.fn(() => ({ search }));
-    const retrieveMessage = vi.fn(async () => ({ subject: "Subject one", snippet: "MUST NOT LEAK" }));
+    const retrieveMessage = vi.fn(async () => ({ sender: "Sender One <one@example.com>", subject: "Subject one", snippet: "MUST NOT LEAK" }));
     const deps = {
       createConnector,
       createSubjectConnector: () => ({ retrieveMessage }),
@@ -31,7 +31,7 @@ describe("production gmail.search", () => {
           id: "email",
           match: { connectorType: "email" as const },
           processing: "external_processing_permitted" as const,
-          admissibleFields: ["subject"],
+          admissibleFields: ["sender", "subject"],
         }],
       }),
     };
@@ -47,7 +47,8 @@ describe("production gmail.search", () => {
       decision: "ALLOW",
       reason: "pending_authorization_confirmed",
       messageIds: ["one"],
-      reply: "Recent Gmail messages:\n- Subject one",
+      gmailMessageListReference: { gmailMessageListReferenceId: expect.any(String) },
+      reply: "Recent Gmail messages:\n1. From: Sender One <one@example.com>\n   Subject: Subject one",
     });
     expect(search).toHaveBeenCalledWith("1d", 5);
     expect(JSON.stringify(allowed)).not.toContain("MUST NOT LEAK");
@@ -106,7 +107,7 @@ describe("production gmail.search", () => {
   });
   it("deterministically completes a confirmed subject-list operation without releasing other message fields", async () => {
     const search = vi.fn(async () => ["one", "two", "three", "four", "five", "six"]);
-    const retrieveMessage = vi.fn(async (id: string) => ({ subject: `Subject ${id}`, snippet: `Snippet ${id}` }));
+    const retrieveMessage = vi.fn(async (id: string) => ({ sender: `Sender ${id} <${id}@example.com>`, subject: `Subject ${id}`, snippet: `Snippet ${id}` }));
     const reference = createPendingAuthorization(proposeGmailSubjectList("7d"));
     const result = await resolveProductionGmailSearch({
       currentUserUtterance: "yes",
@@ -120,7 +121,7 @@ describe("production gmail.search", () => {
           id: "email",
           match: { connectorType: "email" },
           processing: "external_processing_permitted",
-          admissibleFields: ["subject"],
+          admissibleFields: ["sender", "subject"],
         }],
       }),
     });
@@ -130,7 +131,8 @@ describe("production gmail.search", () => {
       decision: "ALLOW",
       reason: "pending_authorization_confirmed",
       messageIds: ["one", "two", "three", "four", "five"],
-      reply: "Recent Gmail messages:\n- Subject one\n- Subject two\n- Subject three\n- Subject four\n- Subject five",
+      gmailMessageListReference: { gmailMessageListReferenceId: expect.any(String) },
+      reply: "Recent Gmail messages:\n1. From: Sender one <one@example.com>\n   Subject: Subject one\n2. From: Sender two <two@example.com>\n   Subject: Subject two\n3. From: Sender three <three@example.com>\n   Subject: Subject three\n4. From: Sender four <four@example.com>\n   Subject: Subject four\n5. From: Sender five <five@example.com>\n   Subject: Subject five",
     });
     expect(search).toHaveBeenCalledWith("7d", 5);
     expect(retrieveMessage.mock.calls.map(([id]) => id)).toEqual(["one", "two", "three", "four", "five"]);
@@ -178,7 +180,7 @@ describe("production gmail.search", () => {
           id: "email",
           match: { connectorType: "email" as const },
           processing: "external_processing_permitted" as const,
-          admissibleFields: ["subject"],
+          admissibleFields: ["sender", "subject"],
         }],
       }),
     };
@@ -228,7 +230,7 @@ describe("production gmail.search", () => {
           id: "email",
           match: { connectorType: "email" as const },
           processing: "external_processing_permitted" as const,
-          admissibleFields: ["subject"],
+          admissibleFields: ["sender", "subject"],
         }],
       }),
     };
@@ -306,7 +308,7 @@ describe("production gmail.search", () => {
           id: "email",
           match: { connectorType: "email" as const },
           processing: "external_processing_permitted" as const,
-          admissibleFields: ["subject"],
+          admissibleFields: ["sender", "subject"],
         }],
       }),
     };
@@ -402,7 +404,7 @@ describe("production gmail.search", () => {
           id: "email",
           match: { connectorType: "email" as const },
           processing: "external_processing_permitted" as const,
-          admissibleFields: ["subject"],
+          admissibleFields: ["sender", "subject"],
         }],
       }),
     };
@@ -481,14 +483,14 @@ describe("production gmail.search", () => {
     const search = vi.fn(async () => ["one"]);
     const deps = {
       createConnector: () => ({ search }),
-      createSubjectConnector: () => ({ retrieveMessage: vi.fn(async () => ({ subject: "Subject one" })) }),
+      createSubjectConnector: () => ({ retrieveMessage: vi.fn(async () => ({ sender: "Sender One <one@example.com>", subject: "Subject one" })) }),
       loadPolicy: async () => ({
         policyVersion: "test-v1",
         rules: [{
           id: "email",
           match: { connectorType: "email" as const },
           processing: "external_processing_permitted" as const,
-          admissibleFields: ["subject"],
+          admissibleFields: ["sender", "subject"],
         }],
       }),
     };
@@ -511,7 +513,8 @@ describe("production gmail.search", () => {
       handled: true,
       decision: "ALLOW",
       messageIds: ["one"],
-      reply: "Recent Gmail messages:\n- Subject one",
+      gmailMessageListReference: { gmailMessageListReferenceId: expect.any(String) },
+      reply: "Recent Gmail messages:\n1. From: Sender One <one@example.com>\n   Subject: Subject one",
     });
     expect(search).toHaveBeenCalledWith("1d", 5);
   });
@@ -549,14 +552,14 @@ describe("production gmail.search", () => {
     const search = vi.fn(async () => ["one"]);
     const deps = {
       createConnector: () => ({ search }),
-      createSubjectConnector: () => ({ retrieveMessage: vi.fn(async () => ({ subject: "Subject one" })) }),
+      createSubjectConnector: () => ({ retrieveMessage: vi.fn(async () => ({ sender: "Sender One <one@example.com>", subject: "Subject one" })) }),
       loadPolicy: async () => ({
         policyVersion: "test-v1",
         rules: [{
           id: "email",
           match: { connectorType: "email" as const },
           processing: "external_processing_permitted" as const,
-          admissibleFields: ["subject"],
+          admissibleFields: ["sender", "subject"],
         }],
       }),
     };
@@ -579,7 +582,7 @@ describe("production gmail.search", () => {
       handled: true,
       decision: "ALLOW",
       messageIds: ["one"],
-      reply: "Recent Gmail messages:\n- Subject one",
+      reply: "Recent Gmail messages:\n1. From: Sender One <one@example.com>\n   Subject: Subject one",
     });
     expect(search).toHaveBeenCalledWith("1d", 5);
   });

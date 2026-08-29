@@ -22,20 +22,25 @@ export function resolveGmailOrdinalReadProposal(input: {
     reference: input.gmailMessageListReference,
     currentUserUtterance: input.currentUserUtterance,
   });
-  if (selection.status === "unsupported") return Object.freeze({ handled: false });
-  if (selection.status === "invalid" || selection.status === "expired") {
-    return Object.freeze({
-      handled: true,
-      reply: "That recent Gmail result is no longer available. Please retrieve the recent messages again.",
-      gmailMessageListReference: null,
-    });
-  }
-  if (selection.status === "out_of_range") {
-    return Object.freeze({
-      handled: true,
-      reply: "That position is outside the bounded recent Gmail result.",
-      gmailMessageListReference: selection.reference,
-    });
+
+  switch (selection.status) {
+    case "unsupported":
+      return Object.freeze({ handled: false });
+    case "invalid":
+    case "expired":
+      return Object.freeze({
+        handled: true,
+        reply: "That recent Gmail result is no longer available. Please retrieve the recent messages again.",
+        gmailMessageListReference: null,
+      });
+    case "out_of_range":
+      return Object.freeze({
+        handled: true,
+        reply: "That position is outside the bounded recent Gmail result.",
+        gmailMessageListReference: selection.reference,
+      });
+    case "matched":
+      break;
   }
 
   const operation = proposeGmailRead(Object.freeze({

@@ -8,6 +8,7 @@ describe("gmail.search natural-language proposal boundary", () => {
     ["Search my email from the last day.", "1d"],
     ["Search my email for the last day.", "1d"],
     ["Show me my emails for the last day.", "1d"],
+    ["Show me the emails from the last day.", "1d"],
     ["What are my emails from the last day?", "1d"],
     ["What are my emails from the last week?", "7d"],
     ["Search my inbox from the past 24 hours", "1d"],
@@ -45,6 +46,7 @@ describe("gmail.search natural-language proposal boundary", () => {
   });
 
   it.each([
+    "The emails from the last day.",
     "Search Gmail for messages from Alice from the last day",
     "Search Gmail for invoices from the last week",
     "Search my email from the last month",

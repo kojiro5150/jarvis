@@ -16,6 +16,8 @@ describe("GS002A deterministic Gmail sender identity", () => {
   });
 
   it.each([
+    "Show me the emails from the last day",
+    "Show me the email from the past week",
     "Find the email about Georgia",
     "Read the email from Georgia",
     "Find something from Georgia",

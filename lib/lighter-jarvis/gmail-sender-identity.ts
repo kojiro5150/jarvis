@@ -11,11 +11,14 @@ export type GmailSenderIdentityResolution =
   | Readonly<{ status: "ambiguous"; identities: readonly GmailSenderIdentity[] }>;
 
 const REQUEST = /^(?:please\s+)?(?:find|show|get)\s+(?:me\s+)?(?:(?:the|my)\s+)?(?:email|emails|message|messages|mail)\s+from\s+(.+?)[?!.]?$/i;
+const CLOSED_TEMPORAL_REFERENCE = /^(?:the\s+)?(?:last|past)\s+(?:day|24\s+hours?|week|7\s+days?)$/i;
 
 export function parseNaturalLanguageGmailSenderReference(utterance: string): readonly string[] | null {
   const match = utterance.trim().match(REQUEST);
   if (!match) return null;
-  const terms = [...new Set(strictTokens(match[1]))];
+  const rawReference = match[1].trim();
+  if (CLOSED_TEMPORAL_REFERENCE.test(rawReference)) return null;
+  const terms = [...new Set(strictTokens(rawReference))];
   return terms.length > 0 && terms.length <= 8 ? Object.freeze(terms) : null;
 }
 

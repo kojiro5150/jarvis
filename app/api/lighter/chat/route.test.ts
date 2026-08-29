@@ -55,6 +55,7 @@ describe("POST /api/lighter/chat", () => {
   it.each([
     ["Search my Gmail from the last day.", "1d"],
     ["Show me my emails for the last day.", "1d"],
+    ["Show me the emails from the last day.", "1d"],
     ["What are my emails from the last day?", "1d"],
     ["What are my emails from the last week?", "7d"],
     ["Search my Gmail from the last week.", "7d"],

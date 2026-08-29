@@ -404,7 +404,9 @@ async function releaseMetadata(
     decision: "ALLOW",
     reason: input.reason,
     messageIds: input.ids,
-    gmailMessageListReference: createGmailMessageListReference({ messageIds: input.ids }),
+    ...(input.includeSender
+      ? { gmailMessageListReference: createGmailMessageListReference({ messageIds: input.ids }) }
+      : {}),
     reply: input.includeSender
       ? `${input.intro}\n${messages.map(({ sender, subject }, index) => `${index + 1}. From: ${sender}\n   Subject: ${subject}`).join("\n")}`
       : `${input.intro}\n${messages.map(({ subject }) => `- ${subject}`).join("\n")}`,

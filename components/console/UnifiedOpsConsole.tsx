@@ -19,6 +19,7 @@ type Specialist = {
 };
 type Message = { role: "user" | "assistant"; content: string; error?: boolean };
 type OpaqueGmailSenderDisambiguation = Readonly<{ gmailSenderDisambiguationReferenceId: string }>;
+type OpaqueGmailMessageList = Readonly<{ gmailMessageListReferenceId: string }>;
 type OpaqueCalendarAttentionObservation = Readonly<{ calendarAttentionObservationReferenceId: string }>;
 type OpaqueCalendarConflictReasoning = Readonly<{ calendarConflictReasoningReferenceId: string }>;
 type OpaqueCalendarAdvicePreference = Readonly<{ calendarAdvicePreferenceReferenceId: string }>;
@@ -94,6 +95,7 @@ export default function UnifiedOpsConsole() {
   );
   const authorityTurnStateRef = useRef(new ClientAuthorityTurnState());
   const gmailSenderDisambiguationRef = useRef<OpaqueGmailSenderDisambiguation | null>(null);
+  const gmailMessageListRef = useRef<OpaqueGmailMessageList | null>(null);
   const calendarAttentionObservationRef = useRef<OpaqueCalendarAttentionObservation | null>(null);
   const calendarConflictReasoningRef = useRef<OpaqueCalendarConflictReasoning | null>(null);
   const calendarAdvicePreferenceRef = useRef<OpaqueCalendarAdvicePreference | null>(null);
@@ -312,6 +314,9 @@ export default function UnifiedOpsConsole() {
           ...(specialist.id === "jarvis" && gmailSenderDisambiguationRef.current
             ? { gmailSenderDisambiguationReference: gmailSenderDisambiguationRef.current }
             : {}),
+          ...(specialist.id === "jarvis" && gmailMessageListRef.current
+            ? { gmailMessageListReference: gmailMessageListRef.current }
+            : {}),
           ...(specialist.id === "jarvis" && calendarAttentionObservationRef.current
             ? { calendarAttentionObservationReference: calendarAttentionObservationRef.current }
             : {}),
@@ -339,6 +344,7 @@ export default function UnifiedOpsConsole() {
         marketScopes?: string[];
         pendingAuthorizationReference?: OpaquePendingAuthorization | null;
         gmailSenderDisambiguationReference?: OpaqueGmailSenderDisambiguation | null;
+        gmailMessageListReference?: OpaqueGmailMessageList | null;
         calendarAttentionObservationReference?: OpaqueCalendarAttentionObservation;
         calendarConflictReasoningReference?: OpaqueCalendarConflictReasoning | null;
         calendarAdvicePreferenceReference?: OpaqueCalendarAdvicePreference | null;
@@ -360,6 +366,9 @@ export default function UnifiedOpsConsole() {
       }
       if (data.gmailSenderDisambiguationReference !== undefined) {
         gmailSenderDisambiguationRef.current = data.gmailSenderDisambiguationReference;
+      }
+      if (data.gmailMessageListReference !== undefined) {
+        gmailMessageListRef.current = data.gmailMessageListReference;
       }
       if (data.calendarAttentionObservationReference !== undefined) {
         calendarAttentionObservationRef.current = data.calendarAttentionObservationReference;

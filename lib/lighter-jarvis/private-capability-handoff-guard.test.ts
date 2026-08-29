@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isAmbiguousPrivateReadFollowUp } from "./private-capability-handoff-guard";
+import { isAmbiguousGmailEvidenceFollowUp, isAmbiguousPrivateReadFollowUp } from "./private-capability-handoff-guard";
 
 describe("private capability handoff deny-only classifier", () => {
   it.each(["read it", "open it", "show it", "summarize it", "19xlDULDXTH4jniT-6jnZ0Vdp4LETYlG4jfIoOr4TkPQ"])(
@@ -11,6 +11,23 @@ describe("private capability handoff deny-only classifier", () => {
     "does not classify an unrelated one-word request: %s",
     utterance => expect(isAmbiguousPrivateReadFollowUp(utterance)).toBe(false),
   );
+
+  it.each([
+    "One of my last five emails.",
+    "One of those emails",
+    "the first email",
+    "that email",
+  ])("classifies a bounded ambiguous Gmail evidence follow-up: %s", utterance => {
+    expect(isAmbiguousGmailEvidenceFollowUp(utterance)).toBe(true);
+  });
+
+  it.each([
+    "What are my last five emails?",
+    "Show me my last five emails.",
+    "Tell me about email systems",
+  ])("does not classify a fresh Gmail request or ordinary statement: %s", utterance => {
+    expect(isAmbiguousGmailEvidenceFollowUp(utterance)).toBe(false);
+  });
 
   it("requires at least twenty allowed provider-ID characters", () => {
     expect(isAmbiguousPrivateReadFollowUp("Abcdefghijklmnopqrs")).toBe(false);

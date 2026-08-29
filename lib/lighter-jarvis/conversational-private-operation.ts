@@ -1,4 +1,4 @@
-import { proposeGmailSearch, type ProposedGmailSearchOperation } from "./gmail-search-authority";
+import { proposeGmailSubjectList, type ProposedGmailSearchOperation } from "./gmail-search-authority";
 import type { CapabilityRequestIntent } from "./conversational-intent";
 
 export type ConversationalPrivateOperationProposal = ProposedGmailSearchOperation;
@@ -28,5 +28,5 @@ export function materializeConversationalPrivateOperation(
   if (semanticSubjectTerms.length > 0) return null;
 
   const newerThan = intent.temporalConstraint === "today" ? "1d" : "7d";
-  return proposeGmailSearch(newerThan);
+  return proposeGmailSubjectList(newerThan);
 }

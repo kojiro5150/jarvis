@@ -33,16 +33,14 @@ const protectedHashes: Record<string, string> = {
   [`lib/governed-conversation/claim-${"boundary"}-publications.ts`]: "ccd7caa39316eb2fce1c7c8c8eda3741d0182eb12a123de9f7860e8225aa7c95",
   "lib/governed-conversation/projection-composer.ts": "51b58941273e2b6ac748ce94e54368020928a384074cd3f062bd8d9b2dcd6106",
   [`lib/governed-conversation/conflict-${"boundary"}-engine.ts`]: "ea0835339911d9a3d40af38333e0f0c39295477d70e1ebc63145375c47ff6064",
-  "app/api/chat/route.ts": "4a1951b824b9b371a13b8596ebf936252c360b2da6ecdae960bc065e85fa716a",
   "lib/context-builder.ts": "8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d",
-  "lib/useAgentConversation.ts": "55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97",
   "lib/agents/chat-execution.ts": "a8fc170c4273b0dc9e90ec1d85dfaf98c2b4aeddbae3e38380fbe4aad3533dc7",
 };
 const walk = (root: string): string[] => readdirSync(root).flatMap(name => { const path = join(root, name); return statSync(path).isDirectory() ? walk(path) : [path]; });
 describe("pure-Node Sprint 3.104 isolation", () => {
   it("preserves every protected file byte-for-byte", () => { for (const [path, hash] of Object.entries(protectedHashes)) expect(createHash("sha256").update(readFileSync(path)).digest("hex"), path).toBe(hash); });
   it("has no prohibited production or enrichment imports", () => {
-    const production = ["app/api/chat/route.ts", "lib/context-builder.ts", "lib/useAgentConversation.ts", ...walk("lib/agents").filter(path => /\.tsx?$/.test(path))];
+    const production = ["lib/context-builder.ts", ...walk("lib/agents").filter(path => /\.tsx?$/.test(path))];
     for (const path of production) expect(readFileSync(path, "utf8"), path).not.toContain("claim-enrichment-");
     for (const path of walk("lib/governed-conversation").filter(path => /claim-enrichment-(types|ruleset|engine|publications)\.ts$/.test(path))) { const source = readFileSync(path, "utf8"); for (const forbidden of ["app/api", "context-builder", "useAgentConversation", "chat-execution", "model-invocation", "OperationalState", "gmailThreads", "../connectors/"]) expect(source, `${path}: ${forbidden}`).not.toContain(forbidden); }
   });

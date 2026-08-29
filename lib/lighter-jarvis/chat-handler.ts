@@ -780,9 +780,11 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           const proposedOperation = materializeConversationalPrivateOperation(selectedIntent);
           if (proposedOperation?.capability === "gmail.search") {
             return NextResponse.json({
-              reply: proposedOperation.resultMode === "subject_list"
-                ? `I can retrieve the subjects of up to five recent Gmail messages from the last ${proposedOperation.newerThan === "1d" ? "day" : "7 days"}. Please explicitly confirm that I may do that.`
-                : `I can search Gmail for up to five messages from the last ${proposedOperation.newerThan === "1d" ? "day" : "7 days"}. Please explicitly confirm that I may do that.`,
+              reply: proposedOperation.resultMode === "sender_match"
+                ? "I can search Gmail for messages from that sender reference. Please explicitly confirm that I may do that."
+                : proposedOperation.resultMode === "subject_list"
+                  ? `I can retrieve the subjects of up to five recent Gmail messages from the last ${proposedOperation.newerThan === "1d" ? "day" : "7 days"}. Please explicitly confirm that I may do that.`
+                  : `I can search Gmail for up to five messages from the last ${proposedOperation.newerThan === "1d" ? "day" : "7 days"}. Please explicitly confirm that I may do that.`,
               specialistId: specialist.id,
               execution: "none",
               gmailSearchAuthority: { decision: "ASK", reason: "explicit_gmail_search_not_established" },

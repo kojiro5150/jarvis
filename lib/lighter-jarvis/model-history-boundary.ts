@@ -16,6 +16,7 @@ const OMITTED_DRIVE_READ_REQUEST = "[Prior governed Drive read request omitted f
 const OMITTED_DRIVE_PROVIDER_ID_FOLLOW_UP = "[Prior governed Drive provider-ID follow-up omitted from ordinary model context.]";
 
 const GMAIL_FIELD_RELEASE = /^(?:Subject|Snippet|Plain text body|Attachment filenames|Attachment MIME metadata):/;
+const GMAIL_SUBJECT_LIST_RELEASE = /^(?:Recent Gmail messages:\n-|No recent Gmail messages found\.$)/;
 const CALENDAR_RELEASE = /^(?:(?:Today|Tomorrow|This morning|This afternoon|This evening|This week|Next week) is clear\.|Your Calendar is clear for the next seven days\.|(?:Today|Tomorrow|This morning|This afternoon|This evening|This week|Next week|Next seven days) you have \d+ commitments?:\n-|Your Calendar has (?:no|\d+) commitments? in |(?:This|Next) week's resolved Calendar allocation:|Calendar factual result:\n)/;
 const DRIVE_RELEASE = /^(?:No Drive files found\.|Drive files:\n-)/;
 const DRIVE_CONTENT_RELEASE = /^Drive document \([A-Za-z0-9_-]+\):\n/;
@@ -65,6 +66,7 @@ function isNegativeCalendarFactualRelease(content: string): boolean {
 export function isDeterministicPrivateRelease(content: string): boolean {
   return content === "No Gmail message IDs found."
     || content.startsWith("Gmail message IDs:\n-")
+    || GMAIL_SUBJECT_LIST_RELEASE.test(content)
     || GMAIL_FIELD_RELEASE.test(content)
     || CALENDAR_RELEASE.test(content)
     || DRIVE_RELEASE.test(content)

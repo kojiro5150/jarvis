@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { callClaude } from "@/lib/claude";
-import type { ClaudeContentBlock, ClaudeResult, ClaudeTool } from "@/lib/claude";
+import type { ClaudeResult } from "@/lib/claude";
 import type { ChatMessage } from "@/lib/agents/types";
 import { areValidMessages, areValidMessageTranscript, buildSpecialistPrompt } from "@/lib/lighter-jarvis/runtime";
 import { getLighterSpecialist } from "@/lib/lighter-jarvis/specialists";
@@ -84,31 +84,6 @@ type ModelCall = (
   tools?: ClaudeTool[],
   governedContext?: GovernedContext,
 ) => Promise<string | ClaudeResult>;
-
-
-export type MarketScope = "australia" | "us_equities" | "fx" | "global_macro";
-
-export const MARKET_SCOPE_DOMAINS: Readonly<Record<MarketScope, readonly string[]>> = {
-  australia: ["asx.com.au", "asic.gov.au", "rba.gov.au", "abs.gov.au", "apra.gov.au", "treasury.gov.au"],
-  us_equities: ["nasdaq.com", "sec.gov", "federalreserve.gov"],
-  fx: ["federalreserve.gov", "ecb.europa.eu", "bankofengland.co.uk", "rba.gov.au"],
-  global_macro: ["imf.org", "worldbank.org", "bis.org", "federalreserve.gov", "ecb.europa.eu", "bankofengland.co.uk", "rba.gov.au"],
-};
-
-const DOMAIN_PATTERN = /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/;
-
-export function resolveMarketScopeDomains(value: unknown): string[] | undefined {
-  if (!Array.isArray(value) || value.length === 0) return undefined;
-  const domains = new Set<string>();
-  for (const scope of value) {
-    if (typeof scope !== "string" || !Object.hasOwn(MARKET_SCOPE_DOMAINS, scope)) return undefined;
-    for (const domain of MARKET_SCOPE_DOMAINS[scope as MarketScope]) {
-      if (!DOMAIN_PATTERN.test(domain) || !/^[\x00-\x7F]+$/.test(domain)) return undefined;
-      domains.add(domain);
-    }
-  }
-  return [...domains];
-}
 
 
 const PUBLIC_LOOKUP_UNAVAILABLE_REPLY = "I recognized that as a public-information request, but public lookup is not yet available in this runtime.";

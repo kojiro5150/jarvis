@@ -1437,23 +1437,21 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     expect(model).not.toHaveBeenCalled();
   });
 
-  it("returns a validated JARVIS route from a tool call", async () => {
+  it("does not expose specialist handoff tools to the real JARVIS model call", async () => {
     const model = vi.fn(async (
       _systemPrompt: string,
       _messages: ChatMessage[],
       _tools?: ClaudeTool[],
-    ) => handoffResult("dawnwatch", "I'll hand this to DAWNWATCH."));
+    ) => "I can help with that directly.");
     const response = await createLighterChatHandler(model)(request({
       specialistId: "jarvis", messages: [{ role: "user", content: "Brief me" }],
     }));
 
     expect(await response.json()).toEqual({
-      reply: "I'll hand this to DAWNWATCH.", specialistId: "jarvis", execution: "none", routeTo: "dawnwatch",
-      taskSummary: "A self-contained restatement of the task.",
+      reply: "I can help with that directly.", specialistId: "jarvis", execution: "none",
     });
-    expect(model.mock.calls[0][2]).toEqual(expect.arrayContaining([
-      expect.objectContaining({ name: "propose_handoff" }),
-    ]));
+    expect(model.mock.calls[0][2]).toBeUndefined();
+    expect(model.mock.calls[0][0]).not.toContain("propose_handoff");
   });
 
   it.each([

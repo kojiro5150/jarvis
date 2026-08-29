@@ -115,30 +115,6 @@ export function resolveMarketScopeDomains(value: unknown): string[] | undefined 
   return [...domains];
 }
 
-const JARVIS_TOOLS: ClaudeTool[] = [{
-  name: "propose_handoff",
-  description: "Propose handing this conversation to a specialist. Call this only when the task clearly requires a specialist's governed data or capability. Explain the reason in your ordinary text response; this tool call carries which specialist and a self-contained task_summary.",
-  input_schema: {
-    type: "object",
-    properties: {
-      specialist_id: {
-        type: "string",
-        enum: ["dawnwatch", "oracle", "herald", "steve", "marcus", "gecko"],
-      },
-      task_summary: {
-        type: "string",
-        description: "A self-contained restatement of what the specialist needs to do, written as if the specialist has seen none of this conversation. Never a bare acknowledgement like 'yes' or 'go ahead': if this is a follow-up hand-off, restate the actual task from earlier in the conversation, not just the message that triggered this call.",
-      },
-      market_scopes: {
-        type: "array",
-        items: { type: "string", enum: ["australia", "us_equities", "fx", "global_macro"] },
-        description: "Required for GECKO only: one or more of australia, us_equities, fx, global_macro.",
-      },
-    },
-    required: ["specialist_id", "task_summary"],
-  },
-}];
-
 const PRIVATE_CAPABILITY_HANDOFF_BLOCKED_REPLY = "That request cannot be handled through a specialist handoff.";
 
 const isFetchError = (value: unknown): boolean => {
@@ -290,6 +266,20 @@ export type CalendarActDependencies = Readonly<{
   hasWriteScope: () => Promise<boolean>;
   clock: () => Date;
 }>;
+
+const REFERENTIAL_CALENDAR_MUTATION = /^\s*(?:move|reschedule|shift|change)\s+(?:it|that|this)\b/i;
+
+function hasPriorGovernedCalendarFactualResult(messages: unknown): boolean {
+  return Array.isArray(messages) && messages.some((message) =>
+    typeof message === "object"
+    && message !== null
+    && "role" in message
+    && message.role === "assistant"
+    && "content" in message
+    && typeof message.content === "string"
+    && message.content.startsWith("Calendar factual result:")
+  );
+}
 
 const defaultCalendarActDependencies: CalendarActDependencies = {
   createReadConnector: () => new GoogleCalendarConnector(),
@@ -475,6 +465,19 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           });
         }
       }
+    }
+
+    if (specialist.id === "jarvis"
+      && !body.relaySpecialistReply
+      && currentUserUtterance !== undefined
+      && REFERENTIAL_CALENDAR_MUTATION.test(currentUserUtterance)
+      && hasPriorGovernedCalendarFactualResult(body.messages)) {
+      return NextResponse.json({
+        reply: "I can't safely bind that referential Calendar change to a governed event yet. No Calendar write was attempted.",
+        specialistId: specialist.id,
+        execution: "none",
+        calendarConflictAct: { status: "unbound_reference" },
+      });
     }
 
     const driveRead = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
@@ -739,7 +742,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       try {
         const systemPrompt = await buildSpecialistPrompt(specialist);
         const modelMessages = sanitizeModelHistory(body.messages);
-        const result = await callModel(systemPrompt, modelMessages, JARVIS_TOOLS, governedContext);
+        const result = await callModel(systemPrompt, modelMessages, undefined, governedContext);
         const modelReply = typeof result === "string" ? result : result.text;
         const guardedReply = guardOrdinaryModelReply(modelReply, currentUserUtterance, false, {
           hasCurrentCalendarGovernedContext: governedContext.sources.some(source => source.source === "calendar"),
@@ -873,8 +876,6 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         ? ORACLE_TOOLS
         : specialist.id === "gecko"
           ? [{ type: "web_search_20250305", name: "web_search", allowed_domains: marketDomains }] as ClaudeTool[]
-        : specialist.id === "jarvis" && !relaySpecialistReply
-          ? JARVIS_TOOLS
           : undefined;
       // Authority above is resolved from the untouched current utterance first.
       // Only the later, ordinary model call receives the private-release boundary.

@@ -58,4 +58,31 @@ describe("GoogleGmailSenderSearchConnector", () => {
     expect(ids).toEqual(["one", "two", "three", "four", "five"]);
     expect(String(fetchMock.mock.calls[0][0])).toContain("q=from%3Ageorgia%40example.com");
   });
+  it("marks the scan incomplete when any sender metadata read fails, without discarding successful evidence", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        messages: [{ id: "one" }, { id: "two" }, { id: "three" }],
+      }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        payload: { headers: [{ name: "From", value: "Georgia McDonald <georgia@example.com>" }] },
+      }), { status: 200 }))
+      .mockResolvedValueOnce(new Response("", { status: 429 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        payload: { headers: [{ name: "From", value: "Georgia McDonald <georgia@example.com>" }] },
+      }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await new GoogleGmailSenderSearchConnector().discoverSenderIdentities(["georgia"], 100);
+
+    expect(result).toEqual({
+      complete: false,
+      incompleteReason: "metadata_incomplete",
+      identities: [
+        { displayName: "Georgia McDonald", address: "georgia@example.com" },
+        { displayName: "Georgia McDonald", address: "georgia@example.com" },
+      ],
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
 });

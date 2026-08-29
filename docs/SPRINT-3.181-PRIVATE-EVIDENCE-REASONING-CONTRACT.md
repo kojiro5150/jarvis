@@ -56,6 +56,8 @@ GovernedResultSetReference
   id
   capability
   resultSetType
+  referentialClass
+  supportedReferenceKinds
   orderedResourceIds
   originatingOperation
   createdAt
@@ -91,7 +93,11 @@ It must not be inferred from conversational topic, model judgement, semantic sim
 
 ## Referential class and supersession
 
-A later governed result set supersedes only an earlier result set of the **same referential class**.
+A later **successfully produced** governed result set supersedes only an earlier result set of the **same referential class**.
+
+A successful same-class result set supersedes the earlier set even when it contains zero resources. An empty newer result must not cause implicit fallback to an older non-empty result.
+
+A later operation that fails before producing a governed result set does not supersede the earlier set merely because authority was granted or acquisition was attempted.
 
 Example:
 
@@ -123,6 +129,10 @@ For the first bounded implementation, an otherwise eligible result set remains a
 
 These are server-owned constants, not model-selected values.
 
+Turn-count semantics are exact: the first six subsequent user turns may use the result set if all other eligibility conditions hold. The set expires for implicit reference before processing the seventh subsequent user turn. A turn that successfully resolves a reference still counts as one of those six turns.
+
+Time semantics are half-open: a result set is time-eligible only while `now < expiresAt`. At `now >= expiresAt`, implicit reference is expired.
+
 A new governed result set of the same referential class supersedes the earlier set immediately even if its time/turn lifetime has not expired.
 
 Expiry removes permission for implicit reference resolution.
@@ -134,6 +144,14 @@ The underlying audit/observation record may remain available under its own reten
 ---
 
 ## Reference resolution
+
+### Structural reference compatibility
+
+Each referential class must declare a closed set of supported reference kinds/nouns, for example `gmail_message` or `calendar_item`.
+
+Compatibility is structural. It must be decided from the typed reference candidate and the result set's declared `supportedReferenceKinds`, never from model judgement, topic inference, semantic similarity or rendered private evidence.
+
+If no eligible result set supports the typed reference kind, resolution is `absent`.
 
 ### Capability-qualified reference
 
@@ -243,9 +261,18 @@ At minimum, implementation must distinguish:
 ```text
 resolved
 ambiguous
+absent
 expired
+out_of_range
 invalid
 ```
+
+Definitions:
+
+- `absent` — no eligible structurally compatible governed result set exists;
+- `expired` — a structurally compatible historical set exists but is no longer eligible because its explicit lifetime ended;
+- `out_of_range` — an eligible compatible set exists but the requested ordinal is not present in that set;
+- `invalid` — the server-owned reference state is malformed, inconsistent, tampered with, explicitly invalidated or otherwise fails structural integrity checks.
 
 ### Operation authority
 
@@ -269,7 +296,10 @@ The user-facing wording must derive from the layer that actually failed.
 
 Examples:
 
+- absent reference → “I don't have an eligible governed result set that this reference can safely identify.”
 - expired reference → “I can no longer safely resolve that reference against the earlier result.”
+- out-of-range ordinal → “That earlier result did not contain an item at that position.”
+- invalid reference state → “I can't safely use that prior result reference.”
 - ambiguous reference → ask which governed result set/item the user means.
 - exact identity resolved + unavailable → “I identified the item you meant, but it can no longer be retrieved.”
 - exact identity resolved + policy denied → “I identified the item, but I can’t release that content under the current policy.”
@@ -406,7 +436,17 @@ Before implementation, the contract must survive at least these cases:
 17. exact historical identity resolves but current resource retrieval returns unavailable;
 18. current retrieval failure does not trigger silent search rerun or ordinal reinterpretation;
 19. read authority is requested fresh after identity resolution;
-20. model output cannot substitute a different resource when the exact referenced resource is unavailable.
+20. model output cannot substitute a different resource when the exact referenced resource is unavailable;
+21. an empty successful same-class result supersedes an earlier non-empty result and does not fall back to it;
+22. a failed later same-class operation produces no result set and therefore does not supersede the earlier successful result;
+23. an ordinal outside the stored result-set bounds is `out_of_range`, not `invalid` and not a request to rerun the search;
+24. fabricated, tampered or structurally inconsistent opaque reference state is `invalid`;
+25. the first six subsequent user turns may reference a set, while the seventh may not;
+26. `now == expiresAt` is expired;
+27. same-capability result sets of different referential classes are matched only through a closed structural compatibility rule;
+28. a newer same-capability but incompatible referential class does not become the target of a qualified reference merely because it is more recent;
+29. a current read of a historically identified mutable resource does not imply that current content equals content observed earlier;
+30. server/process loss of the preserved ordered identities cannot be repaired by reconstructing them from client-visible prose or model memory.
 
 ---
 

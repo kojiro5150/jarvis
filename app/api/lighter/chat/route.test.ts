@@ -1555,7 +1555,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     }));
 
     expect(await response.json()).toEqual({
-      reply: "I can't safely identify a prior Gmail item from ordinary model context.",
+      reply: "I can't read or identify a prior Gmail message from ordinary model context. Reading a selected message requires a separate governed Gmail read request and authority.",
       specialistId: "jarvis",
       execution: "none",
     });
@@ -1593,7 +1593,157 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     }));
 
     expect(await response.json()).toEqual({
-      reply: "I can't safely identify a prior Gmail item from ordinary model context.",
+      reply: "I can't read or identify a prior Gmail message from ordinary model context. Reading a selected message requires a separate governed Gmail read request and authority.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(model).not.toHaveBeenCalled();
+    expect(gmailSearchConnector).not.toHaveBeenCalled();
+    expect(gmailReadConnector).not.toHaveBeenCalled();
+  });
+
+  it("resolves a bare sender disambiguation follow-up only through the server-owned candidate reference", async () => {
+    const model = vi.fn(async () => "FABRICATED: I found 8 emails and read their bodies.");
+    const discoverSenderIdentities = vi.fn(async () => ({
+      complete: true,
+      identities: [
+        { displayName: "Georgia McDonald", address: "georgia.mcdonald@example.com" },
+        { displayName: "Georgia Radford", address: "georgia.radford@example.com" },
+      ],
+    }));
+    const searchByAddress = vi.fn(async () => ["message-1"]);
+    const retrieveMessage = vi.fn(async () => ({ subject: "Real subject", snippet: "MUST NOT LEAK" }));
+    const handler = createLighterChatHandler(
+      model,
+      undefined,
+      undefined,
+      {
+        createConnector: () => ({ search: vi.fn(async () => []) }),
+        createSenderConnector: () => ({ discoverSenderIdentities, searchByAddress }),
+        createSubjectConnector: () => ({ retrieveMessage }),
+        loadPolicy: async () => ({
+          policyVersion: "test-v1",
+          rules: [{
+            id: "email",
+            match: { connectorType: "email" as const },
+            processing: "external_processing_permitted" as const,
+            admissibleFields: ["subject"],
+          }],
+        }),
+      },
+    );
+
+    const ask = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Show me the emails from Georgia." }],
+    }))).json();
+    const ambiguous = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Yes." }],
+      pendingAuthorizationReference: ask.pendingAuthorizationReference,
+    }))).json();
+
+    expect(ambiguous).toMatchObject({
+      gmailSearchAuthority: { decision: "ALLOW", reason: "gmail_sender_identity_ambiguous" },
+      gmailSenderDisambiguationReference: {
+        gmailSenderDisambiguationReferenceId: expect.any(String),
+      },
+    });
+
+    const refined = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [
+        { role: "user", content: "Show me the emails from Georgia." },
+        { role: "assistant", content: "Please explicitly confirm that I may search Gmail." },
+        { role: "user", content: "Yes." },
+        { role: "assistant", content: ambiguous.reply },
+        { role: "user", content: "Georgia McDonald." },
+      ],
+      gmailSenderDisambiguationReference: ambiguous.gmailSenderDisambiguationReference,
+    }))).json();
+
+    expect(refined).toMatchObject({
+      reply: "Gmail messages from Georgia McDonald <georgia.mcdonald@example.com>:\n- Real subject",
+      gmailSearchAuthority: { decision: "ALLOW", reason: "gmail_sender_disambiguation_resolved" },
+      gmailSenderDisambiguationReference: null,
+      messageIds: ["message-1"],
+    });
+    expect(model).not.toHaveBeenCalled();
+    expect(discoverSenderIdentities).toHaveBeenCalledTimes(1);
+    expect(searchByAddress).toHaveBeenCalledWith("georgia.mcdonald@example.com", 5);
+    expect(JSON.stringify(refined)).not.toContain("MUST NOT LEAK");
+    expect(JSON.stringify(refined)).not.toContain("FABRICATED");
+  });
+
+  it("keeps a misspelled sender refinement inside the governed disambiguation boundary", async () => {
+    const model = vi.fn(async () => "FABRICATED private mailbox facts");
+    const discoverSenderIdentities = vi.fn(async () => ({
+      complete: true,
+      identities: [
+        { displayName: "Georgia McDonald", address: "georgia.mcdonald@example.com" },
+        { displayName: "Georgia Radford", address: "georgia.radford@example.com" },
+      ],
+    }));
+    const searchByAddress = vi.fn(async () => ["must-not-run"]);
+    const handler = createLighterChatHandler(
+      model,
+      undefined,
+      undefined,
+      {
+        createConnector: () => ({ search: vi.fn(async () => []) }),
+        createSenderConnector: () => ({ discoverSenderIdentities, searchByAddress }),
+      },
+    );
+    const ask = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Show me the emails from Georgia." }],
+    }))).json();
+    const ambiguous = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Yes." }],
+      pendingAuthorizationReference: ask.pendingAuthorizationReference,
+    }))).json();
+
+    const typo = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Georgia MacDonald." }],
+      gmailSenderDisambiguationReference: ambiguous.gmailSenderDisambiguationReference,
+    }))).json();
+
+    expect(typo).toMatchObject({
+      gmailSearchAuthority: { decision: "ALLOW", reason: "gmail_sender_disambiguation_not_found" },
+      gmailSenderDisambiguationReference: ambiguous.gmailSenderDisambiguationReference,
+    });
+    expect(typo.reply).toContain("does not uniquely match");
+    expect(model).not.toHaveBeenCalled();
+    expect(searchByAddress).not.toHaveBeenCalled();
+  });
+
+  it("blocks a most-recent sender-result body follow-up before ordinary model generation", async () => {
+    const model = vi.fn(async () => [
+      "Here is the most recent email:",
+      "From: Georgia McDonald",
+      "Perfect – see you then!",
+    ].join("\n"));
+    const gmailSearchConnector = vi.fn();
+    const gmailReadConnector = vi.fn();
+
+    const response = await createLighterChatHandler(
+      model,
+      undefined,
+      { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
+      { createConnector: gmailSearchConnector },
+    )(request({
+      specialistId: "jarvis",
+      messages: [
+        { role: "user", content: "Find the email from Georgia McDonald." },
+        { role: "assistant", content: "Gmail messages from Georgia McDonald <georgia@example.com>:\n- RE: Catch-up\n- Catch-up" },
+        { role: "user", content: "Yes, the most recent email." },
+      ],
+    }));
+
+    expect(await response.json()).toEqual({
+      reply: "I can't read or identify a prior Gmail message from ordinary model context. Reading a selected message requires a separate governed Gmail read request and authority.",
       specialistId: "jarvis",
       execution: "none",
     });

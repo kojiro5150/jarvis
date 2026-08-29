@@ -1,8 +1,33 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Last reconciled 2026-08-28 after Sprint 3.180b2, capability-level alignment review, and drift-risk reconciliation. The August 1 roadmap state is superseded: governed conversational source inputs, operation-level authority for bounded Calendar/Gmail/Drive reads, private-history containment, voice turn integrity, live Calendar GovernedContext/recall truthfulness, deterministic Calendar projection-fidelity protection, and bounded conversational capability selection have now been implemented and verified. The current transition is from bounded deterministic factual capability selection toward natural intent-to-authority handoff and evidence-bound factual completion, before opening the private semantic reasoning boundary.
+**Status:** Living document. Reconciled 2026-08-30 for the Governance Core doctrine freeze. Existing governed Calendar/Gmail/Drive work remains the proven substrate. The next architectural transition is **Governance Core Extraction and Controlled Architectural Collapse**: concentrate trust-bearing obligations into typed, auditable primitives, improve proposal interpretation without granting it trust, and remove compensating specialist/handoff/history/authority scaffolding only after its invariants are classified and preserved.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
+
+---
+
+## Governance Core extraction sequence
+
+The doctrine and sequence are frozen in [JARVIS-GOVERNANCE-CORE.md](./JARVIS-GOVERNANCE-CORE.md). The plan is not yet proven; implementation claims require direct code, test, and behaviour verification.
+
+1. **Doctrine + classification:** freeze trust rules and classify affected tests before production changes.
+2. **Trust-bearing type core:** make model-authored values unable to inhabit authority/evidence/provenance/verification types; activate the migration lock.
+3. **Untrusted proposal boundary:** make natural interpretation and compound decomposition richer without conferring authority.
+4. **Governed references/context:** separate semantic continuity from governance state.
+5. **Narrow Gmail read usability:** deterministic authorised sender/body presentation without implying model exposure.
+6. **Private-content-to-model boundary:** separate architecture review before any semantic private-content exposure.
+7. **Guard audit/collapse:** translate invariants before deleting defensive runtime mechanisms.
+8. **Specialist/handoff runtime removal:** remove obsolete persona/routing architecture while preserving useful reasoning methods.
+9. **Authority primitive consolidation:** migrate proven common authority structure without weakening capability-specific semantics.
+10. **Legacy runtime retirement:** remove the parallel route only after dependency and no-second-execution-path proof.
+
+The standing test classification and merge rule are in [GOVERNANCE-CORE-TEST-CLASSIFICATION.md](./GOVERNANCE-CORE-TEST-CLASSIFICATION.md).
+
+> **Migration question:** Did we remove architecture, or did we remove a proof obligation?
+
+> **Trust question:** Can model-authored material now reach a trust-bearing type anywhere it could not before?
+
+> **Execution question:** Did this create or preserve a second route to private acquisition or execution?
 
 ---
 

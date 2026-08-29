@@ -416,6 +416,43 @@ The governing consequence rule is:
 
 This is consequence-proportionate governance, not a universal slowdown. Fast iteration remains the default everywhere the consequence class permits it.
 
+### Reduce breadth, not rigor
+
+The standing product rule is:
+
+> **Reduce breadth, not rigor.**
+
+Keep JARVIS small by adding fewer capabilities, one at a time. Do not make an accepted capability cheaper by weakening its authority, evidence, verification, or truthfulness obligations.
+
+For any capability that reads private state or changes an external system, reuse the proven method and re-run the proof for that capability. Trust does not transfer sideways from Calendar to Gmail, Drive, or any later connector.
+
+For consequential writes, the expected proof shape is:
+
+```text
+bounded proposal
+→ authority bound to the exact act
+→ fresh provider state before mutation
+→ fail closed on divergence
+→ execute through the governed path
+→ independently re-read the external system
+→ verify authorised postconditions
+→ only then claim completion
+```
+
+If a capability cannot yet be built to that standard, defer the capability rather than ship a weaker version and promise to harden it later. The legacy Gmail path remains the concrete counterexample: deferred rigor created a second authority implementation that later required explicit containment.
+
+### Test-classification rule for controlled collapse
+
+When restructuring JARVIS Core, classify relevant regression tests before treating a failure as either a real invariant break or harmless implementation churn:
+
+- **Invariant / behavioural:** proves externally meaningful authority, evidence, truthfulness, or verification behaviour. These tests must survive restructuring in substance.
+- **Structural containment:** proves a safety boundary through the current module/import/file shape. Preserve the boundary, but rewrite the test when the implementation structure legitimately changes.
+- **Historical freeze:** intentionally protects a specific prior byte/hash/file state. Keep it as historical evidence where useful, but do not mistake byte identity for the underlying behavioural invariant.
+
+Classification itself is not evidence of preservation. Before deleting or moving governed machinery, first ensure the corresponding invariant is expressed in implementation-neutral behavioural terms and remains green through the change.
+
+Applying this classification exhaustively to the current suite remains pending work; the framework is now the rule for future Core collapse rather than a claim that every existing test has already been reclassified.
+
 ### Level 2 → Level 3 sequencing
 
 Sprint 3.181 defines the first legitimate private-evidence reasoning boundary. It does **not** itself create a useful Level 2 product capability.

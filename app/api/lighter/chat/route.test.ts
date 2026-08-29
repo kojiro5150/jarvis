@@ -1626,7 +1626,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
             id: "email",
             match: { connectorType: "email" as const },
             processing: "external_processing_permitted" as const,
-            admissibleFields: ["subject"],
+            admissibleFields: ["sender", "subject"],
           }],
         }),
       },
@@ -1954,7 +1954,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
       requestedOutput: "list",
     }));
     const search = vi.fn(async () => ["id-1", "id-2", "id-3", "id-4", "id-5", "id-6"]);
-    const retrieveMessage = vi.fn(async (id: string) => ({ subject: `Subject ${id}`, snippet: "must never be released" }));
+    const retrieveMessage = vi.fn(async (id: string) => ({ sender: `Sender ${id} <${id}@example.com>`, subject: `Subject ${id}`, snippet: "must never be released" }));
     const loadPolicy = vi.fn(async () => ({
       policyVersion: "test-v1",
       rules: [{

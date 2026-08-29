@@ -62,7 +62,7 @@ describe("content retrieval policy boundary", () => {
 
   it("releases only admissible fields after raw external processing is permitted", () => {
     const evaluation = evaluateContentRetrievalPolicy(resource, policy);
-    expect(resolveReleasedFields(evaluation, ["subject", "importance", "html_body", "subject"])).toEqual(["plain_text_body", "subject"]);
+    expect(resolveReleasedFields(evaluation, ["subject", "importance", "html_body", "subject"])).toEqual(["subject"]);
     expect(resolveReleasedFields({ ...evaluation, decision: "redacted_processing_only" }, ["subject"])).toEqual([]);
     expect(resolveReleasedFields({ ...evaluation, decision: "approved_environment_only" }, ["subject"])).toEqual([]);
   });
@@ -99,7 +99,7 @@ describe("deployment configuration", () => {
     });
     expect(resolveReleasedFields(evaluateContentRetrievalPolicy(resource, configured), [
       "plain_text_body", "subject", "snippet",
-    ])).toEqual(["subject"]);
+    ])).toEqual(["plain_text_body", "subject"]);
   });
 
   it("loads explicit configuration and returns null for absent or malformed configuration", async () => {

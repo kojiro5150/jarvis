@@ -29,7 +29,11 @@ function event(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
   };
 }
 
-function observationSet(events: readonly CalendarEvent[], observedAt: string, state = coverageState) {
+function observationSet(
+  events: readonly CalendarEvent[],
+  observedAt: string,
+  state: "bounded_complete_request" | "bounded_partial_request" | "bounded" = coverageState,
+) {
   const evidence = publishCalendarEvidence({
     sourceId: "google-calendar",
     availability: "available",

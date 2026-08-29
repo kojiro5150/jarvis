@@ -23,7 +23,9 @@ export class GoogleGmailContentConnector implements GmailContentConnector {
     const message = await response.json() as Message;
     const bodies: string[] = []; const attachments: { filename: string; mimeType: string }[] = [];
     collect(message.payload, bodies, attachments);
-    const subject = message.payload?.headers?.find((header) => header.name?.toLowerCase() === "subject")?.value;
-    return { ...(subject ? { subject } : {}), ...(message.snippet ? { snippet: message.snippet } : {}), ...(bodies.length ? { plainTextBody: bodies.join("\n") } : {}), attachments };
+    const headers = message.payload?.headers ?? [];
+    const sender = headers.find((header) => header.name?.toLowerCase() === "from")?.value;
+    const subject = headers.find((header) => header.name?.toLowerCase() === "subject")?.value;
+    return { ...(sender ? { sender } : {}), ...(subject ? { subject } : {}), ...(message.snippet ? { snippet: message.snippet } : {}), ...(bodies.length ? { plainTextBody: bodies.join("\n") } : {}), attachments };
   }
 }

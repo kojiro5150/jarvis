@@ -1,3 +1,4 @@
+import { proveExplicitGmailRead } from "@/lib/governance-core/explicit-command-authority";
 import { GMAIL_CONTENT_FIELDS, type GmailContentField, type GmailContentRetrievalRequest } from "../content-retrieval";
 
 export const GMAIL_READ_CAPABILITY = "gmail.read" as const;
@@ -23,14 +24,13 @@ export type GmailReadAuthorityDecision = Readonly<{
  * visible in the trusted current utterance rather than inferring scope from chat history.
  */
 export function evaluateGmailReadAuthority(operation: ProposedGmailReadOperation, currentUserUtterance: string): GmailReadAuthorityDecision {
-  const fields = operation.requestedFields.join(",");
-  const exact = `gmail.read ${operation.resourceId} [${fields}]`;
-  const allowed = currentUserUtterance.trim() === exact;
+  const authorityEvidence = proveExplicitGmailRead(operation, currentUserUtterance);
+  const allowed = authorityEvidence.length === 1;
   return Object.freeze({
     capability: GMAIL_READ_CAPABILITY,
     decision: allowed ? "ALLOW" : "ASK",
     reason: allowed ? "explicit_gmail_read" : "explicit_gmail_read_not_established",
-    authorityEvidence: allowed ? Object.freeze([Object.freeze({ source: "current_user_utterance", utterance: currentUserUtterance, basis: "explicit_gmail_read" })]) : Object.freeze([]),
+    authorityEvidence,
   });
 }
 

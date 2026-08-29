@@ -51,7 +51,7 @@ describe("Sprint 3.180b live capability selection", () => {
       }
       return JSON.stringify({ kind: "ordinary_conversation" });
     });
-    const handler = createLighterChatHandler(model, undefined, undefined, undefined, undefined, undefined, { weather: groundedWeatherDependencies });
+    const handler = createLighterChatHandler(model, undefined, undefined, undefined, undefined, undefined, undefined, { weather: groundedWeatherDependencies });
 
     const response = await (await handler(request([
       { role: "user", content: "When am I next doing something on JARVIS?" },
@@ -76,7 +76,7 @@ describe("Sprint 3.180b live capability selection", () => {
 
   it("keeps identical weather wording public even when the selector declines it", async () => {
     const model = vi.fn(async () => JSON.stringify({ kind: "ordinary_conversation" }));
-    const handler = createLighterChatHandler(model, undefined, undefined, undefined, undefined, undefined, { weather: groundedWeatherDependencies });
+    const handler = createLighterChatHandler(model, undefined, undefined, undefined, undefined, undefined, undefined, { weather: groundedWeatherDependencies });
 
     const first = await (await handler(request([
       { role: "user", content: "Will it rain in Geelong tomorrow?" },

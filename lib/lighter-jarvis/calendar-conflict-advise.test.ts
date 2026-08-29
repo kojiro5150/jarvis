@@ -3,6 +3,7 @@ import type { ChatMessage } from "../agents/types";
 import { sourceResult } from "../governed-conversation/source-adapter-result";
 import type { GoldenScenarioGateKObservation } from "../governed-conversation/golden-scenario-calendar-conflict-gate-k";
 import type { ScopedCalendarEvidenceResult } from "../governed-conversation/scoped-calendar-evidence-acquisition-adapter";
+import type { GovernedCalendarConflictEvent } from "../governed-conversation/calendar-conflict-observation";
 import { createCalendarConflictReasoningReference } from "./calendar-conflict-reasoning-reference";
 import { createCalendarAdvicePreferenceReference, isSupportedCalendarAdvicePreferenceUtterance } from "./calendar-advice-preference-reference";
 import { resolveCalendarAdviceReference } from "./calendar-advice-reference";
@@ -54,7 +55,7 @@ function refs() {
   };
 }
 
-function evidence(extra: readonly any[] = [], coverageState: "bounded_complete_request" | "bounded_partial_request" = "bounded_complete_request"): ScopedCalendarEvidenceResult {
+function evidence(extra: readonly GovernedCalendarConflictEvent[] = [], coverageState: "bounded_complete_request" | "bounded_partial_request" = "bounded_complete_request"): ScopedCalendarEvidenceResult {
   const conflictEvents = Object.freeze([
     Object.freeze({ ...historical().addedPendingInvitation, observedAt }),
     Object.freeze({ ...historical().existingDeepWorkCommitment, observedAt }),

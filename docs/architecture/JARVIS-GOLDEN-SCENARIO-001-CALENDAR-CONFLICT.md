@@ -154,6 +154,195 @@ Incorrect behaviour:
 
 > **No later capability level may rewrite the historical truth of an earlier governed observation. Later levels must re-check current state whenever current state is required for safe reasoning or execution.**
 
+## Active vertical proving thread
+
+This scenario is now the active vertical proving thread for the next capability work. Adjacent discoveries may still be recorded, but they do not become implementation work automatically.
+
+### Scope-discipline rule
+
+Before starting any adjacent task, ask:
+
+> **Does this task answer a question Golden Scenario 001 actually needs answered to advance its current capability level?**
+
+If **yes**, it may enter the active thread.
+
+If **no**, it must be either:
+
+1. explicitly named as a deliberate detour, with a bounded stop condition; or
+2. deferred to the backlog without implementation.
+
+A locally valuable adjacent problem is not sufficient reason to displace the active proving case.
+
+### Reuse-before-redesign rule
+
+Where the repository already contains a proven pattern that satisfies the scenario's requirement, reuse that pattern before inventing a new one.
+
+For Level 4, the historical/current-state rule is already established:
+
+> **Later operations may discover that the world has changed. They may not rewrite what was previously observed.**
+
+Calendar execution therefore reuses the same separation already established elsewhere:
+
+- historical observation remains historically true;
+- current execution state is checked independently;
+- divergence is reported as changed current state, not rewritten history;
+- stale proposals fail closed.
+
+### Fixed scenario
+
+The first vertical proof uses exactly these governed facts:
+
+- existing Calendar event: `JARVIS deep work`, Tuesday 1:30–3:00 PM;
+- its governed `timeMode` is `deep_work` only if supplied by the existing explicit event-label mapping;
+- new invitation: Tuesday 1:00–2:00 PM;
+- overlap: 30 minutes;
+- no Calendar write authority exists initially.
+
+The event title must never be used to infer `deep_work`, protection, priority, urgency or importance.
+
+If an eventual Level-2 statement uses the word **protected**, that property must come from an explicit approved user/policy rule. `deep_work` alone does not silently imply `protected`.
+
+### Vertical proof gates
+
+#### Gate K — Know
+
+Required output:
+
+> A 1:00–2:00 PM invitation overlaps the 1:30–3:00 PM JARVIS deep-work block by 30 minutes.
+
+Required proof:
+
+- both event identities/times come from governed Calendar evidence;
+- `deep_work` comes only from the existing explicit label-to-mode mapping;
+- overlap is computed deterministically as `max(start) → min(end)`;
+- observation carries `observedAt`;
+- no model call is required;
+- no recommendation or importance judgement is emitted.
+
+#### Gate U — Understand
+
+User question:
+
+> Does that matter?
+
+The first private-evidence reasoning exposure is deliberately minimal. The reasoning model may receive only a typed governed representation equivalent to:
+
+```text
+scenario: calendar_overlap
+invite:
+  start
+  end
+  status / attendee response if observed and admitted
+existing_commitment:
+  start
+  end
+  timeMode: deep_work
+overlapMinutes: 30
+observedAt
+provenance references
+```
+
+It does **not** automatically receive:
+
+- arbitrary surrounding Calendar events;
+- descriptions;
+- attendees other than an explicitly admitted self-response field;
+- email;
+- Drive;
+- hidden conversation history;
+- priority, urgency or importance labels not present in governed evidence.
+
+Permitted Level-2 conclusion:
+
+> The invitation creates a scheduling conflict with an existing deep-work block.
+
+Not yet permitted without an additional explicit rule:
+
+> The invitation conflicts with protected work.
+
+No recommendation is allowed at this gate.
+
+#### Gate A — Advise
+
+User question:
+
+> What would you do?
+
+This gate requires facts and recommendation to remain separate.
+
+Before a recommendation can be earned, JARVIS must establish:
+
+- the conflict observation;
+- candidate alternative time(s) from current governed Calendar availability;
+- the duration required for the work block;
+- any explicit user goals/constraints needed to choose among candidates.
+
+A recommendation such as:
+
+> Keep the invitation and move the JARVIS block to 3:00–4:30 PM.
+
+is legitimate only if the evidence/constraints actually support that trade-off.
+
+`3:00–4:30 PM is free` is a factual claim.
+
+`Keep the invitation` is advice.
+
+They must not be represented as the same epistemic type.
+
+No Calendar write authority is created by the recommendation.
+
+#### Gate X — Act
+
+User instruction:
+
+> Do it.
+
+The execution sequence is fixed:
+
+```text
+resolved recommendation
+→ exact typed Calendar mutation proposal
+→ exact target event identity
+→ exact proposed start/end
+→ current-state re-read of source event and target slot
+→ deterministic comparison with proposal assumptions
+→ explicit human confirmation for that exact proposal
+→ immediate pre-write re-verification
+→ Calendar write
+→ external post-write verification
+→ Done
+```
+
+If current state differs materially at either re-verification point:
+
+- do not execute the stale proposal;
+- preserve the historical Know observation;
+- report the current-state divergence;
+- construct a new proposal from current state;
+- require fresh confirmation.
+
+No earlier confirmation transfers to a changed target slot or changed source event.
+
+### Vertical completion criterion
+
+Golden Scenario 001 is not complete because all four components exist separately.
+
+It is complete only when one traceable scenario can demonstrate:
+
+```text
+same governed Calendar situation
+→ Know fact
+→ Understand interpretation
+→ Advise recommendation
+→ Act exact mutation
+→ current-state verification
+→ post-write verification
+```
+
+with every sentence attributable to the capability level that earned it.
+
+Until then, the project must prefer work that advances this trace over adjacent capability expansion.
+
 ## Proving discipline
 
 This scenario is implemented incrementally:

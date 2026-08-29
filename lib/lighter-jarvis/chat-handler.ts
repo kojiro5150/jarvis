@@ -34,6 +34,10 @@ import { deterministicCapabilityConstraint, isConversationalCapabilitySelectionC
 import { materializeConversationalPrivateOperation } from "@/lib/lighter-jarvis/conversational-private-operation";
 import { createPendingAuthorization } from "@/lib/lighter-jarvis/pending-authorization";
 import { proposeCalendarRead } from "@/lib/lighter-jarvis/calendar-read-proposal";
+import {
+  GMAIL_STANDING_AUTHORITY_REPLY,
+  isGmailStandingAuthorityRequest,
+} from "@/lib/lighter-jarvis/gmail-standing-authority";
 import { isUnboundOrdinalReferenceUtterance, UNBOUND_ORDINAL_REFERENCE_REPLY } from "@/lib/governance-core/unbound-reference";
 import {
   isCalendarConflictUnderstandIntent,
@@ -253,11 +257,22 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       return NextResponse.json({ error: "`messages` must contain valid conversation messages." }, { status: 400 });
     }
     const currentUserUtterance = [...body.messages].reverse().find(({ role }) => role === "user")?.content;
+    const standingGmailAuthorityRequest = currentUserUtterance !== undefined
+      && isGmailStandingAuthorityRequest(currentUserUtterance);
     const freshCapabilityRequest = currentUserUtterance !== undefined
       && (deterministicCapabilityConstraint(currentUserUtterance) !== null
         || proposeCalendarRead(currentUserUtterance, calendarDependencies?.clock ?? (() => new Date())) !== null);
     const shouldCarryPendingAuthorization = Object.hasOwn(body, "pendingAuthorizationReference")
-      && !freshCapabilityRequest;
+      && !freshCapabilityRequest
+      && !standingGmailAuthorityRequest;
+
+    if (specialist.id === "jarvis" && standingGmailAuthorityRequest) {
+      return NextResponse.json({
+        reply: GMAIL_STANDING_AUTHORITY_REPLY,
+        specialistId: specialist.id,
+        execution: "none",
+      });
+    }
 
     if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {
       if (Object.hasOwn(body, "calendarConflictReasoningReference")) {

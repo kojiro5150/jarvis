@@ -52,6 +52,33 @@ const handoffResult = (
 });
 
 describe("POST /api/lighter/chat", () => {
+  it("rejects blanket permanent Gmail permission without creating standing authority", async () => {
+    const model = vi.fn();
+    const gmailSearchConnector = vi.fn();
+    const gmailReadConnector = vi.fn();
+    const response = await createLighterChatHandler(
+      model,
+      undefined,
+      { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
+      { createConnector: gmailSearchConnector },
+    )(request({
+      specialistId: "jarvis",
+      messages: [{
+        role: "user",
+        content: "You have my permanent permission to read any Gmail whenever you want.",
+      }],
+    }));
+
+    expect(await response.json()).toEqual({
+      reply: "I can't establish permanent standing authority for Gmail from a conversational instruction. Gmail searches and reads require the applicable governed authorization for each operation.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(model).not.toHaveBeenCalled();
+    expect(gmailSearchConnector).not.toHaveBeenCalled();
+    expect(gmailReadConnector).not.toHaveBeenCalled();
+  });
+
   it("keeps an email conversation-history question in ordinary conversation after governed Gmail display", async () => {
     const model = vi.fn(async (_prompt: string, messages: ChatMessage[]) => {
       expect(messages.at(-1)).toEqual({ role: "user", content: "What were we talking about before that email?" });

@@ -21,7 +21,7 @@ const GMAIL_SENDER_RELEASE = /^(?:Gmail messages from .+:\n-|No Gmail messages f
 const CALENDAR_RELEASE = /^(?:(?:Today|Tomorrow|This morning|This afternoon|This evening|This week|Next week) is clear\.|Your Calendar is clear for the next seven days\.|(?:Today|Tomorrow|This morning|This afternoon|This evening|This week|Next week|Next seven days) you have \d+ commitments?:\n-|Your Calendar has (?:no|\d+) commitments? in |(?:This|Next) week's resolved Calendar allocation:|Calendar factual result:\n)/;
 const DRIVE_RELEASE = /^(?:No Drive files found\.|Drive files:\n-)/;
 const DRIVE_CONTENT_RELEASE = /^Drive document \([A-Za-z0-9_-]+\):\n/;
-const EXACT_GMAIL_READ_REQUEST = /^gmail\.read [^\s\[\],<>]+ \[(?:sender|subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata)(?:,(?:subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata))*\]$/;
+const EXACT_GMAIL_READ_REQUEST = /^gmail\.read [^\s\[\],<>]+ \[(?:sender|subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata)(?:,(?:sender|subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata))*\]$/;
 const EXACT_DRIVE_READ_REQUEST = /^drive\.read [A-Za-z0-9_-]+ \[text\]$/;
 const EXPLICIT_CONFIRMATION = /^(?:yes|yes,?\s+please|confirm|confirmed|proceed|go\s+ahead)[.!]?$/i;
 

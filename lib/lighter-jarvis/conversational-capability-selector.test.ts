@@ -11,11 +11,26 @@ describe("conversational capability selection", () => {
     ["Will it rain in Geelong tomorrow?", true],
     ["What are my last five emails?", true],
     ["What are my last five Gmails?", true],
+    ["One of my last five emails.", false],
     ["Search my Drive for JARVIS.", true],
     ["When is my next meeting?", false],
     ["Tell me a joke.", false],
   ])("gates likely capability turns: %s", (utterance, expected) => {
     expect(isConversationalCapabilitySelectionCandidate(utterance)).toBe(expected);
+  });
+
+  it("rejects a Gmail noun fragment even if the model proposes a search operation", async () => {
+    const model = vi.fn(async () => JSON.stringify({
+      kind: "capability_request",
+      capability: "gmail",
+      operation: "search",
+      subjectTerms: ["emails"],
+      requestedOutput: "list",
+    }));
+    await expect(selectConversationalCapability({
+      utterance: "One of my last five emails.",
+      callModel: model,
+    })).resolves.toBeNull();
   });
 
   it("classifies a public weather request", async () => {

@@ -6,7 +6,7 @@ describe("GoogleGmailSubjectMetadataConnector", () => {
   beforeEach(() => vi.unstubAllGlobals());
 
   it("requests only Gmail Subject metadata and releases only the subject field", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify({
+    const fetch = vi.fn<typeof globalThis.fetch>(async (_input, _init) => new Response(JSON.stringify({
       snippet: "provider snippet must not be used",
       payload: {
         headers: [

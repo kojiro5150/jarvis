@@ -69,12 +69,13 @@ import { GoogleCalendarEventWriteConnector, type CalendarEventWritePort } from "
 import { GoogleCalendarConnector } from "@/lib/connectors/google/calendar";
 import { hasGoogleCalendarWriteScope } from "@/lib/connectors/google/calendar-write-scope";
 import type { ScopedCalendarAcquisitionPort } from "@/lib/governed-conversation/scoped-calendar-evidence-acquisition-adapter";
-import { parsePublicWeatherRequest } from "@/lib/lighter-jarvis/public-weather-request";
+import { materializePublicLookupRequest } from "@/lib/lighter-jarvis/public-lookup-request";
 import {
-  acquireGroundedPublicWeather,
-  renderGroundedPublicWeather,
-  type PublicWeatherDependencies,
-} from "@/lib/lighter-jarvis/public-weather";
+  executePublicGrounding,
+  PUBLIC_GROUNDING_UNAVAILABLE_REPLY,
+  type PublicGroundingDependencies,
+} from "@/lib/lighter-jarvis/public-grounded-know";
+import { renderGroundedPublicWeather } from "@/lib/lighter-jarvis/public-weather";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -244,7 +245,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
   gmailDependencies?: ProductionGmailDependencies, gmailSearchDependencies?: ProductionGmailSearchDependencies,
   driveSearchDependencies?: ProductionDriveSearchDependencies, driveReadDependencies?: ProductionDriveReadDependencies,
   calendarActDependencies: CalendarActDependencies = defaultCalendarActDependencies,
-  publicWeatherDependencies?: PublicWeatherDependencies) {
+  publicGroundingDependencies?: PublicGroundingDependencies) {
   return async function POST(request: Request) {
     let body: LighterChatBody;
     try { body = await request.json() as LighterChatBody; }
@@ -279,6 +280,38 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         specialistId: specialist.id,
         execution: "none",
       });
+    }
+
+    if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {
+      const publicLookup = materializePublicLookupRequest(currentUserUtterance);
+      if (publicLookup) {
+        const grounded = await executePublicGrounding(publicLookup, publicGroundingDependencies);
+        if (grounded.status !== "grounded") {
+          return NextResponse.json({
+            reply: PUBLIC_GROUNDING_UNAVAILABLE_REPLY,
+            specialistId: specialist.id,
+            execution: "none",
+            publicGrounding: {
+              status: "unavailable",
+              kind: publicLookup.kind,
+            },
+          });
+        }
+        if (grounded.request.kind === "weather") {
+          return NextResponse.json({
+            reply: renderGroundedPublicWeather(grounded.request, grounded.evidence),
+            specialistId: specialist.id,
+            execution: "public_information.weather.lookup",
+            publicGrounding: {
+              status: "grounded",
+              kind: "weather",
+              provider: grounded.evidence.provenance.provider,
+              observedAt: grounded.evidence.provenance.retrievedAt,
+              forecastDate: grounded.evidence.payload.forecast.date,
+            },
+          });
+        }
+      }
     }
 
     if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {
@@ -801,34 +834,10 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         });
         if (selectedIntent?.kind === "capability_request") {
           if (selectedIntent.capability === "public_information") {
-            const weatherRequest = parsePublicWeatherRequest(currentUserUtterance);
-            if (!weatherRequest) {
-              return NextResponse.json({
-                reply: PUBLIC_LOOKUP_UNAVAILABLE_REPLY,
-                specialistId: specialist.id,
-                execution: "none",
-              });
-            }
-            const evidence = await acquireGroundedPublicWeather(weatherRequest, publicWeatherDependencies);
-            if (!evidence) {
-              return NextResponse.json({
-                reply: "I couldn't establish a current public forecast from the configured source, so I won't guess from model memory.",
-                specialistId: specialist.id,
-                execution: "none",
-                publicGrounding: { status: "unavailable", kind: "weather" },
-              });
-            }
             return NextResponse.json({
-              reply: renderGroundedPublicWeather(weatherRequest, evidence),
+              reply: PUBLIC_LOOKUP_UNAVAILABLE_REPLY,
               specialistId: specialist.id,
-              execution: "public_information.weather.lookup",
-              publicGrounding: {
-                status: "grounded",
-                kind: "weather",
-                provider: evidence.provenance.provider,
-                observedAt: evidence.provenance.retrievedAt,
-                forecastDate: evidence.forecast.date,
-              },
+              execution: "none",
             });
           }
           const proposedOperation = materializeConversationalPrivateOperation(selectedIntent);

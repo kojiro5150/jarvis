@@ -171,7 +171,7 @@ A bare reference such as:
 
 may resolve only when exactly one eligible governed result set across supported referential classes can satisfy it.
 
-If zero eligible result sets can satisfy the reference, resolution fails as absent/expired.
+If zero eligible result sets can satisfy the reference, resolution is `expired` only when a structurally compatible historical set exists but its explicit lifetime has ended; otherwise resolution is `absent`.
 
 If more than one eligible result set can satisfy it, resolution is ambiguous and JARVIS must request clarification.
 

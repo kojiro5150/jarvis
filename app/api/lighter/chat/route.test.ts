@@ -52,122 +52,6 @@ const handoffResult = (
 });
 
 describe("POST /api/lighter/chat", () => {
-  it("blocks a confident ungrounded current-state model claim when grounding is required but unavailable", async () => {
-    const model = vi.fn(async () => "The current CEO is definitely Alice Example.");
-    const response = await createLighterChatHandler(model)(request({
-      specialistId: "jarvis",
-      messages: [{ role: "user", content: "Who is the current CEO of OpenAI?" }],
-    }));
-    const body = await response.json();
-
-    expect(body).toEqual({
-      reply: "I couldn't establish current public evidence for that request, so I won't substitute an unsupported answer from model memory.",
-      specialistId: "jarvis",
-      execution: "none",
-      publicGrounding: { status: "unavailable", kind: "web_search" },
-    });
-    expect(body.reply).not.toContain("Alice Example");
-    expect(body).not.toHaveProperty("pendingAuthorizationReference");
-    expect(model).not.toHaveBeenCalled();
-  });
-
-  it("treats grounding network failure as terminal and never falls back to a confident model guess", async () => {
-    const model = vi.fn(async () => "It will definitely be sunny and 22°C tomorrow.");
-    const fetchMock = vi.fn(async () => {
-      throw new Error("network unavailable");
-    });
-
-    const response = await createLighterChatHandler(
-      model,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      {
-        weather: {
-          fetch: fetchMock as typeof fetch,
-          clock: () => new Date("2026-08-30T06:00:00.000Z"),
-        },
-      },
-    )(request({
-      specialistId: "jarvis",
-      messages: [{ role: "user", content: "What's the weather in Geelong tomorrow?" }],
-    }));
-    const body = await response.json();
-
-    expect(body).toEqual({
-      reply: "I couldn't establish current public evidence for that request, so I won't substitute an unsupported answer from model memory.",
-      specialistId: "jarvis",
-      execution: "none",
-      publicGrounding: { status: "unavailable", kind: "weather", reason: "geocoding_network_error" },
-    });
-    expect(body.reply).not.toContain("22°C");
-    expect(model).not.toHaveBeenCalled();
-  });
-
-  it("does not apply private-style confirmation to grounded public weather", async () => {
-    const model = vi.fn();
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = input.toString();
-      if (url.includes("geocoding-api.open-meteo.com")) {
-        return new Response(JSON.stringify({
-          results: [{
-            name: "Geelong",
-            country: "Australia",
-            latitude: -38.1471,
-            longitude: 144.3607,
-            timezone: "Australia/Melbourne",
-          }],
-        }), { status: 200 });
-      }
-      return new Response(JSON.stringify({
-        daily: {
-          time: ["2026-08-30", "2026-08-31", "2026-09-01"],
-          temperature_2m_min: [9, 8, 7],
-          temperature_2m_max: [16, 18, 19],
-          precipitation_probability_max: [20, 65, 40],
-          weather_code: [3, 61, 2],
-        },
-      }), { status: 200 });
-    });
-
-    const response = await createLighterChatHandler(
-      model,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      {
-        weather: {
-          fetch: fetchMock as typeof fetch,
-          clock: () => new Date("2026-08-30T06:00:00.000Z"),
-        },
-      },
-    )(request({
-      specialistId: "jarvis",
-      messages: [{ role: "user", content: "What's the weather in Geelong tomorrow?" }],
-    }));
-    const body = await response.json();
-
-    expect(body).toMatchObject({
-      execution: "public_information.weather.lookup",
-      publicGrounding: {
-        status: "grounded",
-        provider: "open-meteo",
-        forecastDate: "2026-08-31",
-      },
-    });
-    expect(body.reply).toContain("Grounded weather for Geelong, Australia tomorrow");
-    expect(body).not.toHaveProperty("pendingAuthorizationReference");
-    expect(body).not.toHaveProperty("calendarAuthority");
-    expect(body).not.toHaveProperty("gmailAuthority");
-    expect(model).not.toHaveBeenCalled();
-  });
-
   it("rejects blanket permanent Gmail permission without creating standing authority", async () => {
     const model = vi.fn();
     const gmailSearchConnector = vi.fn();
@@ -1609,7 +1493,10 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     expect(await response.json()).toEqual({
       reply: "I can help with that directly.", specialistId: "jarvis", execution: "none",
     });
-    expect(model.mock.calls[0][2]).toBeUndefined();
+    expect(model.mock.calls[0][2]).toEqual([
+      { type: "web_search_20250305", name: "web_search" },
+    ]);
+    expect(JSON.stringify(model.mock.calls[0][2])).not.toContain("propose_handoff");
     expect(model.mock.calls[0][0]).not.toContain("propose_handoff");
   });
 

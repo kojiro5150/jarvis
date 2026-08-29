@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createLighterChatHandler } from "./chat-handler";
+import type { ClaudeTool } from "../claude";
 
 const request = (messages: unknown[]) => new Request("http://localhost/api/lighter/chat", {
   method: "POST",
@@ -8,36 +9,19 @@ const request = (messages: unknown[]) => new Request("http://localhost/api/light
   body: JSON.stringify({ specialistId: "jarvis", messages }),
 });
 
-const groundedWeatherDependencies = {
-  fetch: vi.fn(async (input: RequestInfo | URL) => {
-    const url = input.toString();
-    if (url.includes("geocoding-api.open-meteo.com")) {
-      return new Response(JSON.stringify({
-        results: [{
-          name: "Geelong",
-          country: "Australia",
-          latitude: -38.1471,
-          longitude: 144.3607,
-          timezone: "Australia/Melbourne",
-        }],
-      }), { status: 200 });
-    }
-    return new Response(JSON.stringify({
-      daily: {
-        time: ["2026-08-30", "2026-08-31", "2026-09-01"],
-        temperature_2m_min: [9.1, 8.4, 7.9],
-        temperature_2m_max: [16.2, 17.8, 18.1],
-        precipitation_probability_max: [20, 65, 40],
-        weather_code: [3, 61, 2],
-      },
-    }), { status: 200 });
-  }) as typeof fetch,
-  clock: () => new Date("2026-08-30T06:00:00.000Z"),
-};
+function hasWebSearch(tools?: ClaudeTool[]): boolean {
+  return tools?.some(tool => "type" in tool && tool.type === "web_search_20250305") ?? false;
+}
 
 describe("Sprint 3.180b live capability selection", () => {
-  it("keeps weather public after a contained Calendar turn", async () => {
-    const model = vi.fn(async (_systemPrompt: string, messages: { content: string }[]) => {
+  it("keeps weather public and lets ordinary JARVIS use native web search without authorization", async () => {
+    const model = vi.fn(async (_systemPrompt: string, messages: { content: string }[], tools?: ClaudeTool[]) => {
+      if (hasWebSearch(tools)) {
+        return {
+          content: [{ type: "text", text: "Tomorrow in Geelong: 17°C with a chance of showers." }],
+          text: "Tomorrow in Geelong: 17°C with a chance of showers.",
+        };
+      }
       const utterance = messages.at(-1)?.content ?? "";
       if (utterance === "Will it rain in Geelong tomorrow?") {
         return JSON.stringify({
@@ -51,7 +35,7 @@ describe("Sprint 3.180b live capability selection", () => {
       }
       return JSON.stringify({ kind: "ordinary_conversation" });
     });
-    const handler = createLighterChatHandler(model, undefined, undefined, undefined, undefined, undefined, undefined, { weather: groundedWeatherDependencies });
+    const handler = createLighterChatHandler(model);
 
     const response = await (await handler(request([
       { role: "user", content: "When am I next doing something on JARVIS?" },
@@ -59,38 +43,34 @@ describe("Sprint 3.180b live capability selection", () => {
       { role: "user", content: "Will it rain in Geelong tomorrow?" },
     ]))).json();
 
-    expect(response).toMatchObject({
-      execution: "public_information.weather.lookup",
-      publicGrounding: {
-        status: "grounded",
-        kind: "weather",
-        provider: "open-meteo",
-        forecastDate: "2026-08-31",
-      },
+    expect(response).toEqual({
+      reply: "Tomorrow in Geelong: 17°C with a chance of showers.",
+      specialistId: "jarvis",
+      execution: "none",
     });
-    expect(response.reply).toContain("Grounded weather for Geelong, Australia tomorrow");
-    expect(response.reply).toContain("Maximum precipitation probability: 65%");
     expect(response).not.toHaveProperty("pendingAuthorizationReference");
-    expect(model).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(2);
+    expect(hasWebSearch(model.mock.calls[1][2])).toBe(true);
   });
 
-  it("keeps identical weather wording public even when the selector declines it", async () => {
-    const model = vi.fn(async () => JSON.stringify({ kind: "ordinary_conversation" }));
-    const handler = createLighterChatHandler(model, undefined, undefined, undefined, undefined, undefined, undefined, { weather: groundedWeatherDependencies });
+  it("still exposes web search to ordinary JARVIS when the selector itself declines public capability", async () => {
+    const model = vi.fn(async (_systemPrompt: string, _messages: { content: string }[], tools?: ClaudeTool[]) =>
+      hasWebSearch(tools)
+        ? {
+            content: [{ type: "text", text: "Geelong's forecast is available from current web results." }],
+            text: "Geelong's forecast is available from current web results.",
+          }
+        : JSON.stringify({ kind: "ordinary_conversation" }));
+    const handler = createLighterChatHandler(model);
 
-    const first = await (await handler(request([
+    const response = await (await handler(request([
       { role: "user", content: "Will it rain in Geelong tomorrow?" },
     ]))).json();
-    const second = await (await handler(request([
-      { role: "user", content: "Will it rain in Geelong tomorrow?" },
-    ]))).json();
 
-    expect(first.publicGrounding).toMatchObject({ status: "grounded", provider: "open-meteo" });
-    expect(first.reply).toContain("Grounded weather for Geelong, Australia tomorrow");
-    expect(second.reply).toBe(first.reply);
-    expect(first).not.toHaveProperty("pendingAuthorizationReference");
-    expect(second).not.toHaveProperty("pendingAuthorizationReference");
-    expect(model).not.toHaveBeenCalled();
+    expect(response.reply).toBe("Geelong's forecast is available from current web results.");
+    expect(response).not.toHaveProperty("pendingAuthorizationReference");
+    expect(model).toHaveBeenCalledTimes(2);
+    expect(hasWebSearch(model.mock.calls[1][2])).toBe(true);
   });
 
   it("recognizes natural Gmail wording without pretending Gmail is unavailable", async () => {
@@ -115,10 +95,21 @@ describe("Sprint 3.180b live capability selection", () => {
     expect(response).not.toHaveProperty("messageIds");
     expect(model).toHaveBeenCalledTimes(1);
   });
-  it("contains SSRN research as unsupported public lookup before ordinary conversation", async () => {
-    const model = vi.fn(async () => JSON.stringify({
-      kind: "ordinary_conversation",
-    }));
+
+  it("lets public research use the same native web-search-enabled JARVIS path", async () => {
+    const model = vi.fn(async (_systemPrompt: string, _messages: { content: string }[], tools?: ClaudeTool[]) =>
+      hasWebSearch(tools)
+        ? {
+            content: [{ type: "text", text: "I found current SSRN results and can summarize them." }],
+            text: "I found current SSRN results and can summarize them.",
+          }
+        : JSON.stringify({
+            kind: "capability_request",
+            capability: "public_information",
+            operation: "lookup",
+            subjectTerms: ["ssrn"],
+            requestedOutput: "summary",
+          }));
     const handler = createLighterChatHandler(model);
 
     const response = await (await handler(request([
@@ -126,31 +117,35 @@ describe("Sprint 3.180b live capability selection", () => {
     ]))).json();
 
     expect(response).toEqual({
-      reply: "I couldn't establish current public evidence for that request, so I won't substitute an unsupported answer from model memory.",
+      reply: "I found current SSRN results and can summarize them.",
       specialistId: "jarvis",
       execution: "none",
-      publicGrounding: { status: "unavailable", kind: "web_search" },
     });
     expect(response).not.toHaveProperty("pendingAuthorizationReference");
-    expect(model).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(2);
+    expect(hasWebSearch(model.mock.calls[1][2])).toBe(true);
   });
 
-  it("does not turn yes after unavailable SSRN lookup into fake authority", async () => {
-    const model = vi.fn(async () => "That request cannot be authorized through an ordinary model response.");
+  it("returns a plain failure message when the web-enabled model invocation fails", async () => {
+    const model = vi.fn(async (_systemPrompt: string, _messages: { content: string }[], tools?: ClaudeTool[]) => {
+      if (hasWebSearch(tools)) throw new Error("web search unavailable");
+      return JSON.stringify({
+        kind: "capability_request",
+        capability: "public_information",
+        operation: "lookup",
+      });
+    });
     const handler = createLighterChatHandler(model);
 
     const response = await (await handler(request([
-      { role: "user", content: "what can you tell me about Sam Hayward on SSRN?" },
-      { role: "assistant", content: "I recognized that as a public-information request, but public lookup is not yet available in this runtime." },
-      { role: "user", content: "yes" },
+      { role: "user", content: "What's the weather in Geelong tomorrow?" },
     ]))).json();
 
     expect(response).toEqual({
-      reply: "I recognized that as a public-information request, but public lookup is not yet available in this runtime.",
+      reply: "I couldn't retrieve the public information needed for that answer right now.",
       specialistId: "jarvis",
       execution: "none",
     });
-    expect(model).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(2);
   });
-
 });

@@ -39,24 +39,19 @@ describe("legacy OperationalState production quarantine", () => {
 
   it("keeps the operational-state APIs clientless and the compatibility hook status-only", () => {
     expect(filesMatching(/fetch\(\s*["']\/api\/operational-state["']/)).toEqual([]);
-    expect(filesMatching(/import\s*\{[\s\S]*?\buseOperationalState\b[\s\S]*?\}\s*from\s*["'][^"']*useOperationalState["']/)).toEqual([
-      "components/dashboard/DashboardShell.tsx",
-    ]);
+    expect(filesMatching(/import\s*\{[\s\S]*?\buseOperationalState\b[\s\S]*?\}\s*from\s*["'][^"']*useOperationalState["']/)).toEqual([]);
     const hook = readFileSync(join(ROOT, "lib/useOperationalState.ts"), "utf8");
     expect(hook).toContain('fetch("/api/connector-status")');
     expect(hook).not.toContain("SEED_MEMORY");
   });
 
-  it("isolates the Memory editor from the empty Dashboard compatibility state", () => {
-    const shell = readFileSync(join(ROOT, "components/dashboard/DashboardShell.tsx"), "utf8");
+  it("keeps the Memory editor isolated after Dashboard compatibility retirement", () => {
     const rail = readFileSync(join(ROOT, "components/AgentRail.tsx"), "utf8");
-
-    expect(shell).not.toContain("MemoryEditor");
-    expect(shell).not.toContain("onOpenMemoryEditor");
     expect(rail).not.toContain("onOpenMemoryEditor");
     expect(rail).toContain('label="Memory"');
     expect(rail).toContain('statusLabel="UNAVAILABLE"');
   });
+
 
   it("keeps the machine-readable surface inventory complete and marks Step 5 complete", () => {
     const inventoryPath = join(ROOT, "docs/operational-state-production-inventory.json");

@@ -54,3 +54,21 @@ PR D adds the common state boundary without forcing the existing reference store
 `GovernanceState<T>` is a separate server-owned category. This module exposes no generic constructor for it. Later capability migrations must resolve genuine server-owned state at a trusted boundary rather than promote a client-carried reference or model proposal.
 
 The lifecycle audit in `REFERENCE-LIFECYCLE-AUDIT.md` records why existing Gmail, Calendar, result-set, disambiguation, and pending-authorisation stores are **not** being prematurely collapsed into one registry.
+
+
+## Exact-command authority proof
+
+PR I adds one deliberately narrow shared authority primitive in `explicit-command-authority.ts`.
+
+It consolidates only the proof that an exact Gmail/Drive command matches the untouched current user utterance. The exported functions are capability-specific:
+
+- `proveExplicitGmailRead`
+- `proveExplicitGmailSearch`
+- `proveExplicitDriveSearch`
+- `proveExplicitDriveRead`
+
+There is **no exported generic authority constructor** and no function that promotes an arbitrary string into authority evidence.
+
+Capability modules still own their decision semantics (`ASK` versus `DENY`, syntax handling, proposal validation and execution). Calendar read authority is intentionally not migrated because its grammar is richer than an exact command. Pending authorization is intentionally not migrated because replay protection, consumption and capability isolation are a different state machine.
+
+The pattern is consolidated; trust is still re-proven at each capability boundary.

@@ -22,7 +22,7 @@ const SELECTOR_PROMPT = [
   "This selection is not authorization and must never answer the user's question.",
 ].join("\n");
 
-const PUBLIC_INFORMATION_SIGNAL = /\b(?:weather|rain|forecast|temperature)\b/i;
+const PUBLIC_INFORMATION_SIGNAL = /\b(?:weather|rain|forecast|temperature|ssrn)\b/i;
 const GMAIL_SIGNAL = /\b(?:gmail|gmails|email|emails|inbox)\b/i;
 const GMAIL_REQUEST_FORM = /(?:\b(?:show|check|get|search|find|list|read|open|summari[sz]e)\b|^\s*(?:what|which|who|where|when|how)\b)/i;
 const DRIVE_SIGNAL = /\bdrive\b/i;

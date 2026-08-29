@@ -568,40 +568,6 @@ export default function UnifiedOpsConsole() {
                             {message.role === "user" ? "YOU" : selected?.name}
                           </b>
                           <p>{message.content}</p>
-                          {message.role === "assistant" &&
-                            index === messages.length - 1 &&
-                            pendingHandoff?.sourceId === selectedId && (
-                              <div
-                                className="handoff-proposal"
-                                role="group"
-                                aria-label="Specialist hand-off proposal"
-                              >
-                                <span>
-                                  HAND-OFF PROPOSED ·{" "}
-                                  {specialists.find(
-                                    (item) =>
-                                      item.id === pendingHandoff.targetId,
-                                  )?.name ??
-                                    pendingHandoff.targetId.toUpperCase()}
-                                </span>
-                                <div>
-                                  <button
-                                    type="button"
-                                    disabled={loading}
-                                    onClick={() => void confirmHandoff()}
-                                  >
-                                    CONFIRM
-                                  </button>
-                                  <button
-                                    type="button"
-                                    disabled={loading}
-                                    onClick={() => setPendingHandoff(null)}
-                                  >
-                                    DECLINE
-                                  </button>
-                                </div>
-                              </div>
-                            )}
                         </div>
                       ))}
                       {loading && (

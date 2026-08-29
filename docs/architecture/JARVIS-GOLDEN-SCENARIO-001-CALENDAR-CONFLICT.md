@@ -63,7 +63,7 @@ Example user question:
 
 Example bounded interpretation:
 
-> `Yes. The invitation creates a scheduling conflict with work you had already protected.`
+> `Yes — in the limited sense that it creates a scheduling conflict with an existing deep-work block.`
 
 ### Acceptance criteria
 
@@ -71,6 +71,8 @@ Example bounded interpretation:
 - The model may interpret the relationship between governed facts.
 - The overlap fact itself remains grounded in deterministic evidence.
 - The response must distinguish factual observation from semantic interpretation.
+- `deep_work` must not be silently upgraded to `protected`.
+- “matters” is bounded here to the existence of a scheduling conflict; it does not imply importance, urgency or priority.
 - No recommendation about what to do is made.
 
 ## Level 3 — Advise

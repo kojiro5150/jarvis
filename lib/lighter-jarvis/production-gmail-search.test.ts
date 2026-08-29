@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { resolveProductionGmailSearch } from "./production-gmail-search";
 import { createPendingAuthorization, resolvePendingAuthorization } from "./pending-authorization";
 import { proposeGmailRead } from "./gmail-read-authority";
-import { proposeGmailSearch } from "./gmail-search-authority";
+import { proposeGmailSearch, proposeGmailSubjectList } from "./gmail-search-authority";
 
 describe("production gmail.search", () => {
   it.each(["1d", "7d"] as const)("performs bounded ID-only discovery for %s", async newerThan => {
@@ -83,4 +83,58 @@ describe("production gmail.search", () => {
       .toMatchObject({ decision: "ALLOW", reason: "pending_authorization_confirmed" });
     expect(search).toHaveBeenCalledWith("7d", 5);
   });
+  it("deterministically completes a confirmed subject-list operation without releasing other message fields", async () => {
+    const search = vi.fn(async () => ["one", "two", "three", "four", "five", "six"]);
+    const retrieveMessage = vi.fn(async (id: string) => ({ subject: `Subject ${id}`, snippet: `Snippet ${id}` }));
+    const reference = createPendingAuthorization(proposeGmailSubjectList("7d"));
+    const result = await resolveProductionGmailSearch({
+      currentUserUtterance: "yes",
+      pendingAuthorizationReference: reference,
+    }, {
+      createConnector: () => ({ search }),
+      createSubjectConnector: () => ({ retrieveMessage }),
+      loadPolicy: async () => ({
+        policyVersion: "test-v1",
+        rules: [{
+          id: "email",
+          match: { connectorType: "email" },
+          processing: "external_processing_permitted",
+          admissibleFields: ["subject"],
+        }],
+      }),
+    });
+
+    expect(result).toEqual({
+      handled: true,
+      decision: "ALLOW",
+      reason: "pending_authorization_confirmed",
+      messageIds: ["one", "two", "three", "four", "five"],
+      reply: "Recent Gmail messages:\n- Subject one\n- Subject two\n- Subject three\n- Subject four\n- Subject five",
+    });
+    expect(search).toHaveBeenCalledWith("7d", 5);
+    expect(retrieveMessage.mock.calls.map(([id]) => id)).toEqual(["one", "two", "three", "four", "five"]);
+    expect(JSON.stringify(result)).not.toMatch(/Snippet|snippet/i);
+  });
+
+  it("fails the subject release closed when resource policy does not permit it", async () => {
+    const search = vi.fn(async () => ["one"]);
+    const retrieveMessage = vi.fn(async () => ({ subject: "Secret" }));
+    const reference = createPendingAuthorization(proposeGmailSubjectList("1d"));
+    const result = await resolveProductionGmailSearch({
+      currentUserUtterance: "yes",
+      pendingAuthorizationReference: reference,
+    }, {
+      createConnector: () => ({ search }),
+      createSubjectConnector: () => ({ retrieveMessage }),
+      loadPolicy: async () => null,
+    });
+
+    expect(result).toMatchObject({
+      decision: "ALLOW",
+      reason: "gmail_subject_list_policy_denied",
+      reply: "I found recent Gmail messages, but I can't release their subjects under the current resource policy.",
+    });
+    expect(retrieveMessage).not.toHaveBeenCalled();
+  });
+
 });

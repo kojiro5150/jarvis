@@ -92,14 +92,14 @@ describe("deployment configuration", () => {
     const configured = await loadContentRetrievalPolicy("config/content-retrieval-policy.dev.json");
     expect(configured).not.toBeNull();
     expect(evaluateContentRetrievalPolicy(resource, configured)).toMatchObject({
-      policyVersion: "dev-demo-2026-08-25.1",
+      policyVersion: "dev-demo-2026-08-30.1",
       decision: "external_processing_permitted",
-      matchedRuleId: "dev-demo-identified-gmail-subject",
-      admissibleFields: ["subject"],
+      matchedRuleId: "dev-demo-identified-gmail-read",
+      admissibleFields: ["plain_text_body", "sender", "subject"],
     });
     expect(resolveReleasedFields(evaluateContentRetrievalPolicy(resource, configured), [
       "plain_text_body", "subject", "snippet",
-    ])).toEqual(["subject"]);
+    ])).toEqual(["plain_text_body", "subject"]);
   });
 
   it("loads explicit configuration and returns null for absent or malformed configuration", async () => {

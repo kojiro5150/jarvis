@@ -35,6 +35,7 @@ import { interpretCalendarConversationalIntent, isCalendarConversationalIntentCa
 import { isConversationalCapabilitySelectionCandidate, selectConversationalCapability } from "@/lib/lighter-jarvis/conversational-capability-selector";
 import { materializeConversationalPrivateOperation } from "@/lib/lighter-jarvis/conversational-private-operation";
 import { createPendingAuthorization } from "@/lib/lighter-jarvis/pending-authorization";
+import { isUnboundOrdinalReferenceUtterance, UNBOUND_ORDINAL_REFERENCE_REPLY } from "@/lib/governance-core/unbound-reference";
 import {
   isCalendarConflictUnderstandIntent,
   resolveCalendarConflictUnderstand,
@@ -548,6 +549,19 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         ...(gmailOrdinalRead.gmailMessageListReference !== undefined
           ? { gmailMessageListReference: gmailOrdinalRead.gmailMessageListReference }
           : {}),
+      });
+    }
+
+    if (specialist.id === "jarvis"
+      && !body.relaySpecialistReply
+      && currentUserUtterance !== undefined
+      && !Object.hasOwn(body, "gmailMessageListReference")
+      && !Object.hasOwn(body, "pendingAuthorizationReference")
+      && isUnboundOrdinalReferenceUtterance(currentUserUtterance)) {
+      return NextResponse.json({
+        reply: UNBOUND_ORDINAL_REFERENCE_REPLY,
+        specialistId: specialist.id,
+        execution: "none",
       });
     }
 

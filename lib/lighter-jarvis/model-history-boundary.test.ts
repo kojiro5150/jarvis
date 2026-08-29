@@ -14,9 +14,11 @@ describe("ordinary-model history boundary", () => {
   it.each([
     "Gmail message IDs:\n- private-id\n- another-id",
     "Recent Gmail messages:\n- Private subject one\n- Private subject two",
+    "Recent Gmail messages:\n1. From: Georgia <georgia@example.com>\n   Subject: Private subject one\n2. From: Sam <sam@example.com>\n   Subject: Private subject two",
     "Gmail messages from Georgia McDonald <georgia@example.com>:\n- Private sender subject",
     "I found more than one real Gmail sender matching that reference:\n- Georgia McDonald <georgia@example.com>\n- Georgia Radford <radford@example.com>\nPlease be more specific.",
     "No recent Gmail messages found.",
+    "From: Georgia <georgia@example.com>\nSubject: Private subject\nPlain text body: Private deterministic body",
     "Subject: Private subject",
     "Snippet: Private snippet\nPlain text body: Private body",
     "Tomorrow is clear.",

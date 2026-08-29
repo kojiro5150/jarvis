@@ -279,6 +279,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           utterance: currentUserUtterance,
           reasoningReference: body.calendarConflictReasoningReference,
           callModel,
+          now: calendarDependencies?.clock() ?? new Date(),
         });
         if (understand.handled) {
           const retainReference = understand.status === "resolved"

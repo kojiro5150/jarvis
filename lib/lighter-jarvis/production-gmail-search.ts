@@ -24,6 +24,7 @@ import {
   type GmailSenderDisambiguationReference,
 } from "./gmail-sender-disambiguation-reference";
 import { createPendingAuthorization, resolvePendingAuthorization, type PendingAuthorizationReference } from "./pending-authorization";
+import { createGmailMessageListReference, type GmailMessageListReference } from "./gmail-message-list-reference";
 
 const PREFIX = /^gmail\.search(?:\s|$)/;
 const EXACT = /^gmail\.search \[newer_than:(1d|7d)\]$/;
@@ -43,6 +44,7 @@ export type ProductionGmailSearchResult = Readonly<{
   messageIds?: readonly string[];
   pendingAuthorizationReference?: PendingAuthorizationReference | null;
   gmailSenderDisambiguationReference?: GmailSenderDisambiguationReference | null;
+  gmailMessageListReference?: GmailMessageListReference | null;
 }>;
 const defaults = {
   createConnector: () => new GoogleGmailSearchConnector(),
@@ -214,7 +216,7 @@ async function executeWindowSearch(
     });
   }
 
-  return releaseSubjects({
+  return releaseMetadata({
     ids,
     reason,
     intro: "Recent Gmail messages:",
@@ -323,7 +325,7 @@ async function executeResolvedSenderSearch(
     });
   }
 
-  const released = await releaseSubjects({
+  const released = await releaseMetadata({
     ids,
     reason,
     intro: `Gmail messages from ${senderLabel}:`,
@@ -335,7 +337,7 @@ async function executeResolvedSenderSearch(
   return Object.freeze({ ...released, gmailSenderDisambiguationReference: null });
 }
 
-async function releaseSubjects(
+async function releaseMetadata(
   input: Readonly<{
     ids: readonly string[];
     reason: string;
@@ -363,11 +365,11 @@ async function releaseSubjects(
   }
 
   const adapter = new GmailContentRetrievalAdapter({ connector: createSubjectConnector() });
-  const subjects: string[] = [];
+  const messages: { sender: string; subject: string }[] = [];
   for (const id of input.ids) {
     const retrieval = await adapter.retrieve(Object.freeze({
       resource: Object.freeze({ resourceId: id, connectorType: "email" as const }),
-      requestedFields: Object.freeze(["subject"] as const),
+      requestedFields: Object.freeze(["sender", "subject"] as const),
       requestingRuntime: input.requestingRuntime,
     }), policy);
     if (retrieval.outcome === "denied") {
@@ -388,7 +390,10 @@ async function releaseSubjects(
         reply: input.retrievalFailureReply,
       });
     }
-    subjects.push(retrieval.content.subject ?? "(no subject)");
+    messages.push({
+      sender: retrieval.content.sender ?? "(sender unavailable)",
+      subject: retrieval.content.subject ?? "(no subject)",
+    });
   }
 
   return Object.freeze({
@@ -396,6 +401,7 @@ async function releaseSubjects(
     decision: "ALLOW",
     reason: input.reason,
     messageIds: input.ids,
-    reply: `${input.intro}\n${subjects.map(subject => `- ${subject}`).join("\n")}`,
+    gmailMessageListReference: createGmailMessageListReference({ messageIds: input.ids }),
+    reply: `${input.intro}\n${messages.map(({ sender, subject }, index) => `${index + 1}. From: ${sender}\n   Subject: ${subject}`).join("\n")}`,
   });
 }

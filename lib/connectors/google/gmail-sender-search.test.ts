@@ -44,6 +44,7 @@ describe("GoogleGmailSenderSearchConnector", () => {
 
     expect(await new GoogleGmailSenderSearchConnector().discoverSenderIdentities(["georgia"], 1)).toEqual({
       complete: false,
+      incompleteReason: "provider_truncated",
       identities: [{ displayName: "Georgia", address: "georgia@example.com" }],
     });
   });

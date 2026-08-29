@@ -94,6 +94,9 @@ export function resolveCalendarConflictReasoningReference(input: {
   readonly reference: unknown;
   readonly now?: Date;
 }): CalendarConflictReasoningResolution {
+  if (input.reference === undefined || input.reference === null) {
+    return Object.freeze({ status: "absent", observation: null });
+  }
   const stored = storedFrom(input.reference);
   if (!stored) return Object.freeze({ status: "invalid", observation: null });
   if (stored.supersededBy !== null) return Object.freeze({ status: "absent", observation: null });

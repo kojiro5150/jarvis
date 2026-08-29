@@ -26,8 +26,9 @@ function compareDeepWork(left: GoldenScenarioGateKObservation, right: GoldenScen
   const byStart = Date.parse(left.existingDeepWorkCommitment.start)
     - Date.parse(right.existingDeepWorkCommitment.start);
   if (byStart !== 0) return byStart;
-  return left.existingDeepWorkCommitment.commitmentReference
-    .localeCompare(right.existingDeepWorkCommitment.commitmentReference);
+  const leftId = left.existingDeepWorkCommitment.commitmentReference;
+  const rightId = right.existingDeepWorkCommitment.commitmentReference;
+  return leftId < rightId ? -1 : leftId > rightId ? 1 : 0;
 }
 
 function gateKObservation(
@@ -88,6 +89,7 @@ export function bindGoldenScenarioCalendarConflictGateK(input: {
   if (pendingInvitations.length !== 1) return empty("ambiguous_pending_invitation");
 
   const invitation = pendingInvitations[0];
+  if (!invitation) return empty("invalid");
   const observations: GoldenScenarioGateKObservation[] = [];
 
   for (const candidate of input.currentEvents) {

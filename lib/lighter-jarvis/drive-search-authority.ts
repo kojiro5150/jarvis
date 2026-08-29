@@ -1,3 +1,4 @@
+import { proveExplicitDriveSearch } from "@/lib/governance-core/explicit-command-authority";
 export const DRIVE_SEARCH_CAPABILITY = "drive.search" as const;
 
 export type ProposedDriveSearchOperation = Readonly<{
@@ -13,12 +14,12 @@ export function proposeDriveSearch(name: string): ProposedDriveSearchOperation {
 
 /** Authority derives only from the untouched, exact command utterance. */
 export function evaluateDriveSearchAuthority(operation: ProposedDriveSearchOperation, currentUserUtterance: string) {
-  const allowed = currentUserUtterance === `drive.search ${operation.name}`;
+  const authorityEvidence = proveExplicitDriveSearch(operation, currentUserUtterance);
+  const allowed = authorityEvidence.length === 1;
   return Object.freeze({
     capability: DRIVE_SEARCH_CAPABILITY,
     decision: allowed ? "ALLOW" as const : "DENY" as const,
     reason: allowed ? "explicit_drive_search" as const : "explicit_drive_search_not_established" as const,
-    authorityEvidence: allowed ? Object.freeze([Object.freeze({ source: "current_user_utterance" as const,
-      utterance: currentUserUtterance, basis: "explicit_drive_search" as const })]) : Object.freeze([]),
+    authorityEvidence,
   });
 }

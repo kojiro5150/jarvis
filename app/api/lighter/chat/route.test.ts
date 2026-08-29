@@ -1961,7 +1961,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
         id: "email",
         match: { connectorType: "email" as const },
         processing: "external_processing_permitted" as const,
-        admissibleFields: ["subject"],
+        admissibleFields: ["sender", "subject"],
       }],
     }));
     const handler = createLighterChatHandler(

@@ -13,6 +13,11 @@ import type { GovernedCalendarEvidenceInput } from "../governed-conversation/pro
 import type { SourceAdapterResult } from "../governed-conversation/source-adapter-result";
 import type { CalendarReadWindow } from "./calendar-read-window";
 import {
+  bindGoldenScenarioCalendarConflictGateK,
+  type GoldenScenarioGateKObservation,
+} from "../governed-conversation/golden-scenario-calendar-conflict-gate-k";
+import type { GovernedCalendarConflictEvent } from "../governed-conversation/calendar-conflict-observation";
+import {
   createCalendarAttentionObservationReference,
   resolveCalendarAttentionObservationReference,
   rotateCalendarAttentionObservationReference,
@@ -30,11 +35,13 @@ export type LiveCalendarAttentionResult = Readonly<{
   reply: string;
   calendarAttentionObservationReference: CalendarAttentionObservationReference;
   baselineEstablished: boolean;
+  gateKStatus?: "matched" | "not_found" | "ambiguous_pending_invitation" | "invalid";
 }>;
 
 function currentObservationSet(
   evidence: SourceAdapterResult<GovernedCalendarEvidenceInput> & Readonly<{
     coverageState?: LiveCalendarCoverageState;
+    conflictEvents?: readonly GovernedCalendarConflictEvent[];
   }>,
   window: CalendarReadWindow,
 ): CanonicalCalendarAttentionObservationSet {
@@ -62,6 +69,31 @@ function incompatibleBaselineReply(): string {
   return "I have a current Calendar baseline, but the previous baseline covered a different bounded window, so I cannot compare them.";
 }
 
+const melbourneTime = new Intl.DateTimeFormat("en-AU", {
+  timeZone: "Australia/Melbourne",
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+});
+
+function formatGateKTime(value: string): string {
+  return melbourneTime.format(new Date(value)).replace(/\b(am|pm)\b/gi, match => match.toUpperCase());
+}
+
+function renderGateKObservation(observation: GoldenScenarioGateKObservation): string {
+  const invite = observation.addedPendingInvitation;
+  const existing = observation.existingDeepWorkCommitment;
+  return `A pending Calendar invitation from ${formatGateKTime(invite.start)}–${formatGateKTime(invite.end)} overlaps an existing deep-work block from ${formatGateKTime(existing.start)}–${formatGateKTime(existing.end)} by ${observation.overlapMinutes} minutes.`;
+}
+
+function renderGateKObservations(observations: readonly GoldenScenarioGateKObservation[]): string {
+  if (observations.length === 1) return renderGateKObservation(observations[0]!);
+  return [
+    `${observations.length} pending-invitation conflicts matched this bounded Calendar check:`,
+    ...observations.map(observation => `- ${renderGateKObservation(observation)}`),
+  ].join("\n");
+}
+
 /**
  * Applies the already-proven attention path after a current Calendar read has
  * independently passed the existing authority gate.
@@ -71,6 +103,7 @@ function incompatibleBaselineReply(): string {
 export function resolveLiveCalendarAttention(input: {
   readonly evidence: SourceAdapterResult<GovernedCalendarEvidenceInput> & Readonly<{
     coverageState?: LiveCalendarCoverageState;
+    conflictEvents?: readonly GovernedCalendarConflictEvent[];
   }>;
   readonly window: CalendarReadWindow;
   readonly previousObservationReference?: unknown;
@@ -90,6 +123,42 @@ export function resolveLiveCalendarAttention(input: {
 
   try {
     const changeSet = compareCalendarAttentionObservationSets(previous, current);
+    const gateK = input.evidence.conflictEvents
+      ? bindGoldenScenarioCalendarConflictGateK({
+          changes: changeSet,
+          currentEvents: input.evidence.conflictEvents,
+        })
+      : null;
+    const nextReference = rotateCalendarAttentionObservationReference({
+      previousReference: input.previousObservationReference,
+      currentSet: current,
+    });
+
+    if (gateK?.status === "matched") {
+      return Object.freeze({
+        reply: renderGateKObservations(gateK.observations),
+        calendarAttentionObservationReference: nextReference,
+        baselineEstablished: false,
+        gateKStatus: "matched",
+      });
+    }
+    if (gateK?.status === "ambiguous_pending_invitation") {
+      return Object.freeze({
+        reply: "I found more than one newly added pending Calendar invitation in this bounded check, so I can't safely bind the conflict to one invitation.",
+        calendarAttentionObservationReference: nextReference,
+        baselineEstablished: false,
+        gateKStatus: "ambiguous_pending_invitation",
+      });
+    }
+    if (gateK?.status === "invalid") {
+      return Object.freeze({
+        reply: "I couldn't safely bind the current Calendar evidence to the previous bounded observation.",
+        calendarAttentionObservationReference: nextReference,
+        baselineEstablished: false,
+        gateKStatus: "invalid",
+      });
+    }
+
     const matches = Object.freeze([
       ...selectCalendarStartTimeAttention(changeSet),
       ...selectCalendarRemovalAttention(changeSet),
@@ -101,11 +170,9 @@ export function resolveLiveCalendarAttention(input: {
     });
     return Object.freeze({
       reply: renderCalendarAttentionBrief(brief),
-      calendarAttentionObservationReference: rotateCalendarAttentionObservationReference({
-        previousReference: input.previousObservationReference,
-        currentSet: current,
-      }),
+      calendarAttentionObservationReference: nextReference,
       baselineEstablished: false,
+      ...(gateK ? { gateKStatus: gateK.status } : {}),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";

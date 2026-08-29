@@ -268,4 +268,94 @@ describe("live Calendar attention composition", () => {
       window,
     })).toThrow("available governed Calendar evidence");
   });
+  it("renders the Golden Scenario Gate K pending-invitation conflict deterministically", () => {
+    const previousSet = projectGovernedCalendarAttentionObservationSet({
+      sourceId: "google-calendar",
+      available: true,
+      observedAt: "2026-08-28T00:00:00.000Z",
+      windowStart: window.start,
+      windowEnd: window.end,
+      requestedLimit: 5,
+      coverageState: "bounded_complete_request",
+      coverageLimit: completeCoverageLimit,
+      policyReference: "governed-calendar-conversational-metadata-disclosure.v1",
+      evidence: [
+        Object.freeze({
+          ...evidence(
+            "2026-08-28T00:00:00.000Z",
+            "2026-08-28T03:30:00.000Z",
+            "deep",
+            completeCoverageLimit,
+          ),
+          end: "2026-08-28T05:00:00.000Z",
+        }),
+      ],
+    });
+    const reference = createCalendarAttentionObservationReference(previousSet);
+    const currentEvidence = [
+      Object.freeze({
+        ...evidence(
+          "2026-08-28T01:00:00.000Z",
+          "2026-08-28T03:30:00.000Z",
+          "deep",
+          completeCoverageLimit,
+        ),
+        end: "2026-08-28T05:00:00.000Z",
+      }),
+      Object.freeze({
+        ...evidence(
+          "2026-08-28T01:00:00.000Z",
+          "2026-08-28T03:00:00.000Z",
+          "invite",
+          completeCoverageLimit,
+        ),
+        end: "2026-08-28T04:00:00.000Z",
+      }),
+    ];
+
+    const result = resolveLiveCalendarAttention({
+      evidence: Object.freeze({
+        ...sourceResult("available", currentEvidence, {
+          observedAt: "2026-08-28T01:00:00.000Z",
+        }),
+        coverageState: "bounded_complete_request" as const,
+        conflictEvents: Object.freeze([
+          Object.freeze({
+            commitmentReference: "google-calendar:calendar:primary:event:invite",
+            title: "Gate K Test Invite",
+            start: "2026-08-28T03:00:00.000Z",
+            end: "2026-08-28T04:00:00.000Z",
+            calendarName: "Work",
+            timeMode: null,
+            selfAttendeeResponse: "needsAction" as const,
+            observedAt: "2026-08-28T01:00:00.000Z",
+            provenanceReference: "google-calendar:calendar:primary:event:invite#provenance",
+          }),
+          Object.freeze({
+            commitmentReference: "google-calendar:calendar:primary:event:deep",
+            title: "JARVIS Deep Work Test",
+            start: "2026-08-28T03:30:00.000Z",
+            end: "2026-08-28T05:00:00.000Z",
+            calendarName: "Work",
+            timeMode: "deep_work" as const,
+            selfAttendeeResponse: null,
+            observedAt: "2026-08-28T01:00:00.000Z",
+            provenanceReference: "google-calendar:calendar:primary:event:deep#provenance",
+          }),
+        ]),
+      }),
+      window,
+      previousObservationReference: reference,
+    });
+
+    expect(result).toMatchObject({
+      reply: "A pending Calendar invitation from 1:00 PM–2:00 PM overlaps an existing deep-work block from 1:30 PM–3:00 PM by 30 minutes.",
+      baselineEstablished: false,
+      gateKStatus: "matched",
+      calendarAttentionObservationReference: {
+        calendarAttentionObservationReferenceId: expect.any(String),
+      },
+    });
+  });
+
 });

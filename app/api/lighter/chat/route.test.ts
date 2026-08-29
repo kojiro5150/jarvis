@@ -2003,4 +2003,123 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     expect(model).not.toHaveBeenCalled();
     expect(listBetween).toHaveBeenCalledTimes(2);
   });
+  it("wires Golden Scenario Gate K through the live governed Calendar route without model involvement", async () => {
+    let includeInvite = false;
+    let observedAt = "2026-08-28T00:00:00.000Z";
+    const deepWork = {
+      id: "deep",
+      title: "JARVIS Deep Work Test",
+      start: "2026-08-28T03:30:00.000Z",
+      end: "2026-08-28T05:00:00.000Z",
+      day: "FRI",
+      time: "13:30",
+      source: "google" as const,
+      calendarId: "primary",
+      calendarName: "Work",
+      timeMode: "deep_work" as const,
+    };
+    const invite = {
+      id: "invite",
+      title: "Gate K Test Invite",
+      start: "2026-08-28T03:00:00.000Z",
+      end: "2026-08-28T04:00:00.000Z",
+      day: "FRI",
+      time: "13:00",
+      source: "google" as const,
+      calendarId: "primary",
+      calendarName: "Work",
+      selfAttendeeResponse: "needsAction" as const,
+    };
+    const listBetween = vi.fn(async () => includeInvite ? [invite, deepWork] : [deepWork]);
+    const listBetweenWithCompleteness = vi.fn(async (start: string, end: string, limit = 5) => {
+      const events = includeInvite ? [invite, deepWork] : [deepWork];
+      return {
+        events,
+        completeness: {
+          sourceId: "google-calendar" as const,
+          windowStart: start,
+          windowEnd: end,
+          requestedLimit: limit,
+          targetDiscovery: "calendar_list" as const,
+          targetCount: 1,
+          targets: [{
+            calendarId: "primary",
+            status: "complete" as const,
+            returnedCount: events.length,
+            continuation: "none" as const,
+          }],
+          mergedReturnedCount: events.length,
+          mergeTruncated: false,
+          completeness: "complete" as const,
+          observedAt,
+        },
+      };
+    });
+    const model = vi.fn(async () => "model must not run");
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => ({
+        source: "google" as const,
+        listBetween,
+        listBetweenWithCompleteness,
+      }),
+      clock: () => new Date(observedAt),
+    });
+
+    const baselineAsk = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "What needs my attention?" }],
+    }))).json();
+    expect(baselineAsk).toMatchObject({
+      calendarAuthority: { decision: "ASK" },
+      pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) },
+    });
+
+    const baselineAllow = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Yes" }],
+      pendingAuthorizationReference: baselineAsk.pendingAuthorizationReference,
+    }))).json();
+    expect(baselineAllow).toMatchObject({
+      reply: "I have established a bounded Calendar baseline for today. A later authorised check can compare against it for supported attention changes.",
+      calendarAuthority: { decision: "ALLOW" },
+      calendarAttentionObservationReference: {
+        calendarAttentionObservationReferenceId: expect.any(String),
+      },
+    });
+    const baselineReference = baselineAllow.calendarAttentionObservationReference;
+    expect(JSON.stringify(baselineAllow)).not.toContain("JARVIS Deep Work Test");
+
+    includeInvite = true;
+    observedAt = "2026-08-28T01:00:00.000Z";
+
+    const conflictAsk = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "What needs my attention?" }],
+      calendarAttentionObservationReference: baselineReference,
+    }))).json();
+    expect(conflictAsk).toMatchObject({
+      calendarAuthority: { decision: "ASK" },
+      pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) },
+    });
+
+    const conflictAllow = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Yes" }],
+      pendingAuthorizationReference: conflictAsk.pendingAuthorizationReference,
+      calendarAttentionObservationReference: baselineReference,
+    }))).json();
+
+    expect(conflictAllow).toMatchObject({
+      reply: "A pending Calendar invitation from 1:00 PM–2:00 PM overlaps an existing deep-work block from 1:30 PM–3:00 PM by 30 minutes.",
+      calendarAuthority: { decision: "ALLOW", reason: "pending_authorization_confirmed" },
+      calendarAttentionObservationReference: {
+        calendarAttentionObservationReferenceId: expect.any(String),
+      },
+    });
+    expect(conflictAllow.calendarAttentionObservationReference).not.toEqual(baselineReference);
+    expect(model).not.toHaveBeenCalled();
+    expect(listBetweenWithCompleteness).toHaveBeenCalledTimes(2);
+    expect(listBetween).not.toHaveBeenCalled();
+  });
+
 });

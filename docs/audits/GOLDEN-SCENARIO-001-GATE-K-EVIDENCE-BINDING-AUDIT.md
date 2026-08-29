@@ -122,14 +122,21 @@ This scenario does not need an `attention.commitment.added` policy. The reposito
 
 ## Multiplicity
 
-If more than one deep-work event overlaps the same added pending invitation, do not silently select one. Emit all exact overlapping conflicts in deterministic chronological/identity order. Do not rank by title, priority, duration or model judgement.
+If more than one deep-work event overlaps the same added pending invitation, do not silently select one. Emit all exact overlapping conflicts in this total order:
+
+1. existing deep-work commitment start time ascending;
+2. if start times are equal, canonical `commitmentReference` ascending.
+
+Do not use provider iteration order, array insertion order, title, priority, duration or model judgement as a tie-breaker.
+
+The executable Gate-K test must construct at least two overlapping deep-work commitments in non-sorted input order and assert this exact output order.
 
 ## Exact next implementation
 
 1. Centralize the canonical Calendar commitment-reference helper and reuse it in governed evidence plus conflict projection.
 2. Extend the purpose-specific conflict projection with `observedAt`, `provenanceReference`, and provider-backed `selfAttendeeResponse`.
 3. Add a deterministic adapter that consumes an already-valid change set plus current conflict events, selects exact `added` identities, requires `needsAction`, finds overlapping `deep_work` events, and emits immutable typed Gate-K observations.
-4. Regress the exact 30-minute case, absent mode, absent `needsAction`, identity mismatch, multiplicity, and no model/authority/connector use in the binding adapter.
+4. Regress the exact 30-minute case, absent mode, absent `needsAction`, identity mismatch, multiplicity with start-time/commitment-reference ordering, and no model/authority/connector use in the binding adapter.
 
 ## Verdict
 

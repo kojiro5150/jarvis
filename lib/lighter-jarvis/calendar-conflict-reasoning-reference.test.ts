@@ -48,9 +48,12 @@ describe("Calendar conflict reasoning reference", () => {
 
     expect(Object.keys(ref)).toEqual(["calendarConflictReasoningReferenceId"]);
     const serialized = JSON.stringify(ref);
-    for (const privateValue of ["Gate K Test Invite", "URGENT", "07:30", "needsAction", "deep_work", "30"]) {
+    for (const privateValue of ["Gate K Test Invite", "URGENT", "07:30", "needsAction", "deep_work"]) {
       expect(serialized).not.toContain(privateValue);
     }
+    expect(ref.calendarConflictReasoningReferenceId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
 
     const resolved = resolveCalendarConflictReasoningReference({
       reference: ref,
@@ -116,9 +119,10 @@ describe("Calendar conflict reasoning reference", () => {
       now: new Date("2026-08-29T06:00:02.000Z"),
     })!;
 
-    expect(resolveCalendarConflictReasoningReference({ reference: old }).status).toBe("absent");
-    expect(resolveCalendarConflictReasoningReference({ reference: newer }).status).toBe("resolved");
-    expect(resolveCalendarConflictReasoningReference({ reference: unrelated }).status).toBe("resolved");
+    const checkAt = new Date("2026-08-29T06:00:03.000Z");
+    expect(resolveCalendarConflictReasoningReference({ reference: old, now: checkAt }).status).toBe("absent");
+    expect(resolveCalendarConflictReasoningReference({ reference: newer, now: checkAt }).status).toBe("resolved");
+    expect(resolveCalendarConflictReasoningReference({ reference: unrelated, now: checkAt }).status).toBe("resolved");
   });
 
   it("ignores forged client-carried evidence on a genuine reference", () => {

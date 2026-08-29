@@ -37,7 +37,7 @@ export function deterministicCapabilityConstraint(utterance: string): Determinis
     return Object.freeze({ capability: "public_information", fallbackOperation: "lookup" });
   }
   if (GMAIL_SIGNAL.test(normalized)) {
-    const readLike = /\b(?:read|open|show me|summari[sz]e)\b/i.test(normalized);
+    const readLike = /\b(?:read|open|summari[sz]e)\b/i.test(normalized);
     return Object.freeze({ capability: "gmail", fallbackOperation: readLike ? "read" : "search" });
   }
   if (DRIVE_SIGNAL.test(normalized)) {

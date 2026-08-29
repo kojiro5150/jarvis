@@ -53,12 +53,12 @@ export type GmailOrdinalSelection =
 
 function requestedOrdinal(utterance: string): number | null {
   const normalized = utterance.normalize("NFKC").trim().toLowerCase();
-  if (!/^(?:read|open|show|summari[sz]e)/.test(normalized)) return null;
-  if (/(?:most recent|latest|first|1st|one)/.test(normalized)) return 1;
-  if (/(?:second|2nd|two)/.test(normalized)) return 2;
-  if (/(?:third|3rd|three)/.test(normalized)) return 3;
-  if (/(?:fourth|4th|four)/.test(normalized)) return 4;
-  if (/(?:fifth|5th|five)/.test(normalized)) return 5;
+  if (!/^(?:read|open|show|summari[sz]e)\b/.test(normalized)) return null;
+  if (/\b(?:most recent|latest|first|1st|one)\b/.test(normalized)) return 1;
+  if (/\b(?:second|2nd|two)\b/.test(normalized)) return 2;
+  if (/\b(?:third|3rd|three)\b/.test(normalized)) return 3;
+  if (/\b(?:fourth|4th|four)\b/.test(normalized)) return 4;
+  if (/\b(?:fifth|5th|five)\b/.test(normalized)) return 5;
   return null;
 }
 

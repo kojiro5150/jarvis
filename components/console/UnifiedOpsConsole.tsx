@@ -19,6 +19,7 @@ type Specialist = {
   invokedOnly: boolean;
 };
 type Message = { role: "user" | "assistant"; content: string; error?: boolean };
+type OpaqueGmailSenderDisambiguation = Readonly<{ gmailSenderDisambiguationReferenceId: string }>;
 type OpaqueCalendarAttentionObservation = Readonly<{ calendarAttentionObservationReferenceId: string }>;
 type OpaqueCalendarConflictReasoning = Readonly<{ calendarConflictReasoningReferenceId: string }>;
 type OpaqueCalendarAdvicePreference = Readonly<{ calendarAdvicePreferenceReferenceId: string }>;
@@ -128,6 +129,7 @@ export default function UnifiedOpsConsole() {
     null,
   );
   const authorityTurnStateRef = useRef(new ClientAuthorityTurnState());
+  const gmailSenderDisambiguationRef = useRef<OpaqueGmailSenderDisambiguation | null>(null);
   const calendarAttentionObservationRef = useRef<OpaqueCalendarAttentionObservation | null>(null);
   const calendarConflictReasoningRef = useRef<OpaqueCalendarConflictReasoning | null>(null);
   const calendarAdvicePreferenceRef = useRef<OpaqueCalendarAdvicePreference | null>(null);
@@ -352,6 +354,9 @@ export default function UnifiedOpsConsole() {
           ...(authorityRequest?.pendingAuthorizationReference
             ? { pendingAuthorizationReference: authorityRequest.pendingAuthorizationReference }
             : {}),
+          ...(specialist.id === "jarvis" && gmailSenderDisambiguationRef.current
+            ? { gmailSenderDisambiguationReference: gmailSenderDisambiguationRef.current }
+            : {}),
           ...(specialist.id === "jarvis" && calendarAttentionObservationRef.current
             ? { calendarAttentionObservationReference: calendarAttentionObservationRef.current }
             : {}),
@@ -378,6 +383,7 @@ export default function UnifiedOpsConsole() {
         taskSummary?: string;
         marketScopes?: string[];
         pendingAuthorizationReference?: OpaquePendingAuthorization | null;
+        gmailSenderDisambiguationReference?: OpaqueGmailSenderDisambiguation | null;
         calendarAttentionObservationReference?: OpaqueCalendarAttentionObservation;
         calendarConflictReasoningReference?: OpaqueCalendarConflictReasoning | null;
         calendarAdvicePreferenceReference?: OpaqueCalendarAdvicePreference | null;
@@ -396,6 +402,9 @@ export default function UnifiedOpsConsole() {
           authorityRequest.requestId,
           data.pendingAuthorizationReference ?? null,
         );
+      }
+      if (data.gmailSenderDisambiguationReference !== undefined) {
+        gmailSenderDisambiguationRef.current = data.gmailSenderDisambiguationReference;
       }
       if (data.calendarAttentionObservationReference !== undefined) {
         calendarAttentionObservationRef.current = data.calendarAttentionObservationReference;

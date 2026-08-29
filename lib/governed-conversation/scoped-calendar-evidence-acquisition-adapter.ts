@@ -17,6 +17,10 @@ import {
   publishCalendarFactualEvidence,
   type GovernedCalendarFactualEvent,
 } from "./calendar-factual-evidence";
+import {
+  publishCalendarConflictEvent,
+  type GovernedCalendarConflictEvent,
+} from "./calendar-conflict-observation";
 
 export type GovernedCalendarCoverageState =
   | "bounded_complete_request"
@@ -28,6 +32,7 @@ export type ScopedCalendarEvidenceResult = SourceAdapterResult<GovernedCalendarE
   completeness?: CalendarAcquisitionCompletenessEnvelope;
   weeklyAllocation?: GovernedWeeklyCalendarAllocationPublication;
   factualEvents?: readonly GovernedCalendarFactualEvent[];
+  conflictEvents?: readonly GovernedCalendarConflictEvent[];
 }>;
 
 export interface ScopedCalendarAcquisitionPort {
@@ -54,6 +59,7 @@ function withCoverage(
   completeness?: CalendarAcquisitionCompletenessEnvelope,
   weeklyAllocation?: GovernedWeeklyCalendarAllocationPublication | null,
   factualEvents?: readonly GovernedCalendarFactualEvent[],
+  conflictEvents?: readonly GovernedCalendarConflictEvent[],
 ): ScopedCalendarEvidenceResult {
   return Object.freeze({
     ...result,
@@ -61,6 +67,7 @@ function withCoverage(
     ...(completeness === undefined ? {} : { completeness }),
     ...(weeklyAllocation ? { weeklyAllocation } : {}),
     ...(factualEvents ? { factualEvents } : {}),
+    ...(conflictEvents ? { conflictEvents } : {}),
   });
 }
 
@@ -133,6 +140,10 @@ export async function acquireScopedCalendarEvidence(input: {
         acquisition.completeness,
         weeklyAllocation,
         publishCalendarFactualEvidence(inWindow),
+        Object.freeze(inWindow.flatMap(event => {
+          const projected = publishCalendarConflictEvent(event, retrievedAt);
+          return projected ? [projected] : [];
+        })),
       );
     }
 
@@ -165,6 +176,10 @@ export async function acquireScopedCalendarEvidence(input: {
       undefined,
       undefined,
       publishCalendarFactualEvidence(inWindow),
+      Object.freeze(inWindow.flatMap(event => {
+        const projected = publishCalendarConflictEvent(event, retrievedAt);
+        return projected ? [projected] : [];
+      })),
     );
   } catch {
     return sourceResult("unavailable", [], {

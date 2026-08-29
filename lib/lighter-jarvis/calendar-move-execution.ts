@@ -122,8 +122,8 @@ export async function executeConfirmedCalendarMove(input: {
       verified.source === "google" &&
       verified.calendarId === authority.proposal.calendarId &&
       verified.id === authority.proposal.eventId &&
-      verified.start === authority.proposal.targetStart &&
-      verified.end === authority.proposal.targetEnd &&
+      Date.parse(verified.start) === Date.parse(authority.proposal.targetStart) &&
+      Date.parse(verified.end) === Date.parse(authority.proposal.targetEnd) &&
       Date.parse(verified.end) - Date.parse(verified.start) === durationMs,
   );
 

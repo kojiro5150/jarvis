@@ -5,7 +5,7 @@
 **Owner:** JARVIS Architecture  
 **Last Updated:** 30 August 2026
 
-> **Supersession note — August 2026:** This document remains the enduring historical product vision, but any language that implies named specialists are a user-facing coordination model is superseded by `JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`. The current product boundary is one persistent user-facing JARVIS identity with internal governed capabilities. Specialists may remain implementation modules; the user should not need to know or coordinate them.
+> **Active architecture note — 30 August 2026:** `JARVIS-GOVERNANCE-CORE.md` is the governing pre-implementation doctrine for trust, authority, proposal construction, private acquisition, and controlled architectural collapse. Any language below that implies named specialists are the user-facing coordination model, or that model-authored text can carry evidentiary or authority weight, is superseded. The current product boundary is one persistent JARVIS intelligence operating through governed capabilities.
 
 ---
 
@@ -33,7 +33,7 @@ The vision should not.
 
 JARVIS is an Executive Operating System.
 
-Its purpose is to extend human cognitive capability through adaptive reasoning, collaborative specialist intelligence and trusted execution.
+Its purpose is to extend human cognitive capability through adaptive reasoning, governed capabilities and trusted execution.
 
 JARVIS should become a partner that helps people think more clearly, understand more deeply, decide more confidently and execute more effectively.
 
@@ -128,21 +128,15 @@ JARVIS applies these principles to executive cognition.
 
 ---
 
-# Specialists
+# Internal cognitive architecture
 
-JARVIS is an orchestrator rather than a monolithic intelligence.
+JARVIS is one persistent conversational intelligence.
 
-Its capability emerges from collaboration between specialised cognitive modules.
+Specialised cognitive modules may remain useful implementation techniques for research discipline, adversarial challenge, drafting, synthesis or other bounded reasoning jobs, but they are not independent user-facing identities and they do not possess authority merely because the model invokes or describes them.
 
-Every specialist should possess:
+Governed capabilities sit beneath JARVIS. The model may interpret and propose; evidence, provenance, authority and verified completion must come from independently governed boundaries.
 
-- a clearly defined purpose
-- behavioural obligations
-- authority boundaries
-- collaboration protocols
-- executive communication standards
-
-The orchestrator exists to coordinate—not replace—specialist expertise.
+The enduring experience is one intelligence with natural conversation and persistent context. Internal decomposition is an implementation detail.
 
 ---
 

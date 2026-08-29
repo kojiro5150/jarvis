@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import type { ChatMessage } from "../agents/types";
 import type { GoldenScenarioGateKObservation } from "../governed-conversation/golden-scenario-calendar-conflict-gate-k";
 import { createCalendarConflictReasoningReference } from "./calendar-conflict-reasoning-reference";
 import { CALENDAR_CONFLICT_UNDERSTAND_PROMPT, isCalendarConflictUnderstandIntent, resolveCalendarConflictUnderstand } from "./calendar-conflict-understand";
@@ -51,7 +52,7 @@ describe("bounded Calendar conflict Understand reasoning", () => {
   });
 
   it("invokes the model once over only the admitted projection and renders a bounded answer", async () => {
-    const model = vi.fn(async () => '{"interpretationType":"scheduling_conflict"}');
+    const model = vi.fn(async (_systemPrompt: string, _messages: ChatMessage[]) => '{"interpretationType":"scheduling_conflict"}');
     const result = await resolveCalendarConflictUnderstand({
       utterance: "Does that matter?",
       reasoningReference: reference(),

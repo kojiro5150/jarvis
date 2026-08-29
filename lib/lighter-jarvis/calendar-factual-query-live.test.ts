@@ -203,6 +203,41 @@ describe("live governed Calendar factual query", () => {
     expect(model.mock.calls[0][0]).toContain("bounded Calendar factual-intent interpreter");
   });
 
+  it("contains the malformed LLEGC next-query before stale Calendar fabrication can reach the user", async () => {
+    const model = vi.fn(async () => [
+      'I can see from your Calendar evidence that you have an event titled "LLEGC Meeting"',
+      "scheduled for Monday, 27 January 2025 at 10:00 AM (AEDT).",
+      "If you can tell me today's date, I can confirm whether it is your next one.",
+    ].join("\n"));
+    const c = connector();
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => c.value,
+      clock: () => new Date("2026-08-29T05:05:00.000Z"),
+    });
+
+    const response = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [
+        { role: "user", content: "Show me my last five emails." },
+        { role: "assistant", content: "Recent Gmail messages:\n- Notification: Shopping\n- Delivery notice" },
+        { role: "user", content: "When am I next at Barwon Health?" },
+        { role: "assistant", content: "Please explicitly confirm that I may read your Calendar." },
+        { role: "user", content: "Yes." },
+        { role: "assistant", content: "Calendar factual result:\n- Barwon Health — Mon, 31 Aug, 9:00 AM–4:00 PM" },
+        { role: "user", content: "Is my next LLEGC meeting." },
+      ],
+    }))).json();
+
+    expect(response).toEqual({
+      reply: "I can check your Calendar for that, but I couldn't resolve the factual query safely from that wording.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(model).not.toHaveBeenCalled();
+    expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
+    expect(response.reply).not.toMatch(/2025|27 January|LLEGC Meeting/);
+  });
+
   it("contains connected-to relational wording even if the interpreter proposes literal title terms", async () => {
     const model = vi.fn(async (systemPrompt: string) =>
       systemPrompt.includes("bounded Calendar factual-intent interpreter")

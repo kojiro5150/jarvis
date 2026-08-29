@@ -74,7 +74,14 @@ export async function resolveCalendarConflictAdvise(input: {
   const currentById = new Map(input.evidence.conflictEvents.map(event => [event.commitmentReference, event]));
   const invite = currentById.get(historicalInvite.commitmentReference);
   const deep = currentById.get(historicalDeep.commitmentReference);
-  if (!invite || !deep || invite.selfAttendeeResponse !== "needsAction" || deep.timeMode !== "deep_work") {
+  if (!invite || !deep
+      || invite.selfAttendeeResponse !== "needsAction"
+      || deep.timeMode !== "deep_work"
+      || invite.start !== historicalInvite.start
+      || invite.end !== historicalInvite.end
+      || deep.start !== historicalDeep.start
+      || deep.end !== historicalDeep.end
+      || !overlaps(invite.start, invite.end, deep.start, deep.end)) {
     return Object.freeze({ status: "current_situation_changed", reply: "The current Calendar situation has changed from the earlier conflict, so I won't recommend from the stale assumptions." });
   }
 

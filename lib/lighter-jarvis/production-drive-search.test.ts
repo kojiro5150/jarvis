@@ -27,11 +27,23 @@ describe("production drive.search", () => {
     expect(search).toHaveBeenCalledWith("Atlas", 5);
   });
 
-  it.each(["drive.search", "drive.search ", " drive.search Atlas", "Drive.search Atlas", "search Drive for Atlas"])("does not broaden exact grammar: %s", async utterance => {
+  it.each(["drive.search", "drive.search ", " drive.search Atlas", "Drive.search Atlas"])("does not broaden exact grammar: %s", async utterance => {
     const createConnector = vi.fn();
     const result = await resolveProductionDriveSearch({ currentUserUtterance: utterance }, { createConnector });
     expect(createConnector).not.toHaveBeenCalled();
     expect(result.handled).toBe(utterance.startsWith("drive.search"));
+  });
+
+  it("accepts 'search Drive for Atlas' as a proposal only, never as authority", async () => {
+    const createConnector = vi.fn();
+    const proposed = await resolveProductionDriveSearch({ currentUserUtterance: "search Drive for Atlas" }, { createConnector });
+    expect(proposed).toMatchObject({
+      handled: true,
+      decision: "ASK",
+      reason: "explicit_drive_search_not_established",
+      pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) },
+    });
+    expect(createConnector).not.toHaveBeenCalled();
   });
 
   it("hard caps a misbehaving provider at five metadata records", async () => {

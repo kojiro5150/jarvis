@@ -14,6 +14,7 @@ describe("private capability handoff deny-only classifier", () => {
 
   it.each([
     "One of my last five emails.",
+    "One of my last 5 emails.",
     "One of those emails",
     "the first email",
     "that email",

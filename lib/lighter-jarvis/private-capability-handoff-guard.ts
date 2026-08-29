@@ -39,7 +39,7 @@ export function isAmbiguousPrivateReadFollowUp(utterance: string): boolean {
  */
 export function isAmbiguousGmailEvidenceFollowUp(utterance: string): boolean {
   const normalized = utterance.normalize("NFKC").toLowerCase().replace(/[’]/g, "'").replace(/\s+/g, " ").trim();
-  return /^(?:one|any) of (?:my|the|those) (?:last|recent) (?:five )?emails?[.!?]*$/.test(normalized)
+  return /^(?:one|any) of (?:my|the|those) (?:last|recent) (?:(?:five|5) )?emails?[.!?]*$/.test(normalized)
     || /^(?:one|any) of (?:those|the) emails?[.!?]*$/.test(normalized)
     || /^(?:the )?(?:first|second|third|fourth|fifth) (?:one|email)[.!?]*$/.test(normalized)
     || /^(?:that|this) email[.!?]*$/.test(normalized);

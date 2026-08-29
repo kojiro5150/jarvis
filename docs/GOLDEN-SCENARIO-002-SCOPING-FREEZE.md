@@ -3,9 +3,9 @@
 **Frozen:** 29 August 2026  
 **Status:** **SCOPING FREEZE — NOT A BUILD COMMITMENT**  
 **Capability level:** **Know only**  
-**Shape:** GS002A — Find by sender; GS002B — Find by topic
+**Shape:** GS002A — Find by sender; GS002B — Find by subject
 
-> **Historical scoping note:** GS002A has since been implemented and live-passed. See `docs/GOLDEN-SCENARIO-002A-LIVE-PASS.md`. GS002B remains the next separate proof and is not implied by the GS002A pass.
+> **Historical scoping note:** GS002A has since been implemented and live-passed. See `docs/GOLDEN-SCENARIO-002A-LIVE-PASS.md`. GS002B has now been narrowed to literal subject search and separately frozen in `docs/GOLDEN-SCENARIO-002B-SCOPING-FREEZE.md`. It remains a separate proof and is not implied by the GS002A pass.
 
 ## Purpose of this freeze
 
@@ -17,7 +17,7 @@ The burden being targeted is deliberately ordinary:
 
 > **I know this email exists somewhere in my inbox, and finding it manually costs me attention I'd rather spend elsewhere.**
 
-Golden Scenario 002 is split into two separate Level-1 proofs because sender identity resolution and topic-term search have different failure modes and different truth claims.
+Golden Scenario 002 is split into two separate Level-1 proofs because sender identity resolution and literal subject search have different failure modes and different truth claims.
 
 ## Governing product principle
 
@@ -128,13 +128,15 @@ The existing Gmail result bound remains the starting constraint:
 
 If multiple messages match the uniquely resolved sender, JARVIS returns the bounded set. It does not silently pick “the one” unless the user's request itself supplies an additional deterministic criterion.
 
-## GS002B — Find by topic
+## GS002B — Find by subject
 
 ### Human burden
 
-> **Find the email matching “pilot renewal”.**
+> **Find the email with subject “pilot renewal”.**
 
 The user should not need to know Gmail search syntax.
+
+> **Current refinement:** GS002B is now specifically frozen as literal subject search. See `docs/GOLDEN-SCENARIO-002B-SCOPING-FREEZE.md` for the exact query-construction and quote-rejection contract.
 
 ### Core invariant
 
@@ -267,9 +269,9 @@ Golden Scenario 002 is frozen as two sequential Level-1 proofs:
 
 > **Natural sender reference → real mailbox identity evidence → strict deterministic all-token resolution → ambiguity surfaced, never guessed → bounded Gmail matches.**
 
-### GS002B — Find by topic
+### GS002B — Find by subject
 
-> **Natural topic reference → bounded deterministic Gmail query → provider-backed matches → truthful “matching” language, never unsupported semantic “aboutness”.**
+> **Natural subject request → literal user terms → deterministic `subject:"literal terms"` Gmail query → provider-backed subject matches → truthful “matching” language, never unsupported semantic “aboutness”.**
 
 The scenario exists to remove a real everyday cognitive burden without opening private semantic reasoning, recommendation, or action boundaries that the burden does not require.
 

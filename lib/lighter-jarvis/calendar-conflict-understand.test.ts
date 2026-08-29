@@ -132,7 +132,12 @@ describe("bounded Calendar conflict Understand reasoning", () => {
 
   it("fails closed on model error and never retries", async () => {
     const model = vi.fn(async () => { throw new Error("model down"); });
-    const result = await resolveCalendarConflictUnderstand({ utterance: "Does that matter?", reasoningReference: reference(), callModel: model });
+    const result = await resolveCalendarConflictUnderstand({
+      utterance: "Does that matter?",
+      reasoningReference: reference(),
+      callModel: model,
+      now: new Date("2026-08-29T06:31:30.000Z"),
+    });
     expect(result).toMatchObject({ handled: true, status: "model_failed" });
     expect(model).toHaveBeenCalledTimes(1);
   });

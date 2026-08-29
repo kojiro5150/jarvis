@@ -130,7 +130,7 @@ export default function DashboardShell({
       ? "error"
       : orbState === "listening"
         ? "listening"
-        : orbState === "thinking" || orbState === "routing" || orbState === "delegating" || orbState === "synchronising"
+        : orbState === "thinking" || orbState === "synchronising"
           ? "thinking"
           : orbState === "speaking"
             ? "speaking"

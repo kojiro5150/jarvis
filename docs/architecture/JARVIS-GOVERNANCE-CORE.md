@@ -39,7 +39,7 @@ Closed outputs such as Understand's `scheduling_conflict | unsupported`, Advise'
 
 Authority-conferring language is also not ordinary intent interpretation. A deliberately closed confirmation grammar is permitted because it determines whether authority exists, not what the user generally meant.
 
-## Three execution classes
+## Four execution classes
 
 ### A. Ordinary intelligence
 

@@ -1,89 +1,51 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { DIRECT_SPECIALIST_IDS } from "./head-mode-contract";
 
 const source = readFileSync(
   new URL("./UnifiedOpsConsole.tsx", import.meta.url),
   "utf8",
 );
 
-describe("UnifiedOpsConsole head-mode contract", () => {
-  it("offers exactly the six direct-access specialists, never JARVIS", () => {
-    expect(DIRECT_SPECIALIST_IDS).toEqual([
-      "dawnwatch",
-      "oracle",
-      "herald",
-      "steve",
-      "marcus",
-      "gecko",
-    ]);
-    expect(DIRECT_SPECIALIST_IDS).not.toContain("jarvis");
+describe("UnifiedOpsConsole JARVIS Core surface", () => {
+  it("exposes one JARVIS Core intelligence surface and no direct specialist roster", () => {
+    expect(source).toContain("CORE INTELLIGENCE");
+    expect(source).toContain("Single governed conversational surface");
+    expect(source).not.toContain("DIRECT SPECIALIST ACCESS");
+    expect(source).not.toContain("Direct specialist access");
+    expect(source).not.toContain("directSpecialists.map");
   });
 
-  it("keeps confirmed hand-off synthesis in the JARVIS-headed thread", () => {
-    expect(source).toContain("setSelectedId(jarvis.id);");
-    expect(source).toContain(
-      'message.role === "user" ? "YOU" : selected?.name',
-    );
-    expect(source).toContain("[jarvis.id]:");
+  it("keeps the governed connector controls visible", () => {
+    expect(source).toContain('renderConnectorStatus("calendar")');
+    expect(source).toContain('renderConnectorStatus("gmail")');
+    expect(source).toContain('renderConnectorStatus("drive")');
+    expect(source).toContain('fetch("/api/connector-status")');
+    expect(source).not.toContain('fetch("/api/operational-state")');
   });
 
-  it("does not ship fabricated evidence or named-stage progress panels", () => {
-    expect(source).not.toContain("SOURCES CONSULTED");
-    expect(source).not.toContain("SYNTHESIS IN PROGRESS");
-    expect(source).not.toContain("PROCESSING REQUEST");
-  });
-
-  it("has no JARVIS drawer tile or Ask JARVIS tool", () => {
-    expect(source).not.toContain('className="executive"');
-    expect(source).not.toContain("Ask JARVIS");
-  });
-
-  it("composites the supplied JARVIS head into the head zone", () => {
+  it("keeps the JARVIS synthetic head and real voice control", () => {
     expect(source).toContain('src="/jarvis-head.png"');
     expect(source).toContain('alt="JARVIS synthetic head"');
-    expect(source).not.toContain("head-placeholder");
+    expect(source).toContain("onClick={voiceSession.toggle}");
+    expect(source).toContain("aria-pressed={voiceSession.state === \"listening\"}");
   });
 
-  it("Brief Me proposes a hand-off instead of auto-continuing", () => {
-    const briefMeSource = source.slice(
-      source.indexOf("async function briefMe"),
-      source.indexOf("async function briefMe") + 600,
-    );
-    expect(briefMeSource).toContain("setPendingHandoff({");
-    expect(briefMeSource).not.toContain("setSelectedId(target.id)");
-  });
-
-  it("a voice transcript that triggers a hand-off proposes it instead of discarding it", () => {
-    const effectSource = source.slice(
-      source.indexOf("voiceTurnHandlerRef.current"),
-      source.indexOf("voiceTurnHandlerRef.current") + 1500,
-    );
-    expect(effectSource).toContain("setPendingHandoff({");
-    expect(effectSource).not.toContain("void submitMessage(selected, transcript)");
-  });
-
-  it("a voice transcript confirms or declines a pending hand-off instead of re-proposing it", () => {
-    const effectSource = source.slice(
-      source.indexOf("voiceTurnHandlerRef.current"),
-      source.indexOf("voiceTurnHandlerRef.current") + 1500,
-    );
-    expect(effectSource).toContain("if (pendingHandoff) {");
-    expect(effectSource).toContain("handoffResponse(transcript)");
-    expect(effectSource).toContain("await confirmHandoff()");
-  });
-
-  it("carries the opaque Calendar pending reference through the shared typed and voice submission path", () => {
+  it("retains the opaque Calendar authority references in the shared typed and voice transport", () => {
     const submission = source.slice(
       source.indexOf("async function submitMessage"),
       source.indexOf("async function send"),
     );
     expect(submission).toContain("pendingAuthorizationReference");
     expect(submission).toContain("authorityTurnStateRef.current.applyResponse");
+    expect(submission).toContain("calendarAttentionObservationReference");
+    expect(submission).toContain("calendarConflictReasoningReference");
+    expect(submission).toContain("calendarAdviceReference");
+    expect(submission).toContain("calendarMoveProposalReference");
+    expect(submission).toContain("calendarMoveAuthorizationReference");
     expect(submission).not.toContain("proposedOperation");
   });
 
-  it("carries only an opaque Gmail sender-disambiguation reference through typed and voice transport", () => {
+  it("retains only opaque Gmail sender-disambiguation state in client transport", () => {
     const submission = source.slice(
       source.indexOf("async function submitMessage"),
       source.indexOf("async function send"),
@@ -103,31 +65,15 @@ describe("UnifiedOpsConsole head-mode contract", () => {
     expect(submission).not.toContain("const existingMessages = conversations[");
   });
 
-  it("the head-composite status is display-only, not a toggle control", () => {
-    const headSource = source.slice(
-      source.indexOf("function HeadComposite"),
-      source.indexOf("function HeadComposite") + 700,
-    );
-    expect(headSource).not.toContain("onToggleVoice");
-    expect(headSource).not.toContain("<button");
-    expect(headSource).toContain("<span aria-live=\"polite\">");
+  it("does not ship fabricated evidence or named-stage progress panels", () => {
+    expect(source).not.toContain("SOURCES CONSULTED");
+    expect(source).not.toContain("SYNTHESIS IN PROGRESS");
+    expect(source).not.toContain("PROCESSING REQUEST");
   });
 
-  it("the toolbar mic next to Brief Me is the real, wired voice toggle", () => {
-    const toolsSource = source.slice(
-      source.indexOf("<div className=\"tools\">"),
-      source.indexOf("<div className=\"tools\">") + 400,
-    );
-    expect(toolsSource).toContain("onClick={voiceSession.toggle}");
-    expect(toolsSource).not.toContain("disabled>\n                      <button");
-  });
-
-  it("removes the decorative, non-functional mic icon from the composer bar", () => {
-    expect(source).not.toContain("<span>🎙</span>");
-  });
-
-  it("refreshes connector chrome through the status-only server path", () => {
-    expect(source).toContain('fetch("/api/connector-status")');
-    expect(source).not.toContain('fetch("/api/operational-state")');
+  it("labels the shipped surface honestly as a single intelligence surface, not a collapsed runtime", () => {
+    expect(source).toContain("JARVIS CORE v3.0.0");
+    expect(source).toContain("SINGLE INTELLIGENCE SURFACE");
+    expect(source).not.toContain("SINGLE INTELLIGENCE RUNTIME");
   });
 });

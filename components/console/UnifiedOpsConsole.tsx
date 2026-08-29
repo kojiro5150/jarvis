@@ -10,7 +10,6 @@ import {
 import { VoiceTurnQueue, type VoiceTurn } from "@/lib/lighter-jarvis/voice-turn-queue";
 import { ClientAuthorityTurnState, type OpaquePendingAuthorization } from "@/lib/lighter-jarvis/client-authority-turn-state";
 import { ConversationTransportHistory } from "@/lib/lighter-jarvis/conversation-transport-history";
-import { DIRECT_SPECIALIST_IDS } from "./head-mode-contract";
 
 type Specialist = {
   id: string;
@@ -46,45 +45,10 @@ type ConnectorStatusResponse = {
   error?: string;
 };
 
-const icons = ["◎", "◈", "✎", "◇", "⚑"];
-const colours = ["#a78bfa", "#34d399", "#f472b6", "#60a5fa", "#f59e0b"];
-
 function requiredReply(reply: string | undefined): string {
   if (!reply?.trim())
     throw new Error("The specialist returned an empty reply.");
   return reply;
-}
-
-function Tile({
-  specialist,
-  active,
-  index,
-  onSelect,
-}: {
-  specialist: Specialist;
-  active: boolean;
-  index: number;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      className={`specialist ${active ? "selected" : ""}`}
-      type="button"
-      onClick={onSelect}
-    >
-      <span
-        className="specialist-icon"
-        style={{ color: colours[index % colours.length] }}
-      >
-        {icons[index % icons.length]}
-      </span>
-      <span className="specialist-copy">
-        <b>{specialist.name}</b>
-        <small>{specialist.purpose}</small>
-      </span>
-      <span className="ready">● READY</span>
-    </button>
-  );
 }
 
 function HeadComposite({
@@ -295,9 +259,6 @@ export default function UnifiedOpsConsole() {
   }, []);
 
   const jarvis = specialists.find((item) => item.id === "jarvis");
-  const directSpecialists = DIRECT_SPECIALIST_IDS.map((id) =>
-    specialists.find((item) => item.id === id),
-  ).filter((specialist): specialist is Specialist => Boolean(specialist));
   const selected = specialists.find((item) => item.id === selectedId);
   const messages = useMemo(
     () => (selectedId ? (conversations[selectedId] ?? []) : []),
@@ -319,12 +280,6 @@ export default function UnifiedOpsConsole() {
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [sidebarOpen]);
-
-  function selectSpecialist(id: string | null) {
-    setPendingHandoff(null);
-    setSelectedId(id);
-    setSidebarOpen(false);
-  }
 
   async function submitMessage(
     specialist: Specialist,
@@ -605,36 +560,32 @@ export default function UnifiedOpsConsole() {
         <button
           className={`sidebar-backdrop ${sidebarOpen ? "open" : ""}`}
           type="button"
-          aria-label="Close specialists and connectors"
+          aria-label="Close JARVIS status and connectors"
           onClick={() => setSidebarOpen(false)}
         />
         <aside
           className={`sidebar ${sidebarOpen ? "open" : ""}`}
-          aria-label="Specialists and connectors"
+          aria-label="JARVIS status and connectors"
         >
           <button
             className="sidebar-close"
             type="button"
-            aria-label="Close specialists and connectors"
+            aria-label="Close JARVIS status and connectors"
             onClick={() => setSidebarOpen(false)}
           >
             ×
           </button>
-          <div className="label">DIRECT SPECIALIST ACCESS</div>
-          <nav
-            className="specialist-list"
-            aria-label="Direct specialist access"
-          >
-            {directSpecialists.map((specialist, index) => (
-              <Tile
-                key={specialist.id}
-                specialist={specialist}
-                active={selectedId === specialist.id}
-                index={index}
-                onSelect={() => selectSpecialist(specialist.id)}
-              />
-            ))}
-          </nav>
+          <div className="label">CORE INTELLIGENCE</div>
+          <div className="specialist-list" aria-label="JARVIS Core intelligence">
+            <div className="specialist selected" aria-current="true">
+              <span className="specialist-icon" style={{ color: "#34d399" }}>◈</span>
+              <span className="specialist-copy">
+                <b>JARVIS</b>
+                <small>Single governed conversational surface</small>
+              </span>
+              <span className="ready">● {loading ? "THINKING" : "READY"}</span>
+            </div>
+          </div>
           {listError && <div className="sidebar-error">{listError}</div>}
           <div className="sidebar-spacer" />
           <div className="label connector-label">CONNECTORS</div>
@@ -665,11 +616,11 @@ export default function UnifiedOpsConsole() {
             </p>
           </div>
           <div className="core">
-            JARVIS CORE v2.0.0
+            JARVIS CORE v3.0.0
             <br />
-            BUILT FOR SAM HAYWARD
+            SINGLE INTELLIGENCE SURFACE
             <br />
-            GOVERNANCE ENGINEERING
+            GOVERNED CONNECTORS
           </div>
           <div className="online">● JARVIS STATUS — ONLINE</div>
           <div className="connector-count">
@@ -683,7 +634,7 @@ export default function UnifiedOpsConsole() {
           <div className="mobile-header">
             <button
               type="button"
-              aria-label="Open specialists and connectors"
+              aria-label="Open JARVIS status and connectors"
               aria-expanded={sidebarOpen}
               onClick={() => setSidebarOpen(true)}
             >
@@ -691,7 +642,7 @@ export default function UnifiedOpsConsole() {
             </button>
             <span className="brand-mark">J</span>
             <b>J.A.R.V.I.S</b>
-            <small>{selected?.name ?? "ORCHESTRATOR"}</small>
+            <small>{selected?.name ?? "JARVIS"}</small>
           </div>
           <div className="statusbar">
             <span className="picture">
@@ -709,7 +660,7 @@ export default function UnifiedOpsConsole() {
               <button
                 className="drawer-open"
                 type="button"
-                aria-label="Open specialists and connectors"
+                aria-label="Open JARVIS status and connectors"
                 aria-expanded={sidebarOpen}
                 onClick={() => setSidebarOpen(true)}
               >
@@ -741,18 +692,13 @@ export default function UnifiedOpsConsole() {
                 />
               </section>
               <section className="chat-zone" aria-label="Conversation">
-                <button
-                  className="jarvis-panel-header"
-                  type="button"
-                  disabled={!jarvis}
-                  onClick={() => jarvis && selectSpecialist(jarvis.id)}
-                >
+                <div className="jarvis-panel-header" aria-label="JARVIS Core intelligence">
                   <span className="jarvis-panel-title">
                     <b>J.A.R.V.I.S.</b>
                     <small>Just A Very Intelligent System</small>
                   </span>
-                  <small>RETURN TO ORCHESTRATOR</small>
-                </button>
+                  <small>CORE INTELLIGENCE</small>
+                </div>
                 <div className="shimmer" />
                 <div className="conversation-frame">
                   <div className="spin-border" />
@@ -764,17 +710,14 @@ export default function UnifiedOpsConsole() {
                     <div className="messages" ref={scrollRef}>
                       {!selected && specialists.length === 0 && !listError && (
                         <div className="home-state">
-                          <h2>JARVIS ORCHESTRATOR</h2>
-                          <p>Loading JARVIS…</p>
+                          <h2>JARVIS</h2>
+                          <p>Loading governed conversation…</p>
                         </div>
                       )}
                       {!selected && (specialists.length > 0 || listError) && (
                         <div className="home-state">
-                          <h2>JARVIS ORCHESTRATOR</h2>
-                          <p>
-                            Select a specialist from the drawer to begin a
-                            governed conversation, or return to JARVIS above.
-                          </p>
+                          <h2>JARVIS</h2>
+                          <p>Governed conversation is unavailable.</p>
                         </div>
                       )}
                       {selected && messages.length === 0 && (
@@ -882,7 +825,7 @@ export default function UnifiedOpsConsole() {
               aria-label={
                 selected
                   ? `Ask ${selected.name} anything`
-                  : "Select a specialist"
+                  : "Ask JARVIS anything"
               }
               disabled={!selected || loading}
               value={input}
@@ -890,7 +833,7 @@ export default function UnifiedOpsConsole() {
               placeholder={
                 selected
                   ? `Ask ${selected.name} anything...`
-                  : "Select a specialist to begin..."
+                  : "JARVIS is loading..."
               }
             />
             <button

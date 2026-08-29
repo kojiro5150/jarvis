@@ -1,8 +1,9 @@
 import type { RetrievedWeatherPublicEvidence } from "@/lib/governance-core/public-grounding";
 import type { PublicLookupRequest } from "./public-lookup-request";
 import {
-  acquireGroundedPublicWeather,
+  acquireGroundedPublicWeatherWithDiagnostics,
   type PublicWeatherDependencies,
+  type PublicWeatherGroundingFailureReason,
 } from "./public-weather";
 
 export const PUBLIC_GROUNDING_UNAVAILABLE_REPLY =
@@ -17,6 +18,7 @@ export type PublicGroundingExecution =
   | Readonly<{
       status: "unavailable";
       request: PublicLookupRequest;
+      reason?: PublicWeatherGroundingFailureReason | "provider_unavailable";
     }>;
 
 export type PublicGroundingDependencies = Readonly<{
@@ -35,11 +37,11 @@ export async function executePublicGrounding(
   dependencies: PublicGroundingDependencies = {},
 ): Promise<PublicGroundingExecution> {
   if (request.kind === "weather") {
-    const evidence = await acquireGroundedPublicWeather(request, dependencies.weather);
-    return evidence
-      ? Object.freeze({ status: "grounded" as const, request, evidence })
-      : Object.freeze({ status: "unavailable" as const, request });
+    const attempt = await acquireGroundedPublicWeatherWithDiagnostics(request, dependencies.weather);
+    return attempt.status === "grounded"
+      ? Object.freeze({ status: "grounded" as const, request, evidence: attempt.evidence })
+      : Object.freeze({ status: "unavailable" as const, request, reason: attempt.reason });
   }
 
-  return Object.freeze({ status: "unavailable" as const, request });
+  return Object.freeze({ status: "unavailable" as const, request, reason: "provider_unavailable" as const });
 }

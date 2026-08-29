@@ -1,5 +1,6 @@
 import type { ChatMessage } from "../agents/types";
 import type { ScopedCalendarEvidenceResult } from "../governed-conversation/scoped-calendar-evidence-acquisition-adapter";
+import type { GovernedCalendarConflictEvent } from "../governed-conversation/calendar-conflict-observation";
 import type { CalendarReadWindow } from "./calendar-read-window";
 import { resolveCalendarConflictReasoningReference } from "./calendar-conflict-reasoning-reference";
 import { resolveCalendarAdvicePreferenceReference, CALENDAR_ADVICE_PREFERENCE_KIND } from "./calendar-advice-preference-reference";
@@ -76,7 +77,7 @@ export async function resolveCalendarConflictAdvise(input: {
 
   const historicalInvite = historical.observation.addedPendingInvitation;
   const historicalDeep = historical.observation.existingDeepWorkCommitment;
-  const currentById = new Map<string, (typeof input.evidence.conflictEvents)[number]>();
+  const currentById = new Map<string, GovernedCalendarConflictEvent>();
   for (const event of input.evidence.conflictEvents) {
     if (event.observedAt !== observedAt || currentById.has(event.commitmentReference)) {
       return Object.freeze({ status: "invalid", reply: "The current Calendar evidence is internally inconsistent for advice." });

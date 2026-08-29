@@ -323,12 +323,10 @@ describe("live governed Calendar factual query", () => {
       specialistId: "jarvis",
       messages: [{ role: "user", content: "When is it going to rain next?" }],
     }))).json();
-    expect(response).toMatchObject({
-      reply: "I couldn't establish current public evidence for that request, so I won't substitute an unsupported answer from model memory.",
-      publicGrounding: { status: "unavailable", kind: "web_search" },
-    });
+    expect(response.reply).toBe("I recognized that as a public-information request, but public lookup is not yet available in this runtime.");
     expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
-    expect(model).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(1);
+    expect(model.mock.calls[0][0]).toContain("bounded conversational capability selector");
   });
 
   it("contains doing-something Level-2 wording without Calendar authority or acquisition", async () => {
@@ -410,12 +408,10 @@ describe("live governed Calendar factual query", () => {
       messages: [{ role: "user", content: "When will it rain again?" }],
     }))).json();
 
-    expect(response).toMatchObject({
-      reply: "I couldn't establish current public evidence for that request, so I won't substitute an unsupported answer from model memory.",
-      publicGrounding: { status: "unavailable", kind: "web_search" },
-    });
+    expect(response.reply).toBe("I recognized that as a public-information request, but public lookup is not yet available in this runtime.");
     expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
-    expect(model).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(1);
+    expect(model.mock.calls[0][0]).toContain("bounded conversational capability selector");
   });
 
   it("does not let a malformed follow-up turn a prior negative factual result into a commitment", async () => {

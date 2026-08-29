@@ -21,6 +21,8 @@ type Specialist = {
 type Message = { role: "user" | "assistant"; content: string; error?: boolean };
 type OpaqueCalendarAttentionObservation = Readonly<{ calendarAttentionObservationReferenceId: string }>;
 type OpaqueCalendarConflictReasoning = Readonly<{ calendarConflictReasoningReferenceId: string }>;
+type OpaqueCalendarAdvicePreference = Readonly<{ calendarAdvicePreferenceReferenceId: string }>;
+type OpaqueCalendarAdvice = Readonly<{ calendarAdviceReferenceId: string }>;
 type PendingHandoff = {
   sourceId: string;
   targetId: string;
@@ -126,6 +128,8 @@ export default function UnifiedOpsConsole() {
   const authorityTurnStateRef = useRef(new ClientAuthorityTurnState());
   const calendarAttentionObservationRef = useRef<OpaqueCalendarAttentionObservation | null>(null);
   const calendarConflictReasoningRef = useRef<OpaqueCalendarConflictReasoning | null>(null);
+  const calendarAdvicePreferenceRef = useRef<OpaqueCalendarAdvicePreference | null>(null);
+  const calendarAdviceRef = useRef<OpaqueCalendarAdvice | null>(null);
   const conversationHistoryRef = useRef(new ConversationTransportHistory());
   const [listError, setListError] = useState("");
   const [connectorStatuses, setConnectorStatuses] = useState<Record<
@@ -350,6 +354,12 @@ export default function UnifiedOpsConsole() {
           ...(specialist.id === "jarvis" && calendarConflictReasoningRef.current
             ? { calendarConflictReasoningReference: calendarConflictReasoningRef.current }
             : {}),
+          ...(specialist.id === "jarvis" && calendarAdvicePreferenceRef.current
+            ? { calendarAdvicePreferenceReference: calendarAdvicePreferenceRef.current }
+            : {}),
+          ...(specialist.id === "jarvis" && calendarAdviceRef.current
+            ? { calendarAdviceReference: calendarAdviceRef.current }
+            : {}),
         }),
       });
       const data = (await response.json()) as {
@@ -360,6 +370,8 @@ export default function UnifiedOpsConsole() {
         pendingAuthorizationReference?: OpaquePendingAuthorization | null;
         calendarAttentionObservationReference?: OpaqueCalendarAttentionObservation;
         calendarConflictReasoningReference?: OpaqueCalendarConflictReasoning | null;
+        calendarAdvicePreferenceReference?: OpaqueCalendarAdvicePreference | null;
+        calendarAdviceReference?: OpaqueCalendarAdvice | null;
         error?: string;
       };
       if (!response.ok)
@@ -378,6 +390,12 @@ export default function UnifiedOpsConsole() {
       }
       if (data.calendarConflictReasoningReference !== undefined) {
         calendarConflictReasoningRef.current = data.calendarConflictReasoningReference;
+      }
+      if (data.calendarAdvicePreferenceReference !== undefined) {
+        calendarAdvicePreferenceRef.current = data.calendarAdvicePreferenceReference;
+      }
+      if (data.calendarAdviceReference !== undefined) {
+        calendarAdviceRef.current = data.calendarAdviceReference;
       }
       const acceptedMessages = conversationHistoryRef.current.acceptAssistant(specialist.id, reply);
       setConversations((current) => ({ ...current, [specialist.id]: acceptedMessages }));

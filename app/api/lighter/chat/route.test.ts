@@ -2058,7 +2058,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
         },
       };
     });
-    const model = vi.fn(async () => "model must not run");
+    const model = vi.fn(async (systemPrompt: string) =>\n      systemPrompt.includes("bounded private-evidence reasoning component")\n        ? \'{"interpretationType":"scheduling_conflict"}\'\n        : "model must not run");
     const handler = createLighterChatHandler(model, {
       createConnector: () => ({
         source: "google" as const,

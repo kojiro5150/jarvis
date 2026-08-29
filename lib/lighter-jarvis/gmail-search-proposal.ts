@@ -1,6 +1,7 @@
 import {
   proposeGmailSearch,
   proposeGmailSenderSearch,
+  proposeGmailSubjectList,
   type ProposedGmailSearchOperation,
 } from "./gmail-search-authority";
 import { parseNaturalLanguageGmailSenderReference } from "./gmail-sender-identity";
@@ -15,7 +16,7 @@ export function proposeNaturalLanguageGmailSearch(currentUserUtterance: string):
   const utterance = currentUserUtterance.trim();
   const timeWindow = utterance.match(GMAIL_SEARCH_REQUEST);
   if (timeWindow) {
-    return proposeGmailSearch(/week|7\s+days?/i.test(timeWindow[1]) ? "7d" : "1d");
+    return proposeGmailSubjectList(/week|7\s+days?/i.test(timeWindow[1]) ? "7d" : "1d");
   }
 
   const senderTerms = parseNaturalLanguageGmailSenderReference(utterance);

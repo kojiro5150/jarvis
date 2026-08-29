@@ -1,6 +1,8 @@
 # JARVIS Golden Scenario 001 — Calendar Conflict
 
-**Status:** Design / proving scenario. Not an implementation claim.
+**Status:** Historical design/proving contract. **Golden Scenario 001 achieved LIVE PASS on 29 August 2026.** See `docs/GOLDEN-SCENARIO-001-LIVE-PASS.md` for the frozen completion record.
+
+> This document is retained as the historical proving contract. Its earlier planning language is not rewritten to make the past resemble the completed state.
 
 ## Purpose
 

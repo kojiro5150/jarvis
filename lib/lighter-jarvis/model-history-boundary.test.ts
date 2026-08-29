@@ -13,6 +13,8 @@ describe("ordinary-model history boundary", () => {
   });
   it.each([
     "Gmail message IDs:\n- private-id\n- another-id",
+    "Recent Gmail messages:\n- Private subject one\n- Private subject two",
+    "No recent Gmail messages found.",
     "Subject: Private subject",
     "Snippet: Private snippet\nPlain text body: Private body",
     "Tomorrow is clear.",
@@ -50,6 +52,24 @@ describe("ordinary-model history boundary", () => {
       { role: "assistant", content: "[Prior governed Calendar factual result: no matching event.]" },
       history[4],
     ]);
+  });
+
+  it("prevents a surfaced Gmail subject list from reaching a later ordinary model turn", () => {
+    const history = [
+      { role: "user" as const, content: "What are my last five emails?" },
+      { role: "assistant" as const, content: "I can retrieve the subjects of up to five recent Gmail messages from the last 7 days. Please explicitly confirm that I may do that." },
+      { role: "user" as const, content: "Yes." },
+      { role: "assistant" as const, content: "Recent Gmail messages:\n- Jarvis Test email\n- Private CI notice" },
+      { role: "user" as const, content: "One of my last five emails." },
+    ];
+    const sanitized = sanitizeModelHistory(history);
+    expect(sanitized[3]).toEqual({
+      role: "assistant",
+      content: "[Governed private result omitted from ordinary model context.]",
+    });
+    expect(JSON.stringify(sanitized)).not.toContain("Jarvis Test email");
+    expect(JSON.stringify(sanitized)).not.toContain("Private CI notice");
+    expect(sanitized.at(-1)).toEqual(history.at(-1));
   });
 
   it("prevents a surfaced Calendar title from reaching a later ordinary model turn", () => {

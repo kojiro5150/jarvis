@@ -32,3 +32,15 @@ export function isAmbiguousPrivateReadFollowUp(utterance: string): boolean {
   // It excludes ordinary short words while retaining observed opaque Drive-ID shapes.
   return anaphoricRead || isProviderIdLike(utterance);
 }
+
+/**
+ * Prior governed Gmail context may activate this deny-only classifier.
+ * It does not identify a message, recover evidence, or grant read authority.
+ */
+export function isAmbiguousGmailEvidenceFollowUp(utterance: string): boolean {
+  const normalized = utterance.normalize("NFKC").toLowerCase().replace(/[’]/g, "'").replace(/\s+/g, " ").trim();
+  return /^(?:one|any) of (?:my|the|those) (?:last|recent) (?:five )?emails?[.!?]*$/.test(normalized)
+    || /^(?:one|any) of (?:those|the) emails?[.!?]*$/.test(normalized)
+    || /^(?:the )?(?:first|second|third|fourth|fifth) (?:one|email)[.!?]*$/.test(normalized)
+    || /^(?:that|this) email[.!?]*$/.test(normalized);
+}

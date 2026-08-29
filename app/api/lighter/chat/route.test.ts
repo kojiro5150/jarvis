@@ -1752,6 +1752,66 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     expect(gmailReadConnector).not.toHaveBeenCalled();
   });
 
+  it("does not let a bare 'Do it' continuation manufacture Gmail read authority UX", async () => {
+    const model = vi.fn(async () =>
+      "I understand you want to read the most recent email. Please explicitly confirm that I may read Gmail."
+    );
+    const gmailSearchConnector = vi.fn();
+    const gmailReadConnector = vi.fn();
+    const containmentReply = "I can't read or identify a prior Gmail message from ordinary model context. Reading a selected message requires a separate governed Gmail read request and authority.";
+
+    const response = await createLighterChatHandler(
+      model,
+      undefined,
+      { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
+      { createConnector: gmailSearchConnector },
+    )(request({
+      specialistId: "jarvis",
+      messages: [
+        { role: "user", content: "Yes, the most recent email." },
+        { role: "assistant", content: containmentReply },
+        { role: "user", content: "Do it." },
+      ],
+    }));
+
+    expect(await response.json()).toEqual({
+      reply: "There is no governed Gmail read operation waiting for confirmation. Please make a new supported Gmail read request.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(model).not.toHaveBeenCalled();
+    expect(gmailSearchConnector).not.toHaveBeenCalled();
+    expect(gmailReadConnector).not.toHaveBeenCalled();
+  });
+
+  it("keeps a later bare Yes contained when no Gmail read operation exists", async () => {
+    const model = vi.fn(async () => "Please confirm that I may read Gmail.");
+    const gmailSearchConnector = vi.fn();
+    const gmailReadConnector = vi.fn();
+
+    const response = await createLighterChatHandler(
+      model,
+      undefined,
+      { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
+      { createConnector: gmailSearchConnector },
+    )(request({
+      specialistId: "jarvis",
+      messages: [
+        { role: "assistant", content: "There is no governed Gmail read operation waiting for confirmation. Please make a new supported Gmail read request." },
+        { role: "user", content: "Yes." },
+      ],
+    }));
+
+    expect(await response.json()).toEqual({
+      reply: "There is no governed Gmail read operation waiting for confirmation. Please make a new supported Gmail read request.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(model).not.toHaveBeenCalled();
+    expect(gmailSearchConnector).not.toHaveBeenCalled();
+    expect(gmailReadConnector).not.toHaveBeenCalled();
+  });
+
   it("keeps conversational Gmail read intent fail-closed when no exact resource is identified", async () => {
     const gmailReadConnector = vi.fn();
     const gmailSearchConnector = vi.fn();

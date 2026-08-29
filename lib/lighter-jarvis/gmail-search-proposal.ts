@@ -6,6 +6,7 @@ import {
 import { parseNaturalLanguageGmailSenderReference } from "./gmail-sender-identity";
 
 const GMAIL_SEARCH_REQUEST = /^(?:please\s+)?(?:search|check|show(?:\s+me)?|look\s+(?:in|through))\s+(?:my\s+)?(?:gmail|email|emails|inbox)\s+(?:for\s+)?(?:messages|emails|mail)?\s*(?:from|in|over|for)\s+(?:the\s+)?(?:last|past)\s+(day|24\s+hours?|week|7\s+days?)[?!.]?$/i;
+const GMAIL_SEARCH_QUESTION = /^what\s+are\s+my\s+(?:gmail\s+)?(?:emails|messages)\s+(?:from|in|over|for)\s+(?:the\s+)?(?:last|past)\s+(day|24\s+hours?|week|7\s+days?)[?!.]?$/i;
 
 /**
  * Recognises only bounded, high-confidence Gmail discovery requests. The
@@ -13,7 +14,8 @@ const GMAIL_SEARCH_REQUEST = /^(?:please\s+)?(?:search|check|show(?:\s+me)?|look
  */
 export function proposeNaturalLanguageGmailSearch(currentUserUtterance: string): ProposedGmailSearchOperation | null {
   const utterance = currentUserUtterance.trim();
-  const timeWindow = utterance.match(GMAIL_SEARCH_REQUEST);
+  const timeWindow = utterance.match(GMAIL_SEARCH_REQUEST)
+    ?? utterance.match(GMAIL_SEARCH_QUESTION);
   if (timeWindow) {
     return proposeGmailSubjectList(/week|7\s+days?/i.test(timeWindow[1]) ? "7d" : "1d");
   }

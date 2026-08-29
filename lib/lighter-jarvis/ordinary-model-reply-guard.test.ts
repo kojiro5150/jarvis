@@ -7,6 +7,7 @@ import {
   EXCLUDED_DRIVE_PROVENANCE_REPLY,
   UNSUPPORTED_DRIVE_PATH_REPLY,
   ORDINARY_CALENDAR_FACT_REPLY,
+  SINGLE_JARVIS_IDENTITY_REPLY,
 } from "./ordinary-model-reply-guard";
 import {
   hasPriorVisibleCalendarReport,
@@ -16,6 +17,16 @@ import {
 } from "./calendar-provenance-truthfulness";
 
 describe("ordinary-model reply guard", () => {
+  it.each([
+    "I'll hand this to DAWNWATCH.",
+    "DAWNWATCH can access that for you.",
+    "HERALD can draft that.",
+    "I suggest GECKO.",
+    "ORACLE reports the result.",
+  ])("neutralizes retired specialist/delegation language: %s", reply => {
+    expect(guardOrdinaryModelReply(reply, "Please handle it.")).toBe(SINGLE_JARVIS_IDENTITY_REPLY);
+  });
+
   const liveReport = "Based on your calendar for tomorrow (Friday, 28 August 2026), you have two commitments:\n10:00 AM – 11:00 AM\n3:00 PM – 4:00 PM";
 
   it.each(["My 9 a.m. meeting is the finance review.", "My 10 a.m. meeting is the project review.", "My 9 a.m. meeting tomorrow is a finance review."])(

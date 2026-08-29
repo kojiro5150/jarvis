@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { handoffResponse } from "@/lib/lighter-jarvis/handoff-phrases";
 import {
   useVoiceSession,
   type VoiceState,
@@ -26,12 +25,6 @@ type OpaqueCalendarAdvicePreference = Readonly<{ calendarAdvicePreferenceReferen
 type OpaqueCalendarAdvice = Readonly<{ calendarAdviceReferenceId: string }>;
 type OpaqueCalendarMoveProposal = Readonly<{ calendarMoveProposalReferenceId: string }>;
 type OpaqueCalendarMoveAuthorization = Readonly<{ calendarMoveAuthorizationReferenceId: string }>;
-type PendingHandoff = {
-  sourceId: string;
-  targetId: string;
-  taskSummary: string;
-  marketScopes?: string[];
-};
 type ConnectorName = "calendar" | "gmail" | "drive";
 type ConnectorServiceStatus =
   | "online"
@@ -83,16 +76,13 @@ export default function UnifiedOpsConsole() {
   const voiceSession = useVoiceSession();
   const voiceQueueRef = useRef<VoiceTurnQueue | null>(null);
   const voiceTurnHandlerRef = useRef<(turn: VoiceTurn) => Promise<void>>(async () => undefined);
-  const [specialists, setSpecialists] = useState<Specialist[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>("jarvis");
+  const jarvis: Specialist = { id: "jarvis", name: "JARVIS", purpose: "Single governed conversational intelligence", invokedOnly: false };
+  const selectedId = "jarvis";
   const [conversations, setConversations] = useState<Record<string, Message[]>>(
     {},
   );
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [pendingHandoff, setPendingHandoff] = useState<PendingHandoff | null>(
-    null,
-  );
   const authorityTurnStateRef = useRef(new ClientAuthorityTurnState());
   const gmailSenderDisambiguationRef = useRef<OpaqueGmailSenderDisambiguation | null>(null);
   const gmailMessageListRef = useRef<OpaqueGmailMessageList | null>(null);
@@ -103,40 +93,12 @@ export default function UnifiedOpsConsole() {
   const calendarMoveProposalRef = useRef<OpaqueCalendarMoveProposal | null>(null);
   const calendarMoveAuthorizationRef = useRef<OpaqueCalendarMoveAuthorization | null>(null);
   const conversationHistoryRef = useRef(new ConversationTransportHistory());
-  const [listError, setListError] = useState("");
   const [connectorStatuses, setConnectorStatuses] = useState<Record<
     ConnectorName,
     ConnectorServiceStatus
   > | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    let live = true;
-    fetch("/api/lighter/specialists")
-      .then(async (response) => {
-        const data = (await response.json()) as {
-          specialists?: Specialist[];
-          error?: string;
-        };
-        if (!response.ok)
-          throw new Error(
-            data.error || `Unable to load specialists (${response.status}).`,
-          );
-        if (live) setSpecialists(data.specialists ?? []);
-      })
-      .catch((error) => {
-        if (live)
-          setListError(
-            error instanceof Error
-              ? error.message
-              : "Unable to load specialists.",
-          );
-      });
-    return () => {
-      live = false;
-    };
-  }, []);
 
   const fetchConnectorStatus = async (live = true) => {
     try {
@@ -260,8 +222,7 @@ export default function UnifiedOpsConsole() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const jarvis = specialists.find((item) => item.id === "jarvis");
-  const selected = specialists.find((item) => item.id === selectedId);
+  const selected = jarvis;
   const messages = useMemo(
     () => (selectedId ? (conversations[selectedId] ?? []) : []),
     [conversations, selectedId],
@@ -286,7 +247,7 @@ export default function UnifiedOpsConsole() {
   async function submitMessage(
     specialist: Specialist,
     content: string,
-  ): Promise<{ routeTo?: string; taskSummary?: string; marketScopes?: string[] } | undefined> {
+  ): Promise<void> {
     if (!content) return;
     const authorityRequest = specialist.id === "jarvis"
       ? authorityTurnStateRef.current.beginRequest()
@@ -339,9 +300,6 @@ export default function UnifiedOpsConsole() {
       });
       const data = (await response.json()) as {
         reply?: string;
-        routeTo?: string;
-        taskSummary?: string;
-        marketScopes?: string[];
         pendingAuthorizationReference?: OpaquePendingAuthorization | null;
         gmailSenderDisambiguationReference?: OpaqueGmailSenderDisambiguation | null;
         gmailMessageListReference?: OpaqueGmailMessageList | null;
@@ -390,7 +348,6 @@ export default function UnifiedOpsConsole() {
       }
       const acceptedMessages = conversationHistoryRef.current.acceptAssistant(specialist.id, reply);
       setConversations((current) => ({ ...current, [specialist.id]: acceptedMessages }));
-      return { routeTo: data.routeTo, taskSummary: data.taskSummary, marketScopes: data.marketScopes };
     } catch (error) {
       const detail =
         error instanceof Error ? error.message : "Unknown request error.";
@@ -403,59 +360,12 @@ export default function UnifiedOpsConsole() {
 
   async function send(event: FormEvent) {
     event.preventDefault();
-    if (!selected) return;
     const originalMessage = input.trim();
-    if (pendingHandoff) {
-      const response = handoffResponse(input);
-      if (response === "confirm") {
-        setInput("");
-        await confirmHandoff();
-        return;
-      }
-      if (response === "decline") {
-        setInput("");
-        setPendingHandoff(null);
-        return;
-      }
-    }
-    setPendingHandoff(null);
-    const result = await submitMessage(selected, originalMessage);
-    const target = result?.routeTo
-      ? specialists.find((item) => item.id === result.routeTo)
-      : undefined;
-    if (target && result?.taskSummary) {
-      setPendingHandoff({
-        sourceId: selected.id,
-        targetId: target.id,
-        taskSummary: result.taskSummary,
-        marketScopes: result.marketScopes,
-      });
-    }
+    await submitMessage(jarvis, originalMessage);
   }
 
   voiceTurnHandlerRef.current = async ({ transcript }) => {
-    if (!selected) return;
-    if (pendingHandoff) {
-      const response = handoffResponse(transcript);
-      if (response === "confirm") {
-        await confirmHandoff();
-        return;
-      }
-      if (response === "decline") {
-        setPendingHandoff(null);
-        return;
-      }
-    }
-    setPendingHandoff(null);
-    const source = selected;
-    const result = await submitMessage(source, transcript);
-    const target = result?.routeTo
-      ? specialists.find((item) => item.id === result.routeTo)
-      : undefined;
-    if (target && result?.taskSummary) {
-      setPendingHandoff({ sourceId: source.id, targetId: target.id,
-        taskSummary: result.taskSummary, marketScopes: result.marketScopes });
-    }
+    await submitMessage(jarvis, transcript);
   };
 
   if (!voiceQueueRef.current) {
@@ -471,96 +381,10 @@ export default function UnifiedOpsConsole() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceSession.turn]);
 
-  async function confirmHandoff() {
-    if (!pendingHandoff || loading || !jarvis) return;
-    const target = specialists.find(
-      (item) => item.id === pendingHandoff.targetId,
-    );
-    if (!target) {
-      setPendingHandoff(null);
-      return;
-    }
-    const taskSummary = pendingHandoff.taskSummary;
-    const marketScopes = pendingHandoff.marketScopes;
-    setPendingHandoff(null);
-    setSelectedId(jarvis.id);
-    setLoading(true);
-    try {
-      const specialistResponse = await fetch("/api/lighter/chat", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          specialistId: target.id,
-          messages: [{ role: "user", content: taskSummary }],
-          ...(target.id === "gecko" ? { marketScopes } : {}),
-        }),
-      });
-      const specialistData = (await specialistResponse.json()) as {
-        reply?: string;
-        error?: string;
-      };
-      if (!specialistResponse.ok)
-        throw new Error(
-          specialistData.error ||
-            `${specialistResponse.status} ${specialistResponse.statusText}`,
-        );
-      const specialistReply = requiredReply(specialistData.reply);
-
-      const jarvisMessages = conversationHistoryRef.current.messages(jarvis.id);
-      const synthesisResponse = await fetch("/api/lighter/chat", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          specialistId: jarvis.id,
-          messages: jarvisMessages.map(({ role, content }) => ({
-            role,
-            content,
-          })),
-          relaySpecialistReply: {
-            specialistId: target.id,
-            reply: specialistReply,
-          },
-        }),
-      });
-      const synthesisData = (await synthesisResponse.json()) as {
-        reply?: string;
-        error?: string;
-      };
-      if (!synthesisResponse.ok)
-        throw new Error(
-          synthesisData.error ||
-            `${synthesisResponse.status} ${synthesisResponse.statusText}`,
-        );
-      const synthesisReply = requiredReply(synthesisData.reply);
-      const acceptedMessages = conversationHistoryRef.current.acceptAssistant(jarvis.id, synthesisReply);
-      setConversations((current) => ({ ...current, [jarvis.id]: acceptedMessages }));
-    } catch (error) {
-      const detail =
-        error instanceof Error ? error.message : "Unknown request error.";
-      const acceptedMessages = conversationHistoryRef.current.acceptAssistant(jarvis.id, detail, true);
-      setConversations((current) => ({ ...current, [jarvis.id]: acceptedMessages }));
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function briefMe() {
-    if (!jarvis || loading) return;
-    setSelectedId(jarvis.id);
+    if (loading) return;
     setSidebarOpen(false);
-    const message = "brief me on today";
-    const result = await submitMessage(jarvis, message);
-    const target = result?.routeTo
-      ? specialists.find((item) => item.id === result.routeTo)
-      : undefined;
-    if (target && result?.taskSummary) {
-      setPendingHandoff({
-        sourceId: jarvis.id,
-        targetId: target.id,
-        taskSummary: result.taskSummary,
-        marketScopes: result.marketScopes,
-      });
-    }
+    await submitMessage(jarvis, "brief me on today");
   }
 
   return (
@@ -595,7 +419,6 @@ export default function UnifiedOpsConsole() {
               <span className="ready">● {loading ? "THINKING" : "READY"}</span>
             </div>
           </div>
-          {listError && <div className="sidebar-error">{listError}</div>}
           <div className="sidebar-spacer" />
           <div className="label connector-label">CONNECTORS</div>
           <div className="connectors">
@@ -717,19 +540,7 @@ export default function UnifiedOpsConsole() {
                     <i className="corner bl" />
                     <i className="corner br" />
                     <div className="messages" ref={scrollRef}>
-                      {!selected && specialists.length === 0 && !listError && (
-                        <div className="home-state">
-                          <h2>JARVIS</h2>
-                          <p>Loading governed conversation…</p>
-                        </div>
-                      )}
-                      {!selected && (specialists.length > 0 || listError) && (
-                        <div className="home-state">
-                          <h2>JARVIS</h2>
-                          <p>Governed conversation is unavailable.</p>
-                        </div>
-                      )}
-                      {selected && messages.length === 0 && (
+                      {messages.length === 0 && (
                         <div className="home-state">
                           <h2>{selected.name}</h2>
                           <p>{selected.purpose}</p>
@@ -745,40 +556,6 @@ export default function UnifiedOpsConsole() {
                             {message.role === "user" ? "YOU" : selected?.name}
                           </b>
                           <p>{message.content}</p>
-                          {message.role === "assistant" &&
-                            index === messages.length - 1 &&
-                            pendingHandoff?.sourceId === selectedId && (
-                              <div
-                                className="handoff-proposal"
-                                role="group"
-                                aria-label="Specialist hand-off proposal"
-                              >
-                                <span>
-                                  HAND-OFF PROPOSED ·{" "}
-                                  {specialists.find(
-                                    (item) =>
-                                      item.id === pendingHandoff.targetId,
-                                  )?.name ??
-                                    pendingHandoff.targetId.toUpperCase()}
-                                </span>
-                                <div>
-                                  <button
-                                    type="button"
-                                    disabled={loading}
-                                    onClick={() => void confirmHandoff()}
-                                  >
-                                    CONFIRM
-                                  </button>
-                                  <button
-                                    type="button"
-                                    disabled={loading}
-                                    onClick={() => setPendingHandoff(null)}
-                                  >
-                                    DECLINE
-                                  </button>
-                                </div>
-                              </div>
-                            )}
                         </div>
                       ))}
                       {loading && (

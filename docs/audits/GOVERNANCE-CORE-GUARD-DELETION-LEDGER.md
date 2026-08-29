@@ -97,3 +97,22 @@ Any deletion PR must cite this ledger row and show:
 PR G earns **zero runtime deletions**.
 
 That is the correct outcome at this point in the migration. PR H may remove specialist/handoff runtime structure because its relevant proof obligations can be translated into the single-JARVIS capability boundary. The history and ordinary-model guards require further structural migration before they can safely collapse.
+
+## PR H specialist/handoff collapse result
+
+PR H removes the specialist/handoff runtime mechanism itself:
+
+- non-JARVIS specialist identities are removed from the active registry;
+- relay-specialist prompt synthesis is removed;
+- model-generated `propose_handoff` parsing and `routeTo/taskSummary/marketScopes` responses are removed;
+- the hidden UI handoff confirmation workflow is removed;
+- the specialist catalogue endpoint is removed;
+- handoff phrase parsing is removed from the live UI path.
+
+The no-second-private-path invariant is preserved by **removing the alternate route**, not by weakening the private-capability guards. Gmail/Drive ambiguous-reference containment, pending-authorization checks, ordinary-model truthfulness guards, and private model-history sanitisation remain in place because their proof obligations are independent of specialist routing.
+
+Test treatment:
+
+- specialist roster, relay, and handoff-UI assertions are structural Class B and are translated to single-JARVIS runtime assertions;
+- any assertion that a private capability cannot execute through a second route remains Class A and must continue to pass;
+- no historical containment evidence is deleted merely because the specialist mechanism is gone.

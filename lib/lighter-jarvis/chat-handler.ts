@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { callClaude } from "@/lib/claude";
-import type { ClaudeContentBlock, ClaudeResult, ClaudeTool } from "@/lib/claude";
+import type { ClaudeResult } from "@/lib/claude";
 import type { ChatMessage } from "@/lib/agents/types";
-import { areValidMessages, areValidMessageTranscript, buildSpecialistPrompt, type RelaySpecialistReply } from "@/lib/lighter-jarvis/runtime";
+import { areValidMessages, areValidMessageTranscript, buildSpecialistPrompt } from "@/lib/lighter-jarvis/runtime";
 import { getLighterSpecialist } from "@/lib/lighter-jarvis/specialists";
 import { resolveProductionCalendarRead, type ProductionCalendarDependencies } from "@/lib/lighter-jarvis/production-calendar-read";
 import { CALENDAR_TIME_ZONE } from "@/lib/lighter-jarvis/calendar-read-window";
@@ -14,8 +14,6 @@ import {
   GMAIL_NO_PENDING_READ_AUTHORITY_REPLY,
   GMAIL_SELECTED_MESSAGE_READ_CONTAINMENT_REPLY,
   isAmbiguousGmailEvidenceFollowUp,
-  isAmbiguousPrivateReadFollowUp,
-  isPrivateAcquisitionHandoffRequest,
   isUnsupportedGmailReadAuthorityContinuation,
 } from "@/lib/lighter-jarvis/private-capability-handoff-guard";
 import { guardOrdinaryModelReply } from "@/lib/lighter-jarvis/ordinary-model-reply-guard";
@@ -70,8 +68,6 @@ import type { ScopedCalendarAcquisitionPort } from "@/lib/governed-conversation/
 interface LighterChatBody {
   specialistId?: unknown;
   messages?: unknown;
-  relaySpecialistReply?: RelaySpecialistReply;
-  marketScopes?: unknown;
   pendingAuthorizationReference?: unknown;
   gmailSenderDisambiguationReference?: unknown;
   gmailMessageListReference?: unknown;
@@ -85,40 +81,10 @@ interface LighterChatBody {
 type ModelCall = (
   systemPrompt: string,
   messages: ChatMessage[],
-  tools?: ClaudeTool[],
+  tools?: undefined,
   governedContext?: GovernedContext,
 ) => Promise<string | ClaudeResult>;
 
-const ORACLE_TOOLS: ClaudeTool[] = [
-  { type: "web_search_20250305", name: "web_search" },
-  { type: "web_fetch_20250910", name: "web_fetch", max_uses: 5 },
-];
-
-export type MarketScope = "australia" | "us_equities" | "fx" | "global_macro";
-
-export const MARKET_SCOPE_DOMAINS: Readonly<Record<MarketScope, readonly string[]>> = {
-  australia: ["asx.com.au", "asic.gov.au", "rba.gov.au", "abs.gov.au", "apra.gov.au", "treasury.gov.au"],
-  us_equities: ["nasdaq.com", "sec.gov", "federalreserve.gov"],
-  fx: ["federalreserve.gov", "ecb.europa.eu", "bankofengland.co.uk", "rba.gov.au"],
-  global_macro: ["imf.org", "worldbank.org", "bis.org", "federalreserve.gov", "ecb.europa.eu", "bankofengland.co.uk", "rba.gov.au"],
-};
-
-const DOMAIN_PATTERN = /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/;
-
-export function resolveMarketScopeDomains(value: unknown): string[] | undefined {
-  if (!Array.isArray(value) || value.length === 0) return undefined;
-  const domains = new Set<string>();
-  for (const scope of value) {
-    if (typeof scope !== "string" || !Object.hasOwn(MARKET_SCOPE_DOMAINS, scope)) return undefined;
-    for (const domain of MARKET_SCOPE_DOMAINS[scope as MarketScope]) {
-      if (!DOMAIN_PATTERN.test(domain) || !/^[\x00-\x7F]+$/.test(domain)) return undefined;
-      domains.add(domain);
-    }
-  }
-  return [...domains];
-}
-
-const PRIVATE_CAPABILITY_HANDOFF_BLOCKED_REPLY = "That request cannot be handled through a specialist handoff.";
 
 const PUBLIC_LOOKUP_UNAVAILABLE_REPLY = "I recognized that as a public-information request, but public lookup is not yet available in this runtime.";
 
@@ -136,51 +102,6 @@ function followsUnavailablePublicLookup(messages: unknown, utterance: string): b
   return previousAssistant?.content === PUBLIC_LOOKUP_UNAVAILABLE_REPLY;
 }
 
-
-const isFetchError = (value: unknown): boolean => {
-  if (Array.isArray(value)) return value.some(isFetchError);
-  if (typeof value !== "object" || value === null) return false;
-  if ("type" in value && value.type === "web_fetch_tool_error") return true;
-  return "content" in value && isFetchError(value.content);
-};
-
-const fetchedThisTurn = (content: ClaudeContentBlock[]) => {
-  const fetchErrored = content.some(isFetchError);
-  return content.some((block) =>
-    block.type === "web_search_tool_result"
-    || (block.type === "web_fetch_tool_result" && !isFetchError(block))
-    || (block.type === "server_tool_use"
-      && !(fetchErrored && block.name === "web_fetch")),
-  );
-};
-
-const citationUrls = (value: unknown): string[] => {
-  if (Array.isArray(value)) return value.flatMap(citationUrls);
-  if (typeof value !== "object" || value === null) return [];
-  const record = value as Record<string, unknown>;
-  return [typeof record.url === "string" ? record.url : [], ...Object.values(record).map(citationUrls)].flat();
-};
-
-export function hasVerifiableExternalEvidence(content: ClaudeContentBlock[], allowedDomains?: readonly string[]): boolean {
-  if (!fetchedThisTurn(content)) return false;
-  const allowed = allowedDomains && new Set(allowedDomains);
-  const isAdmissibleUrl = (rawUrl: string): boolean => {
-    try {
-      const url = new URL(rawUrl);
-      if (url.protocol !== "https:" && url.protocol !== "http:") return false;
-      return !allowed || [...allowed].some((domain) => url.hostname === domain || url.hostname.endsWith(`.${domain}`));
-    } catch { return false; }
-  };
-  const evidenceUrls = content
-    .filter((block) => block.type === "web_search_tool_result" || block.type === "web_fetch_tool_result")
-    .flatMap(citationUrls);
-  if (evidenceUrls.length === 0 || evidenceUrls.some((url) => !isAdmissibleUrl(url))) return false;
-  const evidence = new Set(evidenceUrls);
-  return content.some((block) => {
-    if (block.type !== "text" || !Array.isArray(block.citations)) return false;
-    return citationUrls(block.citations).some((url) => isAdmissibleUrl(url) && evidence.has(url));
-  });
-}
 
 export function formatCalendarReadResponse(calendar: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["evidence"]>,
   window?: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["window"]>,
@@ -322,7 +243,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
     const specialist = getLighterSpecialist(body.specialistId.toLowerCase());
     if (!specialist) {
-      return NextResponse.json({ error: "Unknown or inactive specialist." }, { status: 404 });
+      return NextResponse.json({ error: "Only JARVIS is available in this runtime." }, { status: 404 });
     }
     // Deterministic authority resolution needs only a valid current utterance.
     // Do not reject a long client transcript before an opaque pending reference
@@ -332,7 +253,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
     const currentUserUtterance = [...body.messages].reverse().find(({ role }) => role === "user")?.content;
 
-    if (specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined) {
+    if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {
       if (Object.hasOwn(body, "calendarConflictReasoningReference")) {
         advanceCalendarConflictReasoningReferenceUserTurn(body.calendarConflictReasoningReference);
       }
@@ -488,7 +409,6 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
 
     if (specialist.id === "jarvis"
-      && !body.relaySpecialistReply
       && currentUserUtterance !== undefined
       && REFERENTIAL_CALENDAR_MUTATION.test(currentUserUtterance)
       && hasPriorGovernedCalendarFactualResult(body.messages)) {
@@ -501,7 +421,6 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
 
     if (specialist.id === "jarvis"
-      && !body.relaySpecialistReply
       && currentUserUtterance !== undefined
       && followsUnavailablePublicLookup(body.messages, currentUserUtterance)) {
       return NextResponse.json({
@@ -511,11 +430,11 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       });
     }
 
-    const driveRead = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
+    const driveRead = specialist.id === "jarvis" && currentUserUtterance !== undefined
       ? await resolveProductionDriveRead({ currentUserUtterance }, driveReadDependencies) : null;
     if (driveRead?.handled) return NextResponse.json({ reply: driveRead.reply, specialistId: specialist.id, execution: "none",
       driveReadAuthority: { ...(driveRead.decision ? { decision: driveRead.decision } : {}), reason: driveRead.reason } });
-    const driveSearch = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
+    const driveSearch = specialist.id === "jarvis" && currentUserUtterance !== undefined
       ? await resolveProductionDriveSearch({ currentUserUtterance,
           ...(Object.hasOwn(body, "pendingAuthorizationReference")
             ? { pendingAuthorizationReference: body.pendingAuthorizationReference }
@@ -529,7 +448,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           ? { pendingAuthorizationReference: driveSearch.pendingAuthorizationReference }
           : {}) });
     }
-    const gmailOrdinalRead = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
+    const gmailOrdinalRead = specialist.id === "jarvis" && currentUserUtterance !== undefined
       ? resolveGmailOrdinalReadProposal({
           currentUserUtterance,
           ...(Object.hasOwn(body, "gmailMessageListReference")
@@ -553,7 +472,6 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
 
     if (specialist.id === "jarvis"
-      && !body.relaySpecialistReply
       && currentUserUtterance !== undefined
       && !Object.hasOwn(body, "gmailMessageListReference")
       && !Object.hasOwn(body, "pendingAuthorizationReference")
@@ -565,7 +483,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       });
     }
 
-    const gmailSearch = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
+    const gmailSearch = specialist.id === "jarvis" && currentUserUtterance !== undefined
       ? await resolveProductionGmailSearch({ currentUserUtterance,
           ...(Object.hasOwn(body, "pendingAuthorizationReference")
             ? { pendingAuthorizationReference: body.pendingAuthorizationReference }
@@ -588,7 +506,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           ? { gmailMessageListReference: gmailSearch.gmailMessageListReference }
           : {}) });
     }
-    const gmail = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
+    const gmail = specialist.id === "jarvis" && currentUserUtterance !== undefined
       ? await resolveProductionGmailRead({ currentUserUtterance,
           ...(Object.hasOwn(body, "pendingAuthorizationReference")
             ? { pendingAuthorizationReference: body.pendingAuthorizationReference }
@@ -604,7 +522,6 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
     let interpretedCalendarFactualQuery: import("@/lib/lighter-jarvis/calendar-factual-query").CalendarFactualQuery | null = null;
     if (specialist.id === "jarvis"
-      && !body.relaySpecialistReply
       && currentUserUtterance !== undefined
       && !Object.hasOwn(body, "pendingAuthorizationReference")
       && isCalendarConversationalIntentCandidate(currentUserUtterance)) {
@@ -617,7 +534,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         console.error("[/api/lighter/chat] Calendar conversational intent interpretation failed:", error);
       }
     }
-    const calendar = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
+    const calendar = specialist.id === "jarvis" && currentUserUtterance !== undefined
       ? await resolveProductionCalendarRead({
           currentUserUtterance,
           ...(Object.hasOwn(body, "pendingAuthorizationReference")
@@ -810,7 +727,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       const governedContext = createGovernedContext(projectCalendarContext(calendar.evidence!.evidence, calendar.window,
         bindingState.bindings, bindingState.unbound));
       try {
-        const systemPrompt = await buildSpecialistPrompt(specialist);
+        const systemPrompt = await buildSpecialistPrompt();
         const modelMessages = sanitizeModelHistory(body.messages);
         const result = await callModel(systemPrompt, modelMessages, undefined, governedContext);
         const modelReply = typeof result === "string" ? result : result.text;
@@ -837,7 +754,6 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       });
     }
     if (specialist.id === "jarvis"
-      && !body.relaySpecialistReply
       && currentUserUtterance !== undefined
       && isUnsupportedCalendarFactualWording(currentUserUtterance)) {
       return NextResponse.json({
@@ -847,7 +763,6 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       });
     }
     if (specialist.id === "jarvis"
-      && !body.relaySpecialistReply
       && currentUserUtterance !== undefined
       && !Object.hasOwn(body, "pendingAuthorizationReference")
       && isConversationalCapabilitySelectionCandidate(currentUserUtterance)) {
@@ -919,90 +834,15 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         execution: "none",
       });
     }
-    const marketDomains = specialist.id === "gecko"
-      ? resolveMarketScopeDomains(body.marketScopes)
-      : undefined;
-    if (specialist.id === "gecko" && !marketDomains) {
-      return NextResponse.json({ error: "`marketScopes` must contain one or more valid GECKO market scopes.", state: "not_authorised" }, { status: 400 });
-    }
-    let relaySpecialistReply: RelaySpecialistReply | undefined;
-    if (body.relaySpecialistReply !== undefined) {
-      const relay = body.relaySpecialistReply;
-      if (specialist.id !== "jarvis") {
-        return NextResponse.json({ error: "`relaySpecialistReply` is valid only for JARVIS." }, { status: 400 });
-      }
-      if (!relay || typeof relay !== "object"
-        || !("specialistId" in relay) || typeof relay.specialistId !== "string"
-        || !("reply" in relay) || typeof relay.reply !== "string" || !relay.reply.trim()
-        || !getLighterSpecialist(relay.specialistId.toLowerCase())) {
-        return NextResponse.json({ error: "`relaySpecialistReply` must contain a valid specialist id and reply." }, { status: 400 });
-      }
-      relaySpecialistReply = { specialistId: relay.specialistId.toLowerCase(), reply: relay.reply };
-    }
-
     try {
-      const systemPrompt = await buildSpecialistPrompt(specialist, relaySpecialistReply);
-      const tools = specialist.id === "oracle"
-        ? ORACLE_TOOLS
-        : specialist.id === "gecko"
-          ? [{ type: "web_search_20250305", name: "web_search", allowed_domains: marketDomains }] as ClaudeTool[]
-          : undefined;
+      const systemPrompt = await buildSpecialistPrompt();
       // Authority above is resolved from the untouched current utterance first.
       // Only the later, ordinary model call receives the private-release boundary.
       const governedDriveHistoryExcluded = hasGovernedDriveHistory(body.messages);
       const modelMessages = sanitizeModelHistory(body.messages);
-      const result = tools
-        ? await callModel(systemPrompt, modelMessages, tools)
-        : await callModel(systemPrompt, modelMessages);
-      const content = typeof result === "string" ? [] : result.content;
+      const result = await callModel(systemPrompt, modelMessages);
       let reply = typeof result === "string" ? result : result.text;
 
-      if (relaySpecialistReply && !reply.includes(relaySpecialistReply.reply)) {
-        const source = getLighterSpecialist(relaySpecialistReply.specialistId)!;
-        reply = `${source.name} reports:\n\n${relaySpecialistReply.reply}`;
-      }
-
-      const evidenceCapable = specialist.id === "oracle" || specialist.id === "gecko";
-      if (evidenceCapable && !hasVerifiableExternalEvidence(content, specialist.id === "gecko" ? marketDomains : undefined) && /\bSourced\b/i.test(reply)) {
-        reply = reply.replace(/\bSourced\b/gi, "Recalled");
-      }
-      if (specialist.id === "jarvis" && !relaySpecialistReply) {
-        const handoff = content.find((block) => block.type === "tool_use" && block.name === "propose_handoff");
-        if (handoff && typeof handoff.input === "object" && handoff.input !== null && !Array.isArray(handoff.input)) {
-          const specialistId = "specialist_id" in handoff.input ? handoff.input.specialist_id : undefined;
-          const target = typeof specialistId === "string" ? getLighterSpecialist(specialistId) : undefined;
-          const taskSummary = "task_summary" in handoff.input ? handoff.input.task_summary : undefined;
-          const hasTaskSummary = typeof taskSummary === "string" && taskSummary.trim().length > 0;
-          const marketScopes = "market_scopes" in handoff.input ? handoff.input.market_scopes : undefined;
-          const resolvedMarketDomains = target?.id === "gecko" ? resolveMarketScopeDomains(marketScopes) : undefined;
-          const hasValidMarketScopes = target?.id !== "gecko" || Boolean(resolvedMarketDomains);
-          // The model may suggest expertise, but it cannot manufacture a
-          // substitute route around JARVIS's private-source authority paths.
-          const privateAcquisition = (currentUserUtterance !== undefined
-            && isPrivateAcquisitionHandoffRequest(currentUserUtterance))
-            || (typeof taskSummary === "string" && isPrivateAcquisitionHandoffRequest(taskSummary))
-            || (governedDriveHistoryExcluded && currentUserUtterance !== undefined
-              && isAmbiguousPrivateReadFollowUp(currentUserUtterance));
-          if (privateAcquisition) {
-            return NextResponse.json({
-              reply: PRIVATE_CAPABILITY_HANDOFF_BLOCKED_REPLY,
-              specialistId: specialist.id,
-              execution: "none",
-            });
-          }
-          if (target && hasTaskSummary && hasValidMarketScopes) {
-            const routedReply = reply.trim() || `I'd recommend handing this to ${target.name}.`;
-            return NextResponse.json({
-              reply: routedReply,
-              specialistId: specialist.id,
-              execution: "none",
-              routeTo: target.id,
-              taskSummary: taskSummary.trim(),
-              ...(target.id === "gecko" ? { marketScopes } : {}),
-            });
-          }
-        }
-      }
       const calendarRecall = calendarRecallDiagnostics(body.messages);
       reply = guardOrdinaryModelReply(reply, currentUserUtterance, governedDriveHistoryExcluded, {
         hasCurrentCalendarGovernedContext: calendarRecall.hasCurrentCalendarGovernedContext,

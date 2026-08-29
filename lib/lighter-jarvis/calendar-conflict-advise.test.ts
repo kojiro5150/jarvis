@@ -100,6 +100,7 @@ describe("first bounded Calendar Advise capability", () => {
     });
     const serialized = JSON.stringify(payload);
     for (const forbidden of ["SECRET", "URGENT", "PROTECTED", "PRIORITY", "google-calendar:", "event:deep", "event:invite"]) expect(serialized).not.toContain(forbidden);
+    if (!result.calendarAdviceReference) throw new Error("expected opaque advice reference");
     const advice = resolveCalendarAdviceReference({ reference: result.calendarAdviceReference, now: new Date("2026-08-29T07:03:01.000Z") });
     expect(advice).toMatchObject({
       recommendationType: "keep_invitation_move_deep_work_to_candidate",

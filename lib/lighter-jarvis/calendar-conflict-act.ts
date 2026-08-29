@@ -120,8 +120,8 @@ export function validateCalendarMoveProposalAgainstEvidence(input: {
   if (
     !source ||
     source.timeMode !== "deep_work" ||
-    source.start !== input.proposal.expectedStart ||
-    source.end !== input.proposal.expectedEnd
+    Date.parse(source.start) !== Date.parse(input.proposal.expectedStart) ||
+    Date.parse(source.end) !== Date.parse(input.proposal.expectedEnd)
   ) {
     return Object.freeze({ status: "current_situation_changed" });
   }

@@ -11,6 +11,24 @@ export type GovernedReferentialClass =
   | "drive.search_results";
 export type GovernedReferenceKind = "gmail_message" | "calendar_item" | "drive_file";
 
+const REFERENTIAL_CLASS_DEFINITIONS: Readonly<Record<GovernedReferentialClass, Readonly<{
+  capability: GovernedReferentialCapability;
+  supportedReferenceKinds: readonly GovernedReferenceKind[];
+}>>> = Object.freeze({
+  "gmail.latest_messages": Object.freeze({
+    capability: "gmail",
+    supportedReferenceKinds: Object.freeze(["gmail_message"] as const),
+  }),
+  "calendar.factual_items": Object.freeze({
+    capability: "calendar",
+    supportedReferenceKinds: Object.freeze(["calendar_item"] as const),
+  }),
+  "drive.search_results": Object.freeze({
+    capability: "drive",
+    supportedReferenceKinds: Object.freeze(["drive_file"] as const),
+  }),
+});
+
 export type GovernedReferentialScopeReference = Readonly<{
   governedReferentialScopeId: string;
 }>;
@@ -114,10 +132,6 @@ function validResourceIds(ids: readonly string[]): boolean {
     && new Set(ids).size === ids.length;
 }
 
-function validReferenceKinds(kinds: readonly GovernedReferenceKind[]): boolean {
-  return kinds.length > 0 && new Set(kinds).size === kinds.length;
-}
-
 /**
  * Creates a module-private referential scope and returns only its opaque handle.
  * The handle contains no private resource identity and grants no authority.
@@ -164,18 +178,16 @@ export function advanceGovernedReferentialScopeUserTurn(reference: unknown): boo
  */
 export function createGovernedResultSetReference(input: {
   readonly scopeReference: unknown;
-  readonly capability: GovernedReferentialCapability;
   readonly referentialClass: GovernedReferentialClass;
-  readonly supportedReferenceKinds: readonly GovernedReferenceKind[];
   readonly orderedResourceIds: readonly string[];
   readonly originatingOperation: string;
   readonly now?: Date;
 }): GovernedResultSetReference | null {
   const scope = scopeFrom(input.scopeReference);
   if (!scope || scope.status !== "active") return null;
-  if (!validResourceIds(input.orderedResourceIds)
-    || !validReferenceKinds(input.supportedReferenceKinds)
-    || !input.originatingOperation.trim()) return null;
+  if (!validResourceIds(input.orderedResourceIds) || !input.originatingOperation.trim()) return null;
+  const definition = REFERENTIAL_CLASS_DEFINITIONS[input.referentialClass];
+  if (!definition) return null;
 
   const now = input.now ?? new Date();
   if (Number.isNaN(now.getTime())) return null;
@@ -196,10 +208,10 @@ export function createGovernedResultSetReference(input: {
     id,
     reference,
     scopeId: scope.id,
-    capability: input.capability,
+    capability: definition.capability,
     resultSetType: "ordered_resources",
     referentialClass: input.referentialClass,
-    supportedReferenceKinds: cloneStringList(input.supportedReferenceKinds),
+    supportedReferenceKinds: cloneStringList(definition.supportedReferenceKinds),
     orderedResourceIds: cloneStringList(input.orderedResourceIds),
     originatingOperation: input.originatingOperation,
     createdAt: now.toISOString(),

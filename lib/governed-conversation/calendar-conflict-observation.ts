@@ -1,13 +1,17 @@
 import type { CalendarEvent } from "../connectors/calendar-event";
 import type { CalendarTimeMode } from "../connectors/calendar-time-mode";
+import { calendarCommitmentIdentity } from "./calendar-commitment-reference";
 
 export type GovernedCalendarConflictEvent = Readonly<{
-  id: string;
+  commitmentReference: string;
   title: string;
   start: string;
   end: string;
   calendarName: string;
   timeMode: CalendarTimeMode | null;
+  selfAttendeeResponse: CalendarEvent["selfAttendeeResponse"] | null;
+  observedAt: string;
+  provenanceReference: string;
 }>;
 
 export type GovernedCalendarConflictObservation = Readonly<{
@@ -23,13 +27,14 @@ function isOffsetTimestamp(value: string): boolean {
   return Number.isFinite(Date.parse(value)) && /(?:Z|[+-]\d{2}:\d{2})$/.test(value);
 }
 
-function publishEvent(event: CalendarEvent): GovernedCalendarConflictEvent | null {
-  if (!event.id.trim() || !event.title.trim() || !event.calendarName.trim()) return null;
-  if (!isOffsetTimestamp(event.start) || !isOffsetTimestamp(event.end)) return null;
+function publishEvent(event: CalendarEvent, observedAt: string): GovernedCalendarConflictEvent | null {
+  const identity = calendarCommitmentIdentity(event);
+  if (!identity || !event.title.trim() || !event.calendarName.trim()) return null;
+  if (!isOffsetTimestamp(event.start) || !isOffsetTimestamp(event.end) || !isOffsetTimestamp(observedAt)) return null;
   if (Date.parse(event.end) <= Date.parse(event.start)) return null;
 
   return Object.freeze({
-    id: event.id,
+    commitmentReference: identity.commitmentReference,
     title: event.title,
     start: event.start,
     end: event.end,
@@ -37,6 +42,9 @@ function publishEvent(event: CalendarEvent): GovernedCalendarConflictEvent | nul
     // Never infer mode from title, calendar or color. Preserve only a mode
     // already established by the existing governed label-to-mode path.
     timeMode: event.timeMode ?? null,
+    selfAttendeeResponse: event.selfAttendeeResponse ?? null,
+    observedAt: new Date(observedAt).toISOString(),
+    provenanceReference: identity.provenanceReference,
   });
 }
 
@@ -47,8 +55,11 @@ function publishEvent(event: CalendarEvent): GovernedCalendarConflictEvent | nul
  * This function does not decide that an event is important, protected, new,
  * an invitation, or in conflict. It only creates a closed factual projection.
  */
-export function publishCalendarConflictEvent(event: CalendarEvent): GovernedCalendarConflictEvent | null {
-  return publishEvent(event);
+export function publishCalendarConflictEvent(
+  event: CalendarEvent,
+  observedAt: string,
+): GovernedCalendarConflictEvent | null {
+  return publishEvent(event, observedAt);
 }
 
 /**
@@ -61,7 +72,7 @@ export function observeCalendarConflict(input: {
   readonly second: GovernedCalendarConflictEvent;
   readonly observedAt: string;
 }): GovernedCalendarConflictObservation | null {
-  if (input.first.id === input.second.id) return null;
+  if (input.first.commitmentReference === input.second.commitmentReference) return null;
   if (!isOffsetTimestamp(input.observedAt)) return null;
 
   const firstStart = Date.parse(input.first.start);

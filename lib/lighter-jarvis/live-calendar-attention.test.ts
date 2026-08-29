@@ -355,7 +355,13 @@ describe("live Calendar attention composition", () => {
       calendarAttentionObservationReference: {
         calendarAttentionObservationReferenceId: expect.any(String),
       },
+      calendarConflictReasoningReference: {
+        calendarConflictReasoningReferenceId: expect.any(String),
+      },
     });
+    expect(JSON.stringify(result.calendarConflictReasoningReference)).not.toMatch(
+      /Gate K Test Invite|JARVIS Deep Work Test|needsAction|deep_work|30/,
+    );
   });
 
 });

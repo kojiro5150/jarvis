@@ -23,6 +23,10 @@ import {
   rotateCalendarAttentionObservationReference,
   type CalendarAttentionObservationReference,
 } from "./calendar-attention-observation-reference";
+import {
+  createCalendarConflictReasoningReference,
+  type CalendarConflictReasoningReference,
+} from "./calendar-conflict-reasoning-reference";
 
 const REQUESTED_LIMIT = 5;
 type LiveCalendarCoverageState =
@@ -36,6 +40,7 @@ export type LiveCalendarAttentionResult = Readonly<{
   calendarAttentionObservationReference: CalendarAttentionObservationReference;
   baselineEstablished: boolean;
   gateKStatus?: "matched" | "not_found" | "ambiguous_pending_invitation" | "invalid";
+  calendarConflictReasoningReference?: CalendarConflictReasoningReference;
 }>;
 
 function currentObservationSet(
@@ -107,6 +112,7 @@ export function resolveLiveCalendarAttention(input: {
   }>;
   readonly window: CalendarReadWindow;
   readonly previousObservationReference?: unknown;
+  readonly previousReasoningReference?: unknown;
 }): LiveCalendarAttentionResult {
   const current = currentObservationSet(input.evidence, input.window);
   const previous = input.previousObservationReference === undefined
@@ -135,11 +141,19 @@ export function resolveLiveCalendarAttention(input: {
     });
 
     if (gateK?.status === "matched") {
+      const reasoningReference = gateK.observations.length === 1
+        ? createCalendarConflictReasoningReference({
+            observation: gateK.observations[0]!,
+            previousReference: input.previousReasoningReference,
+            now: new Date(changeSet.currentObservedAt),
+          })
+        : null;
       return Object.freeze({
         reply: renderGateKObservations(gateK.observations),
         calendarAttentionObservationReference: nextReference,
         baselineEstablished: false,
         gateKStatus: "matched",
+        ...(reasoningReference ? { calendarConflictReasoningReference: reasoningReference } : {}),
       });
     }
     if (gateK?.status === "ambiguous_pending_invitation") {

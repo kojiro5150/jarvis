@@ -20,6 +20,7 @@ type Specialist = {
 };
 type Message = { role: "user" | "assistant"; content: string; error?: boolean };
 type OpaqueCalendarAttentionObservation = Readonly<{ calendarAttentionObservationReferenceId: string }>;
+type OpaqueCalendarConflictReasoning = Readonly<{ calendarConflictReasoningReferenceId: string }>;
 type PendingHandoff = {
   sourceId: string;
   targetId: string;
@@ -124,6 +125,7 @@ export default function UnifiedOpsConsole() {
   );
   const authorityTurnStateRef = useRef(new ClientAuthorityTurnState());
   const calendarAttentionObservationRef = useRef<OpaqueCalendarAttentionObservation | null>(null);
+  const calendarConflictReasoningRef = useRef<OpaqueCalendarConflictReasoning | null>(null);
   const conversationHistoryRef = useRef(new ConversationTransportHistory());
   const [listError, setListError] = useState("");
   const [connectorStatuses, setConnectorStatuses] = useState<Record<
@@ -345,6 +347,9 @@ export default function UnifiedOpsConsole() {
           ...(specialist.id === "jarvis" && calendarAttentionObservationRef.current
             ? { calendarAttentionObservationReference: calendarAttentionObservationRef.current }
             : {}),
+          ...(specialist.id === "jarvis" && calendarConflictReasoningRef.current
+            ? { calendarConflictReasoningReference: calendarConflictReasoningRef.current }
+            : {}),
         }),
       });
       const data = (await response.json()) as {
@@ -354,6 +359,7 @@ export default function UnifiedOpsConsole() {
         marketScopes?: string[];
         pendingAuthorizationReference?: OpaquePendingAuthorization | null;
         calendarAttentionObservationReference?: OpaqueCalendarAttentionObservation;
+        calendarConflictReasoningReference?: OpaqueCalendarConflictReasoning | null;
         error?: string;
       };
       if (!response.ok)
@@ -369,6 +375,9 @@ export default function UnifiedOpsConsole() {
       }
       if (data.calendarAttentionObservationReference !== undefined) {
         calendarAttentionObservationRef.current = data.calendarAttentionObservationReference;
+      }
+      if (data.calendarConflictReasoningReference !== undefined) {
+        calendarConflictReasoningRef.current = data.calendarConflictReasoningReference;
       }
       const acceptedMessages = conversationHistoryRef.current.acceptAssistant(specialist.id, reply);
       setConversations((current) => ({ ...current, [specialist.id]: acceptedMessages }));

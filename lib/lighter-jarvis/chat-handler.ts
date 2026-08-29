@@ -27,6 +27,11 @@ import { interpretCalendarConversationalIntent, isCalendarConversationalIntentCa
 import { isConversationalCapabilitySelectionCandidate, selectConversationalCapability } from "@/lib/lighter-jarvis/conversational-capability-selector";
 import { materializeConversationalPrivateOperation } from "@/lib/lighter-jarvis/conversational-private-operation";
 import { createPendingAuthorization } from "@/lib/lighter-jarvis/pending-authorization";
+import {
+  isCalendarConflictUnderstandIntent,
+  resolveCalendarConflictUnderstand,
+} from "@/lib/lighter-jarvis/calendar-conflict-understand";
+import { advanceCalendarConflictReasoningReferenceUserTurn } from "@/lib/lighter-jarvis/calendar-conflict-reasoning-reference";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -35,6 +40,7 @@ interface LighterChatBody {
   marketScopes?: unknown;
   pendingAuthorizationReference?: unknown;
   calendarAttentionObservationReference?: unknown;
+  calendarConflictReasoningReference?: unknown;
 }
 type ModelCall = (
   systemPrompt: string,
@@ -263,6 +269,35 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       return NextResponse.json({ error: "`messages` must contain valid conversation messages." }, { status: 400 });
     }
     const currentUserUtterance = [...body.messages].reverse().find(({ role }) => role === "user")?.content;
+
+    if (specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined) {
+      if (Object.hasOwn(body, "calendarConflictReasoningReference")) {
+        advanceCalendarConflictReasoningReferenceUserTurn(body.calendarConflictReasoningReference);
+      }
+      if (isCalendarConflictUnderstandIntent(currentUserUtterance)) {
+        const understand = await resolveCalendarConflictUnderstand({
+          utterance: currentUserUtterance,
+          reasoningReference: body.calendarConflictReasoningReference,
+          callModel,
+          now: calendarDependencies?.clock() ?? new Date(),
+        });
+        if (understand.handled) {
+          const retainReference = understand.status === "resolved"
+            || understand.status === "model_failed"
+            || understand.status === "model_invalid";
+          return NextResponse.json({
+            reply: understand.reply,
+            specialistId: specialist.id,
+            execution: "none",
+            calendarConflictUnderstand: { status: understand.status },
+            calendarConflictReasoningReference: retainReference
+              ? body.calendarConflictReasoningReference
+              : null,
+          });
+        }
+      }
+    }
+
     const driveRead = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
       ? await resolveProductionDriveRead({ currentUserUtterance }, driveReadDependencies) : null;
     if (driveRead?.handled) return NextResponse.json({ reply: driveRead.reply, specialistId: specialist.id, execution: "none",
@@ -356,6 +391,9 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
             ...(Object.hasOwn(body, "calendarAttentionObservationReference")
               ? { previousObservationReference: body.calendarAttentionObservationReference }
               : {}),
+            ...(Object.hasOwn(body, "calendarConflictReasoningReference")
+              ? { previousReasoningReference: body.calendarConflictReasoningReference }
+              : {}),
           });
           return NextResponse.json({
             reply: attention.reply,
@@ -363,6 +401,9 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
             execution: "none",
             calendarAuthority: { decision: "ALLOW", reason: calendar.reason },
             calendarAttentionObservationReference: attention.calendarAttentionObservationReference,
+            ...(attention.calendarConflictReasoningReference
+              ? { calendarConflictReasoningReference: attention.calendarConflictReasoningReference }
+              : {}),
           });
         } catch (error) {
           console.error("[/api/lighter/chat] Calendar attention comparison failed:", error);

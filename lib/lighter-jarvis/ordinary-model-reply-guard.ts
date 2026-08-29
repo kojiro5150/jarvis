@@ -36,6 +36,9 @@ export const EXCLUDED_DRIVE_PROVENANCE_REPLY =
 export const SINGLE_JARVIS_IDENTITY_REPLY =
   "I’ll handle that directly as JARVIS; there is no separate specialist handoff in this runtime.";
 
+export const CAPABILITY_OVERVIEW_REPLY =
+  "I can help with ordinary reasoning, writing, analysis and planning. Governed application paths also support bounded Calendar reads, Gmail search and identified-message reads, and Drive metadata search plus identified Google Docs reads. Connector availability is checked by the runtime when you invoke a capability; I won't infer current connection state from ordinary conversation.";
+
 const LEGACY_SPECIALIST_DELEGATION =
   /\b(?:DAWNWATCH|ORACLE|HERALD|STEVE|MARCUS|GECKO)\b[\s\S]{0,120}\b(?:hand(?:-| )?off|handing|hand|delegate|draft|access|retrieve|read|open|report|reports|research|scan|suggest|recommend)|\b(?:hand(?:-| )?off|handing|hand|delegate|suggest|recommend)\b[\s\S]{0,120}\b(?:DAWNWATCH|ORACLE|HERALD|STEVE|MARCUS|GECKO)\b/i;
 
@@ -57,6 +60,8 @@ const GMAIL_REQUEST = /\b(?:gmail|e-?mail|emails|inbox|mailbox)\b/i;
 const DRIVE_REQUEST = /\bdrive\b/i;
 const FALSE_GLOBAL_CAPABILITY_CLAIM = /(?:\b(?:i\s+)?(?:do\s+not|don['’]?t|cannot|can['’]?t|am\s+not|I['’]?m\s+not|unable\s+to)\s+(?:(?:currently|directly)\s+)?(?:have\s+(?:(?:the|that|this|any)\s+)?(?:ability|capability|access)|access|connect(?:ed)?|read|search|retrieve|check|view)|\bno\s+(?:calendar|gmail|e-?mail|inbox|mailbox|drive)\s+(?:access|capability|integration)|\b(?:this|that|the)\s+capability\s+(?:does\s+not|doesn['’]?t)\s+exist|\b(?:calendar|gmail|e-?mail|inbox|mailbox|drive)\s+(?:is\s+not|isn['’]?t)\s+(?:connected|available|supported))/i;
 const DRIVE_CAPABILITY_DENIAL = /\b(?:google\s+)?drive\b/i;
+const CAPABILITY_OVERVIEW_REQUEST =
+  /\b(?:what can you (?:currently )?(?:do|help me with)|explain what you can (?:currently )?help me with|what are your (?:current )?capabilities)\b/i;
 const EXPLICIT_DRIVE_PROVENANCE_CLAIMS = [
   /\byour Drive search returned\b/i,
   /\bearlier,? your Drive search returned\b/i,
@@ -212,6 +217,14 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
   if (presentsPrivateAuthorityConfirmation(content)
     && (!currentUserUtterance || PRIVATE_ACQUISITION_UTTERANCE.test(currentUserUtterance))) {
     return NEUTRALIZED_ORDINARY_AUTHORITY_REPLY;
+  }
+
+  // Capability overviews may describe supported governed paths, but ordinary
+  // model text cannot attest live connector state.
+  if (currentUserUtterance
+    && CAPABILITY_OVERVIEW_REQUEST.test(currentUserUtterance)
+    && FALSE_GLOBAL_CAPABILITY_CLAIM.test(content)) {
+    return CAPABILITY_OVERVIEW_REPLY;
   }
 
   // This is static capability knowledge, not authority or connector evidence.

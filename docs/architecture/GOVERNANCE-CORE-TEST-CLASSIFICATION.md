@@ -102,3 +102,16 @@ For every controlled-collapse PR:
 - new regressions discovered during migration are classified by proof obligation before being normalised into the suite.
 
 This classification is descriptive evidence about the current test estate. It must be revised when implementation work proves that a test was misclassified or reveals a missing invariant.
+
+## PR G guard-audit outcome
+
+The defensive-guard audit in `docs/audits/GOVERNANCE-CORE-GUARD-DELETION-LEDGER.md` found that no current guard is yet wholly redundant.
+
+For controlled-collapse purposes:
+
+- behavioural assertions that model prose cannot create private authority, provider provenance, fabricated connector evidence, or ambient private-content exposure remain **Class A**;
+- exact regexes, phrase tables, sentinel strings, and current placement of those protections remain **Class B** mechanisms that may later be translated;
+- specialist/handoff structural tests remain **Class B** where their only purpose is the specialist mechanism, while any no-second-private-path assertion they encode remains **Class A**;
+- historical containment artefacts remain **Class C**, but the live invariants they document remain Class A until structural replacement is proven.
+
+No test is retired by PR G.

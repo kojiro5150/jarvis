@@ -19,6 +19,8 @@ describe("capability-neutral unbound ordinal reference", () => {
     "I have one question.",
     "Calendar tomorrow",
     "Read my email",
+    "Read my latest email",
+    "Show me my last five emails",
   ])("does not classify ordinary non-referential language: %s", (utterance) => {
     expect(isUnboundOrdinalReferenceUtterance(utterance)).toBe(false);
   });

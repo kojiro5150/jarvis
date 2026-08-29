@@ -30,9 +30,10 @@ import {
   selectCalendarFactualQuery,
 } from "@/lib/lighter-jarvis/calendar-factual-query";
 import { interpretCalendarConversationalIntent, isCalendarConversationalIntentCandidate } from "@/lib/lighter-jarvis/calendar-conversational-intent";
-import { isConversationalCapabilitySelectionCandidate, selectConversationalCapability } from "@/lib/lighter-jarvis/conversational-capability-selector";
+import { deterministicCapabilityConstraint, isConversationalCapabilitySelectionCandidate, selectConversationalCapability } from "@/lib/lighter-jarvis/conversational-capability-selector";
 import { materializeConversationalPrivateOperation } from "@/lib/lighter-jarvis/conversational-private-operation";
 import { createPendingAuthorization } from "@/lib/lighter-jarvis/pending-authorization";
+import { proposeCalendarRead } from "@/lib/lighter-jarvis/calendar-read-proposal";
 import { isUnboundOrdinalReferenceUtterance, UNBOUND_ORDINAL_REFERENCE_REPLY } from "@/lib/governance-core/unbound-reference";
 import {
   isCalendarConflictUnderstandIntent,
@@ -252,6 +253,11 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       return NextResponse.json({ error: "`messages` must contain valid conversation messages." }, { status: 400 });
     }
     const currentUserUtterance = [...body.messages].reverse().find(({ role }) => role === "user")?.content;
+    const freshCapabilityRequest = currentUserUtterance !== undefined
+      && (deterministicCapabilityConstraint(currentUserUtterance) !== null
+        || proposeCalendarRead(currentUserUtterance, calendarDependencies?.clock ?? (() => new Date())) !== null);
+    const shouldCarryPendingAuthorization = Object.hasOwn(body, "pendingAuthorizationReference")
+      && !freshCapabilityRequest;
 
     if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {
       if (Object.hasOwn(body, "calendarConflictReasoningReference")) {
@@ -436,7 +442,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       driveReadAuthority: { ...(driveRead.decision ? { decision: driveRead.decision } : {}), reason: driveRead.reason } });
     const driveSearch = specialist.id === "jarvis" && currentUserUtterance !== undefined
       ? await resolveProductionDriveSearch({ currentUserUtterance,
-          ...(Object.hasOwn(body, "pendingAuthorizationReference")
+          ...(shouldCarryPendingAuthorization
             ? { pendingAuthorizationReference: body.pendingAuthorizationReference }
             : {}),
         }, driveSearchDependencies) : null;
@@ -485,7 +491,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
 
     const gmailSearch = specialist.id === "jarvis" && currentUserUtterance !== undefined
       ? await resolveProductionGmailSearch({ currentUserUtterance,
-          ...(Object.hasOwn(body, "pendingAuthorizationReference")
+          ...(shouldCarryPendingAuthorization
             ? { pendingAuthorizationReference: body.pendingAuthorizationReference }
             : {}),
           ...(Object.hasOwn(body, "gmailSenderDisambiguationReference")
@@ -508,7 +514,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
     const gmail = specialist.id === "jarvis" && currentUserUtterance !== undefined
       ? await resolveProductionGmailRead({ currentUserUtterance,
-          ...(Object.hasOwn(body, "pendingAuthorizationReference")
+          ...(shouldCarryPendingAuthorization
             ? { pendingAuthorizationReference: body.pendingAuthorizationReference }
             : {}),
         }, gmailDependencies)
@@ -523,7 +529,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     let interpretedCalendarFactualQuery: import("@/lib/lighter-jarvis/calendar-factual-query").CalendarFactualQuery | null = null;
     if (specialist.id === "jarvis"
       && currentUserUtterance !== undefined
-      && !Object.hasOwn(body, "pendingAuthorizationReference")
+      && !shouldCarryPendingAuthorization
       && isCalendarConversationalIntentCandidate(currentUserUtterance)) {
       try {
         interpretedCalendarFactualQuery = await interpretCalendarConversationalIntent({
@@ -537,7 +543,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     const calendar = specialist.id === "jarvis" && currentUserUtterance !== undefined
       ? await resolveProductionCalendarRead({
           currentUserUtterance,
-          ...(Object.hasOwn(body, "pendingAuthorizationReference")
+          ...(shouldCarryPendingAuthorization
             ? { pendingAuthorizationReference: body.pendingAuthorizationReference }
             : {}),
           ...(interpretedCalendarFactualQuery ? { interpretedFactualQuery: interpretedCalendarFactualQuery } : {}),
@@ -764,7 +770,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
     if (specialist.id === "jarvis"
       && currentUserUtterance !== undefined
-      && !Object.hasOwn(body, "pendingAuthorizationReference")
+      && !shouldCarryPendingAuthorization
       && isConversationalCapabilitySelectionCandidate(currentUserUtterance)) {
       try {
         const selectedIntent = await selectConversationalCapability({

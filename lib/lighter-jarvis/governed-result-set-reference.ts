@@ -82,7 +82,7 @@ type StoredResultSet = Readonly<{
 const scopes = new Map<string, StoredScope>();
 const resultSets = new Map<string, StoredResultSet>();
 
-function cloneStringList(values: readonly string[]): readonly string[] {
+function cloneList<T extends string>(values: readonly T[]): readonly T[] {
   return Object.freeze([...values]);
 }
 
@@ -116,8 +116,8 @@ function snapshot(scope: StoredScope, stored: StoredResultSet): GovernedResultSe
     capability: stored.capability,
     resultSetType: stored.resultSetType,
     referentialClass: stored.referentialClass,
-    supportedReferenceKinds: cloneStringList(stored.supportedReferenceKinds),
-    orderedResourceIds: cloneStringList(stored.orderedResourceIds),
+    supportedReferenceKinds: cloneList(stored.supportedReferenceKinds),
+    orderedResourceIds: cloneList(stored.orderedResourceIds),
     originatingOperation: stored.originatingOperation,
     createdAt: stored.createdAt,
     expiresAt: stored.expiresAt,
@@ -211,8 +211,8 @@ export function createGovernedResultSetReference(input: {
     capability: definition.capability,
     resultSetType: "ordered_resources",
     referentialClass: input.referentialClass,
-    supportedReferenceKinds: cloneStringList(definition.supportedReferenceKinds),
-    orderedResourceIds: cloneStringList(input.orderedResourceIds),
+    supportedReferenceKinds: cloneList(definition.supportedReferenceKinds),
+    orderedResourceIds: cloneList(input.orderedResourceIds),
     originatingOperation: input.originatingOperation,
     createdAt: now.toISOString(),
     expiresAt: new Date(now.getTime() + GOVERNED_RESULT_SET_REFERENCE_TTL_MS).toISOString(),

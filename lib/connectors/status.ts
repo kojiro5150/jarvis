@@ -24,10 +24,13 @@ interface ConnectorStatusMetadata {
   now: number;
 }
 
-const SCOPES: Record<ConnectorName, string> = {
-  calendar: "https://www.googleapis.com/auth/calendar.readonly",
-  gmail: "https://www.googleapis.com/auth/gmail.readonly",
-  drive: "https://www.googleapis.com/auth/drive.readonly",
+const SCOPES: Record<ConnectorName, readonly string[]> = {
+  calendar: [
+    "https://www.googleapis.com/auth/calendar.readonly",
+    "https://www.googleapis.com/auth/calendar.events",
+  ],
+  gmail: ["https://www.googleapis.com/auth/gmail.readonly"],
+  drive: ["https://www.googleapis.com/auth/drive.readonly"],
 };
 
 function configuredForGoogle(provider: string | undefined, hasTokens: boolean) {
@@ -45,7 +48,7 @@ function statusFromMetadata(
   }
 
   const scopes = new Set(tokens.scope.split(/\s+/).filter(Boolean));
-  if (!scopes.has(SCOPES[name])) return "refresh_required";
+  if (SCOPES[name].some(scope => !scopes.has(scope))) return "refresh_required";
 
   const accessTokenUsable = Boolean(tokens.access_token) && tokens.expiry_date > metadata.now;
   const canRefresh = Boolean(tokens.refresh_token) && metadata.googleConfigured;

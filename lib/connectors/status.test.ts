@@ -8,6 +8,7 @@ import { buildConnectorStatusSnapshot } from "./status";
 const readTokens = vi.mocked(readGoogleTokens);
 const scopes = [
   "https://www.googleapis.com/auth/calendar.readonly",
+  "https://www.googleapis.com/auth/calendar.events",
   "https://www.googleapis.com/auth/gmail.readonly",
   "https://www.googleapis.com/auth/drive.readonly",
 ].join(" ");
@@ -42,6 +43,29 @@ describe("status-only connector snapshot", () => {
 
     await expect(buildConnectorStatusSnapshot()).resolves.toEqual({
       calendarStatus: "online",
+      gmailStatus: "online",
+      driveStatus: "online",
+    });
+  });
+
+  it("requires reconnect when the stored Calendar grant is still read-only", async () => {
+    vi.stubEnv("GOOGLE_CLIENT_ID", "configured");
+    vi.stubEnv("GOOGLE_CLIENT_SECRET", "configured");
+    vi.stubEnv("GOOGLE_REDIRECT_URI", "configured");
+    readTokens.mockResolvedValue({
+      access_token: "stored",
+      refresh_token: "stored",
+      expiry_date: Date.now() + 60_000,
+      scope: [
+        "https://www.googleapis.com/auth/calendar.readonly",
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/drive.readonly",
+      ].join(" "),
+      token_type: "Bearer",
+    });
+
+    await expect(buildConnectorStatusSnapshot()).resolves.toEqual({
+      calendarStatus: "refresh_required",
       gmailStatus: "online",
       driveStatus: "online",
     });

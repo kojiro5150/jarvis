@@ -44,7 +44,19 @@ import {
   resolveCalendarConflictAdvise,
 } from "@/lib/lighter-jarvis/calendar-conflict-advise";
 import { resolveCalendarReadWindow } from "@/lib/lighter-jarvis/calendar-read-window";
-import { advanceCalendarAdviceReferenceUserTurn } from "@/lib/lighter-jarvis/calendar-advice-reference";
+import {
+  advanceCalendarAdviceReferenceUserTurn,
+  resolveCalendarAdviceReference,
+} from "@/lib/lighter-jarvis/calendar-advice-reference";
+import {
+  isCalendarActInstruction,
+  validateCalendarAdviceForAct,
+} from "@/lib/lighter-jarvis/calendar-conflict-act";
+import { executeConfirmedCalendarMove } from "@/lib/lighter-jarvis/calendar-move-execution";
+import { GoogleCalendarEventWriteConnector, type CalendarEventWritePort } from "@/lib/connectors/google/calendar-write";
+import { GoogleCalendarConnector } from "@/lib/connectors/google/calendar";
+import { hasGoogleCalendarWriteScope } from "@/lib/connectors/google/calendar-write-scope";
+import type { ScopedCalendarAcquisitionPort } from "@/lib/governed-conversation/scoped-calendar-evidence-acquisition-adapter";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -56,6 +68,8 @@ interface LighterChatBody {
   calendarConflictReasoningReference?: unknown;
   calendarAdvicePreferenceReference?: unknown;
   calendarAdviceReference?: unknown;
+  calendarMoveProposalReference?: unknown;
+  calendarMoveAuthorizationReference?: unknown;
 }
 type ModelCall = (
   systemPrompt: string,
@@ -262,9 +276,24 @@ export function calendarReplyPreservesProjection(content: string,
   return observed.length === expected.length && observed.every((value, index) => value === expected[index]);
 }
 
+export type CalendarActDependencies = Readonly<{
+  createReadConnector: () => ScopedCalendarAcquisitionPort;
+  createWriteConnector: () => CalendarEventWritePort;
+  hasWriteScope: () => Promise<boolean>;
+  clock: () => Date;
+}>;
+
+const defaultCalendarActDependencies: CalendarActDependencies = {
+  createReadConnector: () => new GoogleCalendarConnector(),
+  createWriteConnector: () => new GoogleCalendarEventWriteConnector(),
+  hasWriteScope: () => hasGoogleCalendarWriteScope(),
+  clock: () => new Date(),
+};
+
 export function createLighterChatHandler(callModel: ModelCall = callClaude, calendarDependencies?: ProductionCalendarDependencies,
   gmailDependencies?: ProductionGmailDependencies, gmailSearchDependencies?: ProductionGmailSearchDependencies,
-  driveSearchDependencies?: ProductionDriveSearchDependencies, driveReadDependencies?: ProductionDriveReadDependencies) {
+  driveSearchDependencies?: ProductionDriveSearchDependencies, driveReadDependencies?: ProductionDriveReadDependencies,
+  calendarActDependencies: CalendarActDependencies = defaultCalendarActDependencies) {
   return async function POST(request: Request) {
     let body: LighterChatBody;
     try { body = await request.json() as LighterChatBody; }
@@ -291,6 +320,64 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       }
       if (Object.hasOwn(body, "calendarAdviceReference")) {
         advanceCalendarAdviceReferenceUserTurn(body.calendarAdviceReference);
+      }
+
+      if (Object.hasOwn(body, "calendarMoveAuthorizationReference")) {
+        const execution = await executeConfirmedCalendarMove({
+          authorizationReference: body.calendarMoveAuthorizationReference,
+          currentUserUtterance,
+          readConnector: calendarActDependencies.createReadConnector(),
+          writeConnector: calendarActDependencies.createWriteConnector(),
+          clock: calendarActDependencies.clock,
+        });
+        return NextResponse.json({
+          reply: execution.reply,
+          specialistId: specialist.id,
+          execution: execution.status === "resolved" ? "calendar.event.move" : "none",
+          calendarConflictAct: { status: execution.status },
+          calendarMoveAuthorizationReference: null,
+          calendarMoveProposalReference: body.calendarMoveProposalReference ?? null,
+          calendarAdviceReference: body.calendarAdviceReference ?? null,
+        });
+      }
+
+      if (isCalendarActInstruction(currentUserUtterance)) {
+        const now = calendarActDependencies.clock();
+        const advice = resolveCalendarAdviceReference({
+          reference: body.calendarAdviceReference,
+          now,
+        });
+        if (!advice) {
+          return NextResponse.json({
+            reply: "I don't have an eligible governed Calendar recommendation to execute.",
+            specialistId: specialist.id,
+            execution: "none",
+            calendarConflictAct: { status: "invalid_advice" },
+            calendarAdviceReference: null,
+          });
+        }
+        if (!(await calendarActDependencies.hasWriteScope())) {
+          return NextResponse.json({
+            reply: "Calendar write access is not active in the stored Google grant. Please reconnect Google before I can make this change.",
+            specialistId: specialist.id,
+            execution: "none",
+            calendarConflictAct: { status: "write_scope_missing" },
+            calendarAdviceReference: body.calendarAdviceReference,
+          });
+        }
+        const proposedOperation = Object.freeze({
+          capability: "calendar.read" as const,
+          window: resolveCalendarReadWindow("today", now),
+          purpose: "calendar_act_validation" as const,
+        });
+        return NextResponse.json({
+          reply: "Please explicitly confirm that I may re-read your Calendar to validate the exact move before I ask for write approval.",
+          specialistId: specialist.id,
+          execution: "none",
+          calendarConflictAct: { status: "ask_validation_read" },
+          calendarAdviceReference: body.calendarAdviceReference,
+          pendingAuthorizationReference: createPendingAuthorization(proposedOperation),
+        });
       }
       if (isCalendarConflictAdviseQuestion(currentUserUtterance)
         && Object.hasOwn(body, "calendarConflictReasoningReference")) {
@@ -457,17 +544,54 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         ? "Understood. I won't read your Calendar."
         : calendar.purpose === "calendar_advise"
           ? "Please explicitly confirm that I may read your Calendar to evaluate that option."
-          : "Please explicitly confirm that I may read your Calendar.";
+          : calendar.purpose === "calendar_act_validation"
+            ? "Please explicitly confirm that I may re-read your Calendar to validate the exact move before I ask for write approval."
+            : "Please explicitly confirm that I may read your Calendar.";
       return NextResponse.json({ reply, specialistId: specialist.id, execution: "none",
         calendarAuthority: { decision: calendar.decision, reason: calendar.reason },
         pendingAuthorizationReference: calendar.pendingAuthorizationReference,
         ...(calendar.purpose === "calendar_advise" ? {
           calendarConflictReasoningReference: body.calendarConflictReasoningReference,
           calendarAdvicePreferenceReference: body.calendarAdvicePreferenceReference,
+        } : {}),
+        ...(calendar.purpose === "calendar_act_validation" ? {
+          calendarAdviceReference: body.calendarAdviceReference,
         } : {}) });
     }
     if (calendar?.decision === "ALLOW") {
       const fallback = formatCalendarReadResponse(calendar.evidence!, calendar.window ?? undefined);
+
+      if (calendar.purpose === "calendar_act_validation") {
+        if (!calendar.window || !calendar.evidence) {
+          return NextResponse.json({
+            reply: "I couldn't obtain the governed current Calendar state required to validate that move.",
+            specialistId: specialist.id,
+            execution: "none",
+            calendarAuthority: { decision: "ALLOW", reason: calendar.reason },
+            calendarConflictAct: { status: "invalid" },
+          });
+        }
+        const validation = validateCalendarAdviceForAct({
+          adviceReference: body.calendarAdviceReference,
+          evidence: calendar.evidence,
+          window: calendar.window,
+          now: calendarActDependencies.clock(),
+        });
+        return NextResponse.json({
+          reply: validation.reply,
+          specialistId: specialist.id,
+          execution: "none",
+          calendarAuthority: { decision: "ALLOW", reason: calendar.reason },
+          calendarConflictAct: { status: validation.status },
+          calendarAdviceReference: body.calendarAdviceReference,
+          ...(validation.calendarMoveProposalReference
+            ? { calendarMoveProposalReference: validation.calendarMoveProposalReference }
+            : {}),
+          ...(validation.calendarMoveAuthorizationReference
+            ? { calendarMoveAuthorizationReference: validation.calendarMoveAuthorizationReference }
+            : {}),
+        });
+      }
 
       if (calendar.purpose === "calendar_advise") {
         if (!calendar.window || !calendar.evidence) {

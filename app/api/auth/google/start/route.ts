@@ -11,8 +11,8 @@ const STATE_COOKIE = "google_oauth_state";
  * Every "Connect" button in the LH rail (Calendar/Gmail/Drive) lands
  * here — one shared Google grant backs all three (see oauth.ts), so
  * there's one Connect action, not three. Redirects to Google's consent
- * screen requesting calendar.readonly, gmail.readonly, and (v43)
- * drive.readonly together. A random state value is set as a
+ * screen requesting calendar.readonly + calendar.events, with Gmail and
+ * Drive remaining read-only. A random state value is set as a
  * short-lived httpOnly cookie and echoed back by Google so the callback
  * can reject anything that isn't a request this server actually started
  * (basic CSRF protection for the OAuth flow).

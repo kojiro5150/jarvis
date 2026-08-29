@@ -2006,7 +2006,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
   it("wires Golden Scenario Know into one bounded Understand model call", async () => {
     let includeInvite = false;
     let observedAt = "2026-08-28T00:00:00.000Z";
-    const deepWork = {
+    let deepWork = {
       id: "deep",
       title: "JARVIS Deep Work Test",
       start: "2026-08-28T03:30:00.000Z",
@@ -2064,14 +2064,37 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
       }
       return "model must not run";
     });
-    const handler = createLighterChatHandler(model, {
-      createConnector: () => ({
-        source: "google" as const,
-        listBetween,
-        listBetweenWithCompleteness,
-      }),
-      clock: () => new Date(observedAt),
+    const moveEvent = vi.fn(async (_calendarId: string, _eventId: string, start: string, end: string) => {
+      deepWork = { ...deepWork, start, end };
+      return { ok: true, status: 200 };
     });
+    const readEvent = vi.fn(async () => ({ ...deepWork }));
+    const actReadConnector = () => ({
+      source: "google" as const,
+      listBetween,
+      listBetweenWithCompleteness,
+    });
+    const handler = createLighterChatHandler(
+      model,
+      {
+        createConnector: actReadConnector,
+        clock: () => new Date(observedAt),
+      },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        createReadConnector: actReadConnector,
+        createWriteConnector: () => ({
+          hasWriteScope: vi.fn(async () => true),
+          moveEvent,
+          readEvent,
+        }),
+        hasWriteScope: vi.fn(async () => true),
+        clock: () => new Date(observedAt),
+      },
+    );
 
     const baselineAsk = await (await handler(request({
       specialistId: "jarvis",
@@ -2225,6 +2248,80 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     );
     expect(listBetweenWithCompleteness).toHaveBeenCalledTimes(3);
     expect(listBetween).not.toHaveBeenCalled();
+
+    observedAt = "2026-08-28T01:05:00.000Z";
+    const actAsk = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Okay, do it." }],
+      calendarAdviceReference: advice.calendarAdviceReference,
+    }))).json();
+
+    expect(actAsk).toMatchObject({
+      reply: "Please explicitly confirm that I may re-read your Calendar to validate the exact move before I ask for write approval.",
+      calendarConflictAct: { status: "ask_validation_read" },
+      calendarAdviceReference: advice.calendarAdviceReference,
+      pendingAuthorizationReference: {
+        pendingAuthorizationId: expect.any(String),
+      },
+    });
+    expect(moveEvent).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(2);
+    expect(listBetweenWithCompleteness).toHaveBeenCalledTimes(3);
+
+    observedAt = "2026-08-28T01:06:00.000Z";
+    const actValidated = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Yes." }],
+      pendingAuthorizationReference: actAsk.pendingAuthorizationReference,
+      calendarAdviceReference: advice.calendarAdviceReference,
+    }))).json();
+
+    expect(actValidated).toMatchObject({
+      reply: "I can move the deep-work block from 1:30 PM–3:00 PM to 3:00 PM–4:30 PM. Please explicitly confirm this exact Calendar change.",
+      calendarAuthority: { decision: "ALLOW", reason: "pending_authorization_confirmed" },
+      calendarConflictAct: { status: "resolved" },
+      calendarMoveProposalReference: {
+        calendarMoveProposalReferenceId: expect.any(String),
+      },
+      calendarMoveAuthorizationReference: {
+        calendarMoveAuthorizationReferenceId: expect.any(String),
+      },
+    });
+    expect(JSON.stringify(actValidated.calendarMoveProposalReference)).not.toMatch(
+      /primary|deep|01:30|03:00|04:30|google-calendar/,
+    );
+    expect(JSON.stringify(actValidated.calendarMoveAuthorizationReference)).not.toMatch(
+      /primary|deep|01:30|03:00|04:30|google-calendar/,
+    );
+    expect(moveEvent).not.toHaveBeenCalled();
+    expect(listBetweenWithCompleteness).toHaveBeenCalledTimes(4);
+    expect(model).toHaveBeenCalledTimes(2);
+
+    observedAt = "2026-08-28T01:07:00.000Z";
+    const actDone = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Yes." }],
+      calendarAdviceReference: advice.calendarAdviceReference,
+      calendarMoveProposalReference: actValidated.calendarMoveProposalReference,
+      calendarMoveAuthorizationReference: actValidated.calendarMoveAuthorizationReference,
+    }))).json();
+
+    expect(actDone).toMatchObject({
+      reply: "Done — the deep-work block is now 3:00 PM–4:30 PM, verified against Google Calendar.",
+      execution: "calendar.event.move",
+      calendarConflictAct: { status: "resolved" },
+      calendarMoveAuthorizationReference: null,
+    });
+    expect(moveEvent).toHaveBeenCalledTimes(1);
+    expect(moveEvent).toHaveBeenCalledWith(
+      "primary",
+      "deep",
+      "2026-08-28T05:00:00.000Z",
+      "2026-08-28T06:30:00.000Z",
+    );
+    expect(readEvent).toHaveBeenCalledTimes(1);
+    expect(listBetweenWithCompleteness).toHaveBeenCalledTimes(5);
+    expect(model).toHaveBeenCalledTimes(2);
   });
 
 });

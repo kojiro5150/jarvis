@@ -2055,10 +2055,15 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
         },
       };
     });
-    const model = vi.fn(async (systemPrompt: string, _messages: ChatMessage[]) =>
-      systemPrompt.includes("bounded private-evidence reasoning component")
-        ? '{"interpretationType":"scheduling_conflict"}'
-        : "model must not run");
+    const model = vi.fn(async (systemPrompt: string, _messages: ChatMessage[]) => {
+      if (systemPrompt.includes("bounded private-evidence reasoning component")) {
+        return '{"interpretationType":"scheduling_conflict"}';
+      }
+      if (systemPrompt.includes("bounded recommendation classifier")) {
+        return '{"recommendationType":"keep_invitation_move_deep_work_to_candidate"}';
+      }
+      return "model must not run";
+    });
     const handler = createLighterChatHandler(model, {
       createConnector: () => ({
         source: "google" as const,
@@ -2148,6 +2153,74 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
       /Gate K Test Invite|JARVIS Deep Work Test|google-calendar:|URGENT|PROTECTED|PRIORITY/,
     );
     expect(listBetweenWithCompleteness).toHaveBeenCalledTimes(2);
+    expect(listBetween).not.toHaveBeenCalled();
+
+    observedAt = "2026-08-28T01:02:00.000Z";
+    const adviseBoundary = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "What would you do?" }],
+      calendarConflictReasoningReference: conflictAllow.calendarConflictReasoningReference,
+    }))).json();
+
+    expect(adviseBoundary).toMatchObject({
+      calendarConflictAdvise: { status: "missing_preference" },
+      calendarConflictReasoningReference: conflictAllow.calendarConflictReasoningReference,
+    });
+    expect(adviseBoundary.reply).toContain("don't yet have a legitimate basis");
+    expect(model).toHaveBeenCalledTimes(1);
+    expect(listBetweenWithCompleteness).toHaveBeenCalledTimes(2);
+
+    observedAt = "2026-08-28T01:03:00.000Z";
+    const preference = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "I'd rather keep the invitation if I can still get the full deep-work block in afterwards." }],
+      calendarConflictReasoningReference: conflictAllow.calendarConflictReasoningReference,
+    }))).json();
+
+    expect(preference).toMatchObject({
+      reply: "Please explicitly confirm that I may read your Calendar to evaluate that option.",
+      calendarConflictAdvise: { status: "ask_calendar_authority" },
+      calendarConflictReasoningReference: conflictAllow.calendarConflictReasoningReference,
+      calendarAdvicePreferenceReference: {
+        calendarAdvicePreferenceReferenceId: expect.any(String),
+      },
+      pendingAuthorizationReference: {
+        pendingAuthorizationId: expect.any(String),
+      },
+    });
+    expect(JSON.stringify(preference.calendarAdvicePreferenceReference)).not.toMatch(
+      /invitation|deep_work|07:30|09:00|keep_invitation/,
+    );
+    expect(listBetweenWithCompleteness).toHaveBeenCalledTimes(2);
+    expect(model).toHaveBeenCalledTimes(1);
+
+    observedAt = "2026-08-28T01:04:00.000Z";
+    const advice = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Yes." }],
+      pendingAuthorizationReference: preference.pendingAuthorizationReference,
+      calendarConflictReasoningReference: conflictAllow.calendarConflictReasoningReference,
+      calendarAdvicePreferenceReference: preference.calendarAdvicePreferenceReference,
+    }))).json();
+
+    expect(advice).toMatchObject({
+      reply: "Current Calendar fact: 3:00 PM–4:30 PM is free.\nRecommendation: Given your preference to keep the invitation when the full deep-work block can be preserved, I'd keep the invitation and move the deep-work block to 3:00 PM–4:30 PM.",
+      calendarAuthority: { decision: "ALLOW", reason: "pending_authorization_confirmed" },
+      calendarConflictAdvise: { status: "resolved" },
+      calendarAdviceReference: {
+        calendarAdviceReferenceId: expect.any(String),
+      },
+    });
+    expect(JSON.stringify(advice.calendarAdviceReference)).not.toMatch(
+      /deep|03:00|04:30|keep_invitation|google-calendar/,
+    );
+    expect(model).toHaveBeenCalledTimes(2);
+    const adviseMessages = (model.mock.calls as unknown as [string, { role: string; content: string }[]][])[1]?.[1];
+    expect(adviseMessages).toHaveLength(1);
+    expect(adviseMessages[0]?.content).not.toMatch(
+      /Gate K Test Invite|JARVIS Deep Work Test|google-calendar:|URGENT|PROTECTED|PRIORITY/,
+    );
+    expect(listBetweenWithCompleteness).toHaveBeenCalledTimes(3);
     expect(listBetween).not.toHaveBeenCalled();
   });
 

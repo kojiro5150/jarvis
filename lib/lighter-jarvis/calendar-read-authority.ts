@@ -7,7 +7,7 @@ export type ProposedCalendarReadOperation = Readonly<{
    * Optional presentation intent retained inside the server-owned pending
    * operation. It never grants authority or widens the Calendar read.
    */
-  purpose?: "calendar_attention" | "calendar_weekly_allocation" | "calendar_factual_query";
+  purpose?: "calendar_attention" | "calendar_weekly_allocation" | "calendar_factual_query" | "calendar_advise";
   /** Server-owned deterministic factual selector intent; never model context. */
   factualQuery?: CalendarFactualQuery;
 }>;

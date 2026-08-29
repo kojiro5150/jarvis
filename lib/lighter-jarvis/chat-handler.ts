@@ -31,7 +31,20 @@ import {
   isCalendarConflictUnderstandIntent,
   resolveCalendarConflictUnderstand,
 } from "@/lib/lighter-jarvis/calendar-conflict-understand";
-import { advanceCalendarConflictReasoningReferenceUserTurn } from "@/lib/lighter-jarvis/calendar-conflict-reasoning-reference";
+import {
+  advanceCalendarConflictReasoningReferenceUserTurn,
+  resolveCalendarConflictReasoningReference,
+} from "@/lib/lighter-jarvis/calendar-conflict-reasoning-reference";
+import {
+  createCalendarAdvicePreferenceReference,
+  isSupportedCalendarAdvicePreferenceUtterance,
+} from "@/lib/lighter-jarvis/calendar-advice-preference-reference";
+import {
+  isCalendarConflictAdviseQuestion,
+  resolveCalendarConflictAdvise,
+} from "@/lib/lighter-jarvis/calendar-conflict-advise";
+import { resolveCalendarReadWindow } from "@/lib/lighter-jarvis/calendar-read-window";
+import { advanceCalendarAdviceReferenceUserTurn } from "@/lib/lighter-jarvis/calendar-advice-reference";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -41,6 +54,8 @@ interface LighterChatBody {
   pendingAuthorizationReference?: unknown;
   calendarAttentionObservationReference?: unknown;
   calendarConflictReasoningReference?: unknown;
+  calendarAdvicePreferenceReference?: unknown;
+  calendarAdviceReference?: unknown;
 }
 type ModelCall = (
   systemPrompt: string,
@@ -274,6 +289,75 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       if (Object.hasOwn(body, "calendarConflictReasoningReference")) {
         advanceCalendarConflictReasoningReferenceUserTurn(body.calendarConflictReasoningReference);
       }
+      if (Object.hasOwn(body, "calendarAdviceReference")) {
+        advanceCalendarAdviceReferenceUserTurn(body.calendarAdviceReference);
+      }
+      if (isCalendarConflictAdviseQuestion(currentUserUtterance)
+        && Object.hasOwn(body, "calendarConflictReasoningReference")) {
+        const historical = resolveCalendarConflictReasoningReference({
+          reference: body.calendarConflictReasoningReference,
+          now: calendarDependencies?.clock() ?? new Date(),
+        });
+        if (historical.status !== "resolved") {
+          return NextResponse.json({
+            reply: "I don't have an eligible governed Calendar conflict to advise on.",
+            specialistId: specialist.id,
+            execution: "none",
+            calendarConflictAdvise: { status: historical.status },
+            calendarConflictReasoningReference: historical.status === "expired" ? null : body.calendarConflictReasoningReference,
+          });
+        }
+        return NextResponse.json({
+          reply: "I can give you a recommendation, but I don't yet have a legitimate basis for choosing which commitment should yield. If your preference is to keep the invitation when the full deep-work block can be preserved later, say so and I can evaluate that option.",
+          specialistId: specialist.id,
+          execution: "none",
+          calendarConflictAdvise: { status: "missing_preference" },
+          calendarConflictReasoningReference: body.calendarConflictReasoningReference,
+        });
+      }
+
+      if (isSupportedCalendarAdvicePreferenceUtterance(currentUserUtterance)
+        && Object.hasOwn(body, "calendarConflictReasoningReference")
+        && !Object.hasOwn(body, "pendingAuthorizationReference")) {
+        const now = calendarDependencies?.clock() ?? new Date();
+        const historical = resolveCalendarConflictReasoningReference({
+          reference: body.calendarConflictReasoningReference,
+          now,
+        });
+        if (historical.status !== "resolved") {
+          return NextResponse.json({
+            reply: "I don't have an eligible governed Calendar conflict to evaluate under that preference.",
+            specialistId: specialist.id,
+            execution: "none",
+            calendarConflictAdvise: { status: historical.status },
+            calendarConflictReasoningReference: historical.status === "expired" ? null : body.calendarConflictReasoningReference,
+          });
+        }
+        const preferenceReference = createCalendarAdvicePreferenceReference(now);
+        if (!preferenceReference) {
+          return NextResponse.json({
+            reply: "I couldn't safely preserve that advice preference.",
+            specialistId: specialist.id,
+            execution: "none",
+            calendarConflictAdvise: { status: "invalid" },
+          });
+        }
+        const proposedOperation = Object.freeze({
+          capability: "calendar.read" as const,
+          window: resolveCalendarReadWindow("today", now),
+          purpose: "calendar_advise" as const,
+        });
+        return NextResponse.json({
+          reply: "Please explicitly confirm that I may read your Calendar to evaluate that option.",
+          specialistId: specialist.id,
+          execution: "none",
+          calendarConflictAdvise: { status: "ask_calendar_authority" },
+          calendarConflictReasoningReference: body.calendarConflictReasoningReference,
+          calendarAdvicePreferenceReference: preferenceReference,
+          pendingAuthorizationReference: createPendingAuthorization(proposedOperation),
+        });
+      }
+
       if (isCalendarConflictUnderstandIntent(currentUserUtterance)) {
         const understand = await resolveCalendarConflictUnderstand({
           utterance: currentUserUtterance,
@@ -371,13 +455,51 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     if (calendar?.handled && calendar.decision !== "ALLOW") {
       const reply = calendar.decision === "DENY"
         ? "Understood. I won't read your Calendar."
-        : "Please explicitly confirm that I may read your Calendar.";
+        : calendar.purpose === "calendar_advise"
+          ? "Please explicitly confirm that I may read your Calendar to evaluate that option."
+          : "Please explicitly confirm that I may read your Calendar.";
       return NextResponse.json({ reply, specialistId: specialist.id, execution: "none",
         calendarAuthority: { decision: calendar.decision, reason: calendar.reason },
-        pendingAuthorizationReference: calendar.pendingAuthorizationReference });
+        pendingAuthorizationReference: calendar.pendingAuthorizationReference,
+        ...(calendar.purpose === "calendar_advise" ? {
+          calendarConflictReasoningReference: body.calendarConflictReasoningReference,
+          calendarAdvicePreferenceReference: body.calendarAdvicePreferenceReference,
+        } : {}) });
     }
     if (calendar?.decision === "ALLOW") {
       const fallback = formatCalendarReadResponse(calendar.evidence!, calendar.window ?? undefined);
+
+      if (calendar.purpose === "calendar_advise") {
+        if (!calendar.window || !calendar.evidence) {
+          return NextResponse.json({
+            reply: "I couldn't obtain the governed current Calendar state required for advice.",
+            specialistId: specialist.id,
+            execution: "none",
+            calendarAuthority: { decision: "ALLOW", reason: calendar.reason },
+            calendarConflictAdvise: { status: "invalid" },
+          });
+        }
+        const advice = await resolveCalendarConflictAdvise({
+          reasoningReference: body.calendarConflictReasoningReference,
+          preferenceReference: body.calendarAdvicePreferenceReference,
+          evidence: calendar.evidence,
+          window: calendar.window,
+          callModel,
+          now: calendarDependencies?.clock() ?? new Date(),
+        });
+        return NextResponse.json({
+          reply: advice.reply,
+          specialistId: specialist.id,
+          execution: "none",
+          calendarAuthority: { decision: "ALLOW", reason: calendar.reason },
+          calendarConflictAdvise: { status: advice.status },
+          calendarConflictReasoningReference: body.calendarConflictReasoningReference,
+          calendarAdvicePreferenceReference: body.calendarAdvicePreferenceReference,
+          ...(advice.calendarAdviceReference
+            ? { calendarAdviceReference: advice.calendarAdviceReference }
+            : {}),
+        });
+      }
 
       if (calendar.purpose === "calendar_attention") {
         if (calendar.evidence!.status !== "available" || !calendar.window) {

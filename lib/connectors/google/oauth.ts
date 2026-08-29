@@ -6,7 +6,8 @@ import type { GoogleTokens } from "./tokens";
  * lean (consistent with "no paid services beyond the Claude API" and a
  * minimal footprint on Vercel's free tier).
  *
- * Scope is deliberately narrow and read-only: calendar.readonly, (as of
+ * Scope remains least-privilege by service: Calendar keeps its proven read-only
+ * scope and adds calendar.events for the bounded event-move capability;
  * Sprint 2.7) gmail.readonly, and (as of Sprint 3.148) drive.readonly.
  * Drive's minimum general read-only scope supports the deliberately narrow
  * identified-Google-Doc export path as well as metadata search. All
@@ -26,9 +27,10 @@ import type { GoogleTokens } from "./tokens";
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const CALENDAR_READONLY_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
+export const CALENDAR_EVENTS_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
 const DRIVE_READONLY_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
-const REQUESTED_SCOPES = [CALENDAR_READONLY_SCOPE, GMAIL_READONLY_SCOPE, DRIVE_READONLY_SCOPE].join(" ");
+const REQUESTED_SCOPES = [CALENDAR_READONLY_SCOPE, CALENDAR_EVENTS_SCOPE, GMAIL_READONLY_SCOPE, DRIVE_READONLY_SCOPE].join(" ");
 
 function getOAuthEnv() {
   const clientId = process.env.GOOGLE_CLIENT_ID;

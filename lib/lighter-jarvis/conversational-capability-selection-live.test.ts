@@ -70,10 +70,11 @@ describe("Sprint 3.180b live capability selection", () => {
       { role: "user", content: "What are my last five emails?" },
     ]))).json();
 
-    expect(response.reply).toBe(
-      "I recognized that as a Gmail request, but natural-language handoff to the governed Gmail authority path is not yet available.",
-    );
-    expect(response).not.toHaveProperty("pendingAuthorizationReference");
+    expect(response).toMatchObject({
+      reply: "I can search Gmail for up to five messages from the last 7 days. Please explicitly confirm that I may do that.",
+      gmailSearchAuthority: { decision: "ASK", reason: "explicit_gmail_search_not_established" },
+      pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) },
+    });
     expect(response).not.toHaveProperty("messageIds");
     expect(model).toHaveBeenCalledTimes(1);
   });

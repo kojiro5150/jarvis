@@ -194,7 +194,7 @@ describe("POST /api/lighter/chat", () => {
     const handler = createLighterChatHandler(model,
       { createConnector: calendarConnector, clock: () => new Date("2026-08-26T00:00:00Z") },
       { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
-      { createConnector: gmailSearchConnector }, { createConnector: driveConnector });
+      gmailSubjectListDependencies(gmailSearchConnector), { createConnector: driveConnector });
     const ask = await (await handler(request({ specialistId: "jarvis", messages: [{ role: "user", content: proposal }] }))).json();
 
     const confirmation = await (await handler(request({ specialistId: "jarvis", messages: longTranscript("Yes."),

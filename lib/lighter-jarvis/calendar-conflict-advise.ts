@@ -69,9 +69,20 @@ export async function resolveCalendarConflictAdvise(input: {
     return Object.freeze({ status: "insufficient_coverage", reply: "I can't truthfully recommend from this Calendar read because the bounded current coverage was not complete." });
   }
 
+  const observedAt = input.evidence.observedAt;
+  if (typeof observedAt !== "string") {
+    return Object.freeze({ status: "invalid", reply: "The current Calendar observation has no valid observation time." });
+  }
+
   const historicalInvite = historical.observation.addedPendingInvitation;
   const historicalDeep = historical.observation.existingDeepWorkCommitment;
-  const currentById = new Map(input.evidence.conflictEvents.map(event => [event.commitmentReference, event]));
+  const currentById = new Map<string, (typeof input.evidence.conflictEvents)[number]>();
+  for (const event of input.evidence.conflictEvents) {
+    if (event.observedAt !== observedAt || currentById.has(event.commitmentReference)) {
+      return Object.freeze({ status: "invalid", reply: "The current Calendar evidence is internally inconsistent for advice." });
+    }
+    currentById.set(event.commitmentReference, event);
+  }
   const invite = currentById.get(historicalInvite.commitmentReference);
   const deep = currentById.get(historicalDeep.commitmentReference);
   if (!invite || !deep
@@ -104,11 +115,6 @@ export async function resolveCalendarConflictAdvise(input: {
       status: "candidate_occupied",
       reply: `The immediate ${durationMinutes}-minute slot after the deep-work block is not free, so I don't yet have a supported recommendation under this advice rule.`,
     });
-  }
-
-  const observedAt = input.evidence.observedAt;
-  if (typeof observedAt !== "string") {
-    return Object.freeze({ status: "invalid", reply: "The current Calendar observation has no valid observation time." });
   }
 
   const modelEvidence = Object.freeze({

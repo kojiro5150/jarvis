@@ -1,30 +1,8 @@
 import type { PublicWeatherRequest } from "./public-weather-request";
-
-declare const GROUNDED_PUBLIC_WEATHER: unique symbol;
-
-export type GroundedPublicWeatherEvidence = Readonly<{
-  location: Readonly<{
-    name: string;
-    country?: string;
-    latitude: number;
-    longitude: number;
-    timezone: string;
-  }>;
-  forecast: Readonly<{
-    date: string;
-    temperatureMinC: number;
-    temperatureMaxC: number;
-    precipitationProbabilityMax: number;
-    weatherCode: number;
-  }>;
-  provenance: Readonly<{
-    provider: "open-meteo";
-    retrievedAt: string;
-    geocodingUrl: string;
-    forecastUrl: string;
-  }>;
-  [GROUNDED_PUBLIC_WEATHER]: "grounded_public_weather";
-}>;
+import type {
+  PublicEvidenceProvenance,
+  RetrievedWeatherPublicEvidence,
+} from "@/lib/governance-core/public-grounding";
 
 export type PublicWeatherDependencies = Readonly<{
   fetch: typeof fetch;
@@ -99,7 +77,7 @@ function stringArray(value: unknown): readonly string[] | null {
 export async function acquireGroundedPublicWeather(
   request: PublicWeatherRequest,
   dependencies: PublicWeatherDependencies = defaults,
-): Promise<GroundedPublicWeatherEvidence | null> {
+): Promise<RetrievedWeatherPublicEvidence | null> {
   const geocoding = new URL("https://geocoding-api.open-meteo.com/v1/search");
   geocoding.searchParams.set("name", request.location);
   geocoding.searchParams.set("count", "1");
@@ -165,28 +143,33 @@ export async function acquireGroundedPublicWeather(
   const index = times.indexOf(targetDate);
   if (index < 0 || index >= min.length || index >= max.length || index >= rain.length || index >= codes.length) return null;
 
+  const provenance = Object.freeze({
+    provider: "open-meteo",
+    retrievedAt: now.toISOString(),
+    sourceUrl: forecast.toString(),
+    supportingUrls: Object.freeze([geocoding.toString()]),
+  }) as PublicEvidenceProvenance;
+
   return Object.freeze({
-    location: Object.freeze({
-      name,
-      ...(country ? { country } : {}),
-      latitude,
-      longitude,
-      timezone,
+    kind: "weather" as const,
+    payload: Object.freeze({
+      location: Object.freeze({
+        name,
+        ...(country ? { country } : {}),
+        latitude,
+        longitude,
+        timezone,
+      }),
+      forecast: Object.freeze({
+        date: targetDate,
+        temperatureMinC: min[index],
+        temperatureMaxC: max[index],
+        precipitationProbabilityMax: rain[index],
+        weatherCode: codes[index],
+      }),
     }),
-    forecast: Object.freeze({
-      date: targetDate,
-      temperatureMinC: min[index],
-      temperatureMaxC: max[index],
-      precipitationProbabilityMax: rain[index],
-      weatherCode: codes[index],
-    }),
-    provenance: Object.freeze({
-      provider: "open-meteo" as const,
-      retrievedAt: now.toISOString(),
-      geocodingUrl: geocoding.toString(),
-      forecastUrl: forecast.toString(),
-    }),
-  }) as GroundedPublicWeatherEvidence;
+    provenance,
+  }) as RetrievedWeatherPublicEvidence;
 }
 
 function round(value: number): number {
@@ -199,18 +182,18 @@ function round(value: number): number {
  */
 export function renderGroundedPublicWeather(
   request: PublicWeatherRequest,
-  evidence: GroundedPublicWeatherEvidence,
+  evidence: RetrievedWeatherPublicEvidence,
 ): string {
-  const place = evidence.location.country
-    ? `${evidence.location.name}, ${evidence.location.country}`
-    : evidence.location.name;
+  const place = evidence.payload.location.country
+    ? `${evidence.payload.location.name}, ${evidence.payload.location.country}`
+    : evidence.payload.location.name;
   const period = request.period === "today" ? "today" : "tomorrow";
   return [
-    `Grounded weather for ${place} ${period} (${evidence.forecast.date}, ${evidence.location.timezone}):`,
-    `- Temperature: ${round(evidence.forecast.temperatureMinC)}°C to ${round(evidence.forecast.temperatureMaxC)}°C`,
-    `- Maximum precipitation probability: ${round(evidence.forecast.precipitationProbabilityMax)}%`,
-    `- Weather code: ${evidence.forecast.weatherCode}`,
+    `Grounded weather for ${place} ${period} (${evidence.payload.forecast.date}, ${evidence.payload.location.timezone}):`,
+    `- Temperature: ${round(evidence.payload.forecast.temperatureMinC)}°C to ${round(evidence.payload.forecast.temperatureMaxC)}°C`,
+    `- Maximum precipitation probability: ${round(evidence.payload.forecast.precipitationProbabilityMax)}%`,
+    `- Weather code: ${evidence.payload.forecast.weatherCode}`,
     `Source: Open-Meteo forecast retrieved ${evidence.provenance.retrievedAt}`,
-    evidence.provenance.forecastUrl,
+    evidence.provenance.sourceUrl,
   ].join("\n");
 }

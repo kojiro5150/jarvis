@@ -10,7 +10,7 @@ export type GmailSenderIdentityResolution =
   | Readonly<{ status: "not_found" }>
   | Readonly<{ status: "ambiguous"; identities: readonly GmailSenderIdentity[] }>;
 
-const REQUEST = /^(?:please\s+)?(?:find|show|get)\s+(?:me\s+)?(?:the\s+)?(?:email|emails|message|messages|mail)\s+from\s+(.+?)[?!.]?$/i;
+const REQUEST = /^(?:please\s+)?(?:find|show|get)\s+(?:me\s+)?(?:(?:the|my)\s+)?(?:email|emails|message|messages|mail)\s+from\s+(.+?)[?!.]?$/i;
 
 export function parseNaturalLanguageGmailSenderReference(utterance: string): readonly string[] | null {
   const match = utterance.trim().match(REQUEST);

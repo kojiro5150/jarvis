@@ -20,6 +20,24 @@ const longTranscript = (currentUserUtterance: string) => [
   { role: "user" as const, content: currentUserUtterance },
 ];
 
+const subjectListPolicy = Object.freeze({
+  policyVersion: "test-v1",
+  rules: [Object.freeze({
+    id: "email",
+    match: Object.freeze({ connectorType: "email" as const }),
+    processing: "external_processing_permitted" as const,
+    admissibleFields: Object.freeze(["subject"] as const),
+  })],
+});
+
+const gmailSubjectListDependencies = (createConnector: () => { search: (newerThan: "1d" | "7d", maxResults: 5) => Promise<readonly string[]> }) => ({
+  createConnector,
+  createSubjectConnector: () => ({
+    retrieveMessage: async (id: string) => ({ subject: `Subject ${id}`, snippet: "MUST NOT LEAK" }),
+  }),
+  loadPolicy: async () => subjectListPolicy,
+});
+
 const handoffResult = (
   specialistId: unknown,
   text: string,
@@ -47,7 +65,7 @@ describe("POST /api/lighter/chat", () => {
       model,
       { createConnector: calendarConnector, clock: () => new Date("2026-08-25T00:00:00Z") },
       { createConnector: readConnector, loadPolicy: vi.fn() },
-      { createConnector: searchConnector },
+      gmailSubjectListDependencies(searchConnector),
     );
 
     const askResponse = await handler(request({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }));
@@ -67,11 +85,11 @@ describe("POST /api/lighter/chat", () => {
       pendingAuthorizationReference: ask.pendingAuthorizationReference }));
     const allow = await allowResponse.json();
     expect(allow).toEqual({
-      reply: "Gmail message IDs:\n- id-1\n- id-2\n- id-3\n- id-4\n- id-5", specialistId: "jarvis", execution: "none",
+      reply: "Recent Gmail messages:\n- Subject id-1\n- Subject id-2\n- Subject id-3\n- Subject id-4\n- Subject id-5", specialistId: "jarvis", execution: "none",
       gmailSearchAuthority: { decision: "ALLOW", reason: "pending_authorization_confirmed" },
       messageIds: ["id-1", "id-2", "id-3", "id-4", "id-5"],
     });
-    expect(JSON.stringify(allow)).not.toMatch(/subject|snippet|body/i);
+    expect(JSON.stringify(allow)).not.toMatch(/MUST NOT LEAK|snippet|body/i);
     expect(searchConnector).toHaveBeenCalledOnce(); expect(search).toHaveBeenCalledOnce();
     expect(search).toHaveBeenCalledWith(newerThan, 5);
     expect(readConnector).not.toHaveBeenCalled(); expect(calendarConnector).not.toHaveBeenCalled();
@@ -85,7 +103,7 @@ describe("POST /api/lighter/chat", () => {
       model,
       undefined,
       undefined,
-      { createConnector: vi.fn(() => ({ search })) },
+      gmailSubjectListDependencies(vi.fn(() => ({ search }))),
     );
     const ask = await (await handler(request({
       specialistId: "jarvis",
@@ -99,7 +117,7 @@ describe("POST /api/lighter/chat", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
-      reply: "Gmail message IDs:\n- long-session-id",
+      reply: "Recent Gmail messages:\n- Subject long-session-id",
       gmailSearchAuthority: { decision: "ALLOW", reason: "pending_authorization_confirmed" },
     });
     expect(search).toHaveBeenCalledWith("7d", 5);
@@ -115,7 +133,7 @@ describe("POST /api/lighter/chat", () => {
     const handler = createLighterChatHandler(model,
       { createConnector: calendarConnector, clock: () => new Date("2026-08-26T00:00:00Z") },
       { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
-      { createConnector: gmailSearchConnector }, { createConnector: driveConnector });
+      gmailSubjectListDependencies(gmailSearchConnector), { createConnector: driveConnector });
 
     const response = await handler(request({ specialistId: "jarvis", messages: longTranscript("Yes.") }));
     const body = await response.json();
@@ -142,7 +160,7 @@ describe("POST /api/lighter/chat", () => {
     const handler = createLighterChatHandler(model,
       { createConnector: calendarConnector, clock: () => new Date("2026-08-26T00:00:00Z") },
       { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
-      { createConnector: gmailSearchConnector }, { createConnector: driveConnector });
+      gmailSubjectListDependencies(gmailSearchConnector), { createConnector: driveConnector });
 
     const response = await handler(request({ specialistId: "jarvis", messages: longTranscript("Yes."),
       pendingAuthorizationReference: { pendingAuthorizationId: "fabricated-unknown" } }));
@@ -176,7 +194,7 @@ describe("POST /api/lighter/chat", () => {
     const handler = createLighterChatHandler(model,
       { createConnector: calendarConnector, clock: () => new Date("2026-08-26T00:00:00Z") },
       { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
-      { createConnector: gmailSearchConnector }, { createConnector: driveConnector });
+      gmailSubjectListDependencies(gmailSearchConnector), { createConnector: driveConnector });
     const ask = await (await handler(request({ specialistId: "jarvis", messages: [{ role: "user", content: proposal }] }))).json();
 
     const confirmation = await (await handler(request({ specialistId: "jarvis", messages: longTranscript("Yes."),
@@ -195,7 +213,7 @@ describe("POST /api/lighter/chat", () => {
     const model = vi.fn();
     const search = vi.fn(async () => ["gmail-id"]);
     const handler = createLighterChatHandler(model, undefined, undefined,
-      { createConnector: vi.fn(() => ({ search })) });
+      gmailSubjectListDependencies(vi.fn(() => ({ search }))));
     const confirm = async (state: ClientAuthorityTurnState, transcript: string) => {
       const transport = state.beginRequest();
       const body = await (await handler(request({ specialistId: "jarvis", messages: longTranscript(transcript),

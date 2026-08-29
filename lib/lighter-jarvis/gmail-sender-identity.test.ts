@@ -8,6 +8,7 @@ import {
 describe("GS002A deterministic Gmail sender identity", () => {
   it.each([
     ["Find the email from Georgia", ["georgia"]],
+    ["Find my email from Georgia", ["georgia"]],
     ["find messages from McDonald Georgia", ["mcdonald", "georgia"]],
     ["Please show me the mail from georgia.mcdonald@example.com", ["georgia", "mcdonald", "example", "com"]],
   ] as const)("parses a bounded sender reference: %s", (utterance, terms) => {

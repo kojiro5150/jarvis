@@ -18,18 +18,39 @@ describe("production gmail.search", () => {
     expect(createConnector).not.toHaveBeenCalled();
   });
   it("does not intercept gmail.read", async () => expect(await resolveProductionGmailSearch({ currentUserUtterance: "gmail.read id [subject]" }, { createConnector: vi.fn() })).toEqual({ handled: false }));
-  it("requires confirmation before executing a natural-language proposal", async () => {
+  it("requires confirmation before executing a natural-language subject-list proposal", async () => {
     const search = vi.fn(async () => ["one"]);
     const createConnector = vi.fn(() => ({ search }));
-    const proposed = await resolveProductionGmailSearch({ currentUserUtterance: "Search my Gmail from the last day" }, { createConnector });
+    const retrieveMessage = vi.fn(async () => ({ subject: "Subject one", snippet: "MUST NOT LEAK" }));
+    const deps = {
+      createConnector,
+      createSubjectConnector: () => ({ retrieveMessage }),
+      loadPolicy: async () => ({
+        policyVersion: "test-v1",
+        rules: [{
+          id: "email",
+          match: { connectorType: "email" as const },
+          processing: "external_processing_permitted" as const,
+          admissibleFields: ["subject"],
+        }],
+      }),
+    };
+    const proposed = await resolveProductionGmailSearch({ currentUserUtterance: "Search my Gmail from the last day" }, deps);
     expect(proposed).toMatchObject({ handled: true, decision: "ASK", reason: "explicit_gmail_search_not_established" });
     expect(proposed.pendingAuthorizationReference).toBeDefined();
     expect(createConnector).not.toHaveBeenCalled();
 
     const allowed = await resolveProductionGmailSearch({ currentUserUtterance: "Yes, please",
-      pendingAuthorizationReference: proposed.pendingAuthorizationReference }, { createConnector });
-    expect(allowed).toMatchObject({ handled: true, decision: "ALLOW", reason: "pending_authorization_confirmed", messageIds: ["one"] });
+      pendingAuthorizationReference: proposed.pendingAuthorizationReference }, deps);
+    expect(allowed).toEqual({
+      handled: true,
+      decision: "ALLOW",
+      reason: "pending_authorization_confirmed",
+      messageIds: ["one"],
+      reply: "Recent Gmail messages:\n- Subject one",
+    });
     expect(search).toHaveBeenCalledWith("1d", 5);
+    expect(JSON.stringify(allowed)).not.toContain("MUST NOT LEAK");
   });
 
   it("does not execute a declined proposal", async () => {
@@ -189,6 +210,50 @@ describe("production gmail.search", () => {
     expect(JSON.stringify(allowed)).not.toContain("MUST NOT LEAK");
   });
 
+  it("GS002A treats 'Find my email from Georgia' as the same governed sender-search operation", async () => {
+    const discoverSenderIdentities = vi.fn(async () => ({
+      complete: true,
+      identities: [{ displayName: "Georgia McDonald", address: "georgia@example.com" }],
+    }));
+    const searchByAddress = vi.fn(async () => ["one"]);
+    const retrieveMessage = vi.fn(async () => ({ subject: "Subject one" }));
+    const deps = {
+      createConnector: () => ({ search: vi.fn(async () => []) }),
+      createSenderConnector: () => ({ discoverSenderIdentities, searchByAddress }),
+      createSubjectConnector: () => ({ retrieveMessage }),
+      loadPolicy: async () => ({
+        policyVersion: "test-v1",
+        rules: [{
+          id: "email",
+          match: { connectorType: "email" as const },
+          processing: "external_processing_permitted" as const,
+          admissibleFields: ["subject"],
+        }],
+      }),
+    };
+
+    const proposed = await resolveProductionGmailSearch({
+      currentUserUtterance: "Find my email from Georgia",
+    }, deps);
+    expect(proposed).toMatchObject({
+      handled: true,
+      decision: "ASK",
+      reason: "explicit_gmail_search_not_established",
+    });
+
+    const allowed = await resolveProductionGmailSearch({
+      currentUserUtterance: "yes",
+      pendingAuthorizationReference: proposed.pendingAuthorizationReference,
+    }, deps);
+
+    expect(allowed).toMatchObject({
+      handled: true,
+      decision: "ALLOW",
+      reply: "Gmail messages from Georgia McDonald <georgia@example.com>:\n- Subject one",
+    });
+    expect(discoverSenderIdentities).toHaveBeenCalledWith(["georgia"], 100);
+  });
+
   it("GS002A surfaces real sender ambiguity and never silently picks an address", async () => {
     const discoverSenderIdentities = vi.fn(async () => ({
       complete: true,
@@ -248,7 +313,19 @@ describe("production gmail.search", () => {
 
   it("preserves a natural one-day email search scope instead of widening to seven days", async () => {
     const search = vi.fn(async () => ["one"]);
-    const deps = { createConnector: () => ({ search }) };
+    const deps = {
+      createConnector: () => ({ search }),
+      createSubjectConnector: () => ({ retrieveMessage: vi.fn(async () => ({ subject: "Subject one" })) }),
+      loadPolicy: async () => ({
+        policyVersion: "test-v1",
+        rules: [{
+          id: "email",
+          match: { connectorType: "email" as const },
+          processing: "external_processing_permitted" as const,
+          admissibleFields: ["subject"],
+        }],
+      }),
+    };
 
     const proposed = await resolveProductionGmailSearch({
       currentUserUtterance: "Search my email from the last day.",
@@ -268,6 +345,7 @@ describe("production gmail.search", () => {
       handled: true,
       decision: "ALLOW",
       messageIds: ["one"],
+      reply: "Recent Gmail messages:\n- Subject one",
     });
     expect(search).toHaveBeenCalledWith("1d", 5);
   });
@@ -301,9 +379,21 @@ describe("production gmail.search", () => {
     expect(searchByAddress).not.toHaveBeenCalled();
   });
 
-  it("preserves one-day scope for 'for the last day' wording", async () => {
+  it("preserves one-day scope for 'for the last day' wording and returns subjects", async () => {
     const search = vi.fn(async () => ["one"]);
-    const deps = { createConnector: () => ({ search }) };
+    const deps = {
+      createConnector: () => ({ search }),
+      createSubjectConnector: () => ({ retrieveMessage: vi.fn(async () => ({ subject: "Subject one" })) }),
+      loadPolicy: async () => ({
+        policyVersion: "test-v1",
+        rules: [{
+          id: "email",
+          match: { connectorType: "email" as const },
+          processing: "external_processing_permitted" as const,
+          admissibleFields: ["subject"],
+        }],
+      }),
+    };
 
     const proposed = await resolveProductionGmailSearch({
       currentUserUtterance: "Search my email for the last day.",
@@ -323,6 +413,7 @@ describe("production gmail.search", () => {
       handled: true,
       decision: "ALLOW",
       messageIds: ["one"],
+      reply: "Recent Gmail messages:\n- Subject one",
     });
     expect(search).toHaveBeenCalledWith("1d", 5);
   });

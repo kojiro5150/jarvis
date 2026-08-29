@@ -896,7 +896,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       if (evidenceCapable && !hasVerifiableExternalEvidence(content, specialist.id === "gecko" ? marketDomains : undefined) && /\bSourced\b/i.test(reply)) {
         reply = reply.replace(/\bSourced\b/gi, "Recalled");
       }
-      if (specialist.id === "jarvis" && !relaySpecialistReply && tools) {
+      if (specialist.id === "jarvis" && !relaySpecialistReply) {
         const handoff = content.find((block) => block.type === "tool_use" && block.name === "propose_handoff");
         if (handoff && typeof handoff.input === "object" && handoff.input !== null && !Array.isArray(handoff.input)) {
           const specialistId = "specialist_id" in handoff.input ? handoff.input.specialist_id : undefined;

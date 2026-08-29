@@ -1,11 +1,11 @@
 {
-  "policyVersion": "dev-demo-2026-08-25.1",
+  "policyVersion": "dev-demo-2026-08-30.1",
   "rules": [
     {
-      "id": "dev-demo-identified-gmail-subject",
+      "id": "dev-demo-identified-gmail-read",
       "match": { "connectorType": "email" },
       "processing": "external_processing_permitted",
-      "admissibleFields": ["subject"]
+      "admissibleFields": ["sender", "subject", "plain_text_body"]
     }
   ]
 }

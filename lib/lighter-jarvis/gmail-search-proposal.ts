@@ -5,7 +5,7 @@ import {
 } from "./gmail-search-authority";
 import { parseNaturalLanguageGmailSenderReference } from "./gmail-sender-identity";
 
-const GMAIL_SEARCH_REQUEST = /^(?:please\s+)?(?:search|check|look\s+(?:in|through))\s+(?:my\s+)?(?:gmail|email|emails|inbox)\s+(?:for\s+)?(?:messages|emails|mail)?\s*(?:from|in|over|for)\s+(?:the\s+)?(?:last|past)\s+(day|24\s+hours?|week|7\s+days?)[?!.]?$/i;
+const GMAIL_SEARCH_REQUEST = /^(?:please\s+)?(?:search|check|show(?:\s+me)?|look\s+(?:in|through))\s+(?:my\s+)?(?:gmail|email|emails|inbox)\s+(?:for\s+)?(?:messages|emails|mail)?\s*(?:from|in|over|for)\s+(?:the\s+)?(?:last|past)\s+(day|24\s+hours?|week|7\s+days?)[?!.]?$/i;
 
 /**
  * Recognises only bounded, high-confidence Gmail discovery requests. The

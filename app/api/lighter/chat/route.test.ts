@@ -26,14 +26,14 @@ const subjectListPolicy = Object.freeze({
     id: "email",
     match: Object.freeze({ connectorType: "email" as const }),
     processing: "external_processing_permitted" as const,
-    admissibleFields: Object.freeze(["subject"] as const),
+    admissibleFields: Object.freeze(["sender", "subject"] as const),
   })],
 });
 
 const gmailSubjectListDependencies = (createConnector: () => { search: (newerThan: "1d" | "7d", maxResults: 5) => Promise<readonly string[]> }) => ({
   createConnector,
   createSubjectConnector: () => ({
-    retrieveMessage: async (id: string) => ({ subject: `Subject ${id}`, snippet: "MUST NOT LEAK" }),
+    retrieveMessage: async (id: string) => ({ sender: `Sender ${id} <${id}@example.com>`, subject: `Subject ${id}`, snippet: "MUST NOT LEAK" }),
   }),
   loadPolicy: async () => subjectListPolicy,
 });
@@ -89,9 +89,9 @@ describe("POST /api/lighter/chat", () => {
       pendingAuthorizationReference: ask.pendingAuthorizationReference }));
     const allow = await allowResponse.json();
     expect(allow).toEqual({
-      reply: "Recent Gmail messages:\n- Subject id-1\n- Subject id-2\n- Subject id-3\n- Subject id-4\n- Subject id-5", specialistId: "jarvis", execution: "none",
+      reply: "Recent Gmail messages:\n1. From: Sender id-1 <id-1@example.com>\n   Subject: Subject id-1\n2. From: Sender id-2 <id-2@example.com>\n   Subject: Subject id-2\n3. From: Sender id-3 <id-3@example.com>\n   Subject: Subject id-3\n4. From: Sender id-4 <id-4@example.com>\n   Subject: Subject id-4\n5. From: Sender id-5 <id-5@example.com>\n   Subject: Subject id-5", specialistId: "jarvis", execution: "none",
       gmailSearchAuthority: { decision: "ALLOW", reason: "pending_authorization_confirmed" },
-      messageIds: ["id-1", "id-2", "id-3", "id-4", "id-5"],
+      gmailMessageListReference: { gmailMessageListReferenceId: expect.any(String) },
     });
     expect(JSON.stringify(allow)).not.toMatch(/MUST NOT LEAK|snippet|body/i);
     expect(searchConnector).toHaveBeenCalledOnce(); expect(search).toHaveBeenCalledOnce();
@@ -121,8 +121,9 @@ describe("POST /api/lighter/chat", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
-      reply: "Recent Gmail messages:\n- Subject long-session-id",
+      reply: "Recent Gmail messages:\n1. From: Sender long-session-id <long-session-id@example.com>\n   Subject: Subject long-session-id",
       gmailSearchAuthority: { decision: "ALLOW", reason: "pending_authorization_confirmed" },
+      gmailMessageListReference: { gmailMessageListReferenceId: expect.any(String) },
     });
     expect(search).toHaveBeenCalledWith("7d", 5);
     expect(model).not.toHaveBeenCalled();
@@ -1996,11 +1997,11 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     }))).json();
 
     expect(allow).toEqual({
-      reply: "Recent Gmail messages:\n- Subject id-1\n- Subject id-2\n- Subject id-3\n- Subject id-4\n- Subject id-5",
+      reply: "Recent Gmail messages:\n1. From: Sender id-1 <id-1@example.com>\n   Subject: Subject id-1\n2. From: Sender id-2 <id-2@example.com>\n   Subject: Subject id-2\n3. From: Sender id-3 <id-3@example.com>\n   Subject: Subject id-3\n4. From: Sender id-4 <id-4@example.com>\n   Subject: Subject id-4\n5. From: Sender id-5 <id-5@example.com>\n   Subject: Subject id-5",
       specialistId: "jarvis",
       execution: "none",
       gmailSearchAuthority: { decision: "ALLOW", reason: "pending_authorization_confirmed" },
-      messageIds: ["id-1", "id-2", "id-3", "id-4", "id-5"],
+      gmailMessageListReference: { gmailMessageListReferenceId: expect.any(String) },
     });
     expect(search).toHaveBeenCalledOnce();
     expect(search).toHaveBeenCalledWith("7d", 5);

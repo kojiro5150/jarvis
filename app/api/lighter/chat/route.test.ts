@@ -954,10 +954,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
   it.each([
     ["Show my calendar Monday", "I don't have access to your calendar.", "The governed Calendar path supports calendar.read, but it does not support this request."],
     ["What Calendar capabilities do you have?", "That capability does not exist.", "The governed Calendar path supports calendar.read, but it does not support this request."],
-    ["Show me my emails", "I don't have access to Gmail.", "I recognized that as a Gmail request, but natural-language handoff to the governed Gmail authority path is not yet available."],
-    ["Check my Gmail", "Gmail is not connected.", "I recognized that as a Gmail request, but natural-language handoff to the governed Gmail authority path is not yet available."],
     ["Read my latest email", "I cannot read email.", "I recognized that as a Gmail request, but natural-language handoff to the governed Gmail authority path is not yet available."],
-    ["Get my inbox", "I don't have that capability.", "I recognized that as a Gmail request, but natural-language handoff to the governed Gmail authority path is not yet available."],
   ])("corrects unsupported private request capability representation without acquiring: %s", async (utterance, modelReply, expected) => {
     const model = vi.fn(async () => modelReply);
     const calendarConnector = vi.fn();

@@ -51,7 +51,7 @@ describe("Sprint 3.180b live capability selection", () => {
       }
       return JSON.stringify({ kind: "ordinary_conversation" });
     });
-    const handler = createLighterChatHandler(model, undefined, undefined, undefined, undefined, undefined, groundedWeatherDependencies);
+    const handler = createLighterChatHandler(model, undefined, undefined, undefined, undefined, undefined, { weather: groundedWeatherDependencies });
 
     const response = await (await handler(request([
       { role: "user", content: "When am I next doing something on JARVIS?" },
@@ -71,12 +71,12 @@ describe("Sprint 3.180b live capability selection", () => {
     expect(response.reply).toContain("Grounded weather for Geelong, Australia tomorrow");
     expect(response.reply).toContain("Maximum precipitation probability: 65%");
     expect(response).not.toHaveProperty("pendingAuthorizationReference");
-    expect(model).toHaveBeenCalledTimes(1);
+    expect(model).not.toHaveBeenCalled();
   });
 
   it("keeps identical weather wording public even when the selector declines it", async () => {
     const model = vi.fn(async () => JSON.stringify({ kind: "ordinary_conversation" }));
-    const handler = createLighterChatHandler(model, undefined, undefined, undefined, undefined, undefined, groundedWeatherDependencies);
+    const handler = createLighterChatHandler(model, undefined, undefined, undefined, undefined, undefined, { weather: groundedWeatherDependencies });
 
     const first = await (await handler(request([
       { role: "user", content: "Will it rain in Geelong tomorrow?" },
@@ -90,6 +90,7 @@ describe("Sprint 3.180b live capability selection", () => {
     expect(second.reply).toBe(first.reply);
     expect(first).not.toHaveProperty("pendingAuthorizationReference");
     expect(second).not.toHaveProperty("pendingAuthorizationReference");
+    expect(model).not.toHaveBeenCalled();
   });
 
   it("recognizes natural Gmail wording without pretending Gmail is unavailable", async () => {
@@ -125,12 +126,13 @@ describe("Sprint 3.180b live capability selection", () => {
     ]))).json();
 
     expect(response).toEqual({
-      reply: "I recognized that as a public-information request, but public lookup is not yet available in this runtime.",
+      reply: "I couldn't establish current public evidence for that request, so I won't substitute an unsupported answer from model memory.",
       specialistId: "jarvis",
       execution: "none",
+      publicGrounding: { status: "unavailable", kind: "web_search" },
     });
     expect(response).not.toHaveProperty("pendingAuthorizationReference");
-    expect(model).toHaveBeenCalledTimes(1);
+    expect(model).not.toHaveBeenCalled();
   });
 
   it("does not turn yes after unavailable SSRN lookup into fake authority", async () => {

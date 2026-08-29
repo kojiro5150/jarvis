@@ -24,7 +24,6 @@ export type CalendarConflictReasoningResolution =
   | Readonly<{ status: "expired" | "invalid" | "absent"; observation: null }>;
 
 const store = new Map<string, StoredCalendarConflictReasoning>();
-let currentReferenceId: string | null = null;
 
 function isReference(value: unknown): value is CalendarConflictReasoningReference {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
@@ -55,6 +54,7 @@ function storedFrom(reference: unknown): StoredCalendarConflictReasoning | null 
 
 export function createCalendarConflictReasoningReference(input: {
   readonly observation: GoldenScenarioGateKObservation;
+  readonly previousReference?: unknown;
   readonly now?: Date;
 }): CalendarConflictReasoningReference | null {
   const now = input.now ?? new Date();
@@ -63,11 +63,9 @@ export function createCalendarConflictReasoningReference(input: {
   const id = randomUUID();
   const reference = Object.freeze({ calendarConflictReasoningReferenceId: id });
 
-  if (currentReferenceId) {
-    const current = store.get(currentReferenceId);
-    if (current && current.supersededBy === null) {
-      store.set(current.id, Object.freeze({ ...current, supersededBy: id }));
-    }
+  const previous = input.previousReference === undefined ? null : storedFrom(input.previousReference);
+  if (previous && previous.supersededBy === null) {
+    store.set(previous.id, Object.freeze({ ...previous, supersededBy: id }));
   }
 
   store.set(id, Object.freeze({
@@ -79,7 +77,6 @@ export function createCalendarConflictReasoningReference(input: {
     subsequentUserTurns: 0,
     supersededBy: null,
   }));
-  currentReferenceId = id;
   return reference;
 }
 

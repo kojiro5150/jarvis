@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAgent } from "@/lib/agents";
+import { jarvis } from "@/lib/agents";
 import { callClaude } from "@/lib/claude";
 import { executeAuditedChat } from "@/lib/agents/chat-execution";
 import { createExecutionAuditStore } from "@/lib/agents/execution-audit-store-factory";
@@ -100,7 +100,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const agent = getAgent(agentId ?? "jarvis");
+  if (agentId !== undefined && agentId !== "jarvis") {
+    return NextResponse.json(
+      { error: "JARVIS Core exposes a single conversational intelligence." },
+      { status: 400 }
+    );
+  }
+
+  const agent = jarvis;
 
   try {
     const systemPrompt = assembleAgentSystemPrompt(

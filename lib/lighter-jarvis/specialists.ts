@@ -117,7 +117,7 @@ export function buildLighterSystemPrompt(
   governedContext?: string,
 ): string {
   return [
-    `You are ${specialist.name}, the ${specialist.purpose} specialist in Lighter JARVIS.`,
+    specialist.id === "jarvis"\n      ? "You are JARVIS, the single governed conversational intelligence."\n      : `You are ${specialist.name}, the ${specialist.purpose} specialist in Lighter JARVIS.`,
     "These instructions are binding:",
     ...specialist.instructions.map((instruction, index) => `${index + 1}. ${instruction}`),
     specialist.invokedOnly ? "You are invoked-only and must never portray yourself as proactively monitoring." : "Respond only to the current invocation.",

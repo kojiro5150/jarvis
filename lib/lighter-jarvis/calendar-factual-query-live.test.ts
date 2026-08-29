@@ -312,8 +312,13 @@ describe("live governed Calendar factual query", () => {
     expect(model.mock.calls[0][0]).toContain("bounded Calendar factual-intent interpreter");
   });
 
-  it("keeps pronoun-led weather wording out of Calendar", async () => {
-    const model = vi.fn(async (_systemPrompt: string) => "Ordinary weather conversation.");
+  it("keeps pronoun-led weather wording out of Calendar and on ordinary web-enabled JARVIS", async () => {
+    const model = vi.fn(async (systemPrompt: string, _messages: unknown, tools?: unknown[]) =>
+      Array.isArray(tools)
+        ? "Current weather answer."
+        : systemPrompt.includes("bounded conversational capability selector")
+          ? '{"kind":"capability_request","capability":"public_information","operation":"lookup"}'
+          : "ordinary");
     const c = connector();
     const handler = createLighterChatHandler(model, {
       createConnector: () => c.value,
@@ -323,10 +328,9 @@ describe("live governed Calendar factual query", () => {
       specialistId: "jarvis",
       messages: [{ role: "user", content: "When is it going to rain next?" }],
     }))).json();
-    expect(response.reply).toBe("I recognized that as a public-information request, but public lookup is not yet available in this runtime.");
+    expect(response.reply).toBe("Current weather answer.");
     expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
-    expect(model).toHaveBeenCalledTimes(1);
-    expect(model.mock.calls[0][0]).toContain("bounded conversational capability selector");
+    expect(model).toHaveBeenCalledTimes(2);
   });
 
   it("contains doing-something Level-2 wording without Calendar authority or acquisition", async () => {
@@ -392,11 +396,13 @@ describe("live governed Calendar factual query", () => {
     expect(model).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps a non-schedule when-again question entirely on ordinary conversation", async () => {
-    const model = vi.fn(async (systemPrompt: string) =>
-      systemPrompt.includes("bounded Calendar factual-intent interpreter")
-        ? '{"kind":"unsupported"}'
-        : "Ordinary weather conversation.");
+  it("keeps a non-schedule when-again question on ordinary web-enabled JARVIS", async () => {
+    const model = vi.fn(async (systemPrompt: string, _messages: unknown, tools?: unknown[]) =>
+      Array.isArray(tools)
+        ? "Current weather answer."
+        : systemPrompt.includes("bounded Calendar factual-intent interpreter")
+          ? '{"kind":"unsupported"}'
+          : '{"kind":"capability_request","capability":"public_information","operation":"lookup"}');
     const c = connector();
     const handler = createLighterChatHandler(model, {
       createConnector: () => c.value,
@@ -408,10 +414,9 @@ describe("live governed Calendar factual query", () => {
       messages: [{ role: "user", content: "When will it rain again?" }],
     }))).json();
 
-    expect(response.reply).toBe("I recognized that as a public-information request, but public lookup is not yet available in this runtime.");
+    expect(response.reply).toBe("Current weather answer.");
     expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
-    expect(model).toHaveBeenCalledTimes(1);
-    expect(model.mock.calls[0][0]).toContain("bounded conversational capability selector");
+    expect(model).toHaveBeenCalledTimes(2);
   });
 
   it("does not let a malformed follow-up turn a prior negative factual result into a commitment", async () => {

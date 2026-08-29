@@ -797,7 +797,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       const governedContext = createGovernedContext(projectCalendarContext(calendar.evidence!.evidence, calendar.window,
         bindingState.bindings, bindingState.unbound));
       try {
-        const systemPrompt = await buildSpecialistPrompt(specialist);
+        const systemPrompt = await buildSpecialistPrompt();
         const modelMessages = sanitizeModelHistory(body.messages);
         const result = await callModel(systemPrompt, modelMessages, undefined, governedContext);
         const modelReply = typeof result === "string" ? result : result.text;

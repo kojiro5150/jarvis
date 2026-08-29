@@ -60,9 +60,16 @@ export async function resolveProductionGmailSearch(
   },
   dependencies: ProductionGmailSearchDependencies = defaults,
 ): Promise<ProductionGmailSearchResult> {
+  const isExplicitSearchCommand = PREFIX.test(input.currentUserUtterance);
+  const freshNaturalProposal = isExplicitSearchCommand
+    ? null
+    : proposeNaturalLanguageGmailSearch(input.currentUserUtterance);
+
   if (Object.hasOwn(input, "gmailSenderDisambiguationReference")
       && input.gmailSenderDisambiguationReference !== null
-      && input.gmailSenderDisambiguationReference !== undefined) {
+      && input.gmailSenderDisambiguationReference !== undefined
+      && !isExplicitSearchCommand
+      && freshNaturalProposal === null) {
     const refinement = resolveGmailSenderDisambiguationReference({
       reference: input.gmailSenderDisambiguationReference,
       currentUserUtterance: input.currentUserUtterance,
@@ -121,8 +128,8 @@ export async function resolveProductionGmailSearch(
     return execute(operation, resolution.reason, dependencies);
   }
 
-  if (!PREFIX.test(input.currentUserUtterance)) {
-    const proposal = proposeNaturalLanguageGmailSearch(input.currentUserUtterance);
+  if (!isExplicitSearchCommand) {
+    const proposal = freshNaturalProposal;
     if (!proposal) return Object.freeze({ handled: false });
     return Object.freeze({
       handled: true,
@@ -130,6 +137,9 @@ export async function resolveProductionGmailSearch(
       reason: "explicit_gmail_search_not_established",
       reply: "Please explicitly confirm that I may search Gmail.",
       pendingAuthorizationReference: createPendingAuthorization(proposal),
+      ...(Object.hasOwn(input, "gmailSenderDisambiguationReference")
+        ? { gmailSenderDisambiguationReference: null }
+        : {}),
     });
   }
 

@@ -13,6 +13,11 @@ export type CalendarConflictAdviseResult = Readonly<{
   calendarAdviceReference?: CalendarAdviceReference;
 }>;
 
+export function isCalendarConflictAdviseQuestion(utterance: string): boolean {
+  const normalized = utterance.normalize("NFKC").toLowerCase().replace(/[‘’]/g, "'").replace(/[^a-z0-9]+/g, " ").trim();
+  return normalized === "what would you do";
+}
+
 const ADVISE_PROMPT = [
   "You are a bounded recommendation classifier for one governed Calendar conflict.",
   "You receive one minimal current evidence object plus one explicit user preference.",

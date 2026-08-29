@@ -19,7 +19,8 @@ export type GoldenScenarioGateKResult =
   | Readonly<{ status: "not_found" | "ambiguous_pending_invitation" | "invalid"; observations: readonly [] }>;
 
 function empty(status: Exclude<GoldenScenarioGateKResult["status"], "matched">): GoldenScenarioGateKResult {
-  return Object.freeze({ status, observations: Object.freeze([]) });
+  const observations = Object.freeze([]) as readonly [];
+  return Object.freeze({ status, observations });
 }
 
 function compareDeepWork(left: GoldenScenarioGateKObservation, right: GoldenScenarioGateKObservation): number {

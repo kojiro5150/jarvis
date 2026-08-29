@@ -382,6 +382,75 @@ describe("production gmail.search", () => {
     expect(searchByAddress).not.toHaveBeenCalled();
   });
 
+  it("keeps the same sender-disambiguation reference across repeated misses and later accepts the exact candidate", async () => {
+    const discoverSenderIdentities = vi.fn(async () => ({
+      complete: true,
+      identities: [
+        { displayName: "Georgia McDonald", address: "georgia.mcdonald@example.com" },
+        { displayName: "Georgia Radford", address: "georgia.radford@example.com" },
+      ],
+    }));
+    const searchByAddress = vi.fn(async () => ["one"]);
+    const retrieveMessage = vi.fn(async () => ({ subject: "Subject one" }));
+    const deps = {
+      createConnector: () => ({ search: vi.fn(async () => []) }),
+      createSenderConnector: () => ({ discoverSenderIdentities, searchByAddress }),
+      createSubjectConnector: () => ({ retrieveMessage }),
+      loadPolicy: async () => ({
+        policyVersion: "test-v1",
+        rules: [{
+          id: "email",
+          match: { connectorType: "email" as const },
+          processing: "external_processing_permitted" as const,
+          admissibleFields: ["subject"],
+        }],
+      }),
+    };
+
+    const proposed = await resolveProductionGmailSearch({
+      currentUserUtterance: "Find the email from Georgia",
+    }, deps);
+    const ambiguous = await resolveProductionGmailSearch({
+      currentUserUtterance: "yes",
+      pendingAuthorizationReference: proposed.pendingAuthorizationReference,
+    }, deps);
+
+    const firstMiss = await resolveProductionGmailSearch({
+      currentUserUtterance: "Georgia MacDonald",
+      gmailSenderDisambiguationReference: ambiguous.gmailSenderDisambiguationReference,
+    }, deps);
+    expect(firstMiss).toMatchObject({
+      reason: "gmail_sender_disambiguation_not_found",
+      gmailSenderDisambiguationReference: ambiguous.gmailSenderDisambiguationReference,
+    });
+
+    const secondMiss = await resolveProductionGmailSearch({
+      currentUserUtterance: "Georgia MacDonald",
+      gmailSenderDisambiguationReference: firstMiss.gmailSenderDisambiguationReference,
+    }, deps);
+    expect(secondMiss).toMatchObject({
+      reason: "gmail_sender_disambiguation_not_found",
+      gmailSenderDisambiguationReference: ambiguous.gmailSenderDisambiguationReference,
+    });
+
+    const matched = await resolveProductionGmailSearch({
+      currentUserUtterance: "Georgia McDonald",
+      gmailSenderDisambiguationReference: secondMiss.gmailSenderDisambiguationReference,
+    }, deps);
+
+    expect(matched).toEqual({
+      handled: true,
+      decision: "ALLOW",
+      reason: "gmail_sender_disambiguation_resolved",
+      messageIds: ["one"],
+      reply: "Gmail messages from Georgia McDonald <georgia.mcdonald@example.com>:\n- Subject one",
+      gmailSenderDisambiguationReference: null,
+    });
+    expect(discoverSenderIdentities).toHaveBeenCalledTimes(1);
+    expect(searchByAddress).toHaveBeenCalledTimes(1);
+    expect(searchByAddress).toHaveBeenCalledWith("georgia.mcdonald@example.com", 5);
+  });
+
   it("GS002A fails closed when the bounded identity scan cannot prove uniqueness", async () => {
     const discoverSenderIdentities = vi.fn(async () => ({
       complete: false,

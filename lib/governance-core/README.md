@@ -44,3 +44,13 @@ Model proposal construction is now represented explicitly by `ModelProposal<T>` 
 A proposal is only JARVIS's interpretation of the user's request. It is deliberately not a `ValidatedOperation<T>`, authority, evidence, provenance, policy proof, verification proof, or completion proof. Compound requests may produce multiple proposals, but grouping them does not create shared authority between sibling operations.
 
 This PR does not replace the current Calendar/Gmail/Drive conversational selector or migrate any live capability path. It establishes the typed low-trust destination those later migrations must target under `MIGRATION-LOCK-01`.
+
+## Conversation state versus governance state
+
+PR D adds the common state boundary without forcing the existing reference stores into one runtime registry.
+
+`ConversationReference` and `ConversationState` may preserve semantic continuity such as "the first one" or "that meeting". They are intentionally low-trust and cannot satisfy validation, authority, evidence, provenance, policy, verification, or completion types.
+
+`GovernanceState<T>` is a separate server-owned category. This module exposes no generic constructor for it. Later capability migrations must resolve genuine server-owned state at a trusted boundary rather than promote a client-carried reference or model proposal.
+
+The lifecycle audit in `REFERENCE-LIFECYCLE-AUDIT.md` records why existing Gmail, Calendar, result-set, disambiguation, and pending-authorisation stores are **not** being prematurely collapsed into one registry.

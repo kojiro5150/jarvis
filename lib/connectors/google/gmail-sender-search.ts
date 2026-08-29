@@ -11,7 +11,7 @@ export type GmailSenderCandidateScan = Readonly<{
 }>;
 
 export interface GmailSenderSearchConnector {
-  discoverSenderIdentities(terms: readonly string[], scanLimit: 100): Promise<GmailSenderCandidateScan>;
+  discoverSenderIdentities(terms: readonly string[], scanLimit: number): Promise<GmailSenderCandidateScan>;
   searchByAddress(address: string, maxResults: 5): Promise<readonly string[]>;
 }
 
@@ -53,7 +53,7 @@ async function readSenderIdentity(id: string): Promise<GmailSenderIdentity | nul
 }
 
 export class GoogleGmailSenderSearchConnector implements GmailSenderSearchConnector {
-  async discoverSenderIdentities(terms: readonly string[], scanLimit: 100): Promise<GmailSenderCandidateScan> {
+  async discoverSenderIdentities(terms: readonly string[], scanLimit: number): Promise<GmailSenderCandidateScan> {
     const ids: string[] = [];
     let pageToken: string | undefined;
 

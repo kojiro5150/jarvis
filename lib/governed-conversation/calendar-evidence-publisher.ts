@@ -1,6 +1,5 @@
 import type { CalendarEvent } from "../connectors/calendar-event";
 import type { GovernedCalendarEvidenceInput } from "./projection-composer";
-import { calendarCommitmentIdentity } from "./calendar-commitment-reference";
 
 export const CALENDAR_CONVERSATIONAL_DISCLOSURE_POLICY = "governed-calendar-conversational-metadata-disclosure.v1";
 export interface GovernedCalendarPublicationInput {
@@ -20,23 +19,9 @@ export function publishCalendarEvidence(input: GovernedCalendarPublicationInput)
   const coverageLimit = `window=${input.windowStart}/${input.windowEnd};max_events=${input.requestedLimit};scope=visible_non_hidden_calendars;completeness=${input.coverageState}`;
   return Object.freeze(input.events.flatMap(event => {
     const timezone = nonempty(event.start) ? calendarTimezone(event.start) : undefined;
-    const identity = calendarCommitmentIdentity(event);
-    if (!identity || !timezone || !nonempty(event.end)) return [];
-    return [Object.freeze({
-      commitmentReference: identity.commitmentReference,
-      sourceReference: Object.freeze({
-        sourceId: "google-calendar",
-        resourceId: identity.resourceId,
-        field: "schedule_interval",
-        observedAt: input.retrievedAt,
-      }),
-      start: event.start,
-      end: event.end,
-      timezone,
-      provenanceReference: identity.provenanceReference,
-      available: true,
-      coverageLimit,
-      policyReference: CALENDAR_CONVERSATIONAL_DISCLOSURE_POLICY,
-    })];
+    const synthetic = event.id.startsWith("local-") || event.id === `google-${event.calendarId}-${event.id.split("-").at(-1)}` && /^google-.+-\d+$/.test(event.id);
+    if (event.source !== "google" || !nonempty(event.id) || synthetic || !nonempty(event.calendarId) || !timezone || !nonempty(event.end)) return [];
+    const commitmentReference = `google-calendar:calendar:${event.calendarId}:event:${event.id}`;
+    return [Object.freeze({ commitmentReference, sourceReference: Object.freeze({ sourceId: "google-calendar", resourceId: `calendar:${event.calendarId}:event:${event.id}`, field: "schedule_interval", observedAt: input.retrievedAt }), start: event.start, end: event.end, timezone, provenanceReference: `${commitmentReference}#provenance`, available: true, coverageLimit, policyReference: CALENDAR_CONVERSATIONAL_DISCLOSURE_POLICY })];
   }));
 }

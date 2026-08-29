@@ -6,22 +6,19 @@ import type { GoogleTokens } from "./tokens";
  * lean (consistent with "no paid services beyond the Claude API" and a
  * minimal footprint on Vercel's free tier).
  *
- * Scope remains least-privilege by service: Calendar keeps its proven read-only
- * scope and adds calendar.events for the bounded event-move capability;
- * Sprint 2.7) gmail.readonly, and (as of Sprint 3.148) drive.readonly.
+ * Scope remains least-privilege by service: Calendar keeps its proven
+ * calendar.readonly scope and adds calendar.events for the bounded event-move
+ * capability; Gmail and Drive remain read-only.
  * Drive's minimum general read-only scope supports the deliberately narrow
  * identified-Google-Doc export path as well as metadata search. All
  * three are requested together in one consent screen — one Google grant
  * backs all three connectors, since they share the same token store (see
  * access-token.ts).
  *
- * SCOPE MIGRATION NOTE: anyone who connected before this scope was added has
- * a token grant that predates drive.readonly. Google doesn't
- * retroactively add scope to an existing grant — they'll see Drive stay
- * "unavailable" until they Disconnect and Connect again, which re-runs
- * this consent screen with all three scopes at once (the callback route
- * always overwrites the whole token file, so there's no partial-scope
- * merge to get wrong).
+ * SCOPE MIGRATION NOTE: Google does not retroactively add newly requested
+ * scopes to an existing grant. A stored grant without calendar.events must
+ * reconnect and re-consent before Calendar writes are eligible. The callback
+ * overwrites the complete stored token record, avoiding partial-scope merge.
  */
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";

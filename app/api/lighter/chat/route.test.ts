@@ -1514,6 +1514,34 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     expect(gmailSearchConnector).not.toHaveBeenCalled();
   });
 
+  it("contains the numeric ambiguous prior-Gmail follow-up before ordinary model generation", async () => {
+    const model = vi.fn(async () => "fabricated private email list");
+    const gmailSearchConnector = vi.fn();
+    const gmailReadConnector = vi.fn();
+    const response = await createLighterChatHandler(
+      model,
+      undefined,
+      { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
+      { createConnector: gmailSearchConnector },
+    )(request({
+      specialistId: "jarvis",
+      messages: [
+        { role: "user", content: "What are my last 5 emails?" },
+        { role: "assistant", content: "Recent Gmail messages:\n- Jarvis Test email\n- Private CI notice" },
+        { role: "user", content: "one of my last 5 emails" },
+      ],
+    }));
+
+    expect(await response.json()).toEqual({
+      reply: "I can't safely identify a prior Gmail item from ordinary model context.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(model).not.toHaveBeenCalled();
+    expect(gmailSearchConnector).not.toHaveBeenCalled();
+    expect(gmailReadConnector).not.toHaveBeenCalled();
+  });
+
   it("contains an ambiguous prior-Gmail follow-up before ordinary model generation", async () => {
     const model = vi.fn(async () => [
       "Based on the earlier retrieval:",

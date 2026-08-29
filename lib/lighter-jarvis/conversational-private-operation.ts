@@ -21,7 +21,11 @@ export function materializeConversationalPrivateOperation(
   // A conversational request is therefore bounded to the wider existing
   // search window rather than allowing the model to invent query scope.
   if (intent.temporalConstraint === "tomorrow" || intent.temporalConstraint === "next_week") return null;
-  if (intent.subjectTerms && intent.subjectTerms.length > 0) return null;
+
+  const semanticSubjectTerms = (intent.subjectTerms ?? []).filter(term =>
+    !["gmail", "email", "emails", "inbox"].includes(term)
+  );
+  if (semanticSubjectTerms.length > 0) return null;
 
   const newerThan = intent.temporalConstraint === "today" ? "1d" : "7d";
   return proposeGmailSearch(newerThan);

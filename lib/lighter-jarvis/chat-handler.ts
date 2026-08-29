@@ -294,6 +294,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
             publicGrounding: {
               status: "unavailable",
               kind: publicLookup.kind,
+              ...(publicLookup.kind === "weather" && grounded.reason ? { reason: grounded.reason } : {}),
             },
           });
         }

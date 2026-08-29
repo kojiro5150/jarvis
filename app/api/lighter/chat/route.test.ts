@@ -101,7 +101,7 @@ describe("POST /api/lighter/chat", () => {
       reply: "I couldn't establish current public evidence for that request, so I won't substitute an unsupported answer from model memory.",
       specialistId: "jarvis",
       execution: "none",
-      publicGrounding: { status: "unavailable", kind: "weather" },
+      publicGrounding: { status: "unavailable", kind: "weather", reason: "geocoding_network_error" },
     });
     expect(body.reply).not.toContain("22°C");
     expect(model).not.toHaveBeenCalled();

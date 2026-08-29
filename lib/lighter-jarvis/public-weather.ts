@@ -9,6 +9,22 @@ export type PublicWeatherDependencies = Readonly<{
   clock: () => Date;
 }>;
 
+export type PublicWeatherGroundingFailureReason =
+  | "geocoding_network_error"
+  | "geocoding_http_error"
+  | "geocoding_invalid_json"
+  | "geocoding_no_result"
+  | "geocoding_invalid_result"
+  | "forecast_network_error"
+  | "forecast_http_error"
+  | "forecast_invalid_json"
+  | "forecast_invalid_shape"
+  | "forecast_target_date_missing";
+
+export type PublicWeatherGroundingAttempt =
+  | Readonly<{ status: "grounded"; evidence: RetrievedWeatherPublicEvidence }>
+  | Readonly<{ status: "unavailable"; reason: PublicWeatherGroundingFailureReason }>;
+
 const defaults: PublicWeatherDependencies = {
   fetch,
   clock: () => new Date(),
@@ -74,10 +90,10 @@ function stringArray(value: unknown): readonly string[] | null {
  * value only after location, target-date alignment, and required fields pass
  * deterministic validation.
  */
-export async function acquireGroundedPublicWeather(
+export async function acquireGroundedPublicWeatherWithDiagnostics(
   request: PublicWeatherRequest,
   dependencies: PublicWeatherDependencies = defaults,
-): Promise<RetrievedWeatherPublicEvidence | null> {
+): Promise<PublicWeatherGroundingAttempt> {
   const geocoding = new URL("https://geocoding-api.open-meteo.com/v1/search");
   geocoding.searchParams.set("name", request.location);
   geocoding.searchParams.set("count", "1");
@@ -88,25 +104,31 @@ export async function acquireGroundedPublicWeather(
   try {
     geoResponse = await dependencies.fetch(geocoding);
   } catch {
-    return null;
+    return Object.freeze({ status: "unavailable" as const, reason: "geocoding_network_error" as const });
   }
-  if (!geoResponse.ok) return null;
+  if (!geoResponse.ok) {
+    return Object.freeze({ status: "unavailable" as const, reason: "geocoding_http_error" as const });
+  }
 
   let geoJson: GeocodingResponse;
   try {
     geoJson = await geoResponse.json() as GeocodingResponse;
   } catch {
-    return null;
+    return Object.freeze({ status: "unavailable" as const, reason: "geocoding_invalid_json" as const });
   }
   const first = geoJson.results?.[0];
-  if (!first) return null;
+  if (!first) {
+    return Object.freeze({ status: "unavailable" as const, reason: "geocoding_no_result" as const });
+  }
 
   const name = stringValue(first.name);
   const country = stringValue(first.country);
   const latitude = finiteNumber(first.latitude);
   const longitude = finiteNumber(first.longitude);
   const timezone = stringValue(first.timezone);
-  if (!name || latitude === null || longitude === null || !timezone) return null;
+  if (!name || latitude === null || longitude === null || !timezone) {
+    return Object.freeze({ status: "unavailable" as const, reason: "geocoding_invalid_result" as const });
+  }
 
   const now = dependencies.clock();
   const today = localIsoDate(now, timezone);
@@ -123,15 +145,17 @@ export async function acquireGroundedPublicWeather(
   try {
     forecastResponse = await dependencies.fetch(forecast);
   } catch {
-    return null;
+    return Object.freeze({ status: "unavailable" as const, reason: "forecast_network_error" as const });
   }
-  if (!forecastResponse.ok) return null;
+  if (!forecastResponse.ok) {
+    return Object.freeze({ status: "unavailable" as const, reason: "forecast_http_error" as const });
+  }
 
   let forecastJson: ForecastResponse;
   try {
     forecastJson = await forecastResponse.json() as ForecastResponse;
   } catch {
-    return null;
+    return Object.freeze({ status: "unavailable" as const, reason: "forecast_invalid_json" as const });
   }
 
   const times = stringArray(forecastJson.daily?.time);
@@ -139,9 +163,13 @@ export async function acquireGroundedPublicWeather(
   const max = numberArray(forecastJson.daily?.temperature_2m_max);
   const rain = numberArray(forecastJson.daily?.precipitation_probability_max);
   const codes = numberArray(forecastJson.daily?.weather_code);
-  if (!times || !min || !max || !rain || !codes) return null;
+  if (!times || !min || !max || !rain || !codes) {
+    return Object.freeze({ status: "unavailable" as const, reason: "forecast_invalid_shape" as const });
+  }
   const index = times.indexOf(targetDate);
-  if (index < 0 || index >= min.length || index >= max.length || index >= rain.length || index >= codes.length) return null;
+  if (index < 0 || index >= min.length || index >= max.length || index >= rain.length || index >= codes.length) {
+    return Object.freeze({ status: "unavailable" as const, reason: "forecast_target_date_missing" as const });
+  }
 
   const provenance = Object.freeze({
     provider: "open-meteo",
@@ -150,7 +178,7 @@ export async function acquireGroundedPublicWeather(
     supportingUrls: Object.freeze([geocoding.toString()]),
   }) as PublicEvidenceProvenance;
 
-  return Object.freeze({
+  const evidence = Object.freeze({
     kind: "weather" as const,
     payload: Object.freeze({
       location: Object.freeze({
@@ -170,6 +198,16 @@ export async function acquireGroundedPublicWeather(
     }),
     provenance,
   }) as RetrievedWeatherPublicEvidence;
+
+  return Object.freeze({ status: "grounded" as const, evidence });
+}
+
+export async function acquireGroundedPublicWeather(
+  request: PublicWeatherRequest,
+  dependencies: PublicWeatherDependencies = defaults,
+): Promise<RetrievedWeatherPublicEvidence | null> {
+  const result = await acquireGroundedPublicWeatherWithDiagnostics(request, dependencies);
+  return result.status === "grounded" ? result.evidence : null;
 }
 
 function round(value: number): number {

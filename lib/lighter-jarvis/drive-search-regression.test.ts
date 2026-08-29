@@ -77,6 +77,8 @@ describe("Sprint 3.144 Drive search scoped regression proofs", () => {
       { role: "user", content: "Earlier request" },
       { role: "assistant", content: "[Governed private result omitted from ordinary model context.]" },
       { role: "user", content: "Discuss something unrelated" },
+    ], [
+      { type: "web_search_20250305", name: "web_search" },
     ]);
     expect(JSON.stringify(harness.model.mock.calls.at(-1))).not.toContain("fabricated-id");
     expect(JSON.stringify(harness.model.mock.calls.at(-1))).not.toContain("provider-id-");

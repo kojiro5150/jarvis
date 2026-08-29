@@ -3,7 +3,7 @@ import { GoogleGmailContentConnector } from "../chat-capabilities/google-gmail-c
 import { GmailContentRetrievalAdapter, GMAIL_CONTENT_FIELDS, type GmailContentConnector, type GmailContentField, type GmailReleasedContent } from "../content-retrieval";
 import { loadContentRetrievalPolicy, type ContentRetrievalPolicy } from "../content-retrieval-policy";
 
-const SYNTAX = "gmail.read <message-id> [subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata]";
+const SYNTAX = "gmail.read <message-id> [sender|subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata]";
 const COMMAND_PREFIX = /^gmail\.read(?:\s|$)/;
 const EXACT_COMMAND = /^gmail\.read ([^\s\[\],<>]+) \[([^\]]+)\]$/;
 

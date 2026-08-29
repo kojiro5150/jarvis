@@ -162,6 +162,10 @@ export function isUnsupportedCalendarFactualWording(utterance: string): boolean 
     && LEVEL_2_RELATIONAL_PATTERN.test(normalized)) return true;
   if (/^when am i\b/.test(normalized)) return true;
   if (/^when is my\b/.test(normalized)) return true;
+  // Malformed personal-next fragments such as "Is my next LLEGC meeting."
+  // must not fall through to ordinary model generation. They are not silently
+  // reinterpreted as a valid "When is..." query; they are contained instead.
+  if (/^is my next\b/.test(normalized)) return true;
   if (/^when do i next\b/.test(normalized)) return true;
   if (/^when do i next have\b/.test(normalized)) return true;
   if (/^when do i\b.*\bscheduled\b/.test(normalized)) return true;

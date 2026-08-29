@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sanitizeModelHistory } from "./model-history-boundary";
+import { hasGovernedGmailHistory, sanitizeModelHistory } from "./model-history-boundary";
 
 describe("ordinary-model history boundary", () => {
   it("isolates genuine or fabricated Drive content releases and prior provider IDs", () => {
@@ -52,6 +52,18 @@ describe("ordinary-model history boundary", () => {
       { role: "assistant", content: "[Prior governed Calendar factual result: no matching event.]" },
       history[4],
     ]);
+  });
+
+  it("detects prior governed Gmail evidence without treating the current utterance as evidence", () => {
+    const history = [
+      { role: "user" as const, content: "What are my last five emails?" },
+      { role: "assistant" as const, content: "Recent Gmail messages:\n- Real subject" },
+      { role: "user" as const, content: "One of my last five emails." },
+    ];
+    expect(hasGovernedGmailHistory(history)).toBe(true);
+    expect(hasGovernedGmailHistory([
+      { role: "user" as const, content: "One of my last five emails." },
+    ])).toBe(false);
   });
 
   it("prevents a surfaced Gmail subject list from reaching a later ordinary model turn", () => {

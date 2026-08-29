@@ -20,7 +20,7 @@ const make = (input: {
   referentialClass: input.referentialClass ?? "gmail.latest_messages",
   orderedResourceIds: input.ids ?? ["id-a", "id-b", "id-c"],
   originatingOperation: "gmail.search subject_list newer_than=7d max=5",
-  now: input.now,
+  ...(input.now ? { now: input.now } : {}),
 });
 
 describe("server-owned governed result-set references", () => {

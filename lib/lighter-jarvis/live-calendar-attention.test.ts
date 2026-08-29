@@ -359,9 +359,9 @@ describe("live Calendar attention composition", () => {
         calendarConflictReasoningReferenceId: expect.any(String),
       },
     });
-    expect(JSON.stringify(result.calendarConflictReasoningReference)).not.toMatch(
-      /Gate K Test Invite|JARVIS Deep Work Test|needsAction|deep_work|30/,
-    );
+    expect(result.calendarConflictReasoningReference).toEqual({
+      calendarConflictReasoningReferenceId: expect.any(String),
+    });
   });
 
 });

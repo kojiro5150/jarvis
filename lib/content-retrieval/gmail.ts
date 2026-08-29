@@ -10,6 +10,7 @@ import {
 } from "../content-retrieval-policy";
 
 export const GMAIL_CONTENT_FIELDS = [
+  "sender",
   "subject",
   "snippet",
   "plain_text_body",
@@ -32,6 +33,7 @@ export type GmailAttachmentMimeMetadata = Readonly<{
 
 /** Raw connector response. Extra connector fields are accepted but never copied to the result. */
 export type GmailRetrievedMessage = Readonly<{
+  sender?: string;
   subject?: string;
   snippet?: string;
   plainTextBody?: string;
@@ -44,6 +46,7 @@ export interface GmailContentConnector {
 }
 
 export type GmailReleasedContent = Readonly<{
+  sender?: string;
   subject?: string;
   snippet?: string;
   plainTextBody?: string;
@@ -76,6 +79,7 @@ const freeze = <T extends object>(value: T): Readonly<T> => {
 function selectContent(message: GmailRetrievedMessage, fields: readonly string[]): GmailReleasedContent {
   const selected: Record<string, unknown> = {};
   const allowed = new Set(fields);
+  if (allowed.has("sender") && typeof message.sender === "string") selected.sender = message.sender;
   if (allowed.has("subject") && typeof message.subject === "string") selected.subject = message.subject;
   if (allowed.has("snippet") && typeof message.snippet === "string") selected.snippet = message.snippet;
   if (allowed.has("plain_text_body") && typeof message.plainTextBody === "string") selected.plainTextBody = message.plainTextBody;

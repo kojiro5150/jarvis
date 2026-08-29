@@ -8,6 +8,7 @@ import { resolveProductionCalendarRead, type ProductionCalendarDependencies } fr
 import { CALENDAR_TIME_ZONE } from "@/lib/lighter-jarvis/calendar-read-window";
 import { resolveProductionGmailRead, type ProductionGmailDependencies } from "@/lib/lighter-jarvis/production-gmail-read";
 import { resolveProductionGmailSearch, type ProductionGmailSearchDependencies } from "@/lib/lighter-jarvis/production-gmail-search";
+import { resolveGmailOrdinalReadProposal } from "@/lib/lighter-jarvis/gmail-ordinal-read";
 import { hasGovernedDriveHistory, hasGovernedGmailHistory, sanitizeModelHistory } from "@/lib/lighter-jarvis/model-history-boundary";
 import {
   GMAIL_NO_PENDING_READ_AUTHORITY_REPLY,
@@ -72,6 +73,7 @@ interface LighterChatBody {
   marketScopes?: unknown;
   pendingAuthorizationReference?: unknown;
   gmailSenderDisambiguationReference?: unknown;
+  gmailMessageListReference?: unknown;
   calendarAttentionObservationReference?: unknown;
   calendarConflictReasoningReference?: unknown;
   calendarAdvicePreferenceReference?: unknown;
@@ -526,6 +528,29 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           ? { pendingAuthorizationReference: driveSearch.pendingAuthorizationReference }
           : {}) });
     }
+    const gmailOrdinalRead = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
+      ? resolveGmailOrdinalReadProposal({
+          currentUserUtterance,
+          ...(Object.hasOwn(body, "gmailMessageListReference")
+            ? { gmailMessageListReference: body.gmailMessageListReference }
+            : {}),
+        })
+      : null;
+    if (gmailOrdinalRead?.handled) {
+      return NextResponse.json({
+        reply: gmailOrdinalRead.reply,
+        specialistId: specialist.id,
+        execution: "none",
+        gmailAuthority: { decision: "ASK", reason: "ordinal_message_selected_requires_read_authority" },
+        ...(gmailOrdinalRead.pendingAuthorizationReference !== undefined
+          ? { pendingAuthorizationReference: gmailOrdinalRead.pendingAuthorizationReference }
+          : {}),
+        ...(gmailOrdinalRead.gmailMessageListReference !== undefined
+          ? { gmailMessageListReference: gmailOrdinalRead.gmailMessageListReference }
+          : {}),
+      });
+    }
+
     const gmailSearch = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
       ? await resolveProductionGmailSearch({ currentUserUtterance,
           ...(Object.hasOwn(body, "pendingAuthorizationReference")
@@ -538,12 +563,15 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     if (gmailSearch?.handled) {
       return NextResponse.json({ reply: gmailSearch.reply, specialistId: specialist.id, execution: "none",
         gmailSearchAuthority: { ...(gmailSearch.decision ? { decision: gmailSearch.decision } : {}), reason: gmailSearch.reason },
-        ...(gmailSearch.messageIds ? { messageIds: gmailSearch.messageIds } : {}),
+        ...(gmailSearch.messageIds && !gmailSearch.gmailMessageListReference ? { messageIds: gmailSearch.messageIds } : {}),
         ...(gmailSearch.pendingAuthorizationReference !== undefined
           ? { pendingAuthorizationReference: gmailSearch.pendingAuthorizationReference }
           : {}),
         ...(gmailSearch.gmailSenderDisambiguationReference !== undefined
           ? { gmailSenderDisambiguationReference: gmailSearch.gmailSenderDisambiguationReference }
+          : {}),
+        ...(gmailSearch.gmailMessageListReference !== undefined
+          ? { gmailMessageListReference: gmailSearch.gmailMessageListReference }
           : {}) });
     }
     const gmail = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined

@@ -33,6 +33,12 @@ export const UNSUPPORTED_DRIVE_PATH_REPLY =
 export const EXCLUDED_DRIVE_PROVENANCE_REPLY =
   "I can't represent a prior governed Drive result from ordinary model context.";
 
+export const SINGLE_JARVIS_IDENTITY_REPLY =
+  "I’ll handle that directly as JARVIS; there is no separate specialist handoff in this runtime.";
+
+const LEGACY_SPECIALIST_DELEGATION =
+  /\b(?:DAWNWATCH|ORACLE|HERALD|STEVE|MARCUS|GECKO)\b[\s\S]{0,120}\b(?:hand(?:-| )?off|handing|delegate|draft|access|report|reports|research|scan|suggest|recommend)|\b(?:hand(?:-| )?off|handing|delegate|suggest|recommend)\b[\s\S]{0,120}\b(?:DAWNWATCH|ORACLE|HERALD|STEVE|MARCUS|GECKO)\b/i;
+
 const INTERNAL_HISTORY_MARKERS = [
   "[Governed private result omitted from ordinary model context.]",
   "[Prior governed Gmail read request omitted from ordinary model context.]",
@@ -101,6 +107,9 @@ export type CalendarProvenanceState = Readonly<{
 export function guardOrdinaryModelReply(content: string, currentUserUtterance?: string, governedDriveHistoryExcluded = false,
   calendarProvenance?: CalendarProvenanceState): string {
   let guarded = content;
+  if (LEGACY_SPECIALIST_DELEGATION.test(content)) {
+    return SINGLE_JARVIS_IDENTITY_REPLY;
+  }
   const ordinaryCalendarFact = currentUserUtterance
     ? userSuppliedTimedCalendarDetail(currentUserUtterance) !== undefined
     : false;

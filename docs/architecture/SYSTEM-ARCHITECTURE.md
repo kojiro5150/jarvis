@@ -1,12 +1,39 @@
 # JARVIS System Architecture
 
-> **Supersession note — August 2026:** Sections below that describe specialist selection or named specialist coordination record the implementation architecture and historical UI, not the current user-facing product boundary. The governing direction is `USER ↔ JARVIS`: one persistent JARVIS identity may internally orchestrate bounded specialists/capabilities, but no capability should require the user to know or manually coordinate an internal specialist.
+> **Active architecture note — 30 August 2026:** `JARVIS-GOVERNANCE-CORE.md` governs the forward architecture. Sections below that describe specialist selection, named specialist coordination, handoff routing, or legacy runtime structure are implementation-history snapshots unless explicitly marked current. The target boundary is `USER ↔ JARVIS`: one persistent intelligence may use internal reasoning modules, while governed capabilities alone control private acquisition and action.
 
 ## Purpose
 
-JARVIS is a personal AI operating environment that coordinates specialised capabilities across situational awareness, research, communication, engineering, collaboration, reflection and governance reasoning.
+JARVIS is a personal AI operating environment built around one persistent conversational intelligence and bounded governed capabilities across situational awareness, research, communication, engineering, reflection and execution.
 
-It is not designed as a single all-purpose persona. Its architecture separates orchestration from bounded specialist work.
+The forward architecture separates **cognition** from **trust**: the LLM may reason, understand and propose broadly; typed governance boundaries determine what counts as policy, evidence, provenance, authority, execution and verification.
+
+## Forward target architecture
+
+```text
+User
+  ↕
+JARVIS intelligence
+  ↓
+untrusted proposal
+  ↓
+closed request contract
+  ↓
+Governance Core
+  ├─ policy
+  ├─ evidence + provenance
+  └─ exact authority
+  ↓
+capability connector
+  ↓
+verification where the consequence requires it
+  ↓
+governed result
+  ↓
+JARVIS presentation
+```
+
+`MODEL-TRUST-01`, `MODEL-CONTENT-01`, `MIGRATION-LOCK-01`, and `GOLDEN-GATE-01` are defined in the Governance Core doctrine. The current layers below remain useful as an inventory of the existing repository, but they do not independently authorise retaining obsolete specialist or handoff architecture.
 
 ## Current system layers
 
@@ -33,7 +60,7 @@ Routes under `app/api/` currently expose:
 
 API routes must remain thin. Domain behaviour should live in `lib/` modules rather than accumulating inside route handlers.
 
-### 3. Orchestration and specialist layer
+### 3. Existing orchestration and specialist layer (migration inventory)
 
 Specialists are defined under `lib/agents/` and registered through `lib/agents/index.ts`.
 

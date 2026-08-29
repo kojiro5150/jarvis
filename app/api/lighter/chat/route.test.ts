@@ -1493,7 +1493,10 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     expect(await response.json()).toEqual({
       reply: "I can help with that directly.", specialistId: "jarvis", execution: "none",
     });
-    expect(model.mock.calls[0][2]).toBeUndefined();
+    expect(model.mock.calls[0][2]).toEqual([
+      { type: "web_search_20250305", name: "web_search" },
+    ]);
+    expect(JSON.stringify(model.mock.calls[0][2])).not.toContain("propose_handoff");
     expect(model.mock.calls[0][0]).not.toContain("propose_handoff");
   });
 

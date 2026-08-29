@@ -71,6 +71,42 @@ describe("POST /api/lighter/chat", () => {
     expect(model).not.toHaveBeenCalled();
   });
 
+  it("treats grounding network failure as terminal and never falls back to a confident model guess", async () => {
+    const model = vi.fn(async () => "It will definitely be sunny and 22°C tomorrow.");
+    const fetchMock = vi.fn(async () => {
+      throw new Error("network unavailable");
+    });
+
+    const response = await createLighterChatHandler(
+      model,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        weather: {
+          fetch: fetchMock as typeof fetch,
+          clock: () => new Date("2026-08-30T06:00:00.000Z"),
+        },
+      },
+    )(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "What's the weather in Geelong tomorrow?" }],
+    }));
+    const body = await response.json();
+
+    expect(body).toEqual({
+      reply: "I couldn't establish current public evidence for that request, so I won't substitute an unsupported answer from model memory.",
+      specialistId: "jarvis",
+      execution: "none",
+      publicGrounding: { status: "unavailable", kind: "weather" },
+    });
+    expect(body.reply).not.toContain("22°C");
+    expect(model).not.toHaveBeenCalled();
+  });
+
   it("does not apply private-style confirmation to grounded public weather", async () => {
     const model = vi.fn();
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {

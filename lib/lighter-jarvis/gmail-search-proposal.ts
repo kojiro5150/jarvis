@@ -1,5 +1,4 @@
 import {
-  proposeGmailSearch,
   proposeGmailSenderSearch,
   proposeGmailSubjectList,
   type ProposedGmailSearchOperation,

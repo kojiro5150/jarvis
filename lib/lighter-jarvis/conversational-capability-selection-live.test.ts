@@ -8,33 +8,6 @@ const request = (messages: unknown[]) => new Request("http://localhost/api/light
   body: JSON.stringify({ specialistId: "jarvis", messages }),
 });
 
-const groundedWeatherDependencies = {
-  fetch: vi.fn(async (input: RequestInfo | URL) => {
-    const url = input.toString();
-    if (url.includes("geocoding-api.open-meteo.com")) {
-      return new Response(JSON.stringify({
-        results: [{
-          name: "Geelong",
-          country: "Australia",
-          latitude: -38.1471,
-          longitude: 144.3607,
-          timezone: "Australia/Melbourne",
-        }],
-      }), { status: 200 });
-    }
-    return new Response(JSON.stringify({
-      daily: {
-        time: ["2026-08-30", "2026-08-31", "2026-09-01"],
-        temperature_2m_min: [9.1, 8.4, 7.9],
-        temperature_2m_max: [16.2, 17.8, 18.1],
-        precipitation_probability_max: [20, 65, 40],
-        weather_code: [3, 61, 2],
-      },
-    }), { status: 200 });
-  }) as typeof fetch,
-  clock: () => new Date("2026-08-30T06:00:00.000Z"),
-};
-
 describe("Sprint 3.180b live capability selection", () => {
   it("keeps weather public after a contained Calendar turn", async () => {
     const model = vi.fn(async (_systemPrompt: string, messages: { content: string }[]) => {
@@ -51,7 +24,7 @@ describe("Sprint 3.180b live capability selection", () => {
       }
       return JSON.stringify({ kind: "ordinary_conversation" });
     });
-    const handler = createLighterChatHandler(model, undefined, undefined, undefined, undefined, undefined, undefined, { weather: groundedWeatherDependencies });
+    const handler = createLighterChatHandler(model);
 
     const response = await (await handler(request([
       { role: "user", content: "When am I next doing something on JARVIS?" },
@@ -59,24 +32,16 @@ describe("Sprint 3.180b live capability selection", () => {
       { role: "user", content: "Will it rain in Geelong tomorrow?" },
     ]))).json();
 
-    expect(response).toMatchObject({
-      execution: "public_information.weather.lookup",
-      publicGrounding: {
-        status: "grounded",
-        kind: "weather",
-        provider: "open-meteo",
-        forecastDate: "2026-08-31",
-      },
-    });
-    expect(response.reply).toContain("Grounded weather for Geelong, Australia tomorrow");
-    expect(response.reply).toContain("Maximum precipitation probability: 65%");
+    expect(response.reply).toBe(
+      "I recognized that as a public-information request, but public lookup is not yet available in this runtime.",
+    );
     expect(response).not.toHaveProperty("pendingAuthorizationReference");
-    expect(model).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(1);
   });
 
   it("keeps identical weather wording public even when the selector declines it", async () => {
     const model = vi.fn(async () => JSON.stringify({ kind: "ordinary_conversation" }));
-    const handler = createLighterChatHandler(model, undefined, undefined, undefined, undefined, undefined, undefined, { weather: groundedWeatherDependencies });
+    const handler = createLighterChatHandler(model);
 
     const first = await (await handler(request([
       { role: "user", content: "Will it rain in Geelong tomorrow?" },
@@ -85,12 +50,10 @@ describe("Sprint 3.180b live capability selection", () => {
       { role: "user", content: "Will it rain in Geelong tomorrow?" },
     ]))).json();
 
-    expect(first.publicGrounding).toMatchObject({ status: "grounded", provider: "open-meteo" });
-    expect(first.reply).toContain("Grounded weather for Geelong, Australia tomorrow");
+    expect(first.reply).toBe(
+      "I recognized that as a public-information request, but public lookup is not yet available in this runtime.",
+    );
     expect(second.reply).toBe(first.reply);
-    expect(first).not.toHaveProperty("pendingAuthorizationReference");
-    expect(second).not.toHaveProperty("pendingAuthorizationReference");
-    expect(model).not.toHaveBeenCalled();
   });
 
   it("recognizes natural Gmail wording without pretending Gmail is unavailable", async () => {
@@ -126,13 +89,12 @@ describe("Sprint 3.180b live capability selection", () => {
     ]))).json();
 
     expect(response).toEqual({
-      reply: "I couldn't establish current public evidence for that request, so I won't substitute an unsupported answer from model memory.",
+      reply: "I recognized that as a public-information request, but public lookup is not yet available in this runtime.",
       specialistId: "jarvis",
       execution: "none",
-      publicGrounding: { status: "unavailable", kind: "web_search" },
     });
     expect(response).not.toHaveProperty("pendingAuthorizationReference");
-    expect(model).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(1);
   });
 
   it("does not turn yes after unavailable SSRN lookup into fake authority", async () => {

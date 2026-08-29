@@ -1362,7 +1362,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     const model = vi.fn(async (
       _systemPrompt: string,
       _messages: ChatMessage[],
-      _tools?: ClaudeTool[],
+      _tools?: unknown[],
     ) => "I can help with that directly.");
     const response = await createLighterChatHandler(model)(request({
       specialistId: "jarvis", messages: [{ role: "user", content: "Brief me" }],
@@ -2003,7 +2003,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     expect(body).not.toHaveProperty("pendingAuthorizationReference");
   });
 
-  it("preserves an unrelated ORACLE handoff after governed Drive history", async () => {
+  it("does not restore an unrelated legacy specialist route after governed Drive history", async () => {
     const driveSearchConnector = vi.fn();
     const driveReadConnector = vi.fn(() => ({ readGoogleDocText: vi.fn() }));
     const model = vi.fn(async () => handoffResult(
@@ -2018,9 +2018,13 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
       ] }));
 
     const body = await response.json();
-    expect(body).toMatchObject({ reply: "ORACLE can research that.", routeTo: "oracle",
-      taskSummary: "Research public information about distributed systems." });
-    expect(body.reply).not.toBe("I’ll handle that directly as JARVIS; there is no separate specialist handoff in this runtime.");
+    expect(body).toEqual({
+      reply: "I’ll handle that directly as JARVIS; there is no separate specialist handoff in this runtime.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(body).not.toHaveProperty("routeTo");
+    expect(body).not.toHaveProperty("taskSummary");
     expect(body).not.toHaveProperty("pendingAuthorizationReference");
     expect(body).not.toHaveProperty("driveReadAuthority");
     expect(body).not.toHaveProperty("driveSearchAuthority");

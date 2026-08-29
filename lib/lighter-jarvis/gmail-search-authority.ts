@@ -1,3 +1,4 @@
+import { proveExplicitGmailSearch } from "@/lib/governance-core/explicit-command-authority";
 export const GMAIL_SEARCH_CAPABILITY = "gmail.search" as const;
 export const GMAIL_SEARCH_WINDOWS = Object.freeze(["1d", "7d"] as const);
 export type GmailSearchWindow = typeof GMAIL_SEARCH_WINDOWS[number];
@@ -61,11 +62,9 @@ export function evaluateGmailSearchAuthority(operation: ProposedGmailSearchOpera
   // The explicit command grammar remains ID-only time-window search. Subject
   // lists and GS002A sender searches require server-owned pending authorization
   // so natural-language interpretation never becomes authority.
-  const allowed = "newerThan" in operation
-    && operation.resultMode === undefined
-    && currentUserUtterance === `gmail.search [newer_than:${operation.newerThan}]`;
+  const authorityEvidence = proveExplicitGmailSearch(operation, currentUserUtterance);
+  const allowed = authorityEvidence.length === 1;
   return Object.freeze({ capability: GMAIL_SEARCH_CAPABILITY, decision: allowed ? "ALLOW" : "ASK",
     reason: allowed ? "explicit_gmail_search" : "explicit_gmail_search_not_established",
-    authorityEvidence: allowed ? Object.freeze([Object.freeze({ source: "current_user_utterance", utterance: currentUserUtterance,
-      basis: "explicit_gmail_search" as const })]) : Object.freeze([]) });
+    authorityEvidence });
 }

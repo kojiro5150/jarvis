@@ -49,7 +49,7 @@ describe("Gmail sender disambiguation reference", () => {
     });
   });
 
-  it("fails closed after repeated unmatched refinements", () => {
+  it("keeps the reference active across repeated unmatched refinements until a real candidate uniquely matches", () => {
     const reference = createGmailSenderDisambiguationReference({
       identities: candidates,
       maxResults: 5,
@@ -64,8 +64,19 @@ describe("Gmail sender disambiguation reference", () => {
 
     expect(resolveGmailSenderDisambiguationReference({
       reference,
-      currentUserUtterance: "Something Else",
+      currentUserUtterance: "Georgia MacDonald",
       now: new Date("2026-08-29T00:02:00Z"),
-    })).toMatchObject({ status: "not_found", reference: null });
+    })).toMatchObject({ status: "not_found", reference });
+
+    expect(resolveGmailSenderDisambiguationReference({
+      reference,
+      currentUserUtterance: "Georgia McDonald",
+      now: new Date("2026-08-29T00:03:00Z"),
+    })).toEqual({
+      status: "matched",
+      identity: candidates[0],
+      maxResults: 5,
+      reference: null,
+    });
   });
 });

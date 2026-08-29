@@ -1719,6 +1719,84 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     expect(searchByAddress).not.toHaveBeenCalled();
   });
 
+  it("keeps sender disambiguation active after repeated misspellings and resolves the later exact candidate", async () => {
+    const model = vi.fn(async () => "MUST NOT RUN");
+    const discoverSenderIdentities = vi.fn(async () => ({
+      complete: true,
+      identities: [
+        { displayName: "Georgia McDonald", address: "georgia.mcdonald@example.com" },
+        { displayName: "Georgia Radford", address: "georgia.radford@example.com" },
+      ],
+    }));
+    const searchByAddress = vi.fn(async () => ["message-1"]);
+    const retrieveMessage = vi.fn(async () => ({ subject: "Real subject" }));
+    const handler = createLighterChatHandler(
+      model,
+      undefined,
+      undefined,
+      {
+        createConnector: () => ({ search: vi.fn(async () => []) }),
+        createSenderConnector: () => ({ discoverSenderIdentities, searchByAddress }),
+        createSubjectConnector: () => ({ retrieveMessage }),
+        loadPolicy: async () => ({
+          policyVersion: "test-v1",
+          rules: [{
+            id: "email",
+            match: { connectorType: "email" as const },
+            processing: "external_processing_permitted" as const,
+            admissibleFields: ["subject"],
+          }],
+        }),
+      },
+    );
+
+    const ask = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Show me the emails from Georgia." }],
+    }))).json();
+    const ambiguous = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Yes." }],
+      pendingAuthorizationReference: ask.pendingAuthorizationReference,
+    }))).json();
+
+    const firstMiss = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Georgia MacDonald." }],
+      gmailSenderDisambiguationReference: ambiguous.gmailSenderDisambiguationReference,
+    }))).json();
+    expect(firstMiss).toMatchObject({
+      gmailSearchAuthority: { decision: "ALLOW", reason: "gmail_sender_disambiguation_not_found" },
+      gmailSenderDisambiguationReference: ambiguous.gmailSenderDisambiguationReference,
+    });
+
+    const secondMiss = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Georgia MacDonald." }],
+      gmailSenderDisambiguationReference: firstMiss.gmailSenderDisambiguationReference,
+    }))).json();
+    expect(secondMiss).toMatchObject({
+      gmailSearchAuthority: { decision: "ALLOW", reason: "gmail_sender_disambiguation_not_found" },
+      gmailSenderDisambiguationReference: ambiguous.gmailSenderDisambiguationReference,
+    });
+
+    const exact = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Georgia McDonald." }],
+      gmailSenderDisambiguationReference: secondMiss.gmailSenderDisambiguationReference,
+    }))).json();
+
+    expect(exact).toMatchObject({
+      reply: "Gmail messages from Georgia McDonald <georgia.mcdonald@example.com>:\n- Real subject",
+      gmailSearchAuthority: { decision: "ALLOW", reason: "gmail_sender_disambiguation_resolved" },
+      gmailSenderDisambiguationReference: null,
+      messageIds: ["message-1"],
+    });
+    expect(model).not.toHaveBeenCalled();
+    expect(discoverSenderIdentities).toHaveBeenCalledTimes(1);
+    expect(searchByAddress).toHaveBeenCalledTimes(1);
+  });
+
   it("blocks a most-recent sender-result body follow-up before ordinary model generation", async () => {
     const model = vi.fn(async () => [
       "Here is the most recent email:",

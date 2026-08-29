@@ -126,18 +126,10 @@ function fail(
   stored: StoredSenderDisambiguation,
   status: "ambiguous" | "not_found",
 ): GmailSenderDisambiguationResolution {
-  const failedRefinements = stored.failedRefinements + 1;
-  const exhausted = failedRefinements >= GMAIL_SENDER_DISAMBIGUATION_MAX_FAILED_REFINEMENTS;
-  const next = Object.freeze({
-    ...stored,
-    failedRefinements,
-    status: exhausted ? "consumed" as const : "active" as const,
-  });
-  store.set(stored.id, next);
   return Object.freeze({
     status,
     identities: cloneIdentities(stored.identities),
-    reference: exhausted ? null : stored.reference,
+    reference: stored.reference,
   });
 }
 

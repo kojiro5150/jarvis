@@ -24,6 +24,7 @@ const SELECTOR_PROMPT = [
 
 const PUBLIC_INFORMATION_SIGNAL = /\b(?:weather|rain|forecast|temperature)\b/i;
 const GMAIL_SIGNAL = /\b(?:gmail|gmails|email|emails|inbox)\b/i;
+const GMAIL_REQUEST_FORM = /(?:\b(?:show|check|get|search|find|list|read|open|summari[sz]e)\b|^\s*(?:what|which|who|where|when|how)\b)/i;
 const DRIVE_SIGNAL = /\bdrive\b/i;
 
 export type DeterministicCapabilityConstraint = Readonly<{
@@ -36,7 +37,7 @@ export function deterministicCapabilityConstraint(utterance: string): Determinis
   if (PUBLIC_INFORMATION_SIGNAL.test(normalized)) {
     return Object.freeze({ capability: "public_information", fallbackOperation: "lookup" });
   }
-  if (GMAIL_SIGNAL.test(normalized)) {
+  if (GMAIL_SIGNAL.test(normalized) && GMAIL_REQUEST_FORM.test(normalized)) {
     const readLike = /\b(?:read|open|summari[sz]e)\b/i.test(normalized);
     return Object.freeze({ capability: "gmail", fallbackOperation: readLike ? "read" : "search" });
   }
@@ -67,8 +68,15 @@ export function validateSelectedConversationalIntent(
 ): ConversationalIntentCandidate | null {
   const candidate = validateConversationalIntentCandidate(raw);
   if (!candidate) return null;
-  if (candidate.kind !== "capability_request" || !candidate.subjectTerms) return candidate;
+  if (candidate.kind !== "capability_request") return candidate;
 
+  // A private-source noun alone must never become an operation. The untouched
+  // current utterance must itself contain a request/question form.
+  if (candidate.capability === "gmail"
+    && GMAIL_SIGNAL.test(utterance)
+    && !GMAIL_REQUEST_FORM.test(utterance)) return null;
+
+  if (!candidate.subjectTerms) return candidate;
   const allowed = normalizeTokenSet(utterance);
   return candidate.subjectTerms.every(term => allowed.has(term)) ? candidate : null;
 }

@@ -24,6 +24,7 @@ import {
   type GmailSenderDisambiguationReference,
 } from "./gmail-sender-disambiguation-reference";
 import { createPendingAuthorization, resolvePendingAuthorization, type PendingAuthorizationReference } from "./pending-authorization";
+import { createGmailMessageListReference, type GmailMessageListReference } from "./gmail-message-list-reference";
 
 const PREFIX = /^gmail\.search(?:\s|$)/;
 const EXACT = /^gmail\.search \[newer_than:(1d|7d)\]$/;
@@ -43,6 +44,7 @@ export type ProductionGmailSearchResult = Readonly<{
   messageIds?: readonly string[];
   pendingAuthorizationReference?: PendingAuthorizationReference | null;
   gmailSenderDisambiguationReference?: GmailSenderDisambiguationReference | null;
+  gmailMessageListReference?: GmailMessageListReference | null;
 }>;
 const defaults = {
   createConnector: () => new GoogleGmailSearchConnector(),
@@ -214,14 +216,15 @@ async function executeWindowSearch(
     });
   }
 
-  return releaseSubjects({
+  return releaseMetadata({
     ids,
     reason,
     intro: "Recent Gmail messages:",
     requestingRuntime: "api-lighter-chat:gmail-subject-list",
     policyFailureReply: "I found recent Gmail messages, but I couldn't safely evaluate the policy required to release their subjects.",
     policyDeniedReply: "I found recent Gmail messages, but I can't release their subjects under the current resource policy.",
-    retrievalFailureReply: "I found recent Gmail messages, but I couldn't safely retrieve their subjects.",
+    retrievalFailureReply: "I found recent Gmail messages, but I couldn't safely retrieve their sender and subject metadata.",
+    includeSender: true,
   }, dependencies);
 }
 
@@ -323,7 +326,7 @@ async function executeResolvedSenderSearch(
     });
   }
 
-  const released = await releaseSubjects({
+  const released = await releaseMetadata({
     ids,
     reason,
     intro: `Gmail messages from ${senderLabel}:`,
@@ -331,11 +334,12 @@ async function executeResolvedSenderSearch(
     policyFailureReply: `I found Gmail messages from ${senderLabel}, but I couldn't safely evaluate the policy required to release their subjects.`,
     policyDeniedReply: `I found Gmail messages from ${senderLabel}, but I can't release their subjects under the current resource policy.`,
     retrievalFailureReply: `I found Gmail messages from ${senderLabel}, but I couldn't safely retrieve their subjects.`,
+    includeSender: false,
   }, dependencies);
   return Object.freeze({ ...released, gmailSenderDisambiguationReference: null });
 }
 
-async function releaseSubjects(
+async function releaseMetadata(
   input: Readonly<{
     ids: readonly string[];
     reason: string;
@@ -344,6 +348,7 @@ async function releaseSubjects(
     policyFailureReply: string;
     policyDeniedReply: string;
     retrievalFailureReply: string;
+    includeSender: boolean;
   }>,
   dependencies: ProductionGmailSearchDependencies,
 ): Promise<ProductionGmailSearchResult> {
@@ -363,11 +368,13 @@ async function releaseSubjects(
   }
 
   const adapter = new GmailContentRetrievalAdapter({ connector: createSubjectConnector() });
-  const subjects: string[] = [];
+  const messages: { sender: string; subject: string }[] = [];
   for (const id of input.ids) {
     const retrieval = await adapter.retrieve(Object.freeze({
       resource: Object.freeze({ resourceId: id, connectorType: "email" as const }),
-      requestedFields: Object.freeze(["subject"] as const),
+      requestedFields: input.includeSender
+        ? Object.freeze(["sender", "subject"] as const)
+        : Object.freeze(["subject"] as const),
       requestingRuntime: input.requestingRuntime,
     }), policy);
     if (retrieval.outcome === "denied") {
@@ -388,7 +395,10 @@ async function releaseSubjects(
         reply: input.retrievalFailureReply,
       });
     }
-    subjects.push(retrieval.content.subject ?? "(no subject)");
+    messages.push({
+      sender: input.includeSender ? (retrieval.content.sender ?? "(sender unavailable)") : "",
+      subject: retrieval.content.subject ?? "(no subject)",
+    });
   }
 
   return Object.freeze({
@@ -396,6 +406,11 @@ async function releaseSubjects(
     decision: "ALLOW",
     reason: input.reason,
     messageIds: input.ids,
-    reply: `${input.intro}\n${subjects.map(subject => `- ${subject}`).join("\n")}`,
+    ...(input.includeSender
+      ? { gmailMessageListReference: createGmailMessageListReference({ messageIds: input.ids }) }
+      : {}),
+    reply: input.includeSender
+      ? `${input.intro}\n${messages.map(({ sender, subject }, index) => `${index + 1}. From: ${sender}\n   Subject: ${subject}`).join("\n")}`
+      : `${input.intro}\n${messages.map(({ subject }) => `- ${subject}`).join("\n")}`,
   });
 }

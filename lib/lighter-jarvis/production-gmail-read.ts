@@ -32,6 +32,7 @@ function syntaxReply(): string {
 function present(content: GmailReleasedContent, requestedFields: readonly GmailContentField[]): string {
   return requestedFields.map((field) => {
     switch (field) {
+      case "sender": return `From: ${content.sender ?? "(unavailable)"}`;
       case "subject": return `Subject: ${content.subject ?? "(unavailable)"}`;
       case "snippet": return `Snippet: ${content.snippet ?? "(unavailable)"}`;
       case "plain_text_body": return `Plain text body: ${content.plainTextBody ?? "(unavailable)"}`;

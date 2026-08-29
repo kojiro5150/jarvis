@@ -7,7 +7,7 @@ const evaluationFiles = ["lib/governed-conversation/lineage-projection-evaluatio
 function files(directory: string): string[] { return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => entry.isDirectory() ? files(join(directory, entry.name)) : [join(directory, entry.name)]); }
 describe("Sprint 3.84 pure-Node isolation", () => {
   it("has no forward production imports", () => {
-    const targets = ["app/api/chat/route.ts", "lib/context-builder.ts", "lib/useAgentConversation.ts", ...["lib/agents", "components", "lib/executive-operating-system"].flatMap((path) => files(join(root, path)).map((file) => relative(root, file)))];
+    const targets = ["lib/context-builder.ts", ...["lib/agents", "components", "lib/executive-operating-system"].flatMap((path) => files(join(root, path)).map((file) => relative(root, file)))];
     for (const target of targets) { const source = readFileSync(join(root, target), "utf8"); expect(source, target).not.toMatch(/lineage-projection-evaluation/); }
   });
   it("has no reverse production imports or shell traversal", () => {

@@ -68,8 +68,8 @@ Proven but deliberately bounded
     Private-source results that remain capability-scoped rather than a
     general ambient context
     Process-local PendingAuthorization (not durable/distributed)
-    Legacy /api/chat retained as a parallel compatibility path, with Gmail
-    execution contained and implicit private OperationalState removed
+    Legacy /api/chat retired; the governed /api/lighter/chat path is the sole
+    production conversational runtime
 
 Ready for disciplined activation
     Deterministic Executive Cognition already present in the EOS:
@@ -108,13 +108,13 @@ Canonical models (OperationalCommitment, OperationalCommunication), the 14-stage
 
 ---
 
-## Phase III — Trustworthy Conversational Runtime — Substantially Operational, Parallel Legacy Path Remains
+## Phase III — Trustworthy Conversational Runtime — Single Governed Runtime
 
 The August 1 roadmap described conversational integration as blocked on missing governed production evidence inputs. That blocker is no longer the current state.
 
 **Sprints 3.88–3.119** built the missing governed conversational evidence, claim, conflict, enrichment, identity and integrity machinery. Source-specific publishers and acquisition adapters were connected and evaluated without allowing the projection composer or model to invent evidence relationships.
 
-**Sprints 3.120–3.148** then established a bounded live authority architecture on the governed console path. Supported private operations are proposed and adjudicated before acquisition; positive authority comes from the current user turn or server-owned one-shot pending state, never from model output. Calendar reads, bounded Gmail search, identified-message Gmail reads, Drive metadata search and identified Google Doc reads have deterministic gated production paths. Ordinary model history excludes governed private releases where required. Legacy Gmail execution on `/api/chat` is explicitly contained rather than treated as equivalent authority.
+**Sprints 3.120–3.148** then established a bounded live authority architecture on the governed console path. Supported private operations are proposed and adjudicated before acquisition; positive authority comes from the current user turn or server-owned one-shot pending state, never from model output. Calendar reads, bounded Gmail search, identified-message Gmail reads, Drive metadata search and identified Google Doc reads have deterministic gated production paths. Ordinary model history excludes governed private releases where required. The former `/api/chat` compatibility runtime has now been retired; governed conversational authority is concentrated on `/api/lighter/chat`.
 
 **Sprint 3.149** audited the authentic runtime and established an important architectural fact: the governed console uses `/api/lighter/chat` for both typed and serialized voice turns, with deterministic private-capability resolvers ahead of ordinary model invocation. The alternate Dashboard/`/api/chat` path remains production-reachable as a separate compatibility runtime; the repository does not justify calling the entire product a single converged conversational runtime.
 

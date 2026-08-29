@@ -136,9 +136,12 @@ describe("repeated synthetic legacy validation", () => {
 });
 
 describe("production isolation", () => {
-  it("does not wire validation into ordinary chat requests", () => {
-    const chatRoute = readFileSync("app/api/chat/route.ts", "utf8");
-    expect(chatRoute).not.toContain("legacy-claim-validation");
-    expect(chatRoute).not.toContain("validateSyntheticLegacyRuns");
+  it("does not wire validation into the governed conversational runtime", () => {
+    const governedRoute = readFileSync("app/api/lighter/chat/route.ts", "utf8");
+    const governedHandler = readFileSync("lib/lighter-jarvis/chat-handler.ts", "utf8");
+    expect(governedRoute).not.toContain("legacy-claim-validation");
+    expect(governedRoute).not.toContain("validateSyntheticLegacyRuns");
+    expect(governedHandler).not.toContain("legacy-claim-validation");
+    expect(governedHandler).not.toContain("validateSyntheticLegacyRuns");
   });
 });

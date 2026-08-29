@@ -147,7 +147,7 @@ The executable Gate-K test must construct at least two overlapping deep-work com
 
 ## Exact next implementation
 
-1. Centralize the canonical Calendar commitment-reference helper and reuse it in governed evidence plus conflict projection.
+1. Add a canonical Calendar commitment-reference helper for the new conflict projection and prove byte-for-byte identity parity with the existing governed Calendar evidence publisher. The existing publisher is protected by earlier isolation/hash contracts and must not be modified merely to adopt the helper.
 2. Extend the purpose-specific conflict projection with `observedAt`, `provenanceReference`, and provider-backed `selfAttendeeResponse`.
 3. Add a deterministic adapter that consumes an already-valid change set plus current conflict events, selects exact `added` identities, requires `needsAction`, finds overlapping `deep_work` events, and emits immutable typed Gate-K observations.
 4. Regress the exact 30-minute case, absent mode, absent `needsAction`, identity mismatch, multiplicity with start-time/commitment-reference ordering, and no model/authority/connector use in the binding adapter.

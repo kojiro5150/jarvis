@@ -21,9 +21,9 @@ export type ModelProposal<TCandidate = unknown> = Readonly<{
  * Compound requests are represented as multiple independent low-trust
  * proposals. Grouping does not create shared authority between siblings.
  */
-export type ModelProposalBatch<TCandidate = unknown> = Readonly<{
+export type ModelProposalBatch = Readonly<{
   readonly kind: "model_proposal_batch";
-  readonly proposals: readonly ModelProposal<TCandidate>[];
+  readonly proposals: readonly ModelProposal<unknown>[];
   [MODEL_PROPOSAL_BATCH]: "model_proposal_batch";
 }>;
 
@@ -45,12 +45,12 @@ export function createModelProposal<TCandidate>(
   }) as ModelProposal<TCandidate>;
 }
 
-export function createModelProposalBatch<TCandidate>(
-  proposals: readonly ModelProposal<TCandidate>[],
-): ModelProposalBatch<TCandidate> | null {
+export function createModelProposalBatch(
+  proposals: readonly ModelProposal<unknown>[],
+): ModelProposalBatch | null {
   if (proposals.length === 0 || proposals.length > 8) return null;
   return Object.freeze({
     kind: "model_proposal_batch" as const,
     proposals: Object.freeze([...proposals]),
-  }) as ModelProposalBatch<TCandidate>;
+  }) as ModelProposalBatch;
 }

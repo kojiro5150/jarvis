@@ -37,7 +37,7 @@ export const SINGLE_JARVIS_IDENTITY_REPLY =
   "I’ll handle that directly as JARVIS; there is no separate specialist handoff in this runtime.";
 
 const LEGACY_SPECIALIST_DELEGATION =
-  /\b(?:DAWNWATCH|ORACLE|HERALD|STEVE|MARCUS|GECKO)\b[\s\S]{0,120}\b(?:hand(?:-| )?off|handing|delegate|draft|access|report|reports|research|scan|suggest|recommend)|\b(?:hand(?:-| )?off|handing|delegate|suggest|recommend)\b[\s\S]{0,120}\b(?:DAWNWATCH|ORACLE|HERALD|STEVE|MARCUS|GECKO)\b/i;
+  /\b(?:DAWNWATCH|ORACLE|HERALD|STEVE|MARCUS|GECKO)\b[\s\S]{0,120}\b(?:hand(?:-| )?off|handing|hand|delegate|draft|access|retrieve|read|open|report|reports|research|scan|suggest|recommend)|\b(?:hand(?:-| )?off|handing|hand|delegate|suggest|recommend)\b[\s\S]{0,120}\b(?:DAWNWATCH|ORACLE|HERALD|STEVE|MARCUS|GECKO)\b/i;
 
 const INTERNAL_HISTORY_MARKERS = [
   "[Governed private result omitted from ordinary model context.]",

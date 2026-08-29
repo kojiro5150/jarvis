@@ -8,7 +8,7 @@ import ConversationDock from "@/components/dashboard/ConversationDock";
 import StatusStrip from "@/components/dashboard/StatusStrip";
 import BootSequence from "@/components/dashboard/BootSequence";
 import type { OrbState, VoiceState } from "@/components/CommandCore";
-import { getAgent } from "@/lib/agents";
+import { jarvis } from "@/lib/agents";
 import { useOperationalState } from "@/lib/useOperationalState";
 import { useAgentConversation } from "@/lib/useAgentConversation";
 import { useMicCapture } from "@/lib/useMicCapture";
@@ -16,31 +16,10 @@ import { buildProductionDashboardPresentation, type DashboardPresentationMode } 
 import type { DawnwatchPresentationMode } from "@/lib/dawnwatch-presentation-selection";
 
 /**
- * v27 (Sprint 9): a genuine product-shape change, not a visual pass. The
- * page is now a two-region command console rather than a four-column
- * dashboard: AgentRail (left — nine constitutional specialists, then a
- * compact System Status readout, then the footer) | a single wide centre
- * area (Orb, StatusStrip, Mission Workspace). The RH column (RightRail)
- * is gone entirely — Suggested Actions and Ambient Intelligence were cut
- * outright (see the audit note above StatusStrip's import site / the v27
- * summary for what was confirmed recoverable elsewhere), System Status
- * moved into the rail, and Projects/Calendar/Communications collapsed
- * from three cards into StatusStrip's single line. Nothing replaces the
- * RH column's width — the centre area (Orb panel, StatusStrip, Mission
- * Workspace) simply reclaims it, since both are already fluid (`flex-1`)
- * rather than fixed-width.
- *
- * Interaction model unchanged across every redesign pass: the center
- * column is JARVIS's overall operational view and never changes based on
- * which agent is selected — only which agent the ConversationDock is
- * talking to changes. `useAgentConversation` is lifted here so the orb,
- * the dock, and the rail all share one source of truth for
- * loading/listening/error rather than each re-deriving it.
- *
- * A brief, real "routing" transition plays when Sam switches specialists
- * (setSelectedId actually changed, not a fabricated animation) — the orb
- * shows a ROUTING stance for ~700ms before settling into the newly
- * selected specialist's idle state.
+ * JARVIS Core keeps the proven mission-control layout while collapsing
+ * conversational authority to one intelligence. The left rail is now
+ * identity + connector state; the centre remains the orb, operational
+ * status strip and persistent mission workspace.
  */
 export default function DashboardShell({
   presentationMode,
@@ -49,7 +28,6 @@ export default function DashboardShell({
   presentationMode: DashboardPresentationMode;
   dawnwatchPresentationMode: DawnwatchPresentationMode;
 }) {
-  const [selectedId, setSelectedId] = useState("jarvis");
   const [presetText, setPresetText] = useState("");
   const [presetNonce, setPresetNonce] = useState(0);
   const [booting, setBooting] = useState(true);
@@ -60,7 +38,6 @@ export default function DashboardShell({
   // together for anything that just needs "is the user talking to it
   // right now" without caring which channel.
   const [inputListening, setInputListening] = useState(false);
-  const [transition, setTransition] = useState<"routing" | "delegating" | null>(null);
   const [speaking, setSpeaking] = useState(false);
   const { data: operationalState, loading: syncing, refresh } = useOperationalState();
   const governedPresentation = useMemo(
@@ -73,36 +50,11 @@ export default function DashboardShell({
   // elsewhere in the app). Wired to OrbCenterpiece's Voice quick action.
   const mic = useMicCapture();
 
-  const agent = getAgent(selectedId);
+  const agent = jarvis;
   const { messages, loading, error, send, reset } = useAgentConversation(agent);
 
-  const routingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speakingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const mounted = useRef(false);
-  const prevAgentId = useRef(selectedId);
   const prevLoading = useRef(false);
-
-  useEffect(() => {
-    // Skip the very first render — routing is a real transition between
-    // two specialists, not something to play on initial page load.
-    if (!mounted.current) {
-      mounted.current = true;
-      prevAgentId.current = selectedId;
-      return;
-    }
-    // A real, derivable distinction: JARVIS handing work off to a
-    // specialist reads as "delegating"; any other switch (specialist to
-    // specialist, or back to JARVIS) reads as "routing" — both come from
-    // which two agents were actually involved, nothing fabricated.
-    const kind = prevAgentId.current === "jarvis" && selectedId !== "jarvis" ? "delegating" : "routing";
-    prevAgentId.current = selectedId;
-    setTransition(kind);
-    if (routingTimer.current) clearTimeout(routingTimer.current);
-    routingTimer.current = setTimeout(() => setTransition(null), 700);
-    return () => {
-      if (routingTimer.current) clearTimeout(routingTimer.current);
-    };
-  }, [selectedId]);
 
   useEffect(() => {
     // "Speaking" is a brief, real flash for the moment a reply actually
@@ -132,7 +84,7 @@ export default function DashboardShell({
   // rather than the mic replacing the input-focus signal.
   const listening = inputListening || mic.active;
 
-  const synchronising = !transition && !loading && syncing;
+  const synchronising = !loading && syncing;
 
   /**
    * v32 (Sprint 14, Section 4) / v33 (Sprint 15): the single OrbState
@@ -148,21 +100,17 @@ export default function DashboardShell({
    * needed it before this sprint's TOKEN ring / VOICE_MOTION additions
    * made a single, shared computation clearly worth doing).
    */
-  const orbState: OrbState = transition === "routing"
-    ? "routing"
-    : transition === "delegating"
-      ? "delegating"
-      : loading
-        ? "thinking"
-        : error
-          ? "offline"
-          : synchronising
-            ? "synchronising"
-            : speaking
-              ? "speaking"
-              : listening
-                ? "listening"
-                : "idle";
+  const orbState: OrbState = loading
+    ? "thinking"
+    : error
+      ? "offline"
+      : synchronising
+        ? "synchronising"
+        : speaking
+          ? "speaking"
+          : listening
+            ? "listening"
+            : "idle";
 
   /**
    * v33 (Sprint 15, Section 3): the app's 5-state voice model, derived
@@ -182,7 +130,7 @@ export default function DashboardShell({
       ? "error"
       : orbState === "listening"
         ? "listening"
-        : orbState === "thinking" || orbState === "routing" || orbState === "delegating" || orbState === "synchronising"
+        : orbState === "thinking" || orbState === "synchronising"
           ? "thinking"
           : orbState === "speaking"
             ? "speaking"
@@ -195,8 +143,6 @@ export default function DashboardShell({
       )}
 
       <AgentRail
-        selectedId={selectedId}
-        onSelect={setSelectedId}
         operationalState={operationalState}
         activeLoading={loading}
         connectorStatuses={operationalState.connectorStatuses}
@@ -260,7 +206,7 @@ export default function DashboardShell({
             micError={!!mic.error}
             onToggleMic={mic.toggle}
             onQuickCommand={handleQuickCommand}
-            onSelectJarvis={() => setSelectedId("jarvis")}
+            onSelectJarvis={() => {}}
           />
         </div>
 

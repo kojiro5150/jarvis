@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { AudioWaveform, CircleDot, Lock, Play, Settings } from "lucide-react";
+import { AudioWaveform, CircleDot, Lock, Settings } from "lucide-react";
 import type { VoiceState } from "@/components/CommandCore";
 import type { OperationalState } from "@/lib/operational-state";
 
@@ -102,14 +101,6 @@ export default function TopBar({
       </div>
 
       <div className="flex items-center gap-4">
-        <Link
-          href="/execute"
-          className="flex items-center gap-1.5 text-cyan-300/75 hover:text-cyan-200 transition-colors"
-          title="Open controlled single-specialist execution"
-        >
-          <Play size={11} />
-          EXECUTE
-        </Link>
         <span className={`flex items-center gap-1.5 ${VOICE_COLOR[voiceState]}`}>
           <AudioWaveform size={12} />
           {VOICE_COPY[voiceState]}

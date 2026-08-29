@@ -137,4 +137,113 @@ describe("production gmail.search", () => {
     expect(retrieveMessage).not.toHaveBeenCalled();
   });
 
+  it("GS002A resolves a partial sender reference, asks for authority, then returns bounded subjects from the unique real sender", async () => {
+    const discoverSenderIdentities = vi.fn(async () => ({
+      complete: true,
+      identities: [
+        { displayName: "Georgia McDonald", address: "georgia@example.com" },
+        { displayName: "Georgia McDonald", address: "georgia@example.com" },
+      ],
+    }));
+    const searchByAddress = vi.fn(async () => ["one", "two"]);
+    const retrieveMessage = vi.fn(async (id: string) => ({ subject: `Subject ${id}`, snippet: "MUST NOT LEAK" }));
+    const deps = {
+      createConnector: () => ({ search: vi.fn(async () => []) }),
+      createSenderConnector: () => ({ discoverSenderIdentities, searchByAddress }),
+      createSubjectConnector: () => ({ retrieveMessage }),
+      loadPolicy: async () => ({
+        policyVersion: "test-v1",
+        rules: [{
+          id: "email",
+          match: { connectorType: "email" as const },
+          processing: "external_processing_permitted" as const,
+          admissibleFields: ["subject"],
+        }],
+      }),
+    };
+
+    const proposed = await resolveProductionGmailSearch({
+      currentUserUtterance: "Find the email from Georgia",
+    }, deps);
+    expect(proposed).toMatchObject({
+      handled: true,
+      decision: "ASK",
+      reason: "explicit_gmail_search_not_established",
+    });
+    expect(discoverSenderIdentities).not.toHaveBeenCalled();
+
+    const allowed = await resolveProductionGmailSearch({
+      currentUserUtterance: "yes",
+      pendingAuthorizationReference: proposed.pendingAuthorizationReference,
+    }, deps);
+
+    expect(allowed).toEqual({
+      handled: true,
+      decision: "ALLOW",
+      reason: "pending_authorization_confirmed",
+      messageIds: ["one", "two"],
+      reply: "Gmail messages from Georgia McDonald <georgia@example.com>:\n- Subject one\n- Subject two",
+    });
+    expect(discoverSenderIdentities).toHaveBeenCalledWith(["georgia"], 100);
+    expect(searchByAddress).toHaveBeenCalledWith("georgia@example.com", 5);
+    expect(JSON.stringify(allowed)).not.toContain("MUST NOT LEAK");
+  });
+
+  it("GS002A surfaces real sender ambiguity and never silently picks an address", async () => {
+    const discoverSenderIdentities = vi.fn(async () => ({
+      complete: true,
+      identities: [
+        { displayName: "Georgia McDonald", address: "georgia@example.com" },
+        { displayName: "Georgia McDonald-Reyes", address: "georgia.reyes@example.com" },
+      ],
+    }));
+    const searchByAddress = vi.fn(async () => ["must-not-run"]);
+    const deps = {
+      createConnector: () => ({ search: vi.fn(async () => []) }),
+      createSenderConnector: () => ({ discoverSenderIdentities, searchByAddress }),
+    };
+    const proposed = await resolveProductionGmailSearch({
+      currentUserUtterance: "Find the email from Georgia",
+    }, deps);
+    const result = await resolveProductionGmailSearch({
+      currentUserUtterance: "confirm",
+      pendingAuthorizationReference: proposed.pendingAuthorizationReference,
+    }, deps);
+
+    expect(result).toMatchObject({
+      handled: true,
+      decision: "ALLOW",
+      reason: "gmail_sender_identity_ambiguous",
+    });
+    expect(result.reply).toContain("Georgia McDonald <georgia@example.com>");
+    expect(result.reply).toContain("Georgia McDonald-Reyes <georgia.reyes@example.com>");
+    expect(searchByAddress).not.toHaveBeenCalled();
+  });
+
+  it("GS002A fails closed when the bounded identity scan cannot prove uniqueness", async () => {
+    const discoverSenderIdentities = vi.fn(async () => ({
+      complete: false,
+      identities: [{ displayName: "Georgia McDonald", address: "georgia@example.com" }],
+    }));
+    const searchByAddress = vi.fn(async () => ["must-not-run"]);
+    const deps = {
+      createConnector: () => ({ search: vi.fn(async () => []) }),
+      createSenderConnector: () => ({ discoverSenderIdentities, searchByAddress }),
+    };
+    const proposed = await resolveProductionGmailSearch({
+      currentUserUtterance: "Find the email from Georgia",
+    }, deps);
+    const result = await resolveProductionGmailSearch({
+      currentUserUtterance: "yes",
+      pendingAuthorizationReference: proposed.pendingAuthorizationReference,
+    }, deps);
+
+    expect(result).toMatchObject({
+      handled: true,
+      decision: "ALLOW",
+      reason: "gmail_sender_identity_scope_incomplete",
+    });
+    expect(searchByAddress).not.toHaveBeenCalled();
+  });
+
 });

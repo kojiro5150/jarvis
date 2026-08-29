@@ -16,7 +16,7 @@ afterEach(() => {
 
 describe("Google Calendar event move connector", () => {
   it("PATCHes only start and end for the exact provider event", async () => {
-    const fetchMock = vi.fn(async () =>
+    const fetchMock = vi.fn<typeof globalThis.fetch>(async (_input, _init) =>
       new Response("{}", {
         status: 200,
         headers: { "content-type": "application/json" },
@@ -49,7 +49,7 @@ describe("Google Calendar event move connector", () => {
   it("does not call Google when the stored grant lacks write scope", async () => {
     const scope = await import("./calendar-write-scope");
     vi.mocked(scope.hasGoogleCalendarWriteScope).mockResolvedValueOnce(false);
-    const fetchMock = vi.fn();
+    const fetchMock = vi.fn<typeof globalThis.fetch>();
     vi.stubGlobal("fetch", fetchMock);
 
     const connector = new GoogleCalendarEventWriteConnector();

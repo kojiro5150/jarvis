@@ -64,6 +64,7 @@ interface LighterChatBody {
   relaySpecialistReply?: RelaySpecialistReply;
   marketScopes?: unknown;
   pendingAuthorizationReference?: unknown;
+  gmailSenderDisambiguationReference?: unknown;
   calendarAttentionObservationReference?: unknown;
   calendarConflictReasoningReference?: unknown;
   calendarAdvicePreferenceReference?: unknown;
@@ -492,6 +493,9 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           ...(Object.hasOwn(body, "pendingAuthorizationReference")
             ? { pendingAuthorizationReference: body.pendingAuthorizationReference }
             : {}),
+          ...(Object.hasOwn(body, "gmailSenderDisambiguationReference")
+            ? { gmailSenderDisambiguationReference: body.gmailSenderDisambiguationReference }
+            : {}),
         }, gmailSearchDependencies) : null;
     if (gmailSearch?.handled) {
       return NextResponse.json({ reply: gmailSearch.reply, specialistId: specialist.id, execution: "none",
@@ -499,6 +503,9 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         ...(gmailSearch.messageIds ? { messageIds: gmailSearch.messageIds } : {}),
         ...(gmailSearch.pendingAuthorizationReference !== undefined
           ? { pendingAuthorizationReference: gmailSearch.pendingAuthorizationReference }
+          : {}),
+        ...(gmailSearch.gmailSenderDisambiguationReference !== undefined
+          ? { gmailSenderDisambiguationReference: gmailSearch.gmailSenderDisambiguationReference }
           : {}) });
     }
     const gmail = specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined
@@ -815,9 +822,12 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       && hasGovernedGmailHistory(body.messages)
       && isAmbiguousGmailEvidenceFollowUp(currentUserUtterance)) {
       return NextResponse.json({
-        reply: "I can't safely identify a prior Gmail item from ordinary model context.",
+        reply: "I can't read or identify a prior Gmail message from ordinary model context. Reading a selected message requires a separate governed Gmail read request and authority.",
         specialistId: specialist.id,
         execution: "none",
+        ...(Object.hasOwn(body, "gmailSenderDisambiguationReference")
+          ? { gmailSenderDisambiguationReference: null }
+          : {}),
       });
     }
     const marketDomains = specialist.id === "gecko"

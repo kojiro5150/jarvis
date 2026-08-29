@@ -346,6 +346,7 @@ async function releaseMetadata(
     policyFailureReply: string;
     policyDeniedReply: string;
     retrievalFailureReply: string;
+    includeSender: boolean;
   }>,
   dependencies: ProductionGmailSearchDependencies,
 ): Promise<ProductionGmailSearchResult> {
@@ -369,7 +370,9 @@ async function releaseMetadata(
   for (const id of input.ids) {
     const retrieval = await adapter.retrieve(Object.freeze({
       resource: Object.freeze({ resourceId: id, connectorType: "email" as const }),
-      requestedFields: Object.freeze(["sender", "subject"] as const),
+      requestedFields: input.includeSender
+        ? Object.freeze(["sender", "subject"] as const)
+        : Object.freeze(["subject"] as const),
       requestingRuntime: input.requestingRuntime,
     }), policy);
     if (retrieval.outcome === "denied") {
@@ -391,7 +394,7 @@ async function releaseMetadata(
       });
     }
     messages.push({
-      sender: retrieval.content.sender ?? "(sender unavailable)",
+      sender: input.includeSender ? (retrieval.content.sender ?? "(sender unavailable)") : "",
       subject: retrieval.content.subject ?? "(no subject)",
     });
   }
@@ -402,6 +405,8 @@ async function releaseMetadata(
     reason: input.reason,
     messageIds: input.ids,
     gmailMessageListReference: createGmailMessageListReference({ messageIds: input.ids }),
-    reply: `${input.intro}\n${messages.map(({ sender, subject }, index) => `${index + 1}. From: ${sender}\n   Subject: ${subject}`).join("\n")}`,
+    reply: input.includeSender
+      ? `${input.intro}\n${messages.map(({ sender, subject }, index) => `${index + 1}. From: ${sender}\n   Subject: ${subject}`).join("\n")}`
+      : `${input.intro}\n${messages.map(({ subject }) => `- ${subject}`).join("\n")}`,
   });
 }

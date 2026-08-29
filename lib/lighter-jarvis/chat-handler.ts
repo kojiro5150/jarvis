@@ -117,6 +117,23 @@ export function resolveMarketScopeDomains(value: unknown): string[] | undefined 
 
 const PRIVATE_CAPABILITY_HANDOFF_BLOCKED_REPLY = "That request cannot be handled through a specialist handoff.";
 
+const PUBLIC_LOOKUP_UNAVAILABLE_REPLY = PUBLIC_LOOKUP_UNAVAILABLE_REPLY;
+
+function followsUnavailablePublicLookup(messages: unknown, utterance: string): boolean {
+  if (!/^(?:yes|yes\.|yep|yeah|sure|ok|okay|go ahead)$/i.test(utterance.trim())) return false;
+  if (!Array.isArray(messages)) return false;
+  const previousAssistant = [...messages].reverse().find((message) =>
+    typeof message === "object"
+    && message !== null
+    && "role" in message
+    && message.role === "assistant"
+    && "content" in message
+    && typeof message.content === "string"
+  ) as { content: string } | undefined;
+  return previousAssistant?.content === PUBLIC_LOOKUP_UNAVAILABLE_REPLY;
+}
+
+
 const isFetchError = (value: unknown): boolean => {
   if (Array.isArray(value)) return value.some(isFetchError);
   if (typeof value !== "object" || value === null) return false;
@@ -477,6 +494,17 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         specialistId: specialist.id,
         execution: "none",
         calendarConflictAct: { status: "unbound_reference" },
+      });
+    }
+
+    if (specialist.id === "jarvis"
+      && !body.relaySpecialistReply
+      && currentUserUtterance !== undefined
+      && followsUnavailablePublicLookup(body.messages, currentUserUtterance)) {
+      return NextResponse.json({
+        reply: PUBLIC_LOOKUP_UNAVAILABLE_REPLY,
+        specialistId: specialist.id,
+        execution: "none",
       });
     }
 

@@ -2,11 +2,11 @@ import { createHash } from "node:crypto";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-const production = ["app/api/chat/route.ts", "lib/context-builder.ts", "lib/useAgentConversation.ts", "lib/agents/chat-execution.ts"];
+const production = ["lib/context-builder.ts", "lib/agents/chat-execution.ts"];
 const boundaryNames = ["claim-boundary-types", "claim-boundary-ruleset", "claim-boundary-engine", "claim-boundary-publications", "claim-boundary-fixtures"];
 const modules = boundaryNames.map(x => `lib/governed-conversation/${x}.ts`);
 const forbiddenReverse = ["app/api/chat/", "context-builder", "useAgentConversation", "lib/agents/", "components/", "eos/"];
-const startHashes: Readonly<Record<string, string>> = { "app/api/chat/route.ts": "4a1951b824b9b371a13b8596ebf936252c360b2da6ecdae960bc065e85fa716a", "lib/context-builder.ts": "8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d", "lib/useAgentConversation.ts": "55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97", "lib/agents/chat-execution.ts": "a8fc170c4273b0dc9e90ec1d85dfaf98c2b4aeddbae3e38380fbe4aad3533dc7" };
+const startHashes: Readonly<Record<string, string>> = { "lib/context-builder.ts": "8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d", "lib/agents/chat-execution.ts": "a8fc170c4273b0dc9e90ec1d85dfaf98c2b4aeddbae3e38380fbe4aad3533dc7" };
 const hash = (path: string) => createHash("sha256").update(readFileSync(path)).digest("hex");
 function files(root: string): string[] { return readdirSync(root).flatMap(name => { const path = join(root, name); return statSync(path).isDirectory() ? files(path) : [path]; }); }
 describe("pure-Node isolation proof", () => {

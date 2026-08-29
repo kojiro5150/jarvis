@@ -13,10 +13,23 @@ describe("conversational capability selection", () => {
     ["What are my last five Gmails?", true],
     ["One of my last five emails.", false],
     ["Search my Drive for JARVIS.", true],
+    ["What were we talking about before that email?", false],
     ["When is my next meeting?", false],
     ["Tell me a joke.", false],
   ])("gates likely capability turns: %s", (utterance, expected) => {
     expect(isConversationalCapabilitySelectionCandidate(utterance)).toBe(expected);
+  });
+
+  it("keeps conversation-history references to an email out of private acquisition", async () => {
+    const model = vi.fn(async () => JSON.stringify({
+      kind: "capability_request",
+      capability: "gmail",
+      operation: "search",
+    }));
+    await expect(selectConversationalCapability({
+      utterance: "What were we talking about before that email?",
+      callModel: model,
+    })).resolves.toBeNull();
   });
 
   it("rejects a Gmail noun fragment even if the model proposes a search operation", async () => {

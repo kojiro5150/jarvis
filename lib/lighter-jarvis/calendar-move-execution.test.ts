@@ -96,8 +96,10 @@ describe("confirmed Calendar move execution", () => {
       "2026-08-29T10:30:00.000Z",
       "2026-08-29T12:00:00.000Z",
     );
-    expect(readEvent).toHaveBeenCalledAfter(moveEvent);
     expect(readEvent).toHaveBeenCalledWith("primary", "deep");
+    expect(moveEvent.mock.invocationCallOrder[0]).toBeLessThan(
+      readEvent.mock.invocationCallOrder[0]!,
+    );
   });
 
   it("consumes confirmation and performs no write when the pre-write state diverged", async () => {

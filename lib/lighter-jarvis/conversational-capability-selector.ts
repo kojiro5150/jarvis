@@ -26,6 +26,8 @@ const PUBLIC_INFORMATION_SIGNAL = /\b(?:weather|rain|forecast|temperature|ssrn)\
 const GMAIL_SIGNAL = /\b(?:gmail|gmails|email|emails|inbox)\b/i;
 const GMAIL_REQUEST_FORM = /(?:\b(?:show|check|get|search|find|list|read|open|summari[sz]e)\b|^\s*(?:what|which|who|where|when|how)\b)/i;
 const DRIVE_SIGNAL = /\bdrive\b/i;
+const CONVERSATION_HISTORY_REFERENCE =
+  /\b(?:what\s+(?:were|was)\s+(?:we|i|you)\s+(?:talking|discussing)\s+about|what\s+did\s+we\s+(?:talk|discuss)\s+about)\s+before\s+(?:that|the)\s+(?:email|message)\b/i;
 
 export type DeterministicCapabilityConstraint = Readonly<{
   capability: "public_information" | "gmail" | "drive";
@@ -34,6 +36,7 @@ export type DeterministicCapabilityConstraint = Readonly<{
 
 export function deterministicCapabilityConstraint(utterance: string): DeterministicCapabilityConstraint | null {
   const normalized = utterance.normalize("NFKC");
+  if (CONVERSATION_HISTORY_REFERENCE.test(normalized)) return null;
   if (PUBLIC_INFORMATION_SIGNAL.test(normalized)) {
     return Object.freeze({ capability: "public_information", fallbackOperation: "lookup" });
   }
@@ -68,6 +71,7 @@ export function validateSelectedConversationalIntent(
 ): ConversationalIntentCandidate | null {
   const candidate = validateConversationalIntentCandidate(raw);
   if (!candidate) return null;
+  if (CONVERSATION_HISTORY_REFERENCE.test(utterance.normalize("NFKC"))) return null;
   if (candidate.kind !== "capability_request") return candidate;
 
   // A private-source noun alone must never become an operation. The untouched

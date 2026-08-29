@@ -5,6 +5,8 @@
 **Capability level:** **Know only**  
 **Shape:** GS002A — Find by sender; GS002B — Find by topic
 
+> **Historical scoping note:** GS002A has since been implemented and live-passed. See `docs/GOLDEN-SCENARIO-002A-LIVE-PASS.md`. GS002B remains the next separate proof and is not implied by the GS002A pass.
+
 ## Purpose of this freeze
 
 This document freezes one narrow product-scoping decision before implementation.
@@ -205,9 +207,9 @@ It may not:
 - decide semantic relevance;
 - manufacture results.
 
-## Relationship to current Gmail implementation
+## Relationship to the implementation baseline at freeze time
 
-The current governed Gmail search path is intentionally narrower than GS002:
+At the time this scoping document was frozen, the governed Gmail search path was intentionally narrower than GS002:
 
 - `gmail.search` currently admits bounded time-window searches;
 - the existing connector is ID-only discovery;

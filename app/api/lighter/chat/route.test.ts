@@ -54,6 +54,7 @@ const handoffResult = (
 describe("POST /api/lighter/chat", () => {
   it.each([
     ["Search my Gmail from the last day.", "1d"],
+    ["Show me my emails for the last day.", "1d"],
     ["Search my Gmail from the last week.", "7d"],
   ] as const)("asks, then restores and executes the bounded natural-language Gmail search: %s", async (utterance, newerThan) => {
     const model = vi.fn(async () => handoffResult("dawnwatch", "handoff must not run"));

@@ -540,13 +540,11 @@ export default function UnifiedOpsConsole() {
                     <i className="corner bl" />
                     <i className="corner br" />
                     <div className="messages" ref={scrollRef}>
-                      {!selected && specialists.length === 0 && !listError && (
                         <div className="home-state">
                           <h2>JARVIS</h2>
                           <p>Loading governed conversation…</p>
                         </div>
                       )}
-                      {!selected && (specialists.length > 0 || listError) && (
                         <div className="home-state">
                           <h2>JARVIS</h2>
                           <p>Governed conversation is unavailable.</p>

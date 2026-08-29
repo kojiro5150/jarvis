@@ -3,7 +3,7 @@
 **Version:** 1.0  
 **Status:** Active  
 **Owner:** JARVIS Architecture  
-**Last Updated:** 26 July 2026
+**Last Updated:** 30 August 2026
 
 > **Supersession note — August 2026:** This document remains the enduring historical product vision, but any language that implies named specialists are a user-facing coordination model is superseded by `JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`. The current product boundary is one persistent user-facing JARVIS identity with internal governed capabilities. Specialists may remain implementation modules; the user should not need to know or coordinate them.
 

@@ -1830,6 +1830,44 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     expect(gmailReadConnector).not.toHaveBeenCalled();
   });
 
+  it.each([
+    "Yes, the first one.",
+    "Yes, the second one.",
+    "Yes, the third email.",
+    "Yes please, the fourth one.",
+  ])("contains acknowledgement-prefixed ordinal Gmail selection before ordinary model generation: %s", async (utterance) => {
+    const model = vi.fn(async () => [
+      "I found 2 emails from Georgia McDonald:",
+      "15 January 2025",
+      "Both emails are part of the same thread.",
+    ].join("\n"));
+    const gmailSearchConnector = vi.fn();
+    const gmailReadConnector = vi.fn();
+
+    const response = await createLighterChatHandler(
+      model,
+      undefined,
+      { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
+      { createConnector: gmailSearchConnector },
+    )(request({
+      specialistId: "jarvis",
+      messages: [
+        { role: "user", content: "Find the email from Georgia McDonald." },
+        { role: "assistant", content: "Gmail messages from Georgia McDonald <georgia@example.com>:\n- Subject one\n- Subject two" },
+        { role: "user", content: utterance },
+      ],
+    }));
+
+    expect(await response.json()).toEqual({
+      reply: "I can't read or identify a prior Gmail message from ordinary model context. Reading a selected message requires a separate governed Gmail read request and authority.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(model).not.toHaveBeenCalled();
+    expect(gmailSearchConnector).not.toHaveBeenCalled();
+    expect(gmailReadConnector).not.toHaveBeenCalled();
+  });
+
   it("does not let a bare 'Do it' continuation manufacture Gmail read authority UX", async () => {
     const model = vi.fn(async () =>
       "I understand you want to read the most recent email. Please explicitly confirm that I may read Gmail."

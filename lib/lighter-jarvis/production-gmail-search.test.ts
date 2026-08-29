@@ -301,4 +301,30 @@ describe("production gmail.search", () => {
     expect(searchByAddress).not.toHaveBeenCalled();
   });
 
+  it("preserves one-day scope for 'for the last day' wording", async () => {
+    const search = vi.fn(async () => ["one"]);
+    const deps = { createConnector: () => ({ search }) };
+
+    const proposed = await resolveProductionGmailSearch({
+      currentUserUtterance: "Search my email for the last day.",
+    }, deps);
+    expect(proposed).toMatchObject({
+      handled: true,
+      decision: "ASK",
+      reason: "explicit_gmail_search_not_established",
+    });
+
+    const allowed = await resolveProductionGmailSearch({
+      currentUserUtterance: "yes",
+      pendingAuthorizationReference: proposed.pendingAuthorizationReference,
+    }, deps);
+
+    expect(allowed).toMatchObject({
+      handled: true,
+      decision: "ALLOW",
+      messageIds: ["one"],
+    });
+    expect(search).toHaveBeenCalledWith("1d", 5);
+  });
+
 });

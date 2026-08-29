@@ -223,7 +223,8 @@ async function executeWindowSearch(
     requestingRuntime: "api-lighter-chat:gmail-subject-list",
     policyFailureReply: "I found recent Gmail messages, but I couldn't safely evaluate the policy required to release their subjects.",
     policyDeniedReply: "I found recent Gmail messages, but I can't release their subjects under the current resource policy.",
-    retrievalFailureReply: "I found recent Gmail messages, but I couldn't safely retrieve their subjects.",
+    retrievalFailureReply: "I found recent Gmail messages, but I couldn't safely retrieve their sender and subject metadata.",
+    includeSender: true,
   }, dependencies);
 }
 
@@ -333,6 +334,7 @@ async function executeResolvedSenderSearch(
     policyFailureReply: `I found Gmail messages from ${senderLabel}, but I couldn't safely evaluate the policy required to release their subjects.`,
     policyDeniedReply: `I found Gmail messages from ${senderLabel}, but I can't release their subjects under the current resource policy.`,
     retrievalFailureReply: `I found Gmail messages from ${senderLabel}, but I couldn't safely retrieve their subjects.`,
+    includeSender: false,
   }, dependencies);
   return Object.freeze({ ...released, gmailSenderDisambiguationReference: null });
 }

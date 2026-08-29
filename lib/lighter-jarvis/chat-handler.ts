@@ -507,7 +507,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
               ? "Drive"
               : "Calendar";
           return NextResponse.json({
-            reply: `I recognized that as a ${sourceLabel} request, but I could not form an exact governed private operation from that wording.`,
+            reply: `I recognized that as a ${sourceLabel} request, but natural-language handoff to the governed ${sourceLabel} authority path is not yet available.`,
             specialistId: specialist.id,
             execution: "none",
           });

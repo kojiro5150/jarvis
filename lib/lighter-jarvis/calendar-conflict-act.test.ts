@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sourceResult } from "../governed-conversation/source-adapter-result";
 import type { ScopedCalendarEvidenceResult } from "../governed-conversation/scoped-calendar-evidence-acquisition-adapter";
+import type { GovernedCalendarConflictEvent } from "../governed-conversation/calendar-conflict-observation";
 import { createCalendarAdviceReference } from "./calendar-advice-reference";
 import { resolveCalendarMoveProposalReference } from "./calendar-move-proposal-reference";
 import {
@@ -29,7 +30,7 @@ function advice() {
   })!;
 }
 
-function evidence(extra: readonly any[] = []): ScopedCalendarEvidenceResult {
+function evidence(extra: readonly GovernedCalendarConflictEvent[] = []): ScopedCalendarEvidenceResult {
   return Object.freeze({
     ...sourceResult("available", [], { observedAt }),
     coverageState: "bounded_complete_request",

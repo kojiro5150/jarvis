@@ -37,8 +37,12 @@ function authorization() {
 function completeRead(events: readonly CalendarEvent[]): ScopedCalendarAcquisitionPort {
   return {
     source: "google",
-    listBetween: vi.fn(async () => [...events]),
-    listBetweenWithCompleteness: vi.fn(async (start, end, limit = 100) => ({
+    listBetween: vi.fn<ScopedCalendarAcquisitionPort["listBetween"]>(
+      async () => [...events],
+    ),
+    listBetweenWithCompleteness: vi.fn<
+      NonNullable<ScopedCalendarAcquisitionPort["listBetweenWithCompleteness"]>
+    >(async (start, end, limit = 100) => ({
       events,
       completeness: {
         sourceId: "google-calendar",

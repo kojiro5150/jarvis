@@ -120,6 +120,20 @@ The 'new' claim requires both previous and current observation sets to be `bound
 
 This scenario does not need an `attention.commitment.added` policy. The repository can observe `added` structurally without claiming the event independently 'needs attention'. Gate K needs only added + pending-invitation evidence + deep-work evidence + overlap. Whether that matters belongs to Gate U.
 
+## Single-invitation scope
+
+Golden Scenario 001 contains exactly one newly added pending invitation.
+
+For this first Gate-K implementation:
+
+- zero added events with `selfAttendeeResponse === "needsAction"` → `not_found`;
+- exactly one → continue deterministic overlap binding;
+- more than one → `ambiguous_pending_invitation` and emit no Gate-K conflict observation.
+
+Do not choose among multiple pending invitations by recency, title, provider order, duration, overlap size or model judgement.
+
+This is a scenario-scope boundary, not a claim that future JARVIS cannot handle multiple simultaneous invitations.
+
 ## Multiplicity
 
 If more than one deep-work event overlaps the same added pending invitation, do not silently select one. Emit all exact overlapping conflicts in this total order:
@@ -133,7 +147,7 @@ The executable Gate-K test must construct at least two overlapping deep-work com
 
 ## Exact next implementation
 
-1. Centralize the canonical Calendar commitment-reference helper and reuse it in governed evidence plus conflict projection.
+1. Add a canonical Calendar commitment-reference helper for the new conflict projection and prove byte-for-byte identity parity with the existing governed Calendar evidence publisher. The existing publisher is protected by earlier isolation/hash contracts and must not be modified merely to adopt the helper.
 2. Extend the purpose-specific conflict projection with `observedAt`, `provenanceReference`, and provider-backed `selfAttendeeResponse`.
 3. Add a deterministic adapter that consumes an already-valid change set plus current conflict events, selects exact `added` identities, requires `needsAction`, finds overlapping `deep_work` events, and emits immutable typed Gate-K observations.
 4. Regress the exact 30-minute case, absent mode, absent `needsAction`, identity mismatch, multiplicity with start-time/commitment-reference ordering, and no model/authority/connector use in the binding adapter.

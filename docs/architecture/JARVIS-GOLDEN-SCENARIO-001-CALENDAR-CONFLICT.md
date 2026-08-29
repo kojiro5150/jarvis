@@ -81,14 +81,17 @@ Example user question:
 
 > `What would you do?`
 
-Example recommendation:
+Example recommendation after an explicit user preference and fresh current availability check:
 
-> `I would keep the invitation and move the remaining JARVIS work block later, assuming that work has no fixed deadline.`
+> `Given your preference to keep the invitation when the full deep-work block can be preserved, I'd keep the invitation and move the deep-work block to 3:00–4:30 PM.`
 
 ### Acceptance criteria
 
 - Recommendation is explicitly distinguishable from fact.
-- Advice is grounded in the governed current situation plus approved goals, plans and constraints.
+- Advice is grounded in the governed current situation plus an explicit user goal/preference sufficient to justify the trade-off.
+- A fresh authorised Calendar read is required before claiming candidate availability.
+- The first proof evaluates exactly one deterministic candidate: immediately after the current deep-work block, preserving its full duration.
+- Factual availability and recommendation remain separate epistemic types.
 - Uncertainty and assumptions are surfaced where material.
 - The recommendation creates no authority to change the Calendar.
 - Level 2 success is not treated as inherited proof that Level 3 advice is legitimate.
@@ -274,16 +277,19 @@ This gate requires facts and recommendation to remain separate.
 
 Before a recommendation can be earned, JARVIS must establish:
 
-- the conflict observation;
-- candidate alternative time(s) from current governed Calendar availability;
+- the historical conflict observation;
+- an explicit user preference sufficient to choose which commitment should yield;
+- a fresh authorised current Calendar observation;
+- that the relevant invitation and deep-work block still support the current advice calculation;
 - the duration required for the work block;
-- any explicit user goals/constraints needed to choose among candidates.
+- the first deterministic candidate slot, beginning immediately after the current deep-work block and preserving its full duration;
+- complete bounded evidence that the candidate slot is free.
 
 A recommendation such as:
 
 > Keep the invitation and move the JARVIS block to 3:00–4:30 PM.
 
-is legitimate only if the evidence/constraints actually support that trade-off.
+is legitimate only when an explicit user preference supports that trade-off and a fresh complete Calendar observation proves 3:00–4:30 PM is currently free.
 
 `3:00–4:30 PM is free` is a factual claim.
 

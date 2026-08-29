@@ -1182,7 +1182,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     expect(body.reply).toContain(`cannot associate it with one`);
     expect(body.reply).not.toContain(modelReply);
     expect(body.reply).toContain(label);
-    const [, , , context] = model.mock.calls[0] as unknown as [string, ChatMessage[], ClaudeTool[],
+    const [, , , context] = model.mock.calls[0] as unknown as [string, ChatMessage[], undefined,
       { sources: { userSuppliedBindings: unknown[] }[] }];
     expect(context.sources[0].userSuppliedBindings).toEqual([]);
   });
@@ -1202,7 +1202,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
       { role: "assistant", content: ask.reply }, { role: "user", content: "yes" }],
       pendingAuthorizationReference: ask.pendingAuthorizationReference }))).json();
     expect(body.reply).toContain("project review");
-    const [, , , context] = model.mock.calls[0] as unknown as [string, ChatMessage[], ClaudeTool[],
+    const [, , , context] = model.mock.calls[0] as unknown as [string, ChatMessage[], undefined,
       { sources: { userSuppliedBindings: unknown[] }[] }];
     expect(context.sources[0].userSuppliedBindings).toEqual([
       expect.objectContaining({ commitmentStart: "2026-08-27T00:00:00Z", label: "project review", provenance: "user" }),

@@ -119,9 +119,10 @@ natural-language instruction
 
 ### Acceptance criteria
 
-- The model may propose the Calendar mutation but may not grant permission to perform it.
+- The model may not originate the Calendar mutation proposal or grant permission to perform it; the first Act proposal is derived deterministically from the successful server-owned advice record.
 - The exact proposed mutation must be represented independently of model prose.
-- The target slot must be checked against **current Calendar state immediately before execution**.
+- The first Act proof requires a write-capable Google Calendar grant; the current read-only OAuth grant is insufficient and requires explicit scope migration/re-consent.
+- Current Calendar state must be checked once before exact write confirmation and again immediately before execution.
 - If the proposed slot or relevant source event has changed since the proposal was formed, execution must fail closed and a new proposal must be generated from current state.
 - A stale Know-time snapshot must never be treated as sufficient authority or sufficient execution state.
 - A changed world must not be misclassified as a false historical observation.
@@ -312,12 +313,14 @@ resolved recommendation
 → exact typed Calendar mutation proposal
 → exact target event identity
 → exact proposed start/end
+→ fresh read authority for Act validation
 → current-state re-read of source event and target slot
 → deterministic comparison with proposal assumptions
+→ exact immutable move proposal
 → explicit human confirmation for that exact proposal
 → immediate pre-write re-verification
-→ Calendar write
-→ external post-write verification
+→ exact Calendar write
+→ independent post-write external verification
 → Done
 ```
 
@@ -330,6 +333,10 @@ If current state differs materially at either re-verification point:
 - require fresh confirmation.
 
 No earlier confirmation transfers to a changed target slot or changed source event.
+
+The first Act proof supports only moving the exact recommended deep-work event to the exact recommended candidate interval. It does not accept/decline the invitation, move the invitation, create/delete events, or search for a replacement target slot.
+
+A provider write response is not completion evidence. `Done` is permitted only after an independent post-write Calendar read verifies the same event identity at the exact target start/end with unchanged duration.
 
 ### Vertical completion criterion
 

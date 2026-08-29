@@ -22,7 +22,10 @@ describe("opaque Calendar advice reference", () => {
   it("keeps recommendation detail and source identity server-side", () => {
     const ref = make();
     expect(Object.keys(ref)).toEqual(["calendarAdviceReferenceId"]);
-    expect(JSON.stringify(ref)).not.toMatch(/google-calendar|secret-deep|09:30|11:00|90|keep_invitation/);
+    expect(JSON.stringify(ref)).not.toMatch(/google-calendar|secret-deep|09:30|11:00|keep_invitation/);
+    expect(ref.calendarAdviceReferenceId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
     expect(resolveCalendarAdviceReference({ reference: ref, now: new Date("2026-08-29T07:01:00.000Z") })).toMatchObject({
       sourceCommitmentReference: "google-calendar:calendar:primary:event:secret-deep",
       candidateStart: "2026-08-29T09:30:00.000Z",

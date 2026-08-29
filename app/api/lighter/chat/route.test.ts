@@ -2129,7 +2129,10 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     });
     expect(conflictAllow.calendarAttentionObservationReference).not.toEqual(baselineReference);
     expect(JSON.stringify(conflictAllow.calendarConflictReasoningReference)).not.toMatch(
-      /Gate K Test Invite|JARVIS Deep Work Test|needsAction|deep_work|30/,
+      /Gate K Test Invite|JARVIS Deep Work Test|needsAction|deep_work/,
+    );
+    expect(conflictAllow.calendarConflictReasoningReference.calendarConflictReasoningReferenceId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     );
     expect(model).not.toHaveBeenCalled();
 

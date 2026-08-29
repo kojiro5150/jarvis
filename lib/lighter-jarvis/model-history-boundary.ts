@@ -17,6 +17,7 @@ const OMITTED_DRIVE_PROVIDER_ID_FOLLOW_UP = "[Prior governed Drive provider-ID f
 
 const GMAIL_FIELD_RELEASE = /^(?:Subject|Snippet|Plain text body|Attachment filenames|Attachment MIME metadata):/;
 const GMAIL_SUBJECT_LIST_RELEASE = /^(?:Recent Gmail messages:\n-|No recent Gmail messages found\.$)/;
+const GMAIL_SENDER_RELEASE = /^(?:Gmail messages from .+:\n-|No Gmail messages found from .+\.|I found more than one real Gmail sender matching that reference:\n-)/;
 const CALENDAR_RELEASE = /^(?:(?:Today|Tomorrow|This morning|This afternoon|This evening|This week|Next week) is clear\.|Your Calendar is clear for the next seven days\.|(?:Today|Tomorrow|This morning|This afternoon|This evening|This week|Next week|Next seven days) you have \d+ commitments?:\n-|Your Calendar has (?:no|\d+) commitments? in |(?:This|Next) week's resolved Calendar allocation:|Calendar factual result:\n)/;
 const DRIVE_RELEASE = /^(?:No Drive files found\.|Drive files:\n-)/;
 const DRIVE_CONTENT_RELEASE = /^Drive document \([A-Za-z0-9_-]+\):\n/;
@@ -57,6 +58,7 @@ export function hasGovernedGmailHistory(messages: readonly ChatMessage[]): boole
       message.content === "No Gmail message IDs found."
       || message.content.startsWith("Gmail message IDs:\n-")
       || GMAIL_SUBJECT_LIST_RELEASE.test(message.content)
+      || GMAIL_SENDER_RELEASE.test(message.content)
       || GMAIL_FIELD_RELEASE.test(message.content)
     ))
     || (message.role === "user" && index !== currentUserIndex && EXACT_GMAIL_READ_REQUEST.test(message.content.trim())),
@@ -80,6 +82,7 @@ export function isDeterministicPrivateRelease(content: string): boolean {
   return content === "No Gmail message IDs found."
     || content.startsWith("Gmail message IDs:\n-")
     || GMAIL_SUBJECT_LIST_RELEASE.test(content)
+    || GMAIL_SENDER_RELEASE.test(content)
     || GMAIL_FIELD_RELEASE.test(content)
     || CALENDAR_RELEASE.test(content)
     || DRIVE_RELEASE.test(content)

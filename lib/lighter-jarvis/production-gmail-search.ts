@@ -15,7 +15,14 @@ import { proposeNaturalLanguageGmailSearch } from "./gmail-search-proposal";
 import {
   renderGmailSenderIdentity,
   resolveGmailSenderIdentity,
+  type GmailSenderIdentity,
 } from "./gmail-sender-identity";
+import {
+  createGmailSenderDisambiguationReference,
+  renderGmailSenderDisambiguationCandidates,
+  resolveGmailSenderDisambiguationReference,
+  type GmailSenderDisambiguationReference,
+} from "./gmail-sender-disambiguation-reference";
 import { createPendingAuthorization, resolvePendingAuthorization, type PendingAuthorizationReference } from "./pending-authorization";
 
 const PREFIX = /^gmail\.search(?:\s|$)/;
@@ -35,6 +42,7 @@ export type ProductionGmailSearchResult = Readonly<{
   reply?: string;
   messageIds?: readonly string[];
   pendingAuthorizationReference?: PendingAuthorizationReference | null;
+  gmailSenderDisambiguationReference?: GmailSenderDisambiguationReference | null;
 }>;
 const defaults = {
   createConnector: () => new GoogleGmailSearchConnector(),
@@ -45,9 +53,59 @@ const defaults = {
 
 /** Handles bounded Gmail discovery and deterministic factual completion without model-visible Gmail evidence. */
 export async function resolveProductionGmailSearch(
-  input: { readonly currentUserUtterance: string; readonly pendingAuthorizationReference?: unknown },
+  input: {
+    readonly currentUserUtterance: string;
+    readonly pendingAuthorizationReference?: unknown;
+    readonly gmailSenderDisambiguationReference?: unknown;
+  },
   dependencies: ProductionGmailSearchDependencies = defaults,
 ): Promise<ProductionGmailSearchResult> {
+  const isExplicitSearchCommand = PREFIX.test(input.currentUserUtterance);
+  const freshNaturalProposal = isExplicitSearchCommand
+    ? null
+    : proposeNaturalLanguageGmailSearch(input.currentUserUtterance);
+
+  if (Object.hasOwn(input, "gmailSenderDisambiguationReference")
+      && input.gmailSenderDisambiguationReference !== null
+      && input.gmailSenderDisambiguationReference !== undefined
+      && !isExplicitSearchCommand
+      && freshNaturalProposal === null) {
+    const refinement = resolveGmailSenderDisambiguationReference({
+      reference: input.gmailSenderDisambiguationReference,
+      currentUserUtterance: input.currentUserUtterance,
+    });
+    if (refinement.status === "matched") {
+      return executeResolvedSenderSearch(
+        refinement.identity,
+        refinement.maxResults,
+        "gmail_sender_disambiguation_resolved",
+        dependencies,
+      );
+    }
+    if (refinement.status === "ambiguous" || refinement.status === "not_found") {
+      return Object.freeze({
+        handled: true,
+        decision: "ALLOW",
+        reason: `gmail_sender_disambiguation_${refinement.status}`,
+        reply: [
+          refinement.status === "ambiguous"
+            ? "That still matches more than one of the real Gmail sender candidates:"
+            : "That does not uniquely match one of the real Gmail sender candidates:",
+          renderGmailSenderDisambiguationCandidates(refinement.identities),
+          "Please use the sender's exact displayed name or address.",
+        ].join("\n"),
+        gmailSenderDisambiguationReference: refinement.reference,
+      });
+    }
+    return Object.freeze({
+      handled: true,
+      decision: "ASK",
+      reason: `gmail_sender_disambiguation_${refinement.status}`,
+      reply: "That sender disambiguation is no longer active. Please start a new Gmail sender search.",
+      gmailSenderDisambiguationReference: null,
+    });
+  }
+
   if (Object.hasOwn(input, "pendingAuthorizationReference")) {
     const resolution = resolvePendingAuthorization({
       currentUserUtterance: input.currentUserUtterance,
@@ -70,8 +128,8 @@ export async function resolveProductionGmailSearch(
     return execute(operation, resolution.reason, dependencies);
   }
 
-  if (!PREFIX.test(input.currentUserUtterance)) {
-    const proposal = proposeNaturalLanguageGmailSearch(input.currentUserUtterance);
+  if (!isExplicitSearchCommand) {
+    const proposal = freshNaturalProposal;
     if (!proposal) return Object.freeze({ handled: false });
     return Object.freeze({
       handled: true,
@@ -79,6 +137,9 @@ export async function resolveProductionGmailSearch(
       reason: "explicit_gmail_search_not_established",
       reply: "Please explicitly confirm that I may search Gmail.",
       pendingAuthorizationReference: createPendingAuthorization(proposal),
+      ...(Object.hasOwn(input, "gmailSenderDisambiguationReference")
+        ? { gmailSenderDisambiguationReference: null }
+        : {}),
     });
   }
 
@@ -208,6 +269,10 @@ async function executeSenderSearch(
   }
 
   if (resolution.status === "ambiguous") {
+    const reference = createGmailSenderDisambiguationReference({
+      identities: resolution.identities,
+      maxResults: operation.maxResults,
+    });
     return Object.freeze({
       handled: true,
       decision: "ALLOW",
@@ -217,21 +282,32 @@ async function executeSenderSearch(
         ...resolution.identities.map(identity => `- ${renderGmailSenderIdentity(identity)}`),
         "Please be more specific.",
       ].join("\n"),
+      gmailSenderDisambiguationReference: reference,
     });
   }
 
-  const sender = resolution.identity;
+  return executeResolvedSenderSearch(resolution.identity, operation.maxResults, reason, dependencies);
+}
+
+async function executeResolvedSenderSearch(
+  sender: GmailSenderIdentity,
+  maxResults: 5,
+  reason: string,
+  dependencies: ProductionGmailSearchDependencies,
+): Promise<ProductionGmailSearchResult> {
+  const senderConnector = dependencies.createSenderConnector?.() ?? defaults.createSenderConnector();
   let ids: readonly string[];
   try {
     ids = Object.freeze([
-      ...(await senderConnector.searchByAddress(sender.address, operation.maxResults)),
-    ].slice(0, operation.maxResults));
+      ...(await senderConnector.searchByAddress(sender.address, maxResults)),
+    ].slice(0, maxResults));
   } catch {
     return Object.freeze({
       handled: true,
       decision: "ALLOW",
       reason: "gmail_sender_search_failed",
       reply: "I resolved the sender, but I couldn't search Gmail for their messages right now.",
+      gmailSenderDisambiguationReference: null,
     });
   }
 
@@ -243,10 +319,11 @@ async function executeSenderSearch(
       reason,
       messageIds: ids,
       reply: `No Gmail messages found from ${senderLabel}.`,
+      gmailSenderDisambiguationReference: null,
     });
   }
 
-  return releaseSubjects({
+  const released = await releaseSubjects({
     ids,
     reason,
     intro: `Gmail messages from ${senderLabel}:`,
@@ -255,6 +332,7 @@ async function executeSenderSearch(
     policyDeniedReply: `I found Gmail messages from ${senderLabel}, but I can't release their subjects under the current resource policy.`,
     retrievalFailureReply: `I found Gmail messages from ${senderLabel}, but I couldn't safely retrieve their subjects.`,
   }, dependencies);
+  return Object.freeze({ ...released, gmailSenderDisambiguationReference: null });
 }
 
 async function releaseSubjects(

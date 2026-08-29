@@ -8,6 +8,7 @@ import {
   UNSUPPORTED_DRIVE_PATH_REPLY,
   ORDINARY_CALENDAR_FACT_REPLY,
   SINGLE_JARVIS_IDENTITY_REPLY,
+  CAPABILITY_OVERVIEW_REPLY,
 } from "./ordinary-model-reply-guard";
 import {
   hasPriorVisibleCalendarReport,

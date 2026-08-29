@@ -44,6 +44,7 @@ import {
   resolveCalendarConflictAdvise,
 } from "@/lib/lighter-jarvis/calendar-conflict-advise";
 import { resolveCalendarReadWindow } from "@/lib/lighter-jarvis/calendar-read-window";
+import { advanceCalendarAdviceReferenceUserTurn } from "@/lib/lighter-jarvis/calendar-advice-reference";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -287,6 +288,9 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     if (specialist.id === "jarvis" && !body.relaySpecialistReply && currentUserUtterance !== undefined) {
       if (Object.hasOwn(body, "calendarConflictReasoningReference")) {
         advanceCalendarConflictReasoningReferenceUserTurn(body.calendarConflictReasoningReference);
+      }
+      if (Object.hasOwn(body, "calendarAdviceReference")) {
+        advanceCalendarAdviceReferenceUserTurn(body.calendarAdviceReference);
       }
       if (isCalendarConflictAdviseQuestion(currentUserUtterance)
         && Object.hasOwn(body, "calendarConflictReasoningReference")) {

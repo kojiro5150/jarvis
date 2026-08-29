@@ -2,6 +2,7 @@ import { proposeDriveSearch, type ProposedDriveSearchOperation } from "./drive-s
 
 const NATURAL_DRIVE_SEARCH_FORMS = Object.freeze([
   /^search my drive for (\S(?:[^\r\n]*?\S)?)[.?!]?$/i,
+  /^search drive for (\S(?:[^\r\n]*?\S)?)[.?!]?$/i,
   /^find (\S(?:[^\r\n]*?\S)?) in my drive[.?!]?$/i,
   /^look in my drive for (\S(?:[^\r\n]*?\S)?)[.?!]?$/i,
 ]);

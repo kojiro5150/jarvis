@@ -8,6 +8,7 @@ import {
   UNSUPPORTED_DRIVE_PATH_REPLY,
   ORDINARY_CALENDAR_FACT_REPLY,
   SINGLE_JARVIS_IDENTITY_REPLY,
+  CAPABILITY_OVERVIEW_REPLY,
 } from "./ordinary-model-reply-guard";
 import {
   hasPriorVisibleCalendarReport,
@@ -17,6 +18,12 @@ import {
 } from "./calendar-provenance-truthfulness";
 
 describe("ordinary-model reply guard", () => {
+  it("does not let a capability overview invent live connector unavailability", () => {
+    const modelReply = "I'm operating without active connections to external systems right now. I cannot currently view your calendar or email.";
+    expect(guardOrdinaryModelReply(modelReply, "Explain what you can currently help me with."))
+      .toBe(CAPABILITY_OVERVIEW_REPLY);
+  });
+
   it.each([
     "I'll hand this to DAWNWATCH.",
     "DAWNWATCH can access that for you.",

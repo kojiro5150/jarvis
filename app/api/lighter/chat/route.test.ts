@@ -52,6 +52,101 @@ const handoffResult = (
 });
 
 describe("POST /api/lighter/chat", () => {
+  it("keeps an email conversation-history question in ordinary conversation after governed Gmail display", async () => {
+    const model = vi.fn(async (_prompt: string, messages: ChatMessage[]) => {
+      expect(messages.at(-1)).toEqual({ role: "user", content: "What were we talking about before that email?" });
+      expect(JSON.stringify(messages)).not.toContain("PRIVATE BODY");
+      return "We were discussing the post-collapse UI verification.";
+    });
+    const gmailSearchConnector = vi.fn();
+    const gmailReadConnector = vi.fn();
+    const driveConnector = vi.fn();
+    const calendarConnector = vi.fn();
+    const response = await createLighterChatHandler(
+      model,
+      { createConnector: calendarConnector, clock: () => new Date("2026-08-30T00:00:00Z") },
+      { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
+      { createConnector: gmailSearchConnector },
+      { createConnector: driveConnector },
+    )(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "Read the first one." },
+      { role: "assistant", content: "Plain text body: PRIVATE BODY" },
+      { role: "user", content: "What were we talking about before that email?" },
+    ] }));
+
+    expect(await response.json()).toEqual({
+      reply: "We were discussing the post-collapse UI verification.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(gmailSearchConnector).not.toHaveBeenCalled();
+    expect(gmailReadConnector).not.toHaveBeenCalled();
+    expect(driveConnector).not.toHaveBeenCalled();
+    expect(calendarConnector).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledOnce();
+  });
+
+  it("lets a fresh Drive request supersede a carried Gmail pending reference without transferring authority", async () => {
+    const model = vi.fn(async () => JSON.stringify({ kind: "ordinary_conversation" }));
+    const gmailSearchConnector = vi.fn();
+    const driveSearch = vi.fn(async () => []);
+    const driveConnector = vi.fn(() => ({ search: driveSearch }));
+    const handler = createLighterChatHandler(
+      model,
+      undefined,
+      undefined,
+      { createConnector: gmailSearchConnector },
+      { createConnector: driveConnector },
+    );
+
+    const gmailAsk = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Show me my last five emails." }],
+    }))).json();
+    expect(gmailAsk.gmailSearchAuthority).toMatchObject({ decision: "ASK" });
+
+    const driveAsk = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "search drive for JARVIS" }],
+      pendingAuthorizationReference: gmailAsk.pendingAuthorizationReference,
+    }))).json();
+
+    expect(driveAsk).toMatchObject({
+      reply: "Please explicitly confirm that I may search Drive.",
+      driveSearchAuthority: { decision: "ASK", reason: "explicit_drive_search_not_established" },
+      pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) },
+    });
+    expect(driveAsk).not.toHaveProperty("gmailSearchAuthority");
+    expect(driveAsk.pendingAuthorizationReference).not.toEqual(gmailAsk.pendingAuthorizationReference);
+    expect(gmailSearchConnector).not.toHaveBeenCalled();
+    expect(driveConnector).not.toHaveBeenCalled();
+    expect(driveSearch).not.toHaveBeenCalled();
+  });
+
+  it("routes the exact live Calendar phrase through governed Calendar instead of ordinary model availability claims", async () => {
+    const listBetween = vi.fn(async () => []);
+    const calendarConnector = vi.fn(() => ({
+      source: "google" as const,
+      listUpcoming: vi.fn(async () => []),
+      listBetween,
+    }));
+    const model = vi.fn(async () => "Tomorrow is clear.");
+    const response = await createLighterChatHandler(
+      model,
+      { createConnector: calendarConnector, clock: () => new Date("2026-08-30T00:00:00Z") },
+    )(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "What's on my calendar tomorrow?" }],
+    }));
+
+    expect(await response.json()).toMatchObject({
+      reply: "Tomorrow is clear.",
+      calendarAuthority: { decision: "ALLOW", reason: "explicit_calendar_read" },
+    });
+    expect(calendarConnector).toHaveBeenCalledOnce();
+    expect(listBetween).toHaveBeenCalledOnce();
+  });
+
   it.each([
     ["Search my Gmail from the last day.", "1d"],
     ["Show me my emails for the last day.", "1d"],

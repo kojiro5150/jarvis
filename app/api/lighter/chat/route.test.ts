@@ -1514,6 +1514,35 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     expect(gmailSearchConnector).not.toHaveBeenCalled();
   });
 
+  it("omits prior Gmail subject-list evidence before an ambiguous fragment reaches the ordinary model", async () => {
+    const model = vi.fn(async (_systemPrompt: string, messages: ChatMessage[]) => {
+      expect(JSON.stringify(messages)).not.toContain("Jarvis Test email");
+      expect(JSON.stringify(messages)).not.toContain("Private CI notice");
+      expect(messages).toContainEqual({
+        role: "assistant",
+        content: "[Governed private result omitted from ordinary model context.]",
+      });
+      return "I don't have enough governed context in this turn to identify which prior email you mean.";
+    });
+    const response = await createLighterChatHandler(model)(request({
+      specialistId: "jarvis",
+      messages: [
+        { role: "user", content: "What are my last five emails?" },
+        { role: "assistant", content: "I can retrieve the subjects of up to five recent Gmail messages from the last 7 days. Please explicitly confirm that I may do that." },
+        { role: "user", content: "Yes." },
+        { role: "assistant", content: "Recent Gmail messages:\n- Jarvis Test email\n- Private CI notice" },
+        { role: "user", content: "One of my last five emails." },
+      ],
+    }));
+
+    const body = await response.json();
+    expect(body.reply).not.toContain("Jarvis Test email");
+    expect(body.reply).not.toContain("Private CI notice");
+    expect(body).not.toHaveProperty("pendingAuthorizationReference");
+    expect(body).not.toHaveProperty("gmailSearchAuthority");
+    expect(model).toHaveBeenCalledOnce();
+  });
+
   it("keeps conversational Gmail read intent fail-closed when no exact resource is identified", async () => {
     const gmailReadConnector = vi.fn();
     const gmailSearchConnector = vi.fn();

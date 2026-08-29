@@ -173,7 +173,9 @@ async function executeSenderSearch(
   let scan;
   try {
     scan = await senderConnector.discoverSenderIdentities(operation.senderTerms, operation.identityScanLimit);
-  } catch {
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    console.warn(`[gmail-sender-search] sender identity discovery failed: ${detail}`);
     return Object.freeze({
       handled: true,
       decision: "ALLOW",
@@ -186,8 +188,12 @@ async function executeSenderSearch(
     return Object.freeze({
       handled: true,
       decision: "ALLOW",
-      reason: "gmail_sender_identity_scope_incomplete",
-      reply: "That sender reference matches too many mailbox messages for me to prove the identity is unique. Please use more of the sender's name or address.",
+      reason: scan.incompleteReason === "metadata_incomplete"
+        ? "gmail_sender_identity_metadata_incomplete"
+        : "gmail_sender_identity_scope_incomplete",
+      reply: scan.incompleteReason === "metadata_incomplete"
+        ? "I couldn't safely verify all matching sender identities in Gmail right now."
+        : "That sender reference matches too many mailbox messages for me to prove the identity is unique. Please use more of the sender's name or address.",
     });
   }
 

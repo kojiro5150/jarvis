@@ -1514,17 +1514,24 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     expect(gmailSearchConnector).not.toHaveBeenCalled();
   });
 
-  it("omits prior Gmail subject-list evidence before an ambiguous fragment reaches the ordinary model", async () => {
-    const model = vi.fn(async (_systemPrompt: string, messages: ChatMessage[]) => {
-      expect(JSON.stringify(messages)).not.toContain("Jarvis Test email");
-      expect(JSON.stringify(messages)).not.toContain("Private CI notice");
-      expect(messages).toContainEqual({
-        role: "assistant",
-        content: "[Governed private result omitted from ordinary model context.]",
-      });
-      return "I don't have enough governed context in this turn to identify which prior email you mean.";
-    });
-    const response = await createLighterChatHandler(model)(request({
+  it("contains an ambiguous prior-Gmail follow-up before ordinary model generation", async () => {
+    const model = vi.fn(async () => [
+      "Based on the earlier retrieval:",
+      "1. Project Update - Q1 Milestones",
+      "2. Team Lunch Tomorrow",
+      "3. Your Invoice from Acme Corp",
+      "4. Re: Meeting Notes Follow-up",
+      "5. Weekly Newsletter - Industry Insights",
+    ].join("\n"));
+    const gmailSearchConnector = vi.fn();
+    const gmailReadConnector = vi.fn();
+
+    const response = await createLighterChatHandler(
+      model,
+      undefined,
+      { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
+      { createConnector: gmailSearchConnector },
+    )(request({
       specialistId: "jarvis",
       messages: [
         { role: "user", content: "What are my last five emails?" },
@@ -1535,12 +1542,14 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
       ],
     }));
 
-    const body = await response.json();
-    expect(body.reply).not.toContain("Jarvis Test email");
-    expect(body.reply).not.toContain("Private CI notice");
-    expect(body).not.toHaveProperty("pendingAuthorizationReference");
-    expect(body).not.toHaveProperty("gmailSearchAuthority");
-    expect(model).toHaveBeenCalledOnce();
+    expect(await response.json()).toEqual({
+      reply: "I can't safely identify a prior Gmail item from ordinary model context.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(model).not.toHaveBeenCalled();
+    expect(gmailSearchConnector).not.toHaveBeenCalled();
+    expect(gmailReadConnector).not.toHaveBeenCalled();
   });
 
   it("keeps conversational Gmail read intent fail-closed when no exact resource is identified", async () => {

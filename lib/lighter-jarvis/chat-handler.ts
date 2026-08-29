@@ -81,7 +81,7 @@ interface LighterChatBody {
 type ModelCall = (
   systemPrompt: string,
   messages: ChatMessage[],
-  tools?: ClaudeTool[],
+  tools?: undefined,
   governedContext?: GovernedContext,
 ) => Promise<string | ClaudeResult>;
 
@@ -102,51 +102,6 @@ function followsUnavailablePublicLookup(messages: unknown, utterance: string): b
   return previousAssistant?.content === PUBLIC_LOOKUP_UNAVAILABLE_REPLY;
 }
 
-
-const isFetchError = (value: unknown): boolean => {
-  if (Array.isArray(value)) return value.some(isFetchError);
-  if (typeof value !== "object" || value === null) return false;
-  if ("type" in value && value.type === "web_fetch_tool_error") return true;
-  return "content" in value && isFetchError(value.content);
-};
-
-const fetchedThisTurn = (content: ClaudeContentBlock[]) => {
-  const fetchErrored = content.some(isFetchError);
-  return content.some((block) =>
-    block.type === "web_search_tool_result"
-    || (block.type === "web_fetch_tool_result" && !isFetchError(block))
-    || (block.type === "server_tool_use"
-      && !(fetchErrored && block.name === "web_fetch")),
-  );
-};
-
-const citationUrls = (value: unknown): string[] => {
-  if (Array.isArray(value)) return value.flatMap(citationUrls);
-  if (typeof value !== "object" || value === null) return [];
-  const record = value as Record<string, unknown>;
-  return [typeof record.url === "string" ? record.url : [], ...Object.values(record).map(citationUrls)].flat();
-};
-
-export function hasVerifiableExternalEvidence(content: ClaudeContentBlock[], allowedDomains?: readonly string[]): boolean {
-  if (!fetchedThisTurn(content)) return false;
-  const allowed = allowedDomains && new Set(allowedDomains);
-  const isAdmissibleUrl = (rawUrl: string): boolean => {
-    try {
-      const url = new URL(rawUrl);
-      if (url.protocol !== "https:" && url.protocol !== "http:") return false;
-      return !allowed || [...allowed].some((domain) => url.hostname === domain || url.hostname.endsWith(`.${domain}`));
-    } catch { return false; }
-  };
-  const evidenceUrls = content
-    .filter((block) => block.type === "web_search_tool_result" || block.type === "web_fetch_tool_result")
-    .flatMap(citationUrls);
-  if (evidenceUrls.length === 0 || evidenceUrls.some((url) => !isAdmissibleUrl(url))) return false;
-  const evidence = new Set(evidenceUrls);
-  return content.some((block) => {
-    if (block.type !== "text" || !Array.isArray(block.citations)) return false;
-    return citationUrls(block.citations).some((url) => isAdmissibleUrl(url) && evidence.has(url));
-  });
-}
 
 export function formatCalendarReadResponse(calendar: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["evidence"]>,
   window?: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["window"]>,

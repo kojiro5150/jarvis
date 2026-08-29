@@ -1477,7 +1477,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
 
     const body = await response.json();
     expect(body).toEqual({
-      reply: "I can search Gmail for up to five messages from the last 7 days. Please explicitly confirm that I may do that.",
+      reply: "I can retrieve the subjects of up to five recent Gmail messages from the last 7 days. Please explicitly confirm that I may do that.",
       specialistId: "jarvis",
       execution: "none",
       gmailSearchAuthority: { decision: "ASK", reason: "explicit_gmail_search_not_established" },
@@ -1511,7 +1511,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     expect(gmailSearchConnector).not.toHaveBeenCalled();
   });
 
-  it("asks then executes the exact bounded 3.180c Gmail proposal for 'Show me my last five emails'", async () => {
+  it("asks then deterministically completes the bounded Gmail subject list for 'Show me my last five emails'", async () => {
     const model = vi.fn(async () => JSON.stringify({
       kind: "capability_request",
       capability: "gmail",
@@ -1519,11 +1519,25 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
       requestedOutput: "list",
     }));
     const search = vi.fn(async () => ["id-1", "id-2", "id-3", "id-4", "id-5", "id-6"]);
+    const retrieveMessage = vi.fn(async (id: string) => ({ subject: `Subject ${id}`, snippet: "must never be released" }));
+    const loadPolicy = vi.fn(async () => ({
+      policyVersion: "test-v1",
+      rules: [{
+        id: "email",
+        match: { connectorType: "email" as const },
+        processing: "external_processing_permitted" as const,
+        admissibleFields: ["subject"],
+      }],
+    }));
     const handler = createLighterChatHandler(
       model,
       undefined,
       undefined,
-      { createConnector: vi.fn(() => ({ search })) },
+      {
+        createConnector: vi.fn(() => ({ search })),
+        createSubjectConnector: vi.fn(() => ({ retrieveMessage })),
+        loadPolicy,
+      },
     );
 
     const ask = await (await handler(request({
@@ -1532,11 +1546,13 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     }))).json();
 
     expect(ask).toMatchObject({
-      reply: "I can search Gmail for up to five messages from the last 7 days. Please explicitly confirm that I may do that.",
+      reply: "I can retrieve the subjects of up to five recent Gmail messages from the last 7 days. Please explicitly confirm that I may do that.",
       gmailSearchAuthority: { decision: "ASK", reason: "explicit_gmail_search_not_established" },
       pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) },
     });
     expect(search).not.toHaveBeenCalled();
+    expect(retrieveMessage).not.toHaveBeenCalled();
+    expect(loadPolicy).not.toHaveBeenCalled();
     expect(model).toHaveBeenCalledOnce();
 
     const allow = await (await handler(request({
@@ -1546,7 +1562,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     }))).json();
 
     expect(allow).toEqual({
-      reply: "Gmail message IDs:\n- id-1\n- id-2\n- id-3\n- id-4\n- id-5",
+      reply: "Recent Gmail messages:\n- Subject id-1\n- Subject id-2\n- Subject id-3\n- Subject id-4\n- Subject id-5",
       specialistId: "jarvis",
       execution: "none",
       gmailSearchAuthority: { decision: "ALLOW", reason: "pending_authorization_confirmed" },
@@ -1554,8 +1570,11 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     });
     expect(search).toHaveBeenCalledOnce();
     expect(search).toHaveBeenCalledWith("7d", 5);
+    expect(loadPolicy).toHaveBeenCalledOnce();
+    expect(retrieveMessage).toHaveBeenCalledTimes(5);
+    expect(retrieveMessage.mock.calls.map(([id]) => id)).toEqual(["id-1", "id-2", "id-3", "id-4", "id-5"]);
     expect(model).toHaveBeenCalledOnce();
-    expect(JSON.stringify(allow)).not.toMatch(/subject|snippet|body/i);
+    expect(JSON.stringify(allow)).not.toMatch(/must never be released|snippet|body/i);
   });
 
   it.each([

@@ -1492,6 +1492,28 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     expect(model).toHaveBeenCalledOnce();
   });
 
+  it("does not turn a Gmail noun fragment into a pending private operation", async () => {
+    const model = vi.fn(async () => JSON.stringify({
+      kind: "capability_request",
+      capability: "gmail",
+      operation: "search",
+      subjectTerms: ["emails"],
+      requestedOutput: "list",
+    }));
+    const gmailSearchConnector = vi.fn();
+    const response = await createLighterChatHandler(
+      model,
+      undefined,
+      undefined,
+      { createConnector: gmailSearchConnector },
+    )(request({ specialistId: "jarvis", messages: [{ role: "user", content: "One of my last five emails." }] }));
+
+    const body = await response.json();
+    expect(body).not.toHaveProperty("pendingAuthorizationReference");
+    expect(body).not.toHaveProperty("gmailSearchAuthority");
+    expect(gmailSearchConnector).not.toHaveBeenCalled();
+  });
+
   it("keeps conversational Gmail read intent fail-closed when no exact resource is identified", async () => {
     const gmailReadConnector = vi.fn();
     const gmailSearchConnector = vi.fn();

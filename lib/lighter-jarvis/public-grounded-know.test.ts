@@ -13,6 +13,7 @@ describe("public grounded Know execution", () => {
     await expect(executePublicGrounding(request!)).resolves.toEqual({
       status: "unavailable",
       request,
+      reason: "provider_unavailable",
     });
     expect(PUBLIC_GROUNDING_UNAVAILABLE_REPLY).toMatch(/won't substitute an unsupported answer from model memory/i);
   });
@@ -30,6 +31,6 @@ describe("public grounded Know execution", () => {
       },
     });
 
-    expect(result).toEqual({ status: "unavailable", request });
+    expect(result).toEqual({ status: "unavailable", request, reason: "geocoding_network_error" });
   });
 });

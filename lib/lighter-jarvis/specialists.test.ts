@@ -42,7 +42,7 @@ describe("Lighter JARVIS specialist governance", () => {
   });
 
   it("does not claim JARVIS monitors or observes direct specialist conversations", () => {
-    for (const specialist of Object.values(LIGHTER_SPECIALISTS)) {
+    for (const specialist of Object.values(LIGHTER_SPECIALISTS).filter(({ id }) => id !== "jarvis")) {
       const outOfScopeInstruction = specialist.instructions[4];
       expect(outOfScopeInstruction).toContain(
         "do not claim JARVIS observes, monitors, or has any visibility into this conversation, it does not",

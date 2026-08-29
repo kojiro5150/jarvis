@@ -1437,12 +1437,12 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     expect(model).not.toHaveBeenCalled();
   });
 
-  it("does not expose or honour specialist handoff tools for JARVIS", async () => {
+  it("does not expose specialist handoff tools to the real JARVIS model call", async () => {
     const model = vi.fn(async (
       _systemPrompt: string,
       _messages: ChatMessage[],
       _tools?: ClaudeTool[],
-    ) => handoffResult("dawnwatch", "I can help with that directly."));
+    ) => "I can help with that directly.");
     const response = await createLighterChatHandler(model)(request({
       specialistId: "jarvis", messages: [{ role: "user", content: "Brief me" }],
     }));
@@ -1451,6 +1451,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
       reply: "I can help with that directly.", specialistId: "jarvis", execution: "none",
     });
     expect(model.mock.calls[0][2]).toBeUndefined();
+    expect(model.mock.calls[0][0]).not.toContain("propose_handoff");
   });
 
   it.each([

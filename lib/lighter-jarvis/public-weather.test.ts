@@ -45,15 +45,22 @@ describe("grounded public weather", () => {
     });
 
     expect(evidence).toMatchObject({
-      location: { name: "Geelong", country: "Australia", timezone: "Australia/Melbourne" },
-      forecast: {
-        date: "2026-08-31",
-        temperatureMinC: 8.4,
-        temperatureMaxC: 17.8,
-        precipitationProbabilityMax: 65,
-        weatherCode: 61,
+      kind: "weather",
+      payload: {
+        location: { name: "Geelong", country: "Australia", timezone: "Australia/Melbourne" },
+        forecast: {
+          date: "2026-08-31",
+          temperatureMinC: 8.4,
+          temperatureMaxC: 17.8,
+          precipitationProbabilityMax: 65,
+          weatherCode: 61,
+        },
       },
-      provenance: { provider: "open-meteo", retrievedAt: "2026-08-30T06:00:00.000Z" },
+      provenance: {
+        provider: "open-meteo",
+        retrievedAt: "2026-08-30T06:00:00.000Z",
+        sourceUrl: expect.stringContaining("api.open-meteo.com/v1/forecast"),
+      },
     });
     expect(calls).toHaveLength(2);
     expect(calls[0]).toContain("name=Geelong");

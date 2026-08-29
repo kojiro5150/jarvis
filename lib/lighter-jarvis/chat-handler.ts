@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { callClaude } from "@/lib/claude";
-import type { ClaudeResult } from "@/lib/claude";
+import type { ClaudeResult, ClaudeTool } from "@/lib/claude";
 import type { ChatMessage } from "@/lib/agents/types";
 import { areValidMessages, areValidMessageTranscript, buildSpecialistPrompt } from "@/lib/lighter-jarvis/runtime";
 import { getLighterSpecialist } from "@/lib/lighter-jarvis/specialists";
@@ -86,27 +86,24 @@ interface LighterChatBody {
 type ModelCall = (
   systemPrompt: string,
   messages: ChatMessage[],
-  tools?: undefined,
+  tools?: ClaudeTool[],
   governedContext?: GovernedContext,
 ) => Promise<string | ClaudeResult>;
 
 
-const PUBLIC_LOOKUP_UNAVAILABLE_REPLY = "I recognized that as a public-information request, but public lookup is not yet available in this runtime.";
+const PUBLIC_WEB_TOOLS: ClaudeTool[] = [
+  { type: "web_search_20250305", name: "web_search" },
+];
 
-function followsUnavailablePublicLookup(messages: unknown, utterance: string): boolean {
-  if (!/^(?:yes|yes\.|yep|yeah|sure|ok|okay|go ahead)$/i.test(utterance.trim())) return false;
-  if (!Array.isArray(messages)) return false;
-  const previousAssistant = [...messages].reverse().find((message) =>
-    typeof message === "object"
-    && message !== null
-    && "role" in message
-    && message.role === "assistant"
-    && "content" in message
-    && typeof message.content === "string"
-  ) as { content: string } | undefined;
-  return previousAssistant?.content === PUBLIC_LOOKUP_UNAVAILABLE_REPLY;
-}
+const PUBLIC_WEB_GUIDANCE = [
+  "You have access to web search for public information.",
+  "Use it when the answer depends on current, recent, externally changing, or specifically requested public information.",
+  "For stable explanatory questions, answer normally without searching unless search would materially help.",
+  "If web search fails or does not establish the requested current fact, say that plainly rather than guessing from memory.",
+].join("\n");
 
+const PUBLIC_WEB_FAILURE_REPLY =
+  "I couldn't retrieve the public information needed for that answer right now.";
 
 export function formatCalendarReadResponse(calendar: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["evidence"]>,
   window?: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["window"]>,
@@ -438,16 +435,6 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         specialistId: specialist.id,
         execution: "none",
         calendarConflictAct: { status: "unbound_reference" },
-      });
-    }
-
-    if (specialist.id === "jarvis"
-      && currentUserUtterance !== undefined
-      && followsUnavailablePublicLookup(body.messages, currentUserUtterance)) {
-      return NextResponse.json({
-        reply: PUBLIC_LOOKUP_UNAVAILABLE_REPLY,
-        specialistId: specialist.id,
-        execution: "none",
       });
     }
 
@@ -792,14 +779,8 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           utterance: currentUserUtterance,
           callModel,
         });
-        if (selectedIntent?.kind === "capability_request") {
-          if (selectedIntent.capability === "public_information") {
-            return NextResponse.json({
-              reply: PUBLIC_LOOKUP_UNAVAILABLE_REPLY,
-              specialistId: specialist.id,
-              execution: "none",
-            });
-          }
+        if (selectedIntent?.kind === "capability_request"
+          && selectedIntent.capability !== "public_information") {
           const proposedOperation = materializeConversationalPrivateOperation(selectedIntent);
           if (proposedOperation?.capability === "gmail.search") {
             return NextResponse.json({
@@ -856,12 +837,12 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       });
     }
     try {
-      const systemPrompt = await buildSpecialistPrompt();
+      const systemPrompt = `${await buildSpecialistPrompt()}\n\n${PUBLIC_WEB_GUIDANCE}`;
       // Authority above is resolved from the untouched current utterance first.
       // Only the later, ordinary model call receives the private-release boundary.
       const governedDriveHistoryExcluded = hasGovernedDriveHistory(body.messages);
       const modelMessages = sanitizeModelHistory(body.messages);
-      const result = await callModel(systemPrompt, modelMessages);
+      const result = await callModel(systemPrompt, modelMessages, PUBLIC_WEB_TOOLS);
       let reply = typeof result === "string" ? result : result.text;
 
       const calendarRecall = calendarRecallDiagnostics(body.messages);
@@ -878,7 +859,11 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       return NextResponse.json({ reply, specialistId: specialist.id, execution: "none" });
     } catch (error) {
       console.error("[/api/lighter/chat] Specialist invocation failed:", error);
-      return NextResponse.json({ error: "Specialist invocation failed.", state: "unknown" }, { status: 502 });
+      return NextResponse.json({
+        reply: PUBLIC_WEB_FAILURE_REPLY,
+        specialistId: specialist.id,
+        execution: "none",
+      });
     }
   };
 }

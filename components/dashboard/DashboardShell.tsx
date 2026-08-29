@@ -16,31 +16,10 @@ import { buildProductionDashboardPresentation, type DashboardPresentationMode } 
 import type { DawnwatchPresentationMode } from "@/lib/dawnwatch-presentation-selection";
 
 /**
- * v27 (Sprint 9): a genuine product-shape change, not a visual pass. The
- * page is now a two-region command console rather than a four-column
- * dashboard: AgentRail (left — nine constitutional specialists, then a
- * compact System Status readout, then the footer) | a single wide centre
- * area (Orb, StatusStrip, Mission Workspace). The RH column (RightRail)
- * is gone entirely — Suggested Actions and Ambient Intelligence were cut
- * outright (see the audit note above StatusStrip's import site / the v27
- * summary for what was confirmed recoverable elsewhere), System Status
- * moved into the rail, and Projects/Calendar/Communications collapsed
- * from three cards into StatusStrip's single line. Nothing replaces the
- * RH column's width — the centre area (Orb panel, StatusStrip, Mission
- * Workspace) simply reclaims it, since both are already fluid (`flex-1`)
- * rather than fixed-width.
- *
- * Interaction model unchanged across every redesign pass: the center
- * column is JARVIS's overall operational view and never changes based on
- * which agent is selected — only which agent the ConversationDock is
- * talking to changes. `useAgentConversation` is lifted here so the orb,
- * the dock, and the rail all share one source of truth for
- * loading/listening/error rather than each re-deriving it.
- *
- * A brief, real "routing" transition plays when Sam switches specialists
- * (setSelectedId actually changed, not a fabricated animation) — the orb
- * shows a ROUTING stance for ~700ms before settling into the newly
- * selected specialist's idle state.
+ * JARVIS Core keeps the proven mission-control layout while collapsing
+ * conversational authority to one intelligence. The left rail is now
+ * identity + connector state; the centre remains the orb, operational
+ * status strip and persistent mission workspace.
  */
 export default function DashboardShell({
   presentationMode,

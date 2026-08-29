@@ -1933,7 +1933,10 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
       calendarId: "primary",
       calendarName: "Work",
     }]);
-    const model = vi.fn(async () => "model must not run");
+    const model = vi.fn(async (systemPrompt: string) =>
+      systemPrompt.includes("bounded private-evidence reasoning component")
+        ? '{"interpretationType":"scheduling_conflict"}'
+        : "model must not run");
     const handler = createLighterChatHandler(model, {
       createConnector: () => ({ source: "google" as const, listBetween }),
       clock: () => new Date("2026-08-28T01:00:00.000Z"),
@@ -2115,9 +2118,35 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
       calendarAttentionObservationReference: {
         calendarAttentionObservationReferenceId: expect.any(String),
       },
+      calendarConflictReasoningReference: {
+        calendarConflictReasoningReferenceId: expect.any(String),
+      },
     });
     expect(conflictAllow.calendarAttentionObservationReference).not.toEqual(baselineReference);
+    expect(JSON.stringify(conflictAllow.calendarConflictReasoningReference)).not.toMatch(
+      /Gate K Test Invite|JARVIS Deep Work Test|needsAction|deep_work|30/,
+    );
     expect(model).not.toHaveBeenCalled();
+
+    observedAt = "2026-08-28T01:01:00.000Z";
+    const understand = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Does that matter?" }],
+      calendarConflictReasoningReference: conflictAllow.calendarConflictReasoningReference,
+    }))).json();
+
+    expect(understand).toMatchObject({
+      reply: "Yes — in the limited sense that it creates a scheduling conflict with an existing deep-work block.",
+      execution: "none",
+      calendarConflictUnderstand: { status: "resolved" },
+      calendarConflictReasoningReference: conflictAllow.calendarConflictReasoningReference,
+    });
+    expect(model).toHaveBeenCalledTimes(1);
+    const understandMessages = model.mock.calls[0]?.[1] as { role: string; content: string }[];
+    expect(understandMessages).toHaveLength(1);
+    expect(understandMessages[0]?.content).not.toMatch(
+      /Gate K Test Invite|JARVIS Deep Work Test|google-calendar:|URGENT|PROTECTED|PRIORITY/,
+    );
     expect(listBetweenWithCompleteness).toHaveBeenCalledTimes(2);
     expect(listBetween).not.toHaveBeenCalled();
   });

@@ -13,6 +13,7 @@ describe("materializeConversationalPrivateOperation", () => {
       capability: "gmail.search",
       newerThan: "7d",
       maxResults: 5,
+      resultMode: "subject_list",
     });
   });
 
@@ -26,6 +27,7 @@ describe("materializeConversationalPrivateOperation", () => {
       capability: "gmail.search",
       newerThan: "1d",
       maxResults: 5,
+      resultMode: "subject_list",
     });
   });
 
@@ -52,6 +54,7 @@ describe("materializeConversationalPrivateOperation", () => {
       capability: "gmail.search",
       newerThan: "7d",
       maxResults: 5,
+      resultMode: "subject_list",
     });
   });
 

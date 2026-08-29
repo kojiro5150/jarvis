@@ -71,7 +71,7 @@ describe("Sprint 3.180b live capability selection", () => {
     ]))).json();
 
     expect(response).toMatchObject({
-      reply: "I can search Gmail for up to five messages from the last 7 days. Please explicitly confirm that I may do that.",
+      reply: "I can retrieve the subjects of up to five recent Gmail messages from the last 7 days. Please explicitly confirm that I may do that.",
       gmailSearchAuthority: { decision: "ASK", reason: "explicit_gmail_search_not_established" },
       pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) },
     });

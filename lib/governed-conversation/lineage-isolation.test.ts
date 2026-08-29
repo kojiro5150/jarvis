@@ -10,9 +10,7 @@ const reversePattern =
   /app\/api\/chat|context-builder|useAgentConversation|lib\/agents|executive-operating-system/;
 
 const forwardTargets = [
-  "app/api/chat",
   "lib/context-builder.ts",
-  "lib/useAgentConversation.ts",
   "lib/agents",
   "components",
   "lib/executive-operating-system",

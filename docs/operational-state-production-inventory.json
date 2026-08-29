@@ -6,13 +6,10 @@
     {
       "id": "dashboard",
       "classification": "legacy-product-surface",
-      "entryPoint": "components/dashboard/DashboardShell.tsx",
-      "dependencies": [
-        "lib/useOperationalState.ts",
-        "app/api/connector-status/route.ts"
-      ],
-      "acquisition": "metadata-only",
-      "disposition": "operational-state-dependency-removed-in-sprint-3.128"
+      "entryPoint": null,
+      "dependencies": [],
+      "acquisition": "none",
+      "disposition": "legacy-dashboard-runtime-removed-in-governance-core-pr-j"
     },
     {
       "id": "dawnwatch",

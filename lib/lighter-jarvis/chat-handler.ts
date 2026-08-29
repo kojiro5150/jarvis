@@ -8,8 +8,8 @@ import { resolveProductionCalendarRead, type ProductionCalendarDependencies } fr
 import { CALENDAR_TIME_ZONE } from "@/lib/lighter-jarvis/calendar-read-window";
 import { resolveProductionGmailRead, type ProductionGmailDependencies } from "@/lib/lighter-jarvis/production-gmail-read";
 import { resolveProductionGmailSearch, type ProductionGmailSearchDependencies } from "@/lib/lighter-jarvis/production-gmail-search";
-import { hasGovernedDriveHistory, sanitizeModelHistory } from "@/lib/lighter-jarvis/model-history-boundary";
-import { isAmbiguousPrivateReadFollowUp, isPrivateAcquisitionHandoffRequest } from "@/lib/lighter-jarvis/private-capability-handoff-guard";
+import { hasGovernedDriveHistory, hasGovernedGmailHistory, sanitizeModelHistory } from "@/lib/lighter-jarvis/model-history-boundary";
+import { isAmbiguousGmailEvidenceFollowUp, isAmbiguousPrivateReadFollowUp, isPrivateAcquisitionHandoffRequest } from "@/lib/lighter-jarvis/private-capability-handoff-guard";
 import { guardOrdinaryModelReply } from "@/lib/lighter-jarvis/ordinary-model-reply-guard";
 import { resolveProductionDriveSearch, type ProductionDriveSearchDependencies } from "@/lib/lighter-jarvis/production-drive-search";
 import { resolveProductionDriveRead, type ProductionDriveReadDependencies } from "@/lib/lighter-jarvis/production-drive-read";
@@ -520,6 +520,16 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
     if (!areValidMessages(body.messages)) {
       return NextResponse.json({ error: "`messages` must contain 1-40 valid conversation messages." }, { status: 400 });
+    }
+    if (specialist.id === "jarvis"
+      && currentUserUtterance !== undefined
+      && hasGovernedGmailHistory(body.messages)
+      && isAmbiguousGmailEvidenceFollowUp(currentUserUtterance)) {
+      return NextResponse.json({
+        reply: "I can't safely identify a prior Gmail item from ordinary model context.",
+        specialistId: specialist.id,
+        execution: "none",
+      });
     }
     const marketDomains = specialist.id === "gecko"
       ? resolveMarketScopeDomains(body.marketScopes)

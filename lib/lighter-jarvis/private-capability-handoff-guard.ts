@@ -1,3 +1,5 @@
+import type { ChatMessage } from "@/lib/agents/types";
+
 /**
  * A specialist handoff is not an alternative authority path for private data.
  *
@@ -45,4 +47,32 @@ export function isAmbiguousGmailEvidenceFollowUp(utterance: string): boolean {
     || /^(?:(?:yes|yes, please),?\s+)?(?:the\s+)?(?:most recent|latest|newest) email[.!?]*$/.test(normalized)
     || /^(?:read|open|show)(?:\s+me)?\s+(?:the\s+)?(?:most recent|latest|newest) email[.!?]*$/.test(normalized)
     || /^(?:that|this) email[.!?]*$/.test(normalized);
+}
+
+
+export const GMAIL_SELECTED_MESSAGE_READ_CONTAINMENT_REPLY =
+  "I can't read or identify a prior Gmail message from ordinary model context. Reading a selected message requires a separate governed Gmail read request and authority.";
+
+export const GMAIL_NO_PENDING_READ_AUTHORITY_REPLY =
+  "There is no governed Gmail read operation waiting for confirmation. Please make a new supported Gmail read request.";
+
+const BARE_AUTHORITY_CONTINUATION = /^(?:yes|yes,?\s+please|confirm|confirmed|proceed|go\s+ahead|do\s+it)[.!]?$/i;
+
+/**
+ * A bare confirmation-like continuation cannot create a Gmail read operation.
+ * This classifier activates only after one of our deterministic no-read/no-pending
+ * responses. A genuine pending authorization is resolved earlier by the
+ * server-owned authority handlers and never reaches this fallback boundary.
+ */
+export function isUnsupportedGmailReadAuthorityContinuation(
+  messages: readonly ChatMessage[],
+  currentUserUtterance: string,
+): boolean {
+  if (!BARE_AUTHORITY_CONTINUATION.test(currentUserUtterance.trim())) return false;
+  const currentUserIndex = messages.findLastIndex(message => message.role === "user");
+  if (currentUserIndex < 1) return false;
+  const previous = messages[currentUserIndex - 1];
+  return previous?.role === "assistant"
+    && (previous.content === GMAIL_SELECTED_MESSAGE_READ_CONTAINMENT_REPLY
+      || previous.content === GMAIL_NO_PENDING_READ_AUTHORITY_REPLY);
 }

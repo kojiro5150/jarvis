@@ -9,7 +9,14 @@ import { CALENDAR_TIME_ZONE } from "@/lib/lighter-jarvis/calendar-read-window";
 import { resolveProductionGmailRead, type ProductionGmailDependencies } from "@/lib/lighter-jarvis/production-gmail-read";
 import { resolveProductionGmailSearch, type ProductionGmailSearchDependencies } from "@/lib/lighter-jarvis/production-gmail-search";
 import { hasGovernedDriveHistory, hasGovernedGmailHistory, sanitizeModelHistory } from "@/lib/lighter-jarvis/model-history-boundary";
-import { isAmbiguousGmailEvidenceFollowUp, isAmbiguousPrivateReadFollowUp, isPrivateAcquisitionHandoffRequest } from "@/lib/lighter-jarvis/private-capability-handoff-guard";
+import {
+  GMAIL_NO_PENDING_READ_AUTHORITY_REPLY,
+  GMAIL_SELECTED_MESSAGE_READ_CONTAINMENT_REPLY,
+  isAmbiguousGmailEvidenceFollowUp,
+  isAmbiguousPrivateReadFollowUp,
+  isPrivateAcquisitionHandoffRequest,
+  isUnsupportedGmailReadAuthorityContinuation,
+} from "@/lib/lighter-jarvis/private-capability-handoff-guard";
 import { guardOrdinaryModelReply } from "@/lib/lighter-jarvis/ordinary-model-reply-guard";
 import { resolveProductionDriveSearch, type ProductionDriveSearchDependencies } from "@/lib/lighter-jarvis/production-drive-search";
 import { resolveProductionDriveRead, type ProductionDriveReadDependencies } from "@/lib/lighter-jarvis/production-drive-read";
@@ -822,12 +829,21 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       && hasGovernedGmailHistory(body.messages)
       && isAmbiguousGmailEvidenceFollowUp(currentUserUtterance)) {
       return NextResponse.json({
-        reply: "I can't read or identify a prior Gmail message from ordinary model context. Reading a selected message requires a separate governed Gmail read request and authority.",
+        reply: GMAIL_SELECTED_MESSAGE_READ_CONTAINMENT_REPLY,
         specialistId: specialist.id,
         execution: "none",
         ...(Object.hasOwn(body, "gmailSenderDisambiguationReference")
           ? { gmailSenderDisambiguationReference: null }
           : {}),
+      });
+    }
+    if (specialist.id === "jarvis"
+      && currentUserUtterance !== undefined
+      && isUnsupportedGmailReadAuthorityContinuation(body.messages, currentUserUtterance)) {
+      return NextResponse.json({
+        reply: GMAIL_NO_PENDING_READ_AUTHORITY_REPLY,
+        specialistId: specialist.id,
+        execution: "none",
       });
     }
     const marketDomains = specialist.id === "gecko"

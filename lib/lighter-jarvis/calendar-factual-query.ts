@@ -1,5 +1,6 @@
 import type { GovernedCalendarFactualEvent as CalendarFactualEvent } from "../governed-conversation/calendar-factual-evidence";
 import type { CalendarReadWindow } from "./calendar-read-window";
+import { allRequiredTokensPresent } from "./strict-token-match";
 
 export type CalendarFactualQuery =
   | Readonly<{ kind: "next_events"; limit: number }>
@@ -178,8 +179,10 @@ export function isUnsupportedCalendarFactualWording(utterance: string): boolean 
 }
 
 function titleMatches(event: CalendarFactualEvent, terms: readonly string[]): boolean {
-  const title = new Set(titleTokens(event.title));
-  return terms.length > 0 && terms.every(term => title.has(canonicalToken(term)));
+  return allRequiredTokensPresent(
+    terms.map(canonicalToken),
+    titleTokens(event.title),
+  );
 }
 
 function weekdayOf(start: string): CalendarWeekday {

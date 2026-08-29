@@ -204,6 +204,7 @@ describe("production gmail.search", () => {
       reason: "pending_authorization_confirmed",
       messageIds: ["one", "two"],
       reply: "Gmail messages from Georgia McDonald <georgia@example.com>:\n- Subject one\n- Subject two",
+      gmailSenderDisambiguationReference: null,
     });
     expect(discoverSenderIdentities).toHaveBeenCalledWith(["georgia"], 100);
     expect(searchByAddress).toHaveBeenCalledWith("georgia@example.com", 5);
@@ -282,6 +283,102 @@ describe("production gmail.search", () => {
     });
     expect(result.reply).toContain("Georgia McDonald <georgia@example.com>");
     expect(result.reply).toContain("Georgia McDonald-Reyes <georgia.reyes@example.com>");
+    expect(searchByAddress).not.toHaveBeenCalled();
+  });
+
+  it("keeps ambiguous sender refinement inside server-owned Gmail state and never re-runs identity discovery", async () => {
+    const discoverSenderIdentities = vi.fn(async () => ({
+      complete: true,
+      identities: [
+        { displayName: "Georgia McDonald", address: "georgia.mcdonald@example.com" },
+        { displayName: "Georgia Radford", address: "georgia.radford@example.com" },
+      ],
+    }));
+    const searchByAddress = vi.fn(async () => ["one"]);
+    const retrieveMessage = vi.fn(async () => ({ subject: "Subject one", snippet: "MUST NOT LEAK" }));
+    const deps = {
+      createConnector: () => ({ search: vi.fn(async () => []) }),
+      createSenderConnector: () => ({ discoverSenderIdentities, searchByAddress }),
+      createSubjectConnector: () => ({ retrieveMessage }),
+      loadPolicy: async () => ({
+        policyVersion: "test-v1",
+        rules: [{
+          id: "email",
+          match: { connectorType: "email" as const },
+          processing: "external_processing_permitted" as const,
+          admissibleFields: ["subject"],
+        }],
+      }),
+    };
+
+    const proposed = await resolveProductionGmailSearch({
+      currentUserUtterance: "Find the email from Georgia",
+    }, deps);
+    const ambiguous = await resolveProductionGmailSearch({
+      currentUserUtterance: "yes",
+      pendingAuthorizationReference: proposed.pendingAuthorizationReference,
+    }, deps);
+
+    expect(ambiguous).toMatchObject({
+      decision: "ALLOW",
+      reason: "gmail_sender_identity_ambiguous",
+      gmailSenderDisambiguationReference: {
+        gmailSenderDisambiguationReferenceId: expect.any(String),
+      },
+    });
+    expect(searchByAddress).not.toHaveBeenCalled();
+
+    const refined = await resolveProductionGmailSearch({
+      currentUserUtterance: "Georgia McDonald",
+      gmailSenderDisambiguationReference: ambiguous.gmailSenderDisambiguationReference,
+    }, deps);
+
+    expect(refined).toEqual({
+      handled: true,
+      decision: "ALLOW",
+      reason: "gmail_sender_disambiguation_resolved",
+      messageIds: ["one"],
+      reply: "Gmail messages from Georgia McDonald <georgia.mcdonald@example.com>:\n- Subject one",
+      gmailSenderDisambiguationReference: null,
+    });
+    expect(discoverSenderIdentities).toHaveBeenCalledTimes(1);
+    expect(searchByAddress).toHaveBeenCalledWith("georgia.mcdonald@example.com", 5);
+    expect(JSON.stringify(refined)).not.toContain("MUST NOT LEAK");
+  });
+
+  it("does not fuzzy-match a misspelled ambiguous-sender refinement", async () => {
+    const discoverSenderIdentities = vi.fn(async () => ({
+      complete: true,
+      identities: [
+        { displayName: "Georgia McDonald", address: "georgia.mcdonald@example.com" },
+        { displayName: "Georgia Radford", address: "georgia.radford@example.com" },
+      ],
+    }));
+    const searchByAddress = vi.fn(async () => ["must-not-run"]);
+    const deps = {
+      createConnector: () => ({ search: vi.fn(async () => []) }),
+      createSenderConnector: () => ({ discoverSenderIdentities, searchByAddress }),
+    };
+    const proposed = await resolveProductionGmailSearch({
+      currentUserUtterance: "Find the email from Georgia",
+    }, deps);
+    const ambiguous = await resolveProductionGmailSearch({
+      currentUserUtterance: "yes",
+      pendingAuthorizationReference: proposed.pendingAuthorizationReference,
+    }, deps);
+
+    const typo = await resolveProductionGmailSearch({
+      currentUserUtterance: "Georgia MacDonald",
+      gmailSenderDisambiguationReference: ambiguous.gmailSenderDisambiguationReference,
+    }, deps);
+
+    expect(typo).toMatchObject({
+      handled: true,
+      decision: "ALLOW",
+      reason: "gmail_sender_disambiguation_not_found",
+      gmailSenderDisambiguationReference: ambiguous.gmailSenderDisambiguationReference,
+    });
+    expect(typo.reply).toContain("does not uniquely match");
     expect(searchByAddress).not.toHaveBeenCalled();
   });
 

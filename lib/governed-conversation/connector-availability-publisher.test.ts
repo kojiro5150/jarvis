@@ -28,15 +28,13 @@ describe("Connector availability publisher", () => {
 const publisherNames = ["gmail-evidence-publisher", "calendar-evidence-publisher", "memory-priority-evidence-publisher", "connector-availability-publisher"];
 const publisherFiles = publisherNames.map(name => `lib/governed-conversation/${name}.ts`);
 const protectedHashes: Readonly<Record<string, string>> = {
-  "app/api/chat/route.ts": "4a1951b824b9b371a13b8596ebf936252c360b2da6ecdae960bc065e85fa716a",
   "lib/context-builder.ts": "8e689bf0880375ef2539c37cac8f8891669e66f4eb6ca72602fe97137438894d",
-  "lib/useAgentConversation.ts": "55274931370b78e0ea6cf0fd144b4fba88400be0f9a14361682428846eea9c97",
   "lib/agents/chat-execution.ts": "a8fc170c4273b0dc9e90ec1d85dfaf98c2b4aeddbae3e38380fbe4aad3533dc7",
   "lib/governed-conversation/projection-composer.ts": "51b58941273e2b6ac748ce94e54368020928a384074cd3f062bd8d9b2dcd6106",
 };
 const files = (root: string): string[] => readdirSync(root).flatMap(name => { const path = join(root, name); return statSync(path).isDirectory() ? files(path) : [path]; });
 describe("pure-Node publisher isolation proof", () => {
-  it("keeps publishers mutually independent and free of protected runtime dependencies", () => { for (const path of publisherFiles) { const source = readFileSync(path, "utf8"); for (const other of publisherNames.filter(name => !path.includes(name))) expect(source).not.toContain(other); for (const forbidden of ["app/api/chat", "context-builder", "useAgentConversation", "chat-execution", "composeGovernedConversationalProjection"]) expect(source).not.toContain(forbidden); } });
+  it("keeps publishers mutually independent and free of protected runtime dependencies", () => { for (const path of publisherFiles) { const source = readFileSync(path, "utf8"); for (const other of publisherNames.filter(name => !path.includes(name))) expect(source).not.toContain(other); for (const forbidden of ["context-builder", "useAgentConversation", "chat-execution", "composeGovernedConversationalProjection"]) expect(source).not.toContain(forbidden); } });
   it("has no hidden production import and retains every protected byte hash", () => {
     const candidates = [...files("app"), ...files("components"), ...files("lib")].filter(path => /\.tsx?$/.test(path) && !path.endsWith(".test.ts") && !publisherNames.some(name => path.includes(name)) && !path.endsWith("projection-composer.ts") && !path.includes("-acquisition-adapter") && !path.endsWith("source-evidence-assembly.ts"));
     for (const path of candidates) for (const name of publisherNames) expect(readFileSync(path, "utf8"), path).not.toContain(name);

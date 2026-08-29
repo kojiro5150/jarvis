@@ -78,4 +78,41 @@ describe("Sprint 3.180b live capability selection", () => {
     expect(response).not.toHaveProperty("messageIds");
     expect(model).toHaveBeenCalledTimes(1);
   });
+  it("contains SSRN research as unsupported public lookup before ordinary conversation", async () => {
+    const model = vi.fn(async () => JSON.stringify({
+      kind: "ordinary_conversation",
+    }));
+    const handler = createLighterChatHandler(model);
+
+    const response = await (await handler(request([
+      { role: "user", content: "what can you tell me about Sam Hayward on SSRN?" },
+    ]))).json();
+
+    expect(response).toEqual({
+      reply: "I recognized that as a public-information request, but public lookup is not yet available in this runtime.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(response).not.toHaveProperty("pendingAuthorizationReference");
+    expect(model).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not turn yes after unavailable SSRN lookup into fake authority", async () => {
+    const model = vi.fn(async () => "That request cannot be authorized through an ordinary model response.");
+    const handler = createLighterChatHandler(model);
+
+    const response = await (await handler(request([
+      { role: "user", content: "what can you tell me about Sam Hayward on SSRN?" },
+      { role: "assistant", content: "I recognized that as a public-information request, but public lookup is not yet available in this runtime." },
+      { role: "user", content: "yes" },
+    ]))).json();
+
+    expect(response).toEqual({
+      reply: "I recognized that as a public-information request, but public lookup is not yet available in this runtime.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(model).not.toHaveBeenCalled();
+  });
+
 });

@@ -29,13 +29,7 @@ export async function buildSpecialistPrompt(
     );
   }
   if (specialist.id === "jarvis") {
-    const specialists = Object.values(LIGHTER_SPECIALISTS)
-      .filter(({ id }) => id !== "jarvis")
-      .map(({ id, name, purpose }) => ({ id, name, purpose }));
-    return buildLighterSystemPrompt(
-      specialist,
-      JSON.stringify({ contract: "specialist_roster", specialists }),
-    );
+    return buildLighterSystemPrompt(specialist);
   }
   return buildLighterSystemPrompt(specialist);
 }

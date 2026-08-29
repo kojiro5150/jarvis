@@ -50,6 +50,19 @@ function priorCalendarRequestIndexes(messages: readonly ChatMessage[], currentUs
 
 
 /** Content-derived signal used only by downstream deny/presentation guards. */
+export function hasGovernedGmailHistory(messages: readonly ChatMessage[]): boolean {
+  const currentUserIndex = messages.findLastIndex(message => message.role === "user");
+  return messages.some((message, index) =>
+    (message.role === "assistant" && (
+      message.content === "No Gmail message IDs found."
+      || message.content.startsWith("Gmail message IDs:\n-")
+      || GMAIL_SUBJECT_LIST_RELEASE.test(message.content)
+      || GMAIL_FIELD_RELEASE.test(message.content)
+    ))
+    || (message.role === "user" && index !== currentUserIndex && EXACT_GMAIL_READ_REQUEST.test(message.content.trim())),
+  );
+}
+
 export function hasGovernedDriveHistory(messages: readonly ChatMessage[]): boolean {
   const currentUserIndex = messages.findLastIndex(message => message.role === "user");
   return messages.some((message, index) =>

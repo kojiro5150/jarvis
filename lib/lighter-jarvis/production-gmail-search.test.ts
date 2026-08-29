@@ -246,4 +246,59 @@ describe("production gmail.search", () => {
     expect(searchByAddress).not.toHaveBeenCalled();
   });
 
+  it("preserves a natural one-day email search scope instead of widening to seven days", async () => {
+    const search = vi.fn(async () => ["one"]);
+    const deps = { createConnector: () => ({ search }) };
+
+    const proposed = await resolveProductionGmailSearch({
+      currentUserUtterance: "Search my email from the last day.",
+    }, deps);
+    expect(proposed).toMatchObject({
+      handled: true,
+      decision: "ASK",
+      reason: "explicit_gmail_search_not_established",
+    });
+
+    const allowed = await resolveProductionGmailSearch({
+      currentUserUtterance: "yes",
+      pendingAuthorizationReference: proposed.pendingAuthorizationReference,
+    }, deps);
+
+    expect(allowed).toMatchObject({
+      handled: true,
+      decision: "ALLOW",
+      messageIds: ["one"],
+    });
+    expect(search).toHaveBeenCalledWith("1d", 5);
+  });
+
+  it("does not claim sender uniqueness when any candidate metadata read is incomplete", async () => {
+    const discoverSenderIdentities = vi.fn(async () => ({
+      complete: false,
+      incompleteReason: "metadata_incomplete" as const,
+      identities: [{ displayName: "Georgia McDonald", address: "georgia@example.com" }],
+    }));
+    const searchByAddress = vi.fn(async () => ["must-not-run"]);
+    const deps = {
+      createConnector: () => ({ search: vi.fn(async () => []) }),
+      createSenderConnector: () => ({ discoverSenderIdentities, searchByAddress }),
+    };
+
+    const proposed = await resolveProductionGmailSearch({
+      currentUserUtterance: "Find the email from Georgia",
+    }, deps);
+    const result = await resolveProductionGmailSearch({
+      currentUserUtterance: "yes",
+      pendingAuthorizationReference: proposed.pendingAuthorizationReference,
+    }, deps);
+
+    expect(result).toMatchObject({
+      handled: true,
+      decision: "ALLOW",
+      reason: "gmail_sender_identity_metadata_incomplete",
+      reply: "I couldn't safely verify all matching sender identities in Gmail right now.",
+    });
+    expect(searchByAddress).not.toHaveBeenCalled();
+  });
+
 });

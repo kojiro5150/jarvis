@@ -64,8 +64,10 @@ function completeRead(events: readonly CalendarEvent[]): ScopedCalendarAcquisiti
 
 describe("confirmed Calendar move execution", () => {
   it("rechecks, writes once, independently reads back, and only then says Done", async () => {
-    const moveEvent = vi.fn(async () => ({ ok: true, status: 200 }));
-    const readEvent = vi.fn(async () => ({
+    const moveEvent = vi.fn<CalendarEventWritePort["moveEvent"]>(
+      async () => ({ ok: true, status: 200 }),
+    );
+    const readEvent = vi.fn<CalendarEventWritePort["readEvent"]>(async () => ({
       ...source,
       start: "2026-08-29T20:30:00+10:00",
       end: "2026-08-29T22:00:00+10:00",
@@ -104,11 +106,11 @@ describe("confirmed Calendar move execution", () => {
 
   it("consumes confirmation and performs no write when the pre-write state diverged", async () => {
     const movedSource = { ...source, end: "2026-08-29T10:45:00.000Z" };
-    const moveEvent = vi.fn();
+    const moveEvent = vi.fn<CalendarEventWritePort["moveEvent"]>();
     const writeConnector: CalendarEventWritePort = {
       hasWriteScope: vi.fn(async () => true),
       moveEvent,
-      readEvent: vi.fn(),
+      readEvent: vi.fn<CalendarEventWritePort["readEvent"]>(),
     };
 
     const result = await executeConfirmedCalendarMove({
@@ -126,8 +128,10 @@ describe("confirmed Calendar move execution", () => {
   it("never claims Done when provider write succeeds but verification does not", async () => {
     const writeConnector: CalendarEventWritePort = {
       hasWriteScope: vi.fn(async () => true),
-      moveEvent: vi.fn(async () => ({ ok: true, status: 200 })),
-      readEvent: vi.fn(async () => source),
+      moveEvent: vi.fn<CalendarEventWritePort["moveEvent"]>(
+        async () => ({ ok: true, status: 200 }),
+      ),
+      readEvent: vi.fn<CalendarEventWritePort["readEvent"]>(async () => source),
     };
 
     const result = await executeConfirmedCalendarMove({

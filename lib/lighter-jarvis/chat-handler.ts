@@ -69,6 +69,13 @@ import { GoogleCalendarEventWriteConnector, type CalendarEventWritePort } from "
 import { GoogleCalendarConnector } from "@/lib/connectors/google/calendar";
 import { hasGoogleCalendarWriteScope } from "@/lib/connectors/google/calendar-write-scope";
 import type { ScopedCalendarAcquisitionPort } from "@/lib/governed-conversation/scoped-calendar-evidence-acquisition-adapter";
+import { materializePublicLookupRequest } from "@/lib/lighter-jarvis/public-lookup-request";
+import {
+  executePublicGrounding,
+  PUBLIC_GROUNDING_UNAVAILABLE_REPLY,
+  type PublicGroundingDependencies,
+} from "@/lib/lighter-jarvis/public-grounded-know";
+import { renderGroundedPublicWeather } from "@/lib/lighter-jarvis/public-weather";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -237,7 +244,8 @@ const defaultCalendarActDependencies: CalendarActDependencies = {
 export function createLighterChatHandler(callModel: ModelCall = callClaude, calendarDependencies?: ProductionCalendarDependencies,
   gmailDependencies?: ProductionGmailDependencies, gmailSearchDependencies?: ProductionGmailSearchDependencies,
   driveSearchDependencies?: ProductionDriveSearchDependencies, driveReadDependencies?: ProductionDriveReadDependencies,
-  calendarActDependencies: CalendarActDependencies = defaultCalendarActDependencies) {
+  calendarActDependencies: CalendarActDependencies = defaultCalendarActDependencies,
+  publicGroundingDependencies?: PublicGroundingDependencies) {
   return async function POST(request: Request) {
     let body: LighterChatBody;
     try { body = await request.json() as LighterChatBody; }
@@ -272,6 +280,38 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         specialistId: specialist.id,
         execution: "none",
       });
+    }
+
+    if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {
+      const publicLookup = materializePublicLookupRequest(currentUserUtterance);
+      if (publicLookup) {
+        const grounded = await executePublicGrounding(publicLookup, publicGroundingDependencies);
+        if (grounded.status !== "grounded") {
+          return NextResponse.json({
+            reply: PUBLIC_GROUNDING_UNAVAILABLE_REPLY,
+            specialistId: specialist.id,
+            execution: "none",
+            publicGrounding: {
+              status: "unavailable",
+              kind: publicLookup.kind,
+            },
+          });
+        }
+        if (grounded.request.kind === "weather") {
+          return NextResponse.json({
+            reply: renderGroundedPublicWeather(grounded.request, grounded.evidence),
+            specialistId: specialist.id,
+            execution: "public_information.weather.lookup",
+            publicGrounding: {
+              status: "grounded",
+              kind: "weather",
+              provider: grounded.evidence.provenance.provider,
+              observedAt: grounded.evidence.provenance.retrievedAt,
+              forecastDate: grounded.evidence.payload.forecast.date,
+            },
+          });
+        }
+      }
     }
 
     if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {

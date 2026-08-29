@@ -39,7 +39,7 @@ Closed outputs such as Understand's `scheduling_conflict | unsupported`, Advise'
 
 Authority-conferring language is also not ordinary intent interpretation. A deliberately closed confirmation grammar is permitted because it determines whether authority exists, not what the user generally meant.
 
-## Three execution classes
+## Four execution classes
 
 ### A. Ordinary intelligence
 
@@ -81,7 +81,41 @@ JARVIS or deterministic presentation, as separately authorised
 
 > **Minimise unauthorised disclosure, not useful authorised disclosure.**
 
-### C. Consequential write
+### C. Grounded public Know
+
+```text
+user
+  ↓
+system-owned grounding requirement
+  ↓
+closed PublicLookupRequest
+  ↓
+public acquisition
+  ↓
+RetrievedPublicEvidence + provenance
+  ↓
+deterministic presentation or grounded synthesis
+```
+
+Public information does not inherit the private authority ceremony merely because
+an external source is queried.
+
+> **PUBLIC-KNOW-01:** Read-only retrieval of public information does not require user authorization merely because an external system is queried. It remains subject to execution policy, source restrictions, cost/rate limits, and safety controls.
+
+> **PUBLIC-KNOW-02:** When a request falls into a system-owned forced-grounding category, current role, price/rate, software version/release, policy/law status, live event/result, weather/forecast, or an explicit public lookup, grounding is mandatory regardless of model confidence.
+
+> **PUBLIC-GROUNDING-01:** Model-authored text is not retrieved public evidence or public provenance. A current public factual claim that requires grounding may reach the user only through validated retrieved evidence with provider provenance.
+
+> **PUBLIC-GROUNDING-FAIL-01:** Once grounding is required, failure to retrieve or validate adequate public evidence is terminal for that factual claim. JARVIS must report that grounding could not be established and must not fall back to an unsupported answer from model memory.
+
+The routing decision is application-owned and deterministic. The model may help
+interpret a public request, but it may not decide that its own memory is current
+enough to waive a forced-grounding category.
+
+Stable explanatory knowledge remains ordinary intelligence unless another rule
+requires retrieval.
+
+### D. Consequential write
 
 ```text
 JARVIS LLM

@@ -1503,7 +1503,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     )(request({ specialistId: "jarvis", messages: [{ role: "user", content: "Read my latest email" }] }));
 
     expect(await response.json()).toEqual({
-      reply: "I recognized that as a Gmail request, but I could not form an exact governed private operation from that wording.",
+      reply: "I recognized that as a Gmail request, but natural-language handoff to the governed Gmail authority path is not yet available.",
       specialistId: "jarvis",
       execution: "none",
     });

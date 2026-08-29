@@ -83,6 +83,17 @@ describe("UnifiedOpsConsole head-mode contract", () => {
     expect(submission).not.toContain("proposedOperation");
   });
 
+  it("carries only an opaque Gmail sender-disambiguation reference through typed and voice transport", () => {
+    const submission = source.slice(
+      source.indexOf("async function submitMessage"),
+      source.indexOf("async function send"),
+    );
+    expect(submission).toContain("gmailSenderDisambiguationReference");
+    expect(submission).toContain("gmailSenderDisambiguationRef.current");
+    expect(submission).not.toContain("Georgia McDonald");
+    expect(submission).not.toContain("georgia@example.com");
+  });
+
   it("constructs shared typed and voice requests from synchronously accepted transport history", () => {
     const submission = source.slice(
       source.indexOf("async function submitMessage"),

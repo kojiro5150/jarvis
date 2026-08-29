@@ -18,6 +18,9 @@ describe("private capability handoff deny-only classifier", () => {
     "One of those emails",
     "the first email",
     "that email",
+    "Yes, the most recent email.",
+    "the latest email",
+    "open the newest email",
   ])("classifies a bounded ambiguous Gmail evidence follow-up: %s", utterance => {
     expect(isAmbiguousGmailEvidenceFollowUp(utterance)).toBe(true);
   });

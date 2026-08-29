@@ -954,10 +954,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
   it.each([
     ["Show my calendar Monday", "I don't have access to your calendar.", "The governed Calendar path supports calendar.read, but it does not support this request."],
     ["What Calendar capabilities do you have?", "That capability does not exist.", "The governed Calendar path supports calendar.read, but it does not support this request."],
-    ["Show me my emails", "I don't have access to Gmail.", "I recognized that as a Gmail request, but natural-language handoff to the governed Gmail authority path is not yet available."],
-    ["Check my Gmail", "Gmail is not connected.", "I recognized that as a Gmail request, but natural-language handoff to the governed Gmail authority path is not yet available."],
     ["Read my latest email", "I cannot read email.", "I recognized that as a Gmail request, but natural-language handoff to the governed Gmail authority path is not yet available."],
-    ["Get my inbox", "I don't have that capability.", "I recognized that as a Gmail request, but natural-language handoff to the governed Gmail authority path is not yet available."],
   ])("corrects unsupported private request capability representation without acquiring: %s", async (utterance, modelReply, expected) => {
     const model = vi.fn(async () => modelReply);
     const calendarConnector = vi.fn();
@@ -1465,27 +1462,100 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
   it.each([
     "Check my Gmail",
     "Show me my emails",
-    "Read my latest email",
     "Get my inbox",
-  ])("stops explicit Gmail wording at typed capability selection without authority or connectors: %s", async (utterance) => {
+  ])("binds bounded conversational Gmail search intent into server-owned pending authority without acquisition: %s", async (utterance) => {
     const calendarConnector = vi.fn();
     const gmailReadConnector = vi.fn();
     const gmailSearchConnector = vi.fn();
+    const model = vi.fn(async () => handoffResult("dawnwatch", "I'll hand this to DAWNWATCH."));
     const response = await createLighterChatHandler(
-      async () => handoffResult("dawnwatch", "I'll hand this to DAWNWATCH."),
+      model,
       { createConnector: calendarConnector, clock: () => new Date("2026-08-25T00:00:00Z") },
       { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
       { createConnector: gmailSearchConnector },
     )(request({ specialistId: "jarvis", messages: [{ role: "user", content: utterance }] }));
 
     const body = await response.json();
-    expect(body.reply).toBe("I recognized that as a Gmail request, but natural-language handoff to the governed Gmail authority path is not yet available.");
+    expect(body).toEqual({
+      reply: "I can search Gmail for up to five messages from the last 7 days. Please explicitly confirm that I may do that.",
+      specialistId: "jarvis",
+      execution: "none",
+      gmailSearchAuthority: { decision: "ASK", reason: "explicit_gmail_search_not_established" },
+      pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) },
+    });
     expect(body.reply).not.toMatch(/DAWNWATCH/i);
     expect(body).not.toHaveProperty("routeTo");
-    expect(body).not.toHaveProperty("pendingAuthorizationReference");
+    expect(Object.keys(body.pendingAuthorizationReference)).toEqual(["pendingAuthorizationId"]);
     expect(calendarConnector).not.toHaveBeenCalled();
     expect(gmailReadConnector).not.toHaveBeenCalled();
     expect(gmailSearchConnector).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledOnce();
+  });
+
+  it("keeps conversational Gmail read intent fail-closed when no exact resource is identified", async () => {
+    const gmailReadConnector = vi.fn();
+    const gmailSearchConnector = vi.fn();
+    const response = await createLighterChatHandler(
+      async () => handoffResult("dawnwatch", "I'll hand this to DAWNWATCH."),
+      undefined,
+      { createConnector: gmailReadConnector, loadPolicy: vi.fn() },
+      { createConnector: gmailSearchConnector },
+    )(request({ specialistId: "jarvis", messages: [{ role: "user", content: "Read my latest email" }] }));
+
+    expect(await response.json()).toEqual({
+      reply: "I recognized that as a Gmail request, but natural-language handoff to the governed Gmail authority path is not yet available.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(gmailReadConnector).not.toHaveBeenCalled();
+    expect(gmailSearchConnector).not.toHaveBeenCalled();
+  });
+
+  it("asks then executes the exact bounded 3.180c Gmail proposal for 'Show me my last five emails'", async () => {
+    const model = vi.fn(async () => JSON.stringify({
+      kind: "capability_request",
+      capability: "gmail",
+      operation: "search",
+      requestedOutput: "list",
+    }));
+    const search = vi.fn(async () => ["id-1", "id-2", "id-3", "id-4", "id-5", "id-6"]);
+    const handler = createLighterChatHandler(
+      model,
+      undefined,
+      undefined,
+      { createConnector: vi.fn(() => ({ search })) },
+    );
+
+    const ask = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Show me my last five emails." }],
+    }))).json();
+
+    expect(ask).toMatchObject({
+      reply: "I can search Gmail for up to five messages from the last 7 days. Please explicitly confirm that I may do that.",
+      gmailSearchAuthority: { decision: "ASK", reason: "explicit_gmail_search_not_established" },
+      pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) },
+    });
+    expect(search).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledOnce();
+
+    const allow = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Yes" }],
+      pendingAuthorizationReference: ask.pendingAuthorizationReference,
+    }))).json();
+
+    expect(allow).toEqual({
+      reply: "Gmail message IDs:\n- id-1\n- id-2\n- id-3\n- id-4\n- id-5",
+      specialistId: "jarvis",
+      execution: "none",
+      gmailSearchAuthority: { decision: "ALLOW", reason: "pending_authorization_confirmed" },
+      messageIds: ["id-1", "id-2", "id-3", "id-4", "id-5"],
+    });
+    expect(search).toHaveBeenCalledOnce();
+    expect(search).toHaveBeenCalledWith("7d", 5);
+    expect(model).toHaveBeenCalledOnce();
+    expect(JSON.stringify(allow)).not.toMatch(/subject|snippet|body/i);
   });
 
   it.each([

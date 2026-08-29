@@ -25,6 +25,8 @@ import {
 } from "@/lib/lighter-jarvis/calendar-factual-query";
 import { interpretCalendarConversationalIntent, isCalendarConversationalIntentCandidate } from "@/lib/lighter-jarvis/calendar-conversational-intent";
 import { isConversationalCapabilitySelectionCandidate, selectConversationalCapability } from "@/lib/lighter-jarvis/conversational-capability-selector";
+import { materializeConversationalPrivateOperation } from "@/lib/lighter-jarvis/conversational-private-operation";
+import { createPendingAuthorization } from "@/lib/lighter-jarvis/pending-authorization";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -488,6 +490,17 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
               execution: "none",
             });
           }
+          const proposedOperation = materializeConversationalPrivateOperation(selectedIntent);
+          if (proposedOperation?.capability === "gmail.search") {
+            return NextResponse.json({
+              reply: `I can search Gmail for up to five messages from the last ${proposedOperation.newerThan === "1d" ? "day" : "7 days"}. Please explicitly confirm that I may do that.`,
+              specialistId: specialist.id,
+              execution: "none",
+              gmailSearchAuthority: { decision: "ASK", reason: "explicit_gmail_search_not_established" },
+              pendingAuthorizationReference: createPendingAuthorization(proposedOperation),
+            });
+          }
+
           const sourceLabel = selectedIntent.capability === "gmail"
             ? "Gmail"
             : selectedIntent.capability === "drive"

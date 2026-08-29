@@ -43,7 +43,7 @@ export function isAmbiguousGmailEvidenceFollowUp(utterance: string): boolean {
   const normalized = utterance.normalize("NFKC").toLowerCase().replace(/[’]/g, "'").replace(/\s+/g, " ").trim();
   return /^(?:one|any) of (?:my|the|those) (?:last|recent) (?:(?:five|5) )?emails?[.!?]*$/.test(normalized)
     || /^(?:one|any) of (?:those|the) emails?[.!?]*$/.test(normalized)
-    || /^(?:the )?(?:first|second|third|fourth|fifth) (?:one|email)[.!?]*$/.test(normalized)
+    || /^(?:(?:yes|yes(?:,\s*|\s+)please),?\s+)?(?:the )?(?:first|second|third|fourth|fifth) (?:one|email)[.!?]*$/.test(normalized)
     || /^(?:(?:yes|yes, please),?\s+)?(?:the\s+)?(?:most recent|latest|newest) email[.!?]*$/.test(normalized)
     || /^(?:read|open|show)(?:\s+me)?\s+(?:the\s+)?(?:most recent|latest|newest) email[.!?]*$/.test(normalized)
     || /^(?:that|this) email[.!?]*$/.test(normalized);

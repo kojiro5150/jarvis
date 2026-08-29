@@ -16,6 +16,27 @@ describe("gmail.search natural-language proposal boundary", () => {
     });
   });
 
+
+  it.each([
+    ["Find the email from Georgia", ["georgia"]],
+    ["Please show me messages from McDonald Georgia", ["mcdonald", "georgia"]],
+  ] as const)("proposes GS002A sender search without granting authority: %s", (utterance, senderTerms) => {
+    const proposal = proposeNaturalLanguageGmailSearch(utterance);
+    expect(proposal).toEqual({
+      capability: "gmail.search",
+      senderTerms,
+      maxResults: 5,
+      identityScanLimit: 100,
+      resultMode: "sender_match",
+    });
+    expect(evaluateGmailSearchAuthority(proposal!, utterance)).toEqual({
+      capability: "gmail.search",
+      decision: "ASK",
+      reason: "explicit_gmail_search_not_established",
+      authorityEvidence: [],
+    });
+  });
+
   it.each([
     "Search Gmail for messages from Alice from the last day",
     "Search Gmail for invoices from the last week",

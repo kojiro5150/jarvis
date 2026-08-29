@@ -24,6 +24,36 @@ describe("production identified-message Gmail read", () => {
     expect(retrieveMessage).toHaveBeenCalledWith("message-1");
   });
 
+  it("uses the real development policy to deterministically release sender, subject, and plain-text body", async () => {
+    const retrieveMessage = vi.fn(async () => ({
+      sender: "Georgia <georgia@example.com>",
+      subject: "Project update",
+      plainTextBody: "Deterministic private body",
+      snippet: "MUST NOT LEAK",
+    }));
+    const pendingAuthorizationReference = createPendingAuthorization(proposeGmailRead({
+      resource: { resourceId: "message-1", connectorType: "email" as const },
+      requestedFields: ["sender", "subject", "plain_text_body"] as const,
+      requestingRuntime: "api-lighter-chat:gmail-ordinal-read",
+    }));
+
+    const result = await resolveProductionGmailRead({
+      currentUserUtterance: "confirm",
+      pendingAuthorizationReference,
+    }, {
+      loadPolicy: () => loadContentRetrievalPolicy("config/content-retrieval-policy.dev.json"),
+      createConnector: () => ({ retrieveMessage }),
+    });
+
+    expect(result).toMatchObject({
+      decision: "ALLOW",
+      reason: "pending_authorization_confirmed",
+      reply: "From: Georgia <georgia@example.com>\nSubject: Project update\nPlain text body: Deterministic private body",
+    });
+    expect(result.reply).not.toContain("MUST NOT LEAK");
+    expect(retrieveMessage).toHaveBeenCalledWith("message-1");
+  });
+
   it("preserves the exact field binding and presents governed content deterministically", async () => {
     const retrieveMessage = vi.fn(async () => ({ subject: "Actual governed subject", snippet: "Private snippet" }));
     const createConnector = vi.fn(() => ({ retrieveMessage }));

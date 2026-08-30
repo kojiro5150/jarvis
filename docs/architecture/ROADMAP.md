@@ -1,29 +1,42 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Reconciled 2026-08-30 after Governance Core extraction, controlled architectural collapse, and public-information trust hardening. Existing governed Calendar/Gmail/Drive work remains the proven substrate. The next architectural milestone is **Governed Operating Picture**: introduce semantically typed, provenance-preserving continuity without reviving legacy OperationalState, creating ambient private access, or treating model-authored memory as truth.
+**Status:** Living document. Reconciled 30 August 2026 after Governance Core extraction, controlled architectural collapse, public-information trust hardening, and direct verification of the Governed Operating Picture semantic/lifecycle foundation plus its live Supabase persistence foundation. Existing governed Calendar/Gmail/Drive work remains the proven substrate. The next architectural milestone is **Governed Operating Picture — Store Parity & Restart Durability**: connect the already-verified server-owned record semantics to durable persistence without allowing storage to redefine trust, lifecycle, authority, or source truth.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
 
 ---
 
-## Current next milestone — Governed Operating Picture
+## Current next milestone — Governed Operating Picture: Store Parity & Restart Durability
 
-The pre-implementation boundary is frozen in `JARVIS-GOVERNANCE-CORE.md` and audited in `docs/audits/GOVERNED-OPERATING-PICTURE-PREIMPLEMENTATION-AUDIT.md`.
+The original pre-implementation boundary remains preserved as historical evidence in `docs/audits/GOVERNED-OPERATING-PICTURE-PREIMPLEMENTATION-AUDIT.md`. The implementation and live verification state is recorded in `GOVERNED-OPERATING-PICTURE-FOUNDATION-VERIFICATION.md`.
 
-The first implementation is deliberately type-first:
+The first proving question has now been answered for the bounded foundation:
+
+> **Can the type system prevent JARVIS from remembering the wrong kind of thing as truth?**
+
+**Verified within the implemented scope.** Semantic class, provenance/authorship shape, lifecycle state, revision semantics, immutable version history, exact-head replacement/supersession mechanics, nested trust-bearing payload exclusion, and governed-source construction boundaries are directly tested. The live Supabase foundation additionally proves append-only version storage, RLS with no browser policies, atomic exact-head append, immutable history, valid lifecycle progression, and stale-head rejection.
+
+The next authorised implementation is narrower than "memory":
 
 ~~~text
-semantic class
-+ provenance / authorship
-+ temporal / lifecycle state
-+ purpose-bounded visibility
+verified in-memory Operating Picture semantics
+        +
+verified low-trust Supabase persistence boundary
         ↓
-immutable Operating Picture record core
+single server-owned store abstraction
+        ↓
+parity of append / reject / head / history semantics
+        ↓
+restart durability proof
 ~~~
 
-No persistence, connector acquisition, embeddings, automatic chat-memory extraction, cross-source synthesis, proactive behaviour, or action is authorised by this milestone.
+This milestone must prove that durable persistence reproduces the existing store contract rather than creating a second source of truth.
 
-> **First proving question:** Can the type system prevent JARVIS from remembering the wrong kind of thing as truth?
+### Explicit exclusions for the current milestone
+
+No model-facing retrieval, embeddings/vector search, automatic chat-memory extraction, broad connector ingestion, cross-source synthesis, proactive behaviour, autonomous action, or generic "give JARVIS all memory" API is authorised yet.
+
+> **Current proving question:** Can JARVIS restart and recover the same governed Operating Picture state without persistence manufacturing trust or diverging from the in-memory contract?
 
 ---
 ## Governance Core extraction sequence
@@ -98,11 +111,24 @@ Ready for disciplined activation
     Executive Reasoning
     First proving question: "What needs my attention?"
 
+Proven but deliberately bounded
+    Governed Operating Picture semantic/lifecycle foundation
+    Append-only Supabase persistence foundation with live invariant verification
+    Low-trust durable representation that does not rehydrate authority/evidence brands
+
+Ready for disciplined activation
+    Governed Operating Picture store parity + restart durability
+    Deterministic Executive Cognition already present in the EOS:
+    Situational Awareness → Attention → Situation Formation → Assessment →
+    Executive Context → Candidate Construction/Evaluation/Comparison →
+    Executive Reasoning
+
 Known strategic directions, not yet earned
+    Purpose-bounded durable read projection into JARVIS reasoning
+    Controlled conversation capture into semantic Operating Picture records
     Role-specific operational context
     Governed action approval/execution records
     Full voice-first experience
-    Governed memory with explicit fact / inference / plan / decision / recommendation / staleness semantics
     One-JARVIS UI convergence with user-facing specialist controls retired once governed natural-intent parity is earned
     Proactive anomaly detection and cross-role continuity
     Durable/distributed authority state

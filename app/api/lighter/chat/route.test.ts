@@ -174,6 +174,26 @@ describe("POST /api/lighter/chat", () => {
     expect(listBetween).toHaveBeenCalledOnce();
   });
 
+  it("routes natural personal-schedule wording to governed Calendar ASK instead of ordinary model claims", async () => {
+    const calendarConnector = vi.fn();
+    const model = vi.fn(async () => "I don't have access to your calendar at the moment.");
+    const response = await createLighterChatHandler(
+      model,
+      { createConnector: calendarConnector, clock: () => new Date("2026-08-30T01:15:00Z") },
+    )(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "what do I have on tomorrow?" }],
+    }));
+
+    expect(await response.json()).toMatchObject({
+      reply: "Please explicitly confirm that I may read your Calendar.",
+      calendarAuthority: { decision: "ASK", reason: "explicit_calendar_read_not_established" },
+      pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) },
+    });
+    expect(calendarConnector).not.toHaveBeenCalled();
+    expect(model).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["Search my Gmail from the last day.", "1d"],
     ["Show me my emails for the last day.", "1d"],

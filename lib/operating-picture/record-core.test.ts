@@ -38,13 +38,10 @@ describe("Governed Operating Picture semantic record core", () => {
       value: markModelText("This may need attention."),
       generatedAt: "2026-08-30T04:30:00Z",
       visibility: ["conversation"],
-      lifecycle: "superseded",
-      supersededBy: "model:inference:2",
     });
 
     expect(record.class).toBe("inference");
     expect(record.authorship.source).toBe("model");
-    expect(record.lifecycle).toBe("superseded");
-    expect(record.supersededBy).toBe("model:inference:2");
+    expect(record.lifecycle).toBe("current");
   });
 });

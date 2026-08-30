@@ -67,7 +67,7 @@ describe("Operating Picture persistence record", () => {
   it.each([
     new Date("2026-08-30T07:15:00Z"),
     undefined,
-    12n,
+    Symbol("not-json"),
     () => "not durable data",
   ])("fails closed instead of coercing non-JSON payload %s", value => {
     const record = createUserAssertionRecord({

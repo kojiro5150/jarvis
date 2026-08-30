@@ -147,7 +147,7 @@ model prose            --------X--> governed evidence
 
 ### Implementation progression
 
-The type/lifecycle, persistence, store-parity, restart-durability and purpose-bounded durable-projection stages have now been implemented and verified within their bounded scopes. Purpose-bounded projection has additionally been exercised live through the actual JARVIS server → Supabase REST path.
+The type/lifecycle, persistence, store-parity, restart-durability, purpose-bounded durable-projection and narrow model-facing continuity stages have now been implemented and verified within their bounded scopes. Purpose-bounded projection and narrow model-facing continuity have both been exercised live through the actual JARVIS server → Supabase REST → sole conversational runtime path.
 
 ~~~text
 semantic/lifecycle core — verified
@@ -158,12 +158,14 @@ store parity + restart durability — verified
         ↓
 purpose-bounded durable projection — verified live
         ↓
-narrow model-facing continuity — next
+narrow model-facing continuity — verified live
+        ↓
+explicit user-authored continuity capture — next
 ~~~
 
-Restart recovery and durable projection are intentionally **not** trust rehydration. A projected item remains low-trust continuity with explicit semantic class and recovery disposition. Source-backed records that require fresh evidence remain quarantined until a separate governed source boundary revalidates them.
+Restart recovery, durable projection and model-facing continuity are intentionally **not** trust rehydration. A projected or recalled item remains low-trust continuity with explicit semantic class and recovery disposition. Source-backed records that require fresh evidence remain quarantined until a separate governed source boundary revalidates them.
 
-The current milestone must not add vector search, automatic chat-memory extraction, broad connector ingestion, cross-source synthesis, proactive notifications, autonomous action, or a generic ambient-memory API.
+The next milestone must not add vector search, automatic chat-memory extraction, broad connector ingestion, cross-source synthesis, proactive notifications, autonomous action, generic ambient memory, or model-authored durable facts.
 
 > **PERSISTENCE-TRUST-01:** A persisted row is durable data/history, not a trust-bearing value. Reading data from storage must never by itself construct `GovernedEvidence`, `AuthorityEvidence`, policy proof, verification proof, completion proof, or fresh provider truth.
 
@@ -188,6 +190,16 @@ The current milestone must not add vector search, automatic chat-memory extracti
 > **MODEL-CONTINUITY-04:** Model output derived from durable continuity remains model output. It cannot promote a projected item into `GovernedEvidence`, authority, provenance, policy proof, verification proof, completion proof, or fresh source truth.
 
 > **MODEL-CONTINUITY-05:** Model reasoning over durable continuity must produce a response that conforms to an explicit closed output schema and is deterministically validated before presentation. For the first model-facing continuity experiment, free-form narrative synthesis directly from projected durable items is not permitted. Invalid, extra-field, out-of-vocabulary, or otherwise non-conforming model output must fail closed rather than being repaired, interpreted, or presented as if valid.
+
+> **USER-CONTINUITY-CAPTURE-01:** Durable user-continuity capture requires an explicit current-turn user instruction to remember or retain the supplied continuity. Prior conversation, model inference, historical approval, or standing conversational context cannot manufacture capture authority.
+
+> **USER-CONTINUITY-CAPTURE-02:** A record stored as user-authored continuity must preserve user authorship. Model-generated paraphrase, summary, inference, classification rationale, or completion may not be stored as though the user authored it. The first capture experiment must bind the durable payload to current-turn user-supplied content or another deterministic representation whose authorship remains explicitly user-derived.
+
+> **USER-CONTINUITY-CAPTURE-03:** The first user-authored capture boundary may create only a closed user-continuity semantic class: `user_assertion`, `preference`, `plan`, `commitment`, or `decision`. It may not create `fact`, governed evidence, authority, provenance, verification proof, completion proof, or source-backed truth.
+
+> **USER-CONTINUITY-CAPTURE-04:** Capture must use the existing append-only Operating Picture persistence semantics with explicit lifecycle and visibility purpose. Persistence creates durable continuity only; it does not create authority for future acquisition or action.
+
+> **USER-CONTINUITY-CAPTURE-05:** If a model participates in classifying or structuring an explicit capture request, its output must use a closed validated contract. Invalid, ambiguous, widened, or out-of-contract output must fail closed before any durable append.
 ## Input/output asymmetry
 
 > **INPUT-FLEX-01:** Ordinary user-facing natural language should not be constrained more than necessary for reliable interpretation. Improving semantic understanding must not itself weaken authority.

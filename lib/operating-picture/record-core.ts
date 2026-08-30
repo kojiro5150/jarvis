@@ -32,10 +32,17 @@ export type OperatingPictureVisibility = Readonly<{
   purposes: readonly string[];
 }>;
 
+export type OperatingPictureSubject = Readonly<{
+  namespace: string;
+  entity: string;
+  attribute: string;
+}>;
+
 type BaseRecord<K extends OperatingPictureClass, V> = Readonly<{
   id: string;
   class: K;
   value: V;
+  subject: OperatingPictureSubject;
   lifecycle: OperatingPictureLifecycle;
   visibility: OperatingPictureVisibility;
   validFrom?: string;
@@ -118,6 +125,7 @@ export type OperatingPictureRecord<T = unknown> =
 
 type CommonInput = Readonly<{
   id: string;
+  subject: OperatingPictureSubject;
   visibility: readonly string[];
   validFrom?: string;
   validUntil?: string;
@@ -126,6 +134,7 @@ type CommonInput = Readonly<{
 
 function common(input: CommonInput): Readonly<{
   id: string;
+  subject: OperatingPictureSubject;
   lifecycle: OperatingPictureLifecycle;
   visibility: OperatingPictureVisibility;
   validFrom?: string;
@@ -134,6 +143,7 @@ function common(input: CommonInput): Readonly<{
 }> {
   return Object.freeze({
     id: input.id,
+    subject: Object.freeze({ ...input.subject }),
     lifecycle: "current",
     visibility: Object.freeze({ purposes: Object.freeze([...input.visibility]) }),
     ...(input.validFrom ? { validFrom: input.validFrom } : {}),
@@ -263,3 +273,13 @@ export function createOpenQuestionRecord(input: CommonInput & Readonly<{
 export type ReusableAuthorityMustNotAppearInOperatingPicture = AuthorityEvidence<never> extends OperatingPictureRecord
   ? never
   : true;
+
+
+export function sameOperatingPictureSubject(
+  left: OperatingPictureRecord,
+  right: OperatingPictureRecord,
+): boolean {
+  return left.subject.namespace === right.subject.namespace
+    && left.subject.entity === right.subject.entity
+    && left.subject.attribute === right.subject.attribute;
+}

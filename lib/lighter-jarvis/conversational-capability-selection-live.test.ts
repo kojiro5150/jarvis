@@ -49,8 +49,8 @@ describe("Sprint 3.180b live capability selection", () => {
       execution: "none",
     });
     expect(response).not.toHaveProperty("pendingAuthorizationReference");
-    expect(model).toHaveBeenCalledTimes(1);
-    expect(hasWebSearch(model.mock.calls[0][2])).toBe(true);
+    expect(model).toHaveBeenCalledTimes(2);
+    expect(hasWebSearch(model.mock.calls[1][2])).toBe(true);
   });
 
   it("still exposes web search to ordinary JARVIS when the selector itself declines public capability", async () => {
@@ -151,8 +151,8 @@ describe("Sprint 3.180b live capability selection", () => {
     });
     expect(response.reply).not.toMatch(/would you like me to search/i);
     expect(response).not.toHaveProperty("pendingAuthorizationReference");
-    expect(model).toHaveBeenCalledTimes(2);
-    expect(hasWebSearch(model.mock.calls[1][2])).toBe(true);
+    expect(model).toHaveBeenCalledTimes(1);
+    expect(hasWebSearch(model.mock.calls[0][2])).toBe(true);
   });
 
   it("returns a plain failure message when the web-enabled model invocation fails", async () => {

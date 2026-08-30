@@ -154,6 +154,7 @@ export function buildPublicTemporalGuidance(now: Date): string {
     "Resolve relative dates and dayparts against this user-local anchor before searching or answering.",
     "Do not derive today/tomorrow from the server clock, model memory, or dates mentioned in search results.",
     "When reporting a relative date, make sure its weekday and calendar date agree with this anchor.",
+    "For weather or other multi-day public results, match each reported condition, probability, temperature, warning, or time window to the exact target local date before using it. Do not attach an adjacent day's forecast details to the requested date.",
   ].join("\n");
 }
 

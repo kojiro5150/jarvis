@@ -98,8 +98,10 @@ const PUBLIC_WEB_TOOLS: ClaudeTool[] = [
 const PUBLIC_WEB_GUIDANCE = [
   "You have access to web search for public information.",
   "Use it when the answer depends on current, recent, externally changing, or specifically requested public information.",
+  "If the user asks about a public person, organisation, brand, website, publication, product, place, event, or topic and you do not have enough specific information to answer well, search the web immediately.",
+  "Do not ask the user whether they want you to search the public web. Public web search does not require a permission ceremony.",
   "For stable explanatory questions, answer normally without searching unless search would materially help.",
-  "If web search fails or does not establish the requested current fact, say that plainly rather than guessing from memory.",
+  "If web search fails or does not establish the requested fact, say that plainly rather than guessing from memory.",
 ].join("\n");
 
 const PUBLIC_WEB_FAILURE_REPLY =

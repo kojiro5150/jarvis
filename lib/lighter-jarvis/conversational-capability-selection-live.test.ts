@@ -126,6 +126,35 @@ describe("Sprint 3.180b live capability selection", () => {
     expect(hasWebSearch(model.mock.calls[1][2])).toBe(true);
   });
 
+  it("does not ask permission before public web search when JARVIS lacks specific public information", async () => {
+    const model = vi.fn(async (systemPrompt: string, _messages: { content: string }[], tools?: ClaudeTool[]) => {
+      if (hasWebSearch(tools)) {
+        expect(systemPrompt).toContain("search the web immediately");
+        expect(systemPrompt).toContain("Do not ask the user whether they want you to search the public web");
+        return {
+          content: [{ type: "text", text: "Miss Food Fairy is a public food blog and creator presence." }],
+          text: "Miss Food Fairy is a public food blog and creator presence.",
+        };
+      }
+      return JSON.stringify({ kind: "ordinary_conversation" });
+    });
+    const handler = createLighterChatHandler(model);
+
+    const response = await (await handler(request([
+      { role: "user", content: "what do you know about Miss Food Fairy?" },
+    ]))).json();
+
+    expect(response).toEqual({
+      reply: "Miss Food Fairy is a public food blog and creator presence.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(response.reply).not.toMatch(/would you like me to search/i);
+    expect(response).not.toHaveProperty("pendingAuthorizationReference");
+    expect(model).toHaveBeenCalledTimes(1);
+    expect(hasWebSearch(model.mock.calls[0][2])).toBe(true);
+  });
+
   it("returns a plain failure message when the web-enabled model invocation fails", async () => {
     const model = vi.fn(async (_systemPrompt: string, _messages: { content: string }[], tools?: ClaudeTool[]) => {
       if (hasWebSearch(tools)) throw new Error("web search unavailable");

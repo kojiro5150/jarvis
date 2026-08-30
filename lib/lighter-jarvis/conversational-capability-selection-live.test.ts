@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { anchorPublicInformationModelTurn, buildPublicTemporalGuidance, createLighterChatHandler } from "./chat-handler";
+import {
+  anchorPublicInformationModelTurn,
+  buildPublicTemporalGuidance,
+  createLighterChatHandler,
+  hasPublicWebSearchEvidence,
+  isFreshnessSensitivePublicInformation,
+} from "./chat-handler";
 import type { ClaudeTool } from "../claude";
 
 const request = (messages: unknown[]) => new Request("http://localhost/api/lighter/chat", {
@@ -80,7 +86,11 @@ describe("Sprint 3.180b live capability selection", () => {
         expect(messages.at(-1)?.content).toContain("compare them and discard superseded candidates");
         expect(messages.at(-1)?.content).toContain("preserve the source taxonomy explicitly");
         return {
-          content: [{ type: "text", text: "Node.js 26.8.1 is Current; Node.js 24.20.0 is the latest LTS release." }],
+          content: [
+            { type: "server_tool_use", name: "web_search", input: { query: "Node.js latest stable version" } },
+            { type: "web_search_tool_result", tool_use_id: "web_search_1", content: [] },
+            { type: "text", text: "Node.js 26.8.1 is Current; Node.js 24.20.0 is the latest LTS release." },
+          ],
           text: "Node.js 26.8.1 is Current; Node.js 24.20.0 is the latest LTS release.",
         };
       }
@@ -104,6 +114,80 @@ describe("Sprint 3.180b live capability selection", () => {
       execution: "none",
     });
     expect(hasWebSearch(model.mock.calls.at(-1)?.[2])).toBe(true);
+  });
+
+  it("classifies current office-holder and inflation-rate questions as freshness-sensitive", () => {
+    expect(isFreshnessSensitivePublicInformation("who is the current CEO of OpenAI?")).toBe(true);
+    expect(isFreshnessSensitivePublicInformation("what is the current inflation rate in Australia?")).toBe(true);
+    expect(isFreshnessSensitivePublicInformation("what is the current unemployment rate in Victoria?")).toBe(true);
+    expect(isFreshnessSensitivePublicInformation("what is the current cash rate in Australia?")).toBe(true);
+    expect(isFreshnessSensitivePublicInformation("explain inflation")).toBe(false);
+    expect(isFreshnessSensitivePublicInformation("current thinking on inflation")).toBe(false);
+  });
+
+  it("recognizes actual server web-search evidence rather than trusting model memory", () => {
+    expect(hasPublicWebSearchEvidence({
+      content: [
+        { type: "server_tool_use", name: "web_search", input: { query: "OpenAI CEO" } },
+        { type: "web_search_tool_result", tool_use_id: "web_search_1", content: [] },
+        { type: "text", text: "Sam Altman is the CEO of OpenAI." },
+      ],
+      text: "Sam Altman is the CEO of OpenAI.",
+    })).toBe(true);
+    expect(hasPublicWebSearchEvidence({
+      content: [{ type: "text", text: "Sam Altman is the CEO of OpenAI." }],
+      text: "Sam Altman is the CEO of OpenAI.",
+    })).toBe(false);
+  });
+
+  it("fails closed when a freshness-sensitive answer is produced without web-search evidence", async () => {
+    const model = vi.fn(async (_systemPrompt: string, _messages: { content: string }[], tools?: ClaudeTool[]) => {
+      if (hasWebSearch(tools)) {
+        return {
+          content: [{ type: "text", text: "Sam Altman is the current CEO of OpenAI." }],
+          text: "Sam Altman is the current CEO of OpenAI.",
+        };
+      }
+      return JSON.stringify({ kind: "ordinary_conversation" });
+    });
+    const handler = createLighterChatHandler(model);
+
+    const response = await (await handler(request([
+      { role: "user", content: "who is the current CEO of OpenAI?" },
+    ]))).json();
+
+    expect(response).toEqual({
+      reply: "I couldn't retrieve the public information needed for that answer right now.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+  });
+
+  it("requires concise, directly-supported handling for freshness-sensitive public facts", async () => {
+    const model = vi.fn(async (systemPrompt: string, _messages: { content: string }[], tools?: ClaudeTool[]) => {
+      if (hasWebSearch(tools)) {
+        expect(systemPrompt).toContain("keep freshness-sensitive factual replies minimal by default");
+        expect(systemPrompt).toContain("Do not volunteer historical background");
+        expect(systemPrompt).toContain("Do not derive or announce a streak");
+        expect(systemPrompt).toContain("identify the authoritative source and relevant as-of date or release period");
+        return {
+          content: [
+            { type: "server_tool_use", name: "web_search", input: { query: "Australia current inflation rate ABS July 2026" } },
+            { type: "web_search_tool_result", tool_use_id: "web_search_1", content: [] },
+            { type: "text", text: "Australia's annual CPI inflation rate is 3.5% for the 12 months to July 2026, according to the ABS." },
+          ],
+          text: "Australia's annual CPI inflation rate is 3.5% for the 12 months to July 2026, according to the ABS.",
+        };
+      }
+      return JSON.stringify({ kind: "ordinary_conversation" });
+    });
+    const handler = createLighterChatHandler(model);
+
+    const response = await (await handler(request([
+      { role: "user", content: "what is the current inflation rate in Australia?" },
+    ]))).json();
+
+    expect(response.reply).toBe("Australia's annual CPI inflation rate is 3.5% for the 12 months to July 2026, according to the ABS.");
   });
 
   it("keeps weather public and lets ordinary JARVIS use native web search without authorization", async () => {

@@ -103,6 +103,9 @@ const PUBLIC_WEB_GUIDANCE = [
   "For stable explanatory questions, answer normally without searching unless search would materially help.",
   "When the current user utterance explicitly supplies a personal plan, location, or other contextual fact for a public-information question, you may use it as user-provided context without requiring a private connector lookup. Attribute it to the user when material; do not claim it came from Calendar, Gmail, Drive, or any other governed source unless governed context for this turn establishes that.",
   "For every factual claim derived from public web results, verify that the retrieved result supports the same entity, date or time period, location, and requested attribute before presenting it.",
+  "When the user asks for current, latest, newest, most recent, stable, active, incumbent, or otherwise freshness-sensitive public information, establish freshness from a current authoritative or canonical source when available, and verify that no newer authoritative result supersedes the candidate before calling it current or latest.",
+  "Do not treat an old release page, dated article, stale snippet, cached result, or a source that merely mentions a candidate as proof that it is still current or latest.",
+  "Prefer primary/canonical sources for version, office-holder, schedule, price, policy, product, release, and status claims when those sources are available.",
   "Do not combine nearby rows, adjacent dates, similarly named entities, snippets, or separate sources into a stronger claim than any retrieved result supports.",
   "Never invent, infer, interpolate, or complete a missing public fact merely because it would make the answer more useful or coherent.",
   "If sources conflict, identify the conflict or uncertainty instead of silently choosing or blending them.",
@@ -163,19 +166,31 @@ export function buildPublicTemporalGuidance(now: Date): string {
 }
 
 const PUBLIC_RELATIVE_DAY = /\b(yesterday|today|tomorrow)\b/i;
+const PUBLIC_FRESHNESS_SIGNAL = /\b(current|currently|latest|newest|most recent|stable|active|incumbent|today(?:'s)?)\b/i;
 
 export function anchorPublicInformationModelTurn(messages: readonly ChatMessage[], now: Date): ChatMessage[] {
   const copy = messages.map(message => ({ role: message.role, content: message.content }));
   const currentUserIndex = copy.findLastIndex(message => message.role === "user");
   if (currentUserIndex < 0) return copy;
   const utterance = copy[currentUserIndex].content;
+  const constraints: string[] = [];
   const relative = utterance.match(PUBLIC_RELATIVE_DAY)?.[1]?.toLowerCase();
-  if (!relative) return copy;
-  const offset = relative === "yesterday" ? -1 : relative === "tomorrow" ? 1 : 0;
-  const resolved = publicLocalDate(now, offset);
+
+  if (relative) {
+    const offset = relative === "yesterday" ? -1 : relative === "tomorrow" ? 1 : 0;
+    const resolved = publicLocalDate(now, offset);
+    constraints.push(`Resolved public-information target date: ${resolved}. For any public search or factual answer, use this exact local date. Do not use adjacent-day or mismatched-period details.`);
+  }
+
+  if (PUBLIC_FRESHNESS_SIGNAL.test(utterance)) {
+    constraints.push(`Freshness-sensitive public-information request as of ${publicLocalDate(now)}. Verify the candidate against a current authoritative or canonical source, and verify that no newer authoritative result supersedes it before describing it as current, latest, newest, most recent, stable, active, or incumbent. An older release page, article, snippet, or mention is not sufficient proof of currentness.`);
+  }
+
+  if (constraints.length === 0) return copy;
+
   copy[currentUserIndex] = {
     role: "user",
-    content: `${utterance}\n\n[Resolved public-information target date: ${resolved}. For any public search or factual answer, use this exact local date. Do not use adjacent-day or mismatched-period details. Preserve the exact named entity, location, and requested attribute from my question. If retrieved evidence does not support a claim for that exact target, say so rather than inferring or fabricating it.]`,
+    content: `${utterance}\n\n[${constraints.join(" ")} Preserve the exact named entity, location, and requested attribute from my question. If retrieved evidence does not support the exact claim, say so rather than inferring or fabricating it.]`,
   };
   return copy;
 }

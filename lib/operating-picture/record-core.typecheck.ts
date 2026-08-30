@@ -13,7 +13,7 @@ declare const provenance: GovernedProvenance;
 
 const fact = createFactRecord({
   id: "fact:1",
-  subject: { namespace: "abs", entity: "victoria", attribute: "unemployment_rate" },
+  subject: { namespace: "abs", entity: "victoria", attribute: "unemployment_rate", revision: "authoritative_snapshot" },
   evidence,
   provenance,
   visibility: ["executive_reasoning"],
@@ -22,7 +22,7 @@ const _factType: FactRecord<{ rate: number }> = fact;
 
 const inference = createInferenceRecord({
   id: "inference:1",
-  subject: { namespace: "abs", entity: "victoria", attribute: "unemployment_rate" },
+  subject: { namespace: "abs", entity: "victoria", attribute: "unemployment_rate", revision: "authoritative_snapshot" },
   value: markModelText("Victoria's rate may be elevated."),
   generatedAt: "2026-08-30T04:30:00Z",
   visibility: ["conversation"],
@@ -31,7 +31,7 @@ void inference;
 
 createRecommendationRecord({
   id: "recommendation:1",
-  subject: { namespace: "abs", entity: "victoria", attribute: "unemployment_rate" },
+  subject: { namespace: "abs", entity: "victoria", attribute: "unemployment_rate", revision: "authoritative_snapshot" },
   value: markModelText("Consider reviewing the trend."),
   generatedAt: "2026-08-30T04:30:00Z",
   visibility: ["conversation"],
@@ -39,7 +39,7 @@ createRecommendationRecord({
 
 createUserAssertionRecord({
   id: "user:1",
-  subject: { namespace: "user", entity: "preferences", attribute: "time_of_day" },
+  subject: { namespace: "user", entity: "preferences", attribute: "time_of_day", revision: "explicit_replacement" },
   value: "I prefer mornings.",
   statedAt: "2026-08-30T04:30:00Z",
   visibility: ["planning"],
@@ -47,7 +47,7 @@ createUserAssertionRecord({
 
 createFactRecord({
   id: "bad:fact",
-  subject: { namespace: "abs", entity: "victoria", attribute: "unemployment_rate" },
+  subject: { namespace: "abs", entity: "victoria", attribute: "unemployment_rate", revision: "authoritative_snapshot" },
   // @ts-expect-error model-authored text is not governed evidence and cannot construct a fact
   evidence: markModelText("5.1%"),
   provenance,
@@ -60,7 +60,7 @@ const _promotedInference: FactRecord<string> = inference;
 // @ts-expect-error user assertions retain their semantic class
 const _userAssertionAsFact: FactRecord<string> = createUserAssertionRecord({
   id: "user:2",
-  subject: { namespace: "user", entity: "work", attribute: "owner" },
+  subject: { namespace: "user", entity: "work", attribute: "owner", revision: "explicit_replacement" },
   value: "Rachel owns this.",
   statedAt: "2026-08-30T04:30:00Z",
   visibility: ["conversation"],
@@ -69,7 +69,7 @@ const _userAssertionAsFact: FactRecord<string> = createUserAssertionRecord({
 
 createUserAssertionRecord({
   id: "user:lifecycle-at-construction",
-  subject: { namespace: "user", entity: "lifecycle", attribute: "state" },
+  subject: { namespace: "user", entity: "lifecycle", attribute: "state", revision: "append_only" },
   value: "Lifecycle is transition-owned.",
   statedAt: "2026-08-30T04:30:00Z",
   visibility: ["conversation"],
@@ -79,7 +79,7 @@ createUserAssertionRecord({
 
 createUserAssertionRecord({
   id: "user:supersession-at-construction",
-  subject: { namespace: "user", entity: "lifecycle", attribute: "supersession" },
+  subject: { namespace: "user", entity: "lifecycle", attribute: "supersession", revision: "append_only" },
   value: "Supersession is transition-owned.",
   statedAt: "2026-08-30T04:30:00Z",
   visibility: ["conversation"],

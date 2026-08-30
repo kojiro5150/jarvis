@@ -80,6 +80,39 @@ describe("Sprint 3.180b live capability selection", () => {
     expect(messages[0].content).toContain("preserve the source taxonomy explicitly");
   });
 
+  it("does not treat agreeing authoritative unemployment observations as a conflict", async () => {
+    const model = vi.fn(async (systemPrompt: string, messages: { content: string }[], tools?: ClaudeTool[]) => {
+      if (hasWebSearch(tools)) {
+        expect(systemPrompt).toContain("Treat results as conflicting only when authoritative evidence for the same entity");
+        expect(systemPrompt).toContain("Do not call results conflicting merely because the source exposes multiple rows");
+        expect(messages.at(-1)?.content).toContain("Do not label evidence as conflicting when authoritative observations");
+        return {
+          content: [
+            { type: "server_tool_use", name: "web_search", input: { query: "ABS Victoria unemployment July 2026" } },
+            { type: "web_search_tool_result", tool_use_id: "web_search_1", content: [] },
+            { type: "text", text: "Victoria's unemployment rate was 5.1% in July 2026, according to the ABS." },
+          ],
+          text: "Victoria's unemployment rate was 5.1% in July 2026, according to the ABS.",
+        };
+      }
+      return JSON.stringify({
+        kind: "capability_request",
+        capability: "public_information",
+        operation: "lookup",
+        subjectTerms: ["victoria", "unemployment", "rate"],
+        requestedOutput: "fact",
+      });
+    });
+    const handler = createLighterChatHandler(model);
+
+    const response = await (await handler(request([
+      { role: "user", content: "what is the current unemployment rate in Victoria?" },
+    ]))).json();
+
+    expect(response.reply).toBe("Victoria's unemployment rate was 5.1% in July 2026, according to the ABS.");
+    expect(response.reply).not.toMatch(/conflict/i);
+  });
+
   it("requires freshness synthesis to reject superseded candidates and preserve source categories", async () => {
     const model = vi.fn(async (systemPrompt: string, messages: { content: string }[], tools?: ClaudeTool[]) => {
       if (hasWebSearch(tools)) {

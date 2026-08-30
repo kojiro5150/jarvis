@@ -28,6 +28,10 @@ deterministic projection-to-context adapter
 typed semantic/recovery labels preserved
         ↓
 one controlled model invocation
+        ↓
+closed typed output contract
+        ↓
+deterministic validation before presentation
 ~~~
 
 The model-facing boundary must preserve the distinction between:
@@ -44,6 +48,8 @@ source-backed durable record requiring revalidation
 ~~~
 
 The next milestone must prove that model access begins **after** deterministic purpose projection. The model must never receive the durable store, unrestricted history, hidden records, stale/superseded/withdrawn heads, or records quarantined for source revalidation.
+
+The first model-facing experiment must also use a **closed, typed output contract**. Model output must be deterministically validated against an explicit schema before presentation. Free-form narrative synthesis directly from durable projected items is not authorised for this first experiment; invalid or out-of-contract output must fail closed rather than being repaired or presented.
 
 > **Current proving question:** Can JARVIS use a narrow purpose-bounded durable projection in model-facing reasoning without promoting remembered user/model continuity into fact, widening visibility, or bypassing source revalidation?
 

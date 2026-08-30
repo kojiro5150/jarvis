@@ -1,14 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createSupabaseOperatingPicturePersistence } from "./supabase-persistence";
+import {
+  createSupabaseOperatingPicturePersistence,
+  type SupabaseHeadDiscoveryLimits,
+} from "./supabase-persistence";
 
 function persistence(
   fetchImpl: (input: string | URL | Request, init?: RequestInit) => Promise<Response>,
+  limits?: SupabaseHeadDiscoveryLimits,
 ) {
   return createSupabaseOperatingPicturePersistence({
     url: "https://example.supabase.co",
     secretKey: "server-secret",
-  }, fetchImpl);
+  }, fetchImpl, limits);
 }
 
 function head(recordId: string, versionId: string) {
@@ -88,6 +92,90 @@ describe("Supabase durable Operating Picture head discovery", () => {
       versionId: "25000000-1111-4111-8111-111111111111",
     });
     expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("accepts exactly the configured recovery scope maximum", async () => {
+    const fetchImpl = vi.fn(async input => {
+      const url = String(input);
+      if (url.includes("offset=2")) {
+        return new Response(JSON.stringify([
+          head("record:c", "33333333-3333-4333-8333-333333333333"),
+        ]), { status: 200 });
+      }
+      return new Response(JSON.stringify([
+        head("record:a", "11111111-1111-4111-8111-111111111111"),
+        head("record:b", "22222222-2222-4222-8222-222222222222"),
+      ]), { status: 200 });
+    });
+
+    const result = await persistence(fetchImpl, {
+      pageSize: 2,
+      maxRecords: 3,
+    }).durableStore.listRecordHeads();
+
+    expect(result).toEqual({
+      status: "found",
+      heads: [
+        {
+          recordId: "record:a",
+          versionId: "11111111-1111-4111-8111-111111111111",
+        },
+        {
+          recordId: "record:b",
+          versionId: "22222222-2222-4222-8222-222222222222",
+        },
+        {
+          recordId: "record:c",
+          versionId: "33333333-3333-4333-8333-333333333333",
+        },
+      ],
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("fails closed when accumulated durable heads exceed the configured recovery scope", async () => {
+    const fetchImpl = vi.fn(async input => {
+      const url = String(input);
+      if (url.includes("offset=2")) {
+        return new Response(JSON.stringify([
+          head("record:c", "33333333-3333-4333-8333-333333333333"),
+          head("record:d", "44444444-4444-4444-8444-444444444444"),
+        ]), { status: 200 });
+      }
+      return new Response(JSON.stringify([
+        head("record:a", "11111111-1111-4111-8111-111111111111"),
+        head("record:b", "22222222-2222-4222-8222-222222222222"),
+      ]), { status: 200 });
+    });
+
+    await expect(
+      persistence(fetchImpl, {
+        pageSize: 2,
+        maxRecords: 3,
+      }).durableStore.listRecordHeads(),
+    ).resolves.toEqual({
+      status: "rejected",
+      reason: "recovery_scope_exceeded",
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("fails closed if a provider returns more head rows than the requested page size", async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify([
+      head("record:a", "11111111-1111-4111-8111-111111111111"),
+      head("record:b", "22222222-2222-4222-8222-222222222222"),
+      head("record:c", "33333333-3333-4333-8333-333333333333"),
+    ]), { status: 200 }));
+
+    await expect(
+      persistence(fetchImpl, {
+        pageSize: 2,
+        maxRecords: 10,
+      }).durableStore.listRecordHeads(),
+    ).resolves.toEqual({
+      status: "rejected",
+      reason: "persistence_integrity_failure",
+    });
   });
 
   it("fails closed on malformed or duplicate durable head rows", async () => {

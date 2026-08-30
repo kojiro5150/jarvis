@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createLighterChatHandler } from "@/lib/lighter-jarvis/chat-handler";
 import type { ChatMessage } from "@/lib/agents/types";
-import type { ClaudeResult } from "@/lib/claude";
+import type { ClaudeResult, ClaudeTool } from "@/lib/claude";
 import { createPendingAuthorization } from "@/lib/lighter-jarvis/pending-authorization";
 import { proposeGmailRead } from "@/lib/lighter-jarvis/gmail-read-authority";
 import { loadContentRetrievalPolicy } from "@/lib/content-retrieval-policy";

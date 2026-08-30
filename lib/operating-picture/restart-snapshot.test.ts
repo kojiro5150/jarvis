@@ -4,6 +4,7 @@ import type {
   DurableOperatingPictureHead,
   DurableOperatingPictureHeadListResult,
   DurableOperatingPictureHistoryReadResult,
+  DurableOperatingPictureProjectionMetadataReadResult,
   DurableOperatingPictureStore,
   DurableOperatingPictureVersionReadResult,
 } from "./durable-store-contract";
@@ -78,6 +79,9 @@ function storeFixture(input: Readonly<{
   const unsupportedVersionRead = async (): Promise<DurableOperatingPictureVersionReadResult> => (
     Object.freeze({ status: "not_found" })
   );
+  const unsupportedMetadataRead = async (): Promise<DurableOperatingPictureProjectionMetadataReadResult> => (
+    Object.freeze({ status: "not_found" })
+  );
 
   return Object.freeze({
     async listRecordHeads(): Promise<DurableOperatingPictureHeadListResult> {
@@ -87,6 +91,7 @@ function storeFixture(input: Readonly<{
       headReadIndex += 1;
       return result ?? Object.freeze({ status: "empty" });
     },
+    getVersionProjectionMetadata: unsupportedMetadataRead,
     getVersion: unsupportedVersionRead,
     getHeadVersion: unsupportedVersionRead,
     async listRecordVersions(

@@ -68,6 +68,42 @@ describe("Sprint 3.180b live capability selection", () => {
     expect(messages[0].content).toContain("current authoritative or canonical source");
     expect(messages[0].content).toContain("verify that no newer authoritative result supersedes it");
     expect(messages[0].content).toContain("older release page, article, snippet, or mention is not sufficient proof of currentness");
+    expect(messages[0].content).toContain("compare them and discard superseded candidates");
+    expect(messages[0].content).toContain("preserve the source taxonomy explicitly");
+  });
+
+  it("requires freshness synthesis to reject superseded candidates and preserve source categories", async () => {
+    const model = vi.fn(async (systemPrompt: string, messages: { content: string }[], tools?: ClaudeTool[]) => {
+      if (hasWebSearch(tools)) {
+        expect(systemPrompt).toContain("Once a newer or otherwise superseding candidate is established");
+        expect(systemPrompt).toContain("if a project distinguishes Current from LTS, report both relevant categories");
+        expect(messages.at(-1)?.content).toContain("compare them and discard superseded candidates");
+        expect(messages.at(-1)?.content).toContain("preserve the source taxonomy explicitly");
+        return {
+          content: [{ type: "text", text: "Node.js 26.8.1 is Current; Node.js 24.20.0 is the latest LTS release." }],
+          text: "Node.js 26.8.1 is Current; Node.js 24.20.0 is the latest LTS release.",
+        };
+      }
+      return JSON.stringify({
+        kind: "capability_request",
+        capability: "public_information",
+        operation: "lookup",
+        subjectTerms: ["node.js", "latest", "stable", "version"],
+        requestedOutput: "fact",
+      });
+    });
+    const handler = createLighterChatHandler(model);
+
+    const response = await (await handler(request([
+      { role: "user", content: "what is the latest stable version of Node.js?" },
+    ]))).json();
+
+    expect(response).toEqual({
+      reply: "Node.js 26.8.1 is Current; Node.js 24.20.0 is the latest LTS release.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(hasWebSearch(model.mock.calls.at(-1)?.[2])).toBe(true);
   });
 
   it("keeps weather public and lets ordinary JARVIS use native web search without authorization", async () => {

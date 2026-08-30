@@ -201,7 +201,7 @@ describe("Sprint 3.180b live capability selection", () => {
   it("requires concise, directly-supported handling for freshness-sensitive public facts", async () => {
     const model = vi.fn(async (systemPrompt: string, _messages: { content: string }[], tools?: ClaudeTool[]) => {
       if (hasWebSearch(tools)) {
-        expect(systemPrompt).toContain("give the smallest complete factual answer");
+        expect(systemPrompt).toContain("the first answer-bearing sentence must state the requested fact itself");
         expect(systemPrompt).toContain("Do not add background, history, rankings, comparisons, trend commentary");
         expect(systemPrompt).toContain("Do not derive or announce a streak");
         expect(systemPrompt).toContain("identify the authoritative source and the relevant measurement, effective, or release period");

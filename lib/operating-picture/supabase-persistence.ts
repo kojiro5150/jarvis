@@ -300,7 +300,7 @@ export function createSupabaseOperatingPicturePersistence(
     },
 
     durableStore: Object.freeze({
-      async getVersion(versionId): Promise<DurableOperatingPictureVersionReadResult> {
+      async getVersion(versionId: string): Promise<DurableOperatingPictureVersionReadResult> {
         const encodedVersionId = encodeURIComponent(versionId);
         const result = await readRows(
           fetchImpl,
@@ -320,7 +320,7 @@ export function createSupabaseOperatingPicturePersistence(
         return Object.freeze({ status: "found", version });
       },
 
-      async getHeadVersion(recordId): Promise<DurableOperatingPictureVersionReadResult> {
+      async getHeadVersion(recordId: string): Promise<DurableOperatingPictureVersionReadResult> {
         const history = await this.listRecordVersions(recordId);
         if (history.status !== "found") return history;
         const version = history.versions[history.versions.length - 1];
@@ -330,7 +330,7 @@ export function createSupabaseOperatingPicturePersistence(
         return Object.freeze({ status: "found", version });
       },
 
-      async listRecordVersions(recordId): Promise<DurableOperatingPictureHistoryReadResult> {
+      async listRecordVersions(recordId: string): Promise<DurableOperatingPictureHistoryReadResult> {
         const encodedRecordId = encodeURIComponent(recordId);
         const [headResult, versionsResult] = await Promise.all([
           readRows(

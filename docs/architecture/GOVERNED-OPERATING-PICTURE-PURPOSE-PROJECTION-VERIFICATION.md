@@ -2,7 +2,9 @@
 
 **Date:** 30 August 2026  
 **Status:** Verified bounded milestone  
-**Next authorised milestone:** Narrow Model-Facing Continuity
+**Next authorised milestone at time of promotion:** Narrow Model-Facing Continuity
+
+> **Follow-on status:** Narrow Model-Facing Continuity was subsequently implemented and verified within bounded explicit-recall scope. See `GOVERNED-OPERATING-PICTURE-MODEL-CONTINUITY-VERIFICATION.md`. Sections below describing model-facing use as unearned record the boundary that existed when this milestone was promoted; they are historical, not the current roadmap state.
 
 ## 1. Proving question
 

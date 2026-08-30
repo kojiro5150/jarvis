@@ -174,7 +174,9 @@ const PUBLIC_RELATIVE_DAY = /\b(yesterday|today|tomorrow)\b/i;
 const PUBLIC_FRESHNESS_SIGNAL = new RegExp(
   [
     "\\b(?:latest|newest|most recent)\\s+(?:stable\\s+)?(?:version|release|update|result|score|ranking|price|rate|policy|status|schedule|forecast|report|article|news|data|figures?|statistics?)\\b",
-    "\\bcurrent(?:ly)?\\s+(?:CEO|president|prime minister|leader|chair|chairperson|owner|version|release|price|rate|policy|status|schedule|forecast|ranking|score|LTS|stable version)\\b",
+    "\\bcurrent(?:ly)?\\s+(?:CEO|president|prime minister|leader|chair|chairperson|owner|version|release|price|policy|status|schedule|forecast|ranking|score|LTS|stable version)\\b",
+    "\\bcurrent(?:ly)?\\s+(?:inflation|unemployment|employment|participation|interest|cash|exchange|mortgage|tax|growth|GDP|CPI)\\s+rate\\b",
+    "\\bcurrent(?:ly)?\\s+rate\\b",
     "\\b(?:active|incumbent)\\s+(?:CEO|president|prime minister|leader|chair|chairperson|office-holder|officeholder)\\b",
     "\\btoday(?:'s)?\\s+(?:price|rate|schedule|forecast|score|result|news|status|ranking)\\b",
     "\b(?:what|who|which|when|where|show|find|give|tell)\\b[^?]{0,80}\\b(?:current|currently|latest|newest|most recent|stable|active|incumbent)\\b",

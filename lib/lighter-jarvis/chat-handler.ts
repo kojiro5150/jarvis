@@ -102,6 +102,10 @@ const PUBLIC_WEB_GUIDANCE = [
   "Do not ask the user whether they want you to search the public web. Public web search does not require a permission ceremony.",
   "For stable explanatory questions, answer normally without searching unless search would materially help.",
   "When the current user utterance explicitly supplies a personal plan, location, or other contextual fact for a public-information question, you may use it as user-provided context without requiring a private connector lookup. Attribute it to the user when material; do not claim it came from Calendar, Gmail, Drive, or any other governed source unless governed context for this turn establishes that.",
+  "For every factual claim derived from public web results, verify that the retrieved result supports the same entity, date or time period, location, and requested attribute before presenting it.",
+  "Do not combine nearby rows, adjacent dates, similarly named entities, snippets, or separate sources into a stronger claim than any retrieved result supports.",
+  "Never invent, infer, interpolate, or complete a missing public fact merely because it would make the answer more useful or coherent.",
+  "If sources conflict, identify the conflict or uncertainty instead of silently choosing or blending them.",
   "If web search fails or does not establish the requested fact, say that plainly rather than guessing from memory.",
 ].join("\n");
 
@@ -156,6 +160,24 @@ export function buildPublicTemporalGuidance(now: Date): string {
     "When reporting a relative date, make sure its weekday and calendar date agree with this anchor.",
     "For weather or other multi-day public results, match each reported condition, probability, temperature, warning, or time window to the exact target local date before using it. Do not attach an adjacent day's forecast details to the requested date.",
   ].join("\n");
+}
+
+const PUBLIC_RELATIVE_DAY = /\b(yesterday|today|tomorrow)\b/i;
+
+export function anchorPublicInformationModelTurn(messages: readonly ChatMessage[], now: Date): ChatMessage[] {
+  const copy = messages.map(message => ({ role: message.role, content: message.content }));
+  const currentUserIndex = copy.findLastIndex(message => message.role === "user");
+  if (currentUserIndex < 0) return copy;
+  const utterance = copy[currentUserIndex].content;
+  const relative = utterance.match(PUBLIC_RELATIVE_DAY)?.[1]?.toLowerCase();
+  if (!relative) return copy;
+  const offset = relative === "yesterday" ? -1 : relative === "tomorrow" ? 1 : 0;
+  const resolved = publicLocalDate(now, offset);
+  copy[currentUserIndex] = {
+    role: "user",
+    content: `${utterance}\n\n[Resolved public-information target date: ${resolved}. For any public search or factual answer, use this exact local date. Do not use adjacent-day or mismatched-period details. Preserve the exact named entity, location, and requested attribute from my question. If retrieved evidence does not support a claim for that exact target, say so rather than inferring or fabricating it.]`,
+  };
+  return copy;
 }
 
 export function formatCalendarReadResponse(calendar: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["evidence"]>,
@@ -894,7 +916,10 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       // Authority above is resolved from the untouched current utterance first.
       // Only the later, ordinary model call receives the private-release boundary.
       const governedDriveHistoryExcluded = hasGovernedDriveHistory(body.messages);
-      const modelMessages = sanitizeModelHistory(body.messages);
+      const modelMessages = anchorPublicInformationModelTurn(
+        sanitizeModelHistory(body.messages),
+        calendarActDependencies.clock(),
+      );
       const result = await callModel(systemPrompt, modelMessages, PUBLIC_WEB_TOOLS);
       let reply = typeof result === "string" ? result : result.text;
 

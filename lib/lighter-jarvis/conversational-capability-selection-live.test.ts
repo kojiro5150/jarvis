@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { buildPublicTemporalGuidance, createLighterChatHandler } from "./chat-handler";
+import { anchorPublicInformationModelTurn, buildPublicTemporalGuidance, createLighterChatHandler } from "./chat-handler";
 import type { ClaudeTool } from "../claude";
 
 const request = (messages: unknown[]) => new Request("http://localhost/api/lighter/chat", {
@@ -27,11 +27,34 @@ describe("Sprint 3.180b live capability selection", () => {
     expect(guidance).toContain("Do not attach an adjacent day's forecast details to the requested date.");
   });
 
+  it("injects the exact resolved local date into the model-only weather turn", () => {
+    const messages = anchorPublicInformationModelTurn(
+      [{ role: "user", content: "what's the weather in Geelong tomorrow?" }],
+      new Date("2026-08-30T01:15:00.000Z"),
+    );
+
+    expect(messages[0].content).toContain("what's the weather in Geelong tomorrow?");
+    expect(messages[0].content).toContain("Resolved public-information target date: Monday 31 August 2026.");
+    expect(messages[0].content).toContain("Do not use adjacent-day or mismatched-period details.");
+  });
+
+  it("carries exact relative-date grounding into non-weather public information turns", () => {
+    const messages = anchorPublicInformationModelTurn(
+      [{ role: "user", content: "what public events are happening in Geelong tomorrow?" }],
+      new Date("2026-08-30T01:15:00.000Z"),
+    );
+
+    expect(messages[0].content).toContain("Resolved public-information target date: Monday 31 August 2026.");
+    expect(messages[0].content).toContain("Preserve the exact named entity, location, and requested attribute");
+    expect(messages[0].content).toContain("say so rather than inferring or fabricating it");
+  });
+
   it("keeps weather public and lets ordinary JARVIS use native web search without authorization", async () => {
     const model = vi.fn(async (systemPrompt: string, messages: { content: string }[], tools?: ClaudeTool[]) => {
       if (hasWebSearch(tools)) {
         expect(systemPrompt).toContain("Current user-local temporal anchor for public information:");
         expect(systemPrompt).toContain("Time zone: Australia/Melbourne.");
+        expect(messages.at(-1)?.content).toContain("Resolved public-information target date: Monday 31 August 2026.");
         return {
           content: [{ type: "text", text: "Tomorrow in Geelong: 17°C with a chance of showers." }],
           text: "Tomorrow in Geelong: 17°C with a chance of showers.",

@@ -31,6 +31,21 @@ export type OperatingPictureStoreAppendResult =
 const versionsById = new Map<string, OperatingPictureRecordVersion<OperatingPictureHistoryRecord>>();
 const headVersionByRecordId = new Map<string, string>();
 
+function preservesRecordPayload(
+  previous: OperatingPictureHistoryRecord,
+  next: OperatingPictureHistoryRecord,
+): boolean {
+  const ignored = new Set(["lifecycle", "supersededBy"]);
+  const previousKeys = Object.keys(previous).filter(key => !ignored.has(key)).sort();
+  const nextKeys = Object.keys(next).filter(key => !ignored.has(key)).sort();
+  if (previousKeys.length !== nextKeys.length) return false;
+  if (previousKeys.some((key, index) => key !== nextKeys[index])) return false;
+
+  const previousObject = previous as unknown as Record<string, unknown>;
+  const nextObject = next as unknown as Record<string, unknown>;
+  return previousKeys.every(key => Object.is(previousObject[key], nextObject[key]));
+}
+
 function storeVersion(
   version: OperatingPictureRecordVersion<OperatingPictureHistoryRecord>,
 ): OperatingPictureStoreAppendResult {
@@ -68,6 +83,10 @@ export function appendOperatingPictureStalenessTransition<R extends OperatingPic
     return Object.freeze({ status: "rejected", reason: "previous_version_not_current_head" });
   }
 
+  if (!preservesRecordPayload(previous.record, result.status === "transitioned" ? result.record : previous.record)) {
+    return Object.freeze({ status: "rejected", reason: "transition_invalid" });
+  }
+
   const typedPrevious = previous as OperatingPictureRecordVersion<R>;
   const next = appendOperatingPictureStalenessVersion(typedPrevious, result, recordedAt);
   if (!next) {
@@ -88,6 +107,10 @@ export function appendOperatingPictureSupersessionTransition<R extends Operating
   }
   if (headVersionByRecordId.get(previous.recordId) !== previous.versionId) {
     return Object.freeze({ status: "rejected", reason: "previous_version_not_current_head" });
+  }
+
+  if (!preservesRecordPayload(previous.record, result.record)) {
+    return Object.freeze({ status: "rejected", reason: "transition_invalid" });
   }
 
   const typedPrevious = previous as OperatingPictureRecordVersion<R>;
@@ -130,10 +153,4 @@ export function listOperatingPictureRecordVersions(
   }
 
   return Object.freeze(chain.reverse());
-}
-
-/** Test-only reset. The production API exposes no delete or overwrite operation. */
-export function resetOperatingPictureStoreForTests(): void {
-  versionsById.clear();
-  headVersionByRecordId.clear();
 }

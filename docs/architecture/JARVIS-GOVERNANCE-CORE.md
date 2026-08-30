@@ -202,6 +202,8 @@ The next milestone must not add vector search, automatic chat-memory extraction,
 > **USER-CONTINUITY-CAPTURE-05:** If a model participates in classifying or structuring an explicit capture request, its output must use a closed validated contract. Invalid, ambiguous, widened, or out-of-contract output must fail closed before any durable append.
 
 > **USER-CONTINUITY-CAPTURE-06:** The first explicit user-continuity capture experiment uses `append_only` revision semantics. A later explicit user statement that conflicts with an earlier captured statement is stored as a distinct historical user-authored record; it does not automatically supersede, replace, mutate, or invalidate the earlier record. `explicit_replacement`, latest-wins behaviour, contradiction resolution, and automatic preference/plan replacement require a separate governed milestone and are not authorised by initial capture.
+
+> **USER-CONTINUITY-READ-01:** Multiple current user-authored continuity records about the same subject may be admitted together, including when their contents conflict. Purpose projection, relevance selection, binding resolution, summarisation, and presentation may not silently choose one as more current, more true, or more authoritative merely because it is newer, nor omit an otherwise-admissible conflicting record in order to present a cleaner answer. Any reconciliation, winner selection, supersession, or conflict resolution requires an explicit later governed mechanism; until then, conflict remains visible as conflict.
 ## Input/output asymmetry
 
 > **INPUT-FLEX-01:** Ordinary user-facing natural language should not be constrained more than necessary for reliable interpretation. Improving semantic understanding must not itself weaken authority.

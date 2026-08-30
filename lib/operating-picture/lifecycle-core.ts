@@ -2,6 +2,10 @@ import type {
   OperatingPictureLifecycle,
   OperatingPictureRecord,
 } from "./record-core";
+import type {
+  AuthoritativeSnapshotSupersessionProof,
+  ExplicitReplacementSupersessionProof,
+} from "./supersession-proof";
 
 export const OPERATING_PICTURE_ALLOWED_LIFECYCLE_TRANSITIONS = Object.freeze({
   current: Object.freeze(["stale", "superseded", "withdrawn"] as const),
@@ -99,4 +103,91 @@ export function evaluateOperatingPictureStaleness<R extends OperatingPictureReco
       staleAfter: record.staleAfter,
     }),
   });
+}
+
+
+export type SupersededOperatingPictureRecord<R extends OperatingPictureRecord> =
+  Omit<R, "lifecycle" | "supersededBy"> & Readonly<{
+    lifecycle: "superseded";
+    supersededBy: string;
+  }>;
+
+export type OperatingPictureSupersessionTransition<R extends OperatingPictureRecord> = Readonly<{
+  status: "transitioned";
+  record: SupersededOperatingPictureRecord<R>;
+  transition: Readonly<{
+    from: "current" | "stale";
+    to: "superseded";
+    basis: "explicit_replacement" | "authoritative_snapshot";
+    replacementRecordId: string;
+  }>;
+}>;
+
+export type OperatingPictureSupersessionResult<R extends OperatingPictureRecord> =
+  | OperatingPictureSupersessionTransition<R>
+  | Readonly<{
+      status: "unchanged";
+      reason: "not_supersedable" | "proof_record_mismatch";
+      record: R;
+    }>;
+
+function transitionToSuperseded<R extends OperatingPictureRecord>(
+  record: R,
+  replacementRecordId: string,
+  basis: "explicit_replacement" | "authoritative_snapshot",
+): OperatingPictureSupersessionResult<R> {
+  if (record.lifecycle !== "current" && record.lifecycle !== "stale") {
+    return Object.freeze({ status: "unchanged", reason: "not_supersedable", record });
+  }
+
+  const transitioned = Object.freeze({
+    ...record,
+    lifecycle: "superseded" as const,
+    supersededBy: replacementRecordId,
+  }) as SupersededOperatingPictureRecord<R>;
+
+  return Object.freeze({
+    status: "transitioned",
+    record: transitioned,
+    transition: Object.freeze({
+      from: record.lifecycle,
+      to: "superseded",
+      basis,
+      replacementRecordId,
+    }),
+  });
+}
+
+export function applyExplicitReplacementSupersession<R extends OperatingPictureRecord>(
+  record: R,
+  proof: ExplicitReplacementSupersessionProof,
+): OperatingPictureSupersessionResult<R> {
+  if (
+    proof.previousRecordId !== record.id
+    || record.subject.revision !== "explicit_replacement"
+    || proof.subject.namespace !== record.subject.namespace
+    || proof.subject.entity !== record.subject.entity
+    || proof.subject.attribute !== record.subject.attribute
+  ) {
+    return Object.freeze({ status: "unchanged", reason: "proof_record_mismatch", record });
+  }
+
+  return transitionToSuperseded(record, proof.replacementRecordId, "explicit_replacement");
+}
+
+export function applyAuthoritativeSnapshotSupersession<R extends OperatingPictureRecord>(
+  record: R,
+  proof: AuthoritativeSnapshotSupersessionProof,
+): OperatingPictureSupersessionResult<R> {
+  if (
+    proof.previousRecordId !== record.id
+    || record.subject.revision !== "authoritative_snapshot"
+    || proof.subject.namespace !== record.subject.namespace
+    || proof.subject.entity !== record.subject.entity
+    || proof.subject.attribute !== record.subject.attribute
+  ) {
+    return Object.freeze({ status: "unchanged", reason: "proof_record_mismatch", record });
+  }
+
+  return transitionToSuperseded(record, proof.replacementRecordId, "authoritative_snapshot");
 }

@@ -165,6 +165,25 @@ function orderPersistedHistory(
 const HEAD_DISCOVERY_PAGE_SIZE = 250;
 const HEAD_DISCOVERY_MAX_RECORDS = 10_000;
 
+export type SupabaseHeadDiscoveryLimits = Readonly<{
+  pageSize: number;
+  maxRecords: number;
+}>;
+
+const DEFAULT_HEAD_DISCOVERY_LIMITS: SupabaseHeadDiscoveryLimits = Object.freeze({
+  pageSize: limits.pageSize,
+  maxRecords: limits.maxRecords,
+});
+
+function validHeadDiscoveryLimits(
+  limits: SupabaseHeadDiscoveryLimits,
+): boolean {
+  return Number.isInteger(limits.pageSize)
+    && Number.isInteger(limits.maxRecords)
+    && limits.pageSize > 0
+    && limits.maxRecords > 0;
+}
+
 function parseHeadRow(row: unknown): DurableOperatingPictureHead | null {
   if (typeof row !== "object" || row === null || Array.isArray(row)) return null;
   const value = row as Record<string, unknown>;
@@ -181,20 +200,21 @@ function parseHeadRow(row: unknown): DurableOperatingPictureHead | null {
 async function listAllHeads(
   fetchImpl: FetchLike,
   config: SupabaseOperatingPictureConfig,
+  limits: SupabaseHeadDiscoveryLimits,
 ): Promise<DurableOperatingPictureHeadListResult> {
   const heads: DurableOperatingPictureHead[] = [];
   const seenRecordIds = new Set<string>();
   let offset = 0;
 
-  while (offset <= HEAD_DISCOVERY_MAX_RECORDS) {
+  while (offset <= limits.maxRecords) {
     const result = await readRows(
       fetchImpl,
-      `${config.url}/rest/v1/operating_picture_heads?select=record_id,version_id&order=record_id.asc&limit=${HEAD_DISCOVERY_PAGE_SIZE}&offset=${offset}`,
+      `${config.url}/rest/v1/operating_picture_heads?select=record_id,version_id&order=record_id.asc&limit=${limits.pageSize}&offset=${offset}`,
       config,
     );
     if (result.status === "rejected") return result;
 
-    if (result.rows.length > HEAD_DISCOVERY_PAGE_SIZE) {
+    if (result.rows.length > limits.pageSize) {
       return Object.freeze({
         status: "rejected",
         reason: "persistence_integrity_failure",
@@ -211,7 +231,7 @@ async function listAllHeads(
       }
       seenRecordIds.add(head.recordId);
       heads.push(head);
-      if (heads.length > HEAD_DISCOVERY_MAX_RECORDS) {
+      if (heads.length > limits.maxRecords) {
         return Object.freeze({
           status: "rejected",
           reason: "recovery_scope_exceeded",
@@ -219,7 +239,7 @@ async function listAllHeads(
       }
     }
 
-    if (result.rows.length < HEAD_DISCOVERY_PAGE_SIZE) {
+    if (result.rows.length < limits.pageSize) {
       return heads.length === 0
         ? Object.freeze({ status: "empty" })
         : Object.freeze({
@@ -228,7 +248,7 @@ async function listAllHeads(
           });
     }
 
-    offset += HEAD_DISCOVERY_PAGE_SIZE;
+    offset += limits.pageSize;
   }
 
   return Object.freeze({
@@ -285,6 +305,7 @@ export function loadSupabaseOperatingPictureConfig(
 export function createSupabaseOperatingPicturePersistence(
   config: SupabaseOperatingPictureConfig,
   fetchImpl: FetchLike = fetch,
+  headDiscoveryLimits: SupabaseHeadDiscoveryLimits = DEFAULT_HEAD_DISCOVERY_LIMITS,
 ): Readonly<{
   appendVersion: (
     version: OperatingPictureRecordVersion<OperatingPictureHistoryRecord>,
@@ -294,6 +315,11 @@ export function createSupabaseOperatingPicturePersistence(
   if (!validConfig(config)) {
     throw new Error("Invalid Supabase Operating Picture configuration.");
   }
+  if (!validHeadDiscoveryLimits(headDiscoveryLimits)) {
+    throw new Error("Invalid Supabase head discovery limits.");
+  }
+
+  const limits = Object.freeze({ ...headDiscoveryLimits });
 
   return Object.freeze({
     async appendVersion(version) {
@@ -379,7 +405,7 @@ export function createSupabaseOperatingPicturePersistence(
 
     durableStore: Object.freeze({
       async listRecordHeads(): Promise<DurableOperatingPictureHeadListResult> {
-        return listAllHeads(fetchImpl, config);
+        return listAllHeads(fetchImpl, config, limits);
       },
 
       async getVersion(versionId: string): Promise<DurableOperatingPictureVersionReadResult> {

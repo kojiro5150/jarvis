@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type {
   DurableOperatingPictureHistoryReadResult,
+  DurableOperatingPictureProjectionMetadataReadResult,
   DurableOperatingPictureStore,
   DurableOperatingPictureVersionReadResult,
 } from "./durable-store-contract";
@@ -44,11 +45,15 @@ function durableStore(
   const unsupportedVersionRead = async (): Promise<DurableOperatingPictureVersionReadResult> => (
     Object.freeze({ status: "not_found" })
   );
+  const unsupportedMetadataRead = async (): Promise<DurableOperatingPictureProjectionMetadataReadResult> => (
+    Object.freeze({ status: "not_found" })
+  );
 
   return Object.freeze({
     async listRecordHeads() {
       return Object.freeze({ status: "empty" } as const);
     },
+    getVersionProjectionMetadata: unsupportedMetadataRead,
     getVersion: unsupportedVersionRead,
     getHeadVersion: unsupportedVersionRead,
     async listRecordVersions(): Promise<DurableOperatingPictureHistoryReadResult> {

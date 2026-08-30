@@ -6,6 +6,8 @@ import {
   createLighterChatHandler,
   hasPublicWebSearchEvidence,
   isFreshnessSensitivePublicInformation,
+  enforceMinimalPublicFactReply,
+  isMinimalFreshPublicFactQuestion,
 } from "./chat-handler";
 import type { ClaudeTool } from "../claude";
 
@@ -215,6 +217,28 @@ describe("Sprint 3.180b live capability selection", () => {
 
     expect(response.reply).toBe("Australia's annual CPI inflation rate is 3.5% for the 12 months to July 2026, according to the ABS.");
     expect(response.reply).not.toMatch(/released|published|updated|retrieved/i);
+  });
+
+  it("enforces minimal factual output for simple current public questions", () => {
+    expect(isMinimalFreshPublicFactQuestion("what is the current unemployment rate in Victoria?")).toBe(true);
+    expect(isMinimalFreshPublicFactQuestion("explain the current unemployment rate in Victoria")).toBe(false);
+
+    expect(enforceMinimalPublicFactReply(
+      "Based on the search results, Victoria's unemployment rate was 5.1% in July 2026, according to the ABS. This represents the highest unemployment rate in the nation. It was Victoria's highest reading since October 2021.",
+      "what is the current unemployment rate in Victoria?",
+    )).toBe("Victoria's unemployment rate was 5.1% in July 2026, according to the ABS.");
+
+    expect(enforceMinimalPublicFactReply(
+      "The current CEO of OpenAI is Sam Altman. As of July 2026, Altman was actively serving in this role. He is focusing the company on enterprise deployment.",
+      "who is the current CEO of OpenAI?",
+    )).toBe("The current CEO of OpenAI is Sam Altman.");
+  });
+
+  it("allows a second sentence only when it supplies necessary source context", () => {
+    expect(enforceMinimalPublicFactReply(
+      "Australia's annual CPI inflation rate is 3.5% for the 12 months to July 2026. According to the ABS, this is the latest available CPI figure. Housing inflation was 5.0%.",
+      "what is the current inflation rate in Australia?",
+    )).toBe("Australia's annual CPI inflation rate is 3.5% for the 12 months to July 2026. According to the ABS, this is the latest available CPI figure.");
   });
 
   it("keeps weather public and lets ordinary JARVIS use native web search without authorization", async () => {

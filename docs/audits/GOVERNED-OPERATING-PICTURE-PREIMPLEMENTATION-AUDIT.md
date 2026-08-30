@@ -1,7 +1,7 @@
 # Governed Operating Picture — Pre-Implementation Audit
 
 **Date:** 30 August 2026  
-**Status:** Audit complete; implementation not started  
+**Status:** Historical pre-implementation audit; first implementation and persistence foundations subsequently completed and verified on 30 August 2026. See `docs/architecture/GOVERNED-OPERATING-PICTURE-FOUNDATION-VERIFICATION.md`.  
 **Purpose:** Establish what already exists, what must remain separate, and the minimum safe first implementation step for the bridge from “JARVIS can safely access the user's world” to “JARVIS can truthfully hold an operating picture of it.”
 
 ## 1. Audit question

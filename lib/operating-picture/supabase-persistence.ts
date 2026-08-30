@@ -13,6 +13,7 @@ export type SupabaseOperatingPictureAppendReason =
   | "previous_version_not_found"
   | "previous_version_not_current_head"
   | "version_already_exists"
+  | "transition_invalid"
   | "persistence_unavailable"
   | "unexpected_persistence_response";
 
@@ -41,6 +42,7 @@ const KNOWN_REJECTION_REASONS = new Set<SupabaseOperatingPictureAppendReason>([
   "previous_version_not_found",
   "previous_version_not_current_head",
   "version_already_exists",
+  "transition_invalid",
 ]);
 
 function rpcPayload(version: PersistedOperatingPictureVersion): Readonly<Record<string, unknown>> {

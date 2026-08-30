@@ -1,5 +1,13 @@
 import type { OperatingPictureHistoryRecord, OperatingPictureRecordVersion } from "./record-version-history";
 
+export type OperatingPictureJsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | readonly OperatingPictureJsonValue[]
+  | Readonly<{ [key: string]: OperatingPictureJsonValue }>;
+
 export type PersistedOperatingPictureVersion = Readonly<{
   versionId: string;
   recordId: string;
@@ -16,7 +24,7 @@ export type PersistedOperatingPictureVersion = Readonly<{
   validUntil: string | null;
   staleAfter: string | null;
   supersededBy: string | null;
-  payload: unknown;
+  payload: OperatingPictureJsonValue;
   authorshipSource:
     | "user"
     | "model"
@@ -28,6 +36,40 @@ export type PersistedOperatingPictureVersion = Readonly<{
   provenanceSource: string | null;
   provenanceObservedAt: string | null;
 }>;
+
+
+function isPlainObject(value: object): value is Record<string, unknown> {
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function toJsonValue(value: unknown): OperatingPictureJsonValue | null {
+  if (value === null || typeof value === "string" || typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (Array.isArray(value)) {
+    const items: OperatingPictureJsonValue[] = [];
+    for (const item of value) {
+      const converted = toJsonValue(item);
+      if (converted === null && item !== null) return null;
+      items.push(converted);
+    }
+    return Object.freeze(items);
+  }
+  if (typeof value === "object" && isPlainObject(value)) {
+    const result: Record<string, OperatingPictureJsonValue> = {};
+    for (const [key, item] of Object.entries(value)) {
+      const converted = toJsonValue(item);
+      if (converted === null && item !== null) return null;
+      result[key] = converted;
+    }
+    return Object.freeze(result);
+  }
+  return null;
+}
 
 function authorshipOf(record: OperatingPictureHistoryRecord): Readonly<{
   source: PersistedOperatingPictureVersion["authorshipSource"];
@@ -67,8 +109,11 @@ function provenanceOf(record: OperatingPictureHistoryRecord): Readonly<{
  */
 export function serializeOperatingPictureVersion(
   version: OperatingPictureRecordVersion<OperatingPictureHistoryRecord>,
-): PersistedOperatingPictureVersion {
+): PersistedOperatingPictureVersion | null {
   const record = version.record;
+  const payload = toJsonValue(record.value);
+  if (payload === null && record.value !== null) return null;
+
   const authorship = authorshipOf(record);
   const provenance = provenanceOf(record);
 
@@ -88,7 +133,7 @@ export function serializeOperatingPictureVersion(
     validUntil: record.validUntil ?? null,
     staleAfter: record.staleAfter ?? null,
     supersededBy: record.supersededBy ?? null,
-    payload: record.value,
+    payload,
     authorshipSource: authorship.source,
     authorshipAt: authorship.at,
     provenanceSource: provenance.source,

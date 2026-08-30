@@ -19,9 +19,9 @@ describe("Sprint 3.180b live capability selection", () => {
 
     expect(guidance).toContain("Time zone: Australia/Melbourne.");
     expect(guidance).toContain("Local time now: 11:15 am.");
-    expect(guidance).toContain("Yesterday: Saturday, 29 August 2026.");
-    expect(guidance).toContain("Today: Sunday, 30 August 2026.");
-    expect(guidance).toContain("Tomorrow: Monday, 31 August 2026.");
+    expect(guidance).toContain("Yesterday: Saturday 29 August 2026.");
+    expect(guidance).toContain("Today: Sunday 30 August 2026.");
+    expect(guidance).toContain("Tomorrow: Monday 31 August 2026.");
     expect(guidance).toContain("Do not derive today/tomorrow from the server clock");
   });
 

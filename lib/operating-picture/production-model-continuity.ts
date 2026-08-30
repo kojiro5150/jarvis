@@ -1,12 +1,9 @@
-import type { ChatMessage } from "../agents/types";
 import {
   buildModelContinuityContext,
   MODEL_CONTINUITY_PURPOSE,
 } from "./model-continuity-contract";
-import {
-  assessModelContinuityRelevance,
-  type ModelContinuityAssessmentModelCall,
-} from "./model-continuity-assessment";
+import { assessModelContinuityRelevance, type ModelContinuityAssessmentModelCall } from "./model-continuity-assessment";
+import { createRequiredClaudeContinuityModelCall } from "./claude-continuity-relevance";
 import {
   projectModelContinuityPresentation,
   resolveModelContinuityAssessment,
@@ -21,6 +18,9 @@ import type { DurablePurposeProjectionResult } from "./purpose-projection-retrie
 
 export type ProductionModelContinuityDependencies = Readonly<{
   retrieveProjection?: () => Promise<DurablePurposeProjectionResult>;
+  createContinuityModelCall?: (
+    allowedContinuityIds: readonly import("./model-continuity-contract").ModelContinuityId[],
+  ) => ModelContinuityAssessmentModelCall;
 }>;
 
 export type ProductionModelContinuityRecallResult =
@@ -80,21 +80,8 @@ async function defaultProjection(): Promise<DurablePurposeProjectionResult> {
   );
 }
 
-function modelCallAdapter(
-  callModel: (
-    systemPrompt: string,
-    messages: ChatMessage[],
-  ) => ReturnType<ModelContinuityAssessmentModelCall>,
-): ModelContinuityAssessmentModelCall {
-  return async (systemPrompt, messages) => callModel(systemPrompt, messages);
-}
-
 export async function resolveProductionModelContinuityRecall(input: Readonly<{
   utterance: string;
-  callModel: (
-    systemPrompt: string,
-    messages: ChatMessage[],
-  ) => ReturnType<ModelContinuityAssessmentModelCall>;
   dependencies?: ProductionModelContinuityDependencies;
 }>): Promise<ProductionModelContinuityRecallResult> {
   if (!isDurableContinuityRecallRequest(input.utterance)) {
@@ -133,10 +120,15 @@ export async function resolveProductionModelContinuityRecall(input: Readonly<{
     });
   }
 
+  const allowedContinuityIds = Object.freeze(
+    contextBuild.context.items.map(item => item.continuityId),
+  );
+  const createContinuityModelCall = input.dependencies?.createContinuityModelCall
+    ?? createRequiredClaudeContinuityModelCall;
   const reasoning = await assessModelContinuityRelevance({
     question: input.utterance,
     context: contextBuild.context,
-    callModel: modelCallAdapter(input.callModel),
+    callModel: createContinuityModelCall(allowedContinuityIds),
   });
 
   if (reasoning.status !== "assessed") {

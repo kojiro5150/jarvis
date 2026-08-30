@@ -46,6 +46,9 @@ function durableStore(
   );
 
   return Object.freeze({
+    async listRecordHeads() {
+      return Object.freeze({ status: "empty" } as const);
+    },
     getVersion: unsupportedVersionRead,
     getHeadVersion: unsupportedVersionRead,
     async listRecordVersions(): Promise<DurableOperatingPictureHistoryReadResult> {

@@ -8,6 +8,8 @@ import {
   type PersistedOperatingPictureVersion,
 } from "./persistence-record";
 import type {
+  DurableOperatingPictureHead,
+  DurableOperatingPictureHeadListResult,
   DurableOperatingPictureHistoryReadResult,
   DurableOperatingPictureStore,
   DurableOperatingPictureVersionReadResult,
@@ -159,6 +161,82 @@ function orderPersistedHistory(
   return Object.freeze(ordered);
 }
 
+
+const HEAD_DISCOVERY_PAGE_SIZE = 250;
+const HEAD_DISCOVERY_MAX_RECORDS = 10_000;
+
+function parseHeadRow(row: unknown): DurableOperatingPictureHead | null {
+  if (typeof row !== "object" || row === null || Array.isArray(row)) return null;
+  const value = row as Record<string, unknown>;
+  if (typeof value.record_id !== "string" || typeof value.version_id !== "string") {
+    return null;
+  }
+  if (value.record_id.length === 0 || value.version_id.length === 0) return null;
+  return Object.freeze({
+    recordId: value.record_id,
+    versionId: value.version_id,
+  });
+}
+
+async function listAllHeads(
+  fetchImpl: FetchLike,
+  config: SupabaseOperatingPictureConfig,
+): Promise<DurableOperatingPictureHeadListResult> {
+  const heads: DurableOperatingPictureHead[] = [];
+  const seenRecordIds = new Set<string>();
+  let offset = 0;
+
+  while (offset <= HEAD_DISCOVERY_MAX_RECORDS) {
+    const result = await readRows(
+      fetchImpl,
+      `${config.url}/rest/v1/operating_picture_heads?select=record_id,version_id&order=record_id.asc&limit=${HEAD_DISCOVERY_PAGE_SIZE}&offset=${offset}`,
+      config,
+    );
+    if (result.status === "rejected") return result;
+
+    if (result.rows.length > HEAD_DISCOVERY_PAGE_SIZE) {
+      return Object.freeze({
+        status: "rejected",
+        reason: "persistence_integrity_failure",
+      });
+    }
+
+    for (const row of result.rows) {
+      const head = parseHeadRow(row);
+      if (!head || seenRecordIds.has(head.recordId)) {
+        return Object.freeze({
+          status: "rejected",
+          reason: "persistence_integrity_failure",
+        });
+      }
+      seenRecordIds.add(head.recordId);
+      heads.push(head);
+      if (heads.length > HEAD_DISCOVERY_MAX_RECORDS) {
+        return Object.freeze({
+          status: "rejected",
+          reason: "recovery_scope_exceeded",
+        });
+      }
+    }
+
+    if (result.rows.length < HEAD_DISCOVERY_PAGE_SIZE) {
+      return heads.length === 0
+        ? Object.freeze({ status: "empty" })
+        : Object.freeze({
+            status: "found",
+            heads: Object.freeze([...heads]),
+          });
+    }
+
+    offset += HEAD_DISCOVERY_PAGE_SIZE;
+  }
+
+  return Object.freeze({
+    status: "rejected",
+    reason: "recovery_scope_exceeded",
+  });
+}
+
 function rpcPayload(version: PersistedOperatingPictureVersion): Readonly<Record<string, unknown>> {
   return Object.freeze({
     p_version_id: version.versionId,
@@ -300,6 +378,10 @@ export function createSupabaseOperatingPicturePersistence(
     },
 
     durableStore: Object.freeze({
+      async listRecordHeads(): Promise<DurableOperatingPictureHeadListResult> {
+        return listAllHeads(fetchImpl, config);
+      },
+
       async getVersion(versionId: string): Promise<DurableOperatingPictureVersionReadResult> {
         const encodedVersionId = encodeURIComponent(versionId);
         const result = await readRows(

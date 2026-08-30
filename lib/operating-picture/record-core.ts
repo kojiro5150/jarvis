@@ -32,10 +32,20 @@ export type OperatingPictureVisibility = Readonly<{
   purposes: readonly string[];
 }>;
 
+export const OPERATING_PICTURE_REVISION_SEMANTICS = [
+  "append_only",
+  "explicit_replacement",
+  "authoritative_snapshot",
+] as const;
+
+export type OperatingPictureRevisionSemantics =
+  (typeof OPERATING_PICTURE_REVISION_SEMANTICS)[number];
+
 export type OperatingPictureSubject = Readonly<{
   namespace: string;
   entity: string;
   attribute: string;
+  revision: OperatingPictureRevisionSemantics;
 }>;
 
 type BaseRecord<K extends OperatingPictureClass, V> = Readonly<{
@@ -282,4 +292,11 @@ export function sameOperatingPictureSubject(
   return left.subject.namespace === right.subject.namespace
     && left.subject.entity === right.subject.entity
     && left.subject.attribute === right.subject.attribute;
+}
+
+export function sameOperatingPictureRevisionSemantics(
+  left: OperatingPictureRecord,
+  right: OperatingPictureRecord,
+): boolean {
+  return left.subject.revision === right.subject.revision;
 }

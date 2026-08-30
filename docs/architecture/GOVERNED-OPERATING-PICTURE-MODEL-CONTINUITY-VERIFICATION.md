@@ -284,3 +284,5 @@ Proving question:
 The first capture experiment must not use background extraction, embeddings, generic transcript summarisation, model-authored durable facts, or inferred standing authority.
 
 It is also constrained to `append_only` revision semantics. Contradictory later captures remain separate historical user-authored records. Automatic supersession, explicit replacement, latest-wins behaviour, or contradiction resolution are intentionally deferred until their own governed reference-resolution work.
+
+That deferral is preserved at retrieval and presentation as well as at capture. If two or more current contradictory user-authored records are all visible and admissible for the same purpose, later projection or presentation work may not silently select only the newest record, omit an admissible conflicting record, or imply that recency establishes truth. Reconciliation must be explicit and separately governed; absent that mechanism, the conflict itself is part of the honest continuity state.

@@ -430,6 +430,49 @@ describe("Sprint 3.180b live capability selection", () => {
     expect(hasWebSearch(model.mock.calls[0][2])).toBe(true);
   });
 
+  it.each([
+    "Hello JARVIS. What can you help me with?",
+    "Help me think through the three most important things I should focus on today.",
+  ])("falls back to ordinary conversation when web search is unavailable: %s", async utterance => {
+    const model = vi.fn(async (_systemPrompt: string, _messages: { content: string }[], tools?: ClaudeTool[]) => {
+      if (hasWebSearch(tools)) throw new Error("web search unavailable");
+      return utterance.startsWith("Hello")
+        ? "I can help you think, plan, write, analyse, and work with governed capabilities when needed."
+        : "Start with the three outcomes that matter most, then rank them by consequence, urgency, and what only you can do.";
+    });
+    const handler = createLighterChatHandler(model);
+
+    const response = await (await handler(request([
+      { role: "user", content: utterance },
+    ]))).json();
+
+    expect(response.reply).not.toBe("I couldn't retrieve the public information needed for that answer right now.");
+    expect(response.specialistId).toBe("jarvis");
+    expect(response.execution).toBe("none");
+    expect(model).toHaveBeenCalledTimes(2);
+    expect(hasWebSearch(model.mock.calls[0][2])).toBe(true);
+    expect(model.mock.calls[1][2]).toBeUndefined();
+  });
+
+  it("does not fall back to model memory when a freshness-sensitive public request loses web search", async () => {
+    const model = vi.fn(async (_systemPrompt: string, _messages: { content: string }[], tools?: ClaudeTool[]) => {
+      if (hasWebSearch(tools)) throw new Error("web search unavailable");
+      return "Sam Altman is the current CEO of OpenAI.";
+    });
+    const handler = createLighterChatHandler(model);
+
+    const response = await (await handler(request([
+      { role: "user", content: "who is the current CEO of OpenAI?" },
+    ]))).json();
+
+    expect(response).toEqual({
+      reply: "I couldn't retrieve the public information needed for that answer right now.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(model).toHaveBeenCalledOnce();
+  });
+
   it("returns a plain failure message when the web-enabled model invocation fails", async () => {
     const model = vi.fn(async (_systemPrompt: string, _messages: { content: string }[], tools?: ClaudeTool[]) => {
       if (hasWebSearch(tools)) throw new Error("web search unavailable");

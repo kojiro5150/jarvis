@@ -193,6 +193,12 @@ export function isFreshnessSensitivePublicInformation(utterance: string): boolea
   return PUBLIC_FRESHNESS_SIGNAL.test(utterance);
 }
 
+export function requiresPublicWebForUtterance(utterance: string): boolean {
+  const constraint = deterministicCapabilityConstraint(utterance);
+  return constraint?.capability === "public_information"
+    || isFreshnessSensitivePublicInformation(utterance);
+}
+
 export function hasPublicWebSearchEvidence(result: string | ClaudeResult): boolean {
   if (typeof result === "string") return false;
   return result.content.some(block =>
@@ -1032,6 +1038,47 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       return NextResponse.json({ reply, specialistId: specialist.id, execution: "none" });
     } catch (error) {
       console.error("[/api/lighter/chat] Specialist invocation failed:", error);
+
+      if (currentUserUtterance !== undefined
+        && !requiresPublicWebForUtterance(currentUserUtterance)) {
+        try {
+          const fallbackSystemPrompt = [
+            await buildSpecialistPrompt(),
+            "Public web search is unavailable for this turn.",
+            "Continue only with ordinary conversation, reasoning, or stable explanatory knowledge.",
+            "Do not claim current, recent, or specific external facts that require retrieval.",
+          ].join("\n\n");
+          const fallbackMessages = sanitizeModelHistory(body.messages);
+          const fallbackResult = await callModel(fallbackSystemPrompt, fallbackMessages);
+          let fallbackReply = typeof fallbackResult === "string" ? fallbackResult : fallbackResult.text;
+
+          const calendarRecall = calendarRecallDiagnostics(body.messages);
+          fallbackReply = guardOrdinaryModelReply(
+            fallbackReply,
+            currentUserUtterance,
+            hasGovernedDriveHistory(body.messages),
+            {
+              hasCurrentCalendarGovernedContext: calendarRecall.hasCurrentCalendarGovernedContext,
+              isCalendarRecollection: calendarRecall.isCalendarRecollection,
+              priorVisibleReportIsScheduleOnly: calendarRecall.priorVisibleReportIsScheduleOnly,
+              priorNegativeCalendarFactualResult: calendarRecall.priorNegativeCalendarFactualResult,
+              previousAssistantWasCalendarContainment: calendarRecall.previousAssistantWasCalendarContainment,
+              isDetailFollowUp: calendarRecall.isDetailFollowUp,
+              boundUserDetails: calendarRecall.boundUserDetails,
+              unknownCommitmentClocks: calendarRecall.unknownCommitmentClocks,
+            },
+          );
+
+          return NextResponse.json({
+            reply: fallbackReply,
+            specialistId: specialist.id,
+            execution: "none",
+          });
+        } catch (fallbackError) {
+          console.error("[/api/lighter/chat] Ordinary conversation fallback failed:", fallbackError);
+        }
+      }
+
       return NextResponse.json({
         reply: PUBLIC_WEB_FAILURE_REPLY,
         specialistId: specialist.id,

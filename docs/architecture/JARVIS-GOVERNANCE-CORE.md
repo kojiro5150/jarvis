@@ -147,7 +147,7 @@ model prose            --------X--> governed evidence
 
 ### Implementation progression
 
-The original type/lifecycle, persistence, store-parity and restart-durability stages have now been implemented and verified within their bounded scopes.
+The type/lifecycle, persistence, store-parity, restart-durability and purpose-bounded durable-projection stages have now been implemented and verified within their bounded scopes. Purpose-bounded projection has additionally been exercised live through the actual JARVIS server → Supabase REST path.
 
 ~~~text
 semantic/lifecycle core — verified
@@ -156,12 +156,12 @@ append-only low-trust persistence — verified live
         ↓
 store parity + restart durability — verified
         ↓
-purpose-bounded durable projection — next
+purpose-bounded durable projection — verified live
         ↓
-narrow model-facing continuity
+narrow model-facing continuity — next
 ~~~
 
-Restart recovery is intentionally **not** trust rehydration. A stable recovered snapshot contains low-trust durable continuity plus an explicit recovery disposition. Source-backed records that require fresh evidence remain quarantined until a separate governed source boundary revalidates them.
+Restart recovery and durable projection are intentionally **not** trust rehydration. A projected item remains low-trust continuity with explicit semantic class and recovery disposition. Source-backed records that require fresh evidence remain quarantined until a separate governed source boundary revalidates them.
 
 The current milestone must not add vector search, automatic chat-memory extraction, broad connector ingestion, cross-source synthesis, proactive notifications, autonomous action, or a generic ambient-memory API.
 
@@ -178,6 +178,14 @@ The current milestone must not add vector search, automatic chat-memory extracti
 > **DURABLE-PROJECTION-03:** Projection must preserve semantic class and lifecycle. Persistence, selection, summarisation, or model fluency may not turn stale/superseded/model-authored/user-asserted material into current fact.
 
 > **DURABLE-PROJECTION-04:** Absence from a purpose-bounded projection means only "not admitted to this projection". It must not be interpreted as evidence that the underlying record or real-world condition does not exist.
+
+> **MODEL-CONTINUITY-01:** A model-facing Operating Picture context may be constructed only from an already-admitted purpose-bounded projection. The model may never receive the durable store, unrestricted durable history, or a bypass around projection admission.
+
+> **MODEL-CONTINUITY-02:** Semantic class and recovery disposition must remain explicit at the model boundary. User assertions, preferences, plans and other user continuity remain user-authored continuity; model inference/recommendation/open-question continuity remains model-authored low-trust continuity. Neither may be silently represented to the model as fact.
+
+> **MODEL-CONTINUITY-03:** A record classified as `requires_source_revalidation` must not be released to the model as current truth through durable continuity. Source reacquisition must occur through an already-governed source boundary first.
+
+> **MODEL-CONTINUITY-04:** Model output derived from durable continuity remains model output. It cannot promote a projected item into `GovernedEvidence`, authority, provenance, policy proof, verification proof, completion proof, or fresh source truth.
 ## Input/output asymmetry
 
 > **INPUT-FLEX-01:** Ordinary user-facing natural language should not be constrained more than necessary for reliable interpretation. Improving semantic understanding must not itself weaken authority.

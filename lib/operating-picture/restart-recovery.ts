@@ -5,15 +5,16 @@ import type {
 } from "./durable-store-contract";
 import type { PersistedOperatingPictureVersion } from "./persistence-record";
 
-export type {
-  OperatingPictureRecoveryDisposition,
-  OperatingPictureRecoveryReason,
-} from "./recovery-classification";
 import {
   classifyOperatingPictureRecovery,
   type OperatingPictureRecoveryDisposition,
   type OperatingPictureRecoveryReason,
 } from "./recovery-classification";
+
+export type {
+  OperatingPictureRecoveryDisposition,
+  OperatingPictureRecoveryReason,
+};
 
 export type RecoveredOperatingPictureVersion = Readonly<{
   version: PersistedOperatingPictureVersion;

@@ -13,6 +13,11 @@ type VersionedOperatingPictureRecord = Readonly<{
   lifecycle: "current" | "stale" | "superseded" | "withdrawn";
 }>;
 
+export type OperatingPictureHistoryRecord =
+  | OperatingPictureRecord
+  | StaleOperatingPictureRecord<OperatingPictureRecord>
+  | SupersededOperatingPictureRecord<OperatingPictureRecord>;
+
 export type OperatingPictureRecordVersion<R extends VersionedOperatingPictureRecord = OperatingPictureRecord> = Readonly<{
   versionId: string;
   recordId: string;

@@ -25,7 +25,10 @@ describe("Supabase durable Operating Picture head discovery", () => {
   });
 
   it("discovers durable record heads in deterministic record-id order", async () => {
-    const fetchImpl = vi.fn(async () => new Response(JSON.stringify([
+    const fetchImpl = vi.fn(async (
+      _input: string | URL | Request,
+      _init?: RequestInit,
+    ) => new Response(JSON.stringify([
       head("record:a", "11111111-1111-4111-8111-111111111111"),
       head("record:b", "22222222-2222-4222-8222-222222222222"),
     ]), { status: 200 }));

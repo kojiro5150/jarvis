@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createInferenceRecord,
   createUserAssertionRecord,
+  sameOperatingPictureRevisionSemantics,
   sameOperatingPictureSubject,
 } from "./record-core";
 import { markModelText } from "../governance-core/trust-types";
@@ -76,5 +77,25 @@ describe("Governed Operating Picture semantic record core", () => {
     expect(first.id).not.toBe(second.id);
     expect(sameOperatingPictureSubject(first, second)).toBe(true);
     expect(sameOperatingPictureSubject(first, differentAttribute)).toBe(false);
+  });
+
+  it("keeps subject identity separate from revision semantics", () => {
+    const appendOnly = createUserAssertionRecord({
+      id: "user:pref:append-only",
+      subject: { namespace: "user", entity: "preferences", attribute: "time_of_day", revision: "append_only" },
+      value: "Morning preference observation.",
+      statedAt: "2026-08-30T04:30:00Z",
+      visibility: ["planning"],
+    });
+    const explicitReplacement = createUserAssertionRecord({
+      id: "user:pref:replacement",
+      subject: { namespace: "user", entity: "preferences", attribute: "time_of_day", revision: "explicit_replacement" },
+      value: "Afternoon preference observation.",
+      statedAt: "2026-09-01T04:30:00Z",
+      visibility: ["planning"],
+    });
+
+    expect(sameOperatingPictureSubject(appendOnly, explicitReplacement)).toBe(true);
+    expect(sameOperatingPictureRevisionSemantics(appendOnly, explicitReplacement)).toBe(false);
   });
 });

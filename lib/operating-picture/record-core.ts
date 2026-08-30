@@ -41,6 +41,7 @@ type BaseRecord<K extends OperatingPictureClass, V> = Readonly<{
   validFrom?: string;
   validUntil?: string;
   staleAfter?: string;
+  supersededBy?: string;
 }>;
 
 export type FactRecord<T> = BaseRecord<"fact", T> & Readonly<{
@@ -121,7 +122,6 @@ type CommonInput = Readonly<{
   validFrom?: string;
   validUntil?: string;
   staleAfter?: string;
-  supersededBy?: string;
 }>;
 
 function common(input: CommonInput): Readonly<{
@@ -131,7 +131,6 @@ function common(input: CommonInput): Readonly<{
   validFrom?: string;
   validUntil?: string;
   staleAfter?: string;
-  supersededBy?: string;
 }> {
   return Object.freeze({
     id: input.id,

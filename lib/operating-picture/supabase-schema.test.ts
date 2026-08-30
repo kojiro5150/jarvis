@@ -35,6 +35,12 @@ describe("Operating Picture Supabase schema", () => {
     expect(migration).toContain("previous_version_not_found");
     expect(migration).toContain("record_already_exists");
     expect(migration).toContain("version_already_exists");
+    expect(migration).toContain("transition_invalid");
+    expect(migration).toContain("v_previous.payload is distinct from v_payload");
+    expect(migration).toContain("v_previous.lifecycle = 'current'");
+    expect(migration).toContain("v_previous.lifecycle = 'stale'");
+    expect(migration).toContain("v_previous.lifecycle in ('superseded', 'withdrawn')");
+    expect(migration).toContain("operating_picture_semantic_source_shape");
     expect(migration).toContain("grant execute on function public.append_operating_picture_version");
     expect(migration).toContain("to service_role");
     expect(migration).toContain("from public, anon, authenticated");

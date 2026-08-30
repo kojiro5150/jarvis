@@ -68,7 +68,8 @@ import { executeConfirmedCalendarMove } from "@/lib/lighter-jarvis/calendar-move
 import { GoogleCalendarEventWriteConnector, type CalendarEventWritePort } from "@/lib/connectors/google/calendar-write";
 import { GoogleCalendarConnector } from "@/lib/connectors/google/calendar";
 import { hasGoogleCalendarWriteScope } from "@/lib/connectors/google/calendar-write-scope";
-import type { ScopedCalendarAcquisitionPort } from "@/lib/governed-conversation/scoped-calendar-evidence-acquisition-adapter";\nimport { isDurableContinuityRecallRequest, resolveProductionModelContinuityRecall, type ProductionModelContinuityDependencies } from "@/lib/operating-picture/production-model-continuity";
+import type { ScopedCalendarAcquisitionPort } from "@/lib/governed-conversation/scoped-calendar-evidence-acquisition-adapter";
+import { isDurableContinuityRecallRequest, resolveProductionModelContinuityRecall, type ProductionModelContinuityDependencies } from "@/lib/operating-picture/production-model-continuity";
 
 interface LighterChatBody {
   specialistId?: unknown;

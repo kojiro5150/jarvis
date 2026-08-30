@@ -9,6 +9,7 @@ describe("Governed Operating Picture semantic record core", () => {
   it("preserves explicit semantic class, authorship, lifecycle and visibility", () => {
     const record = createUserAssertionRecord({
       id: "user:preference",
+      subject: { namespace: "user", entity: "preferences", attribute: "time_of_day" },
       value: "I prefer mornings.",
       statedAt: "2026-08-30T04:30:00Z",
       visibility: ["planning", "conversation"],
@@ -17,6 +18,7 @@ describe("Governed Operating Picture semantic record core", () => {
 
     expect(record).toEqual({
       id: "user:preference",
+      subject: { namespace: "user", entity: "preferences", attribute: "time_of_day" },
       class: "user_assertion",
       value: "I prefer mornings.",
       lifecycle: "current",
@@ -35,6 +37,7 @@ describe("Governed Operating Picture semantic record core", () => {
   it("keeps model-authored cognition explicitly low-trust", () => {
     const record = createInferenceRecord({
       id: "model:inference",
+      subject: { namespace: "executive", entity: "attention", attribute: "assessment" },
       value: markModelText("This may need attention."),
       generatedAt: "2026-08-30T04:30:00Z",
       visibility: ["conversation"],

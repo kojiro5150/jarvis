@@ -82,6 +82,74 @@ uncertainty / failure
 
 Public-information handling must never be described as hallucination-proof. The architectural objective is narrower and enforceable: progressively remove situations in which model-authored unsupported factual assertions are permitted to reach the user as fact.
 
+## Governed Operating Picture doctrine
+
+**Status:** Frozen 30 August 2026 before implementation. This section defines the trust boundary for the next milestone; it does not claim that a governed operating picture already exists.
+
+> **OPERATING-PICTURE-01:** The Governed Operating Picture is a purpose-bounded projection of known operational context. It is not a transcript, embedding index, undifferentiated memory store, or model-authored world model.
+
+> **OPERATING-PICTURE-02:** Every retained item must declare its semantic class. At minimum the architecture distinguishes `fact`, `user_assertion`, `inference`, `plan`, `commitment`, `decision`, `preference`, `recommendation`, and `open_question`. A record may not change class merely because the model restates it fluently.
+
+> **OPERATING-PICTURE-03:** Provenance and temporality travel with the item. A factual or user-asserted record must retain enough source identity and observation/statement time to distinguish current evidence from recollection. Where relevant, `validFrom`, `validUntil`, `staleAfter`, or `supersededBy` semantics must be explicit rather than inferred from age alone.
+
+> **OPERATING-PICTURE-04:** Model inference is never silently promoted to fact. Inferences and recommendations remain model-authored descriptive material unless a separate trusted boundary independently establishes the proposition they describe.
+
+> **OPERATING-PICTURE-05:** Persistence does not create authority. A remembered approval, prior successful execution, earlier connector result, or stored operation never authorises a new private acquisition or consequential action. Current authority rules remain unchanged.
+
+> **OPERATING-PICTURE-06:** Private-source information may enter the Operating Picture only through an already-governed acquisition and an explicit projection contract for that purpose. Building the Operating Picture must not become a new ambient connector-read path or bypass `MODEL-CONTENT-01`.
+
+> **OPERATING-PICTURE-07:** Evidence visibility is purpose-bound at retrieval time as well as storage time. The existence of a record in the Operating Picture does not imply that every model invocation, capability, or UI surface may receive it.
+
+> **OPERATING-PICTURE-08:** Contradiction, staleness and supersession are states to preserve, not reasons to overwrite history silently. New evidence may supersede a prior current fact, but the system must not rewrite an old observation as though it had never existed.
+
+> **OPERATING-PICTURE-09:** The Operating Picture must reuse proven canonical state and governed evidence where their semantics fit. It must not create a second source of truth for Calendar, Gmail, Drive, Situational Awareness, authority, execution state, or verification state.
+
+> **OPERATING-PICTURE-10:** Absence is not negation. Missing, unavailable, not-authorised, stale, or not-yet-observed information must not be promoted into a factual claim that something does not exist.
+
+### Initial semantic classes
+
+The initial closed vocabulary is deliberately broader than `fact | inference` because continuity requires JARVIS to distinguish what is, what the user said, what JARVIS concluded, what is intended, and what has been decided:
+
+~~~text
+fact
+user_assertion
+inference
+plan
+commitment
+decision
+preference
+recommendation
+open_question
+~~~
+
+This vocabulary is a governance distinction, not an instruction to persist all classes immediately. Each class must earn a source, lifecycle, visibility and update contract before production persistence is introduced.
+
+### Relationship to existing state
+
+The Operating Picture is not a replacement for existing boundaries:
+
+~~~text
+governed source evidence --+
+                           +--> purpose-bounded projection --> Governed Operating Picture
+Situational Awareness -----+
+                           |
+user-supplied context ------+
+
+conversation history  --------X--> trusted fact
+authority state        --------X--> ordinary memory
+model prose            --------X--> governed evidence
+~~~
+
+- **Situational Awareness** remains the canonical bounded representation of current operational facts and deterministic change where already proven.
+- **GovernedContext** remains a current-turn evidence-release mechanism, not persistent memory.
+- **Conversation history** may preserve conversational meaning but cannot manufacture provenance, freshness or authority.
+- **Legacy Memory / OperationalState surfaces** do not become the new Operating Picture by renaming them.
+
+### First implementation constraint
+
+The first implementation milestone must be **types and lifecycle semantics only**. It must not add persistence, vector search, connector reads, model retrieval, cross-source synthesis, proactive notifications, autonomous action, or UI claims that JARVIS now “knows” the user's world.
+
+A successful first implementation should make category confusion structurally difficult before making the Operating Picture useful.
 ## Input/output asymmetry
 
 > **INPUT-FLEX-01:** Ordinary user-facing natural language should not be constrained more than necessary for reliable interpretation. Improving semantic understanding must not itself weaken authority.

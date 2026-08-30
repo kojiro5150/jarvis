@@ -158,6 +158,26 @@ export function buildPublicTemporalGuidance(now: Date): string {
   ].join("\n");
 }
 
+const PUBLIC_WEATHER_SIGNAL = /\b(?:weather|rain|forecast|temperature|showers?)\b/i;
+const PUBLIC_RELATIVE_DAY = /\b(yesterday|today|tomorrow)\b/i;
+
+export function anchorPublicWeatherModelTurn(messages: readonly ChatMessage[], now: Date): ChatMessage[] {
+  const copy = messages.map(message => ({ role: message.role, content: message.content }));
+  const currentUserIndex = copy.findLastIndex(message => message.role === "user");
+  if (currentUserIndex < 0) return copy;
+  const utterance = copy[currentUserIndex].content;
+  if (!PUBLIC_WEATHER_SIGNAL.test(utterance)) return copy;
+  const relative = utterance.match(PUBLIC_RELATIVE_DAY)?.[1]?.toLowerCase();
+  if (!relative) return copy;
+  const offset = relative === "yesterday" ? -1 : relative === "tomorrow" ? 1 : 0;
+  const resolved = publicLocalDate(now, offset);
+  copy[currentUserIndex] = {
+    role: "user",
+    content: `${utterance}\n\n[Resolved public-weather target date: ${resolved}. Search and report weather for this exact local date only. Do not use adjacent-day forecast details.]`,
+  };
+  return copy;
+}
+
 export function formatCalendarReadResponse(calendar: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["evidence"]>,
   window?: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["window"]>,
   bindingState?: CalendarBindingState): string {
@@ -894,7 +914,10 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       // Authority above is resolved from the untouched current utterance first.
       // Only the later, ordinary model call receives the private-release boundary.
       const governedDriveHistoryExcluded = hasGovernedDriveHistory(body.messages);
-      const modelMessages = sanitizeModelHistory(body.messages);
+      const modelMessages = anchorPublicWeatherModelTurn(
+        sanitizeModelHistory(body.messages),
+        calendarActDependencies.clock(),
+      );
       const result = await callModel(systemPrompt, modelMessages, PUBLIC_WEB_TOOLS);
       let reply = typeof result === "string" ? result : result.text;
 

@@ -282,3 +282,5 @@ Proving question:
 > Can JARVIS persist a continuity item only when the user explicitly asks it to remember something, while preserving the user's authorship and semantic class, preventing model interpretation from becoming authorship or fact, and avoiding ambient transcript capture or new authority?
 
 The first capture experiment must not use background extraction, embeddings, generic transcript summarisation, model-authored durable facts, or inferred standing authority.
+
+It is also constrained to `append_only` revision semantics. Contradictory later captures remain separate historical user-authored records. Automatic supersession, explicit replacement, latest-wins behaviour, or contradiction resolution are intentionally deferred until their own governed reference-resolution work.

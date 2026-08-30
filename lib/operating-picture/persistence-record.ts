@@ -158,6 +158,8 @@ function validSemanticSourceShape(
     case "decision":
       return (authorshipSource === "user" && provenanceSource === null)
         || (authorshipSource === "governed_decision_source" && provenanceSource !== null);
+    default:
+      return false;
   }
 }
 

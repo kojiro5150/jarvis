@@ -178,6 +178,8 @@ The following remain explicitly unverified and unauthorised:
 
 The next implementation may expose a deliberately narrow purpose-bounded projection to one controlled model-facing context. It may not expose the durable store directly, bypass projection admission, treat user/model continuity as current fact, or include `requires_source_revalidation` records.
 
+That first model-facing experiment is additionally constrained to a **closed, typed model response contract** validated deterministically before presentation. Free-form narrative synthesis directly from projected durable items is not authorised at this stage. Non-conforming model output must fail closed rather than being repaired, loosely interpreted, or presented.
+
 ### Next proving question
 
 > Can JARVIS use a narrow purpose-bounded durable projection in model-facing reasoning without promoting remembered user/model continuity into fact, widening visibility, or bypassing source revalidation?

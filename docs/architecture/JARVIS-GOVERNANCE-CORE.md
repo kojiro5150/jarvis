@@ -44,6 +44,44 @@ The target implementation must make violations type errors. A future Governance 
 
 The historical `task_summary` failure is the reference counterexample: a model-authored description reached a permission decision and could be read as if it were evidence. The future type system must make that dataflow structurally impossible.
 
+## Public-information trust doctrine
+
+**Status:** Adopted 30 August 2026 after live acceptance testing of the native public-web path. These rules formalise behaviour already implemented in the public-information runtime; they were not previously frozen under these names.
+
+> **PUBLIC-GROUND-01:** A factual public claim may be presented only when retrieved public material supports the same entity, date or time period, location where relevant, and requested attribute. Missing or conflicting support remains missing or uncertain; JARVIS must not fabricate, interpolate, blend, or strengthen a public claim beyond the retrieved support.
+
+> **PUBLIC-FRESH-01:** A public claim described as current, latest, newest, most recent, stable, active, incumbent, or equivalent must be supported by evidence establishing freshness as of the current user-local date. A plausible or historical candidate is insufficient; JARVIS must verify that no newer authoritative result supersedes it or report uncertainty/failure.
+
+> **PUBLIC-CURRENT-01:** When authoritative public results establish multiple candidates for the same freshness-sensitive attribute, JARVIS must compare them and retain only the candidate that satisfies the requested freshness label. Superseded candidates may be reported as historical context only when asked or necessary, and source-native categories such as Current versus LTS must be preserved rather than collapsed.
+
+> **PUBLIC-METADATA-01:** Source provenance metadata is itself factual content. JARVIS must not add an exact publication, release, update, or retrieval date unless that date is requested or necessary and directly supported by retrieved authoritative material; otherwise the date is omitted rather than inferred.
+
+> **PUBLIC-MINIMAL-01:** For a simple freshness-sensitive public factual question, JARVIS returns the smallest complete answer that establishes the requested fact. Unasked historical, comparative, causal, trend, ranking, recommendation, implication, or adjacent-metric content is excluded merely because it was found or seems interesting.
+
+> **PUBLIC-CONFLICT-01:** Agreement is not conflict. Public evidence may be labelled conflicting only when authoritative observations that are comparable on entity, period, requested attribute, and relevant measure are materially incompatible. Differences in representation, row type, adjustment method, or source taxonomy must be preserved explicitly rather than silently promoted to conflict.
+
+> **PUBLIC-ANSWER-01:** For a simple freshness-sensitive factual question, JARVIS must return an answer-bearing factual sentence, not search narration, provenance-only commentary, result numbering, or a statement about what remains to be checked. If no answer-bearing sentence remains after deterministic filtering, JARVIS fails closed.
+
+### Current implementation boundary
+
+These rules do **not** mean that public claims now have deterministic claim-level provenance. The current runtime can require actual server-side web-search evidence for freshness-sensitive requests, constrain synthesis, and deterministically filter some classes of non-answer or embellishment. It cannot yet prove that every surviving natural-language sentence is semantically entailed by a specific retrieved source field.
+
+The trust hierarchy therefore remains:
+
+```text
+deterministic fact
+  ↓
+governed/private evidence
+  ↓
+authoritative public evidence
+  ↓
+clearly identified inference
+  ↓
+uncertainty / failure
+```
+
+Public-information handling must never be described as hallucination-proof. The architectural objective is narrower and enforceable: progressively remove situations in which model-authored unsupported factual assertions are permitted to reach the user as fact.
+
 ## Input/output asymmetry
 
 > **INPUT-FLEX-01:** Ordinary user-facing natural language should not be constrained more than necessary for reliable interpretation. Improving semantic understanding must not itself weaken authority.

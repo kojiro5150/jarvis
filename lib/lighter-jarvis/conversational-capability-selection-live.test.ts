@@ -119,7 +119,10 @@ describe("Sprint 3.180b live capability selection", () => {
   it("classifies current office-holder and inflation-rate questions as freshness-sensitive", () => {
     expect(isFreshnessSensitivePublicInformation("who is the current CEO of OpenAI?")).toBe(true);
     expect(isFreshnessSensitivePublicInformation("what is the current inflation rate in Australia?")).toBe(true);
+    expect(isFreshnessSensitivePublicInformation("what is the current unemployment rate in Victoria?")).toBe(true);
+    expect(isFreshnessSensitivePublicInformation("what is the current cash rate in Australia?")).toBe(true);
     expect(isFreshnessSensitivePublicInformation("explain inflation")).toBe(false);
+    expect(isFreshnessSensitivePublicInformation("current thinking on inflation")).toBe(false);
   });
 
   it("recognizes actual server web-search evidence rather than trusting model memory", () => {

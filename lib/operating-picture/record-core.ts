@@ -74,7 +74,25 @@ type ContainsTrustBearingPayload<T> =
           : false
         : false;
 
-type TrustSafePayload<T> = ContainsTrustBearingPayload<T> extends true ? never : T;
+type IsAny<T> = 0 extends (1 & T) ? true : false;
+
+type IsUnknown<T> =
+  IsAny<T> extends true
+    ? false
+    : unknown extends T
+      ? keyof T extends never
+        ? true
+        : false
+      : false;
+
+type TrustSafePayloadConstraint<T> =
+  IsAny<T> extends true
+    ? never
+    : IsUnknown<T> extends true
+      ? never
+      : true extends ContainsTrustBearingPayload<T>
+        ? never
+        : unknown;
 
 type BaseRecord<K extends OperatingPictureClass, V> = Readonly<{
   id: string;
@@ -224,9 +242,9 @@ function common(input: CommonInput): Readonly<{
 }
 
 export function createFactRecord<T>(input: CommonInput & Readonly<{
-  evidence: GovernedEvidence<TrustSafePayload<T>>;
+  evidence: GovernedEvidence<T> & TrustSafePayloadConstraint<T>;
   provenance: GovernedProvenance;
-}>): FactRecord<TrustSafePayload<T>> {
+}>): FactRecord<T> {
   return Object.freeze({
     ...common(input),
     class: "fact",
@@ -237,9 +255,9 @@ export function createFactRecord<T>(input: CommonInput & Readonly<{
 }
 
 export function createUserAssertionRecord<T>(input: CommonInput & Readonly<{
-  value: TrustSafePayload<T>;
+  value: T & TrustSafePayloadConstraint<T>;
   statedAt: string;
-}>): UserAssertionRecord<TrustSafePayload<T>> {
+}>): UserAssertionRecord<T> {
   return Object.freeze({
     ...common(input),
     class: "user_assertion",
@@ -273,9 +291,9 @@ export function createRecommendationRecord(input: CommonInput & Readonly<{
 }
 
 export function createPlanRecord<T>(input: CommonInput & Readonly<{
-  value: TrustSafePayload<T>;
+  value: T & TrustSafePayloadConstraint<T>;
   statedAt: string;
-}>): UserPlanRecord<TrustSafePayload<T>> {
+}>): UserPlanRecord<T> {
   return Object.freeze({
     ...common(input),
     class: "plan",
@@ -285,10 +303,10 @@ export function createPlanRecord<T>(input: CommonInput & Readonly<{
 }
 
 export function createGovernedPlanRecord<T>(input: CommonInput & Readonly<{
-  evidence: GovernedEvidence<TrustSafePayload<T>>;
+  evidence: GovernedEvidence<T> & TrustSafePayloadConstraint<T>;
   provenance: GovernedProvenance;
   statedAt: string;
-}>): GovernedPlanRecord<TrustSafePayload<T>> {
+}>): GovernedPlanRecord<T> {
   return Object.freeze({
     ...common(input),
     class: "plan",
@@ -300,9 +318,9 @@ export function createGovernedPlanRecord<T>(input: CommonInput & Readonly<{
 }
 
 export function createCommitmentRecord<T>(input: CommonInput & Readonly<{
-  value: TrustSafePayload<T>;
+  value: T & TrustSafePayloadConstraint<T>;
   statedAt: string;
-}>): UserCommitmentRecord<TrustSafePayload<T>> {
+}>): UserCommitmentRecord<T> {
   return Object.freeze({
     ...common(input),
     class: "commitment",
@@ -312,10 +330,10 @@ export function createCommitmentRecord<T>(input: CommonInput & Readonly<{
 }
 
 export function createGovernedCommitmentRecord<T>(input: CommonInput & Readonly<{
-  evidence: GovernedEvidence<TrustSafePayload<T>>;
+  evidence: GovernedEvidence<T> & TrustSafePayloadConstraint<T>;
   provenance: GovernedProvenance;
   statedAt: string;
-}>): GovernedCommitmentRecord<TrustSafePayload<T>> {
+}>): GovernedCommitmentRecord<T> {
   return Object.freeze({
     ...common(input),
     class: "commitment",
@@ -327,9 +345,9 @@ export function createGovernedCommitmentRecord<T>(input: CommonInput & Readonly<
 }
 
 export function createDecisionRecord<T>(input: CommonInput & Readonly<{
-  value: TrustSafePayload<T>;
+  value: T & TrustSafePayloadConstraint<T>;
   statedAt: string;
-}>): UserDecisionRecord<TrustSafePayload<T>> {
+}>): UserDecisionRecord<T> {
   return Object.freeze({
     ...common(input),
     class: "decision",
@@ -339,10 +357,10 @@ export function createDecisionRecord<T>(input: CommonInput & Readonly<{
 }
 
 export function createGovernedDecisionRecord<T>(input: CommonInput & Readonly<{
-  evidence: GovernedEvidence<TrustSafePayload<T>>;
+  evidence: GovernedEvidence<T> & TrustSafePayloadConstraint<T>;
   provenance: GovernedProvenance;
   statedAt: string;
-}>): GovernedDecisionRecord<TrustSafePayload<T>> {
+}>): GovernedDecisionRecord<T> {
   return Object.freeze({
     ...common(input),
     class: "decision",
@@ -354,9 +372,9 @@ export function createGovernedDecisionRecord<T>(input: CommonInput & Readonly<{
 }
 
 export function createPreferenceRecord<T>(input: CommonInput & Readonly<{
-  value: TrustSafePayload<T>;
+  value: T & TrustSafePayloadConstraint<T>;
   statedAt: string;
-}>): PreferenceRecord<TrustSafePayload<T>> {
+}>): PreferenceRecord<T> {
   return Object.freeze({
     ...common(input),
     class: "preference",

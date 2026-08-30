@@ -11,7 +11,10 @@ import type {
   PersistedOperatingPictureProjectionMetadata,
   PersistedOperatingPictureVersion,
 } from "./persistence-record";
-import type { OperatingPictureRecoveryDisposition } from "./restart-recovery";
+import {
+  classifyOperatingPictureRecovery,
+  type OperatingPictureRecoveryDisposition,
+} from "./recovery-classification";
 
 export type DurablePurposeRetrievalResult =
   | Readonly<{
@@ -60,62 +63,6 @@ function metadataMatchesVersion(
     && metadata.authorshipAt === version.authorshipAt
     && metadata.provenanceSource === version.provenanceSource
     && metadata.provenanceObservedAt === version.provenanceObservedAt;
-}
-
-function recoveryDispositionOf(
-  metadata: PersistedOperatingPictureProjectionMetadata,
-): OperatingPictureRecoveryDisposition | null {
-  switch (metadata.semanticClass) {
-    case "fact":
-      return metadata.authorshipSource === null && metadata.provenanceSource !== null
-        ? "requires_source_revalidation"
-        : null;
-
-    case "user_assertion":
-    case "preference":
-      return metadata.authorshipSource === "user" && metadata.provenanceSource === null
-        ? "recoverable_user_continuity"
-        : null;
-
-    case "inference":
-    case "recommendation":
-    case "open_question":
-      return metadata.authorshipSource === "model" && metadata.provenanceSource === null
-        ? "recoverable_model_continuity"
-        : null;
-
-    case "plan":
-      if (metadata.authorshipSource === "user" && metadata.provenanceSource === null) {
-        return "recoverable_user_continuity";
-      }
-      if (metadata.authorshipSource === "governed_system" && metadata.provenanceSource !== null) {
-        return "requires_source_revalidation";
-      }
-      return null;
-
-    case "commitment":
-      if (metadata.authorshipSource === "user" && metadata.provenanceSource === null) {
-        return "recoverable_user_continuity";
-      }
-      if (metadata.authorshipSource === "governed_source" && metadata.provenanceSource !== null) {
-        return "requires_source_revalidation";
-      }
-      return null;
-
-    case "decision":
-      if (metadata.authorshipSource === "user" && metadata.provenanceSource === null) {
-        return "recoverable_user_continuity";
-      }
-      if (
-        metadata.authorshipSource === "governed_decision_source"
-        && metadata.provenanceSource !== null
-      ) {
-        return "requires_source_revalidation";
-      }
-      return null;
-  }
-
-  return null;
 }
 
 function exclusionReason(
@@ -203,14 +150,15 @@ export async function retrieveDurableOperatingPictureHeadForPurpose(
     });
   }
 
-  const disposition = recoveryDispositionOf(metadata);
-  if (!disposition) {
+  const classification = classifyOperatingPictureRecovery(metadata);
+  if (!classification) {
     return Object.freeze({
       status: "rejected",
       reason: "persistence_integrity_failure",
     });
   }
 
+  const disposition = classification.disposition;
   const reason = exclusionReason(metadata, purpose, disposition);
   if (reason) {
     return Object.freeze({

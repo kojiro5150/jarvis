@@ -43,6 +43,7 @@ describe("calendar.read proposal boundary", () => {
     "What's on today?",
     "What is on this afternoon?",
     "What do I have tomorrow?",
+    "What do I have on tomorrow?",
     "What do I have for this morning?",
     "What have I got tomorrow?",
     "What appointments do I have tomorrow?",

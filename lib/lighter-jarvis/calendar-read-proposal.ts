@@ -14,7 +14,7 @@ const CALENDAR_REQUEST = new RegExp(
   "i",
 );
 const TEMPORAL_SCHEDULE_QUESTION = new RegExp(
-  String.raw`^(?:(?:how\s+does|what(?:'s|\s+is))\s+(?:my\s+)?${TEMPORAL_PERIOD}\s+look(?:\s+like)?|what(?:'s|\s+is)\s+(?:on|scheduled)(?:\s+for)?\s+${TEMPORAL_PERIOD}|what\s+(?:do\s+i\s+have|have\s+i\s+got|appointments\s+do\s+i\s+have)(?:\s+for)?\s+${TEMPORAL_PERIOD})[?!.]?$`,
+  String.raw`^(?:(?:how\s+does|what(?:'s|\s+is))\s+(?:my\s+)?${TEMPORAL_PERIOD}\s+look(?:\s+like)?|what(?:'s|\s+is)\s+(?:on|scheduled)(?:\s+for)?\s+${TEMPORAL_PERIOD}|what\s+(?:do\s+i\s+have|have\s+i\s+got|appointments\s+do\s+i\s+have)(?:\s+(?:on|for))?\s+${TEMPORAL_PERIOD})[?!.]?$`,
   "i",
 );
 const CALENDAR_ATTENTION_REQUEST = /^what\s+needs\s+my\s+attention[?!.]?$/i;

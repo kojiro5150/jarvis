@@ -962,7 +962,8 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         calendarActDependencies.clock(),
       );
       const result = await callModel(systemPrompt, modelMessages, PUBLIC_WEB_TOOLS);
-      if (isFreshnessSensitivePublicInformation(currentUserUtterance)
+      if (currentUserUtterance !== undefined
+        && isFreshnessSensitivePublicInformation(currentUserUtterance)
         && !hasPublicWebSearchEvidence(result)) {
         return NextResponse.json({
           reply: PUBLIC_WEB_FAILURE_REPLY,

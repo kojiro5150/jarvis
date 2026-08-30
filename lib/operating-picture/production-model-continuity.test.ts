@@ -66,7 +66,7 @@ describe("production durable continuity recall adapter", () => {
 
   it("runs the bounded projection→assessment→resolution→render path for relevant continuity", async () => {
     const retrieveProjection = vi.fn(async () => projected());
-    const model = vi.fn(async () =>
+    const model = vi.fn(async (_prompt: string, _messages: { role: "user" | "assistant"; content: string }[]) =>
       '{"responseType":"continuity_relevance","relevance":"relevant","relevantItemIds":["continuity:1"]}');
     const createContinuityModelCall = vi.fn(() => model);
 

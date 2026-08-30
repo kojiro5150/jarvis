@@ -60,6 +60,25 @@ const _userAssertionAsFact: FactRecord<string> = createUserAssertionRecord({
   visibility: ["conversation"],
 });
 
+
+createUserAssertionRecord({
+  id: "user:lifecycle-at-construction",
+  value: "Lifecycle is transition-owned.",
+  statedAt: "2026-08-30T04:30:00Z",
+  visibility: ["conversation"],
+  // @ts-expect-error lifecycle state cannot be supplied at record construction
+  lifecycle: "superseded",
+});
+
+createUserAssertionRecord({
+  id: "user:supersession-at-construction",
+  value: "Supersession is transition-owned.",
+  statedAt: "2026-08-30T04:30:00Z",
+  visibility: ["conversation"],
+  // @ts-expect-error supersededBy cannot be supplied at record construction
+  supersededBy: "user:newer",
+});
+
 const _noReusableAuthority: ReusableAuthorityMustNotAppearInOperatingPicture = true;
 void _factType;
 void _promotedInference;

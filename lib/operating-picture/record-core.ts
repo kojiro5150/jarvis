@@ -119,11 +119,9 @@ export type OperatingPictureRecord<T = unknown> =
 type CommonInput = Readonly<{
   id: string;
   visibility: readonly string[];
-  lifecycle?: OperatingPictureLifecycle;
   validFrom?: string;
   validUntil?: string;
   staleAfter?: string;
-  supersededBy?: string;
 }>;
 
 function common(input: CommonInput): Readonly<{
@@ -133,16 +131,14 @@ function common(input: CommonInput): Readonly<{
   validFrom?: string;
   validUntil?: string;
   staleAfter?: string;
-  supersededBy?: string;
 }> {
   return Object.freeze({
     id: input.id,
-    lifecycle: input.lifecycle ?? "current",
+    lifecycle: "current",
     visibility: Object.freeze({ purposes: Object.freeze([...input.visibility]) }),
     ...(input.validFrom ? { validFrom: input.validFrom } : {}),
     ...(input.validUntil ? { validUntil: input.validUntil } : {}),
     ...(input.staleAfter ? { staleAfter: input.staleAfter } : {}),
-    ...(input.supersededBy ? { supersededBy: input.supersededBy } : {}),
   });
 }
 

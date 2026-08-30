@@ -49,6 +49,27 @@ describe("Sprint 3.180b live capability selection", () => {
     expect(messages[0].content).toContain("say so rather than inferring or fabricating it");
   });
 
+  it("does not treat an incidental freshness word as a public freshness request", () => {
+    const messages = anchorPublicInformationModelTurn(
+      [{ role: "user", content: "latest raw utterance" }],
+      new Date("2026-08-30T01:15:00.000Z"),
+    );
+
+    expect(messages).toEqual([{ role: "user", content: "latest raw utterance" }]);
+  });
+
+  it("adds authoritative freshness verification to current-version public queries", () => {
+    const messages = anchorPublicInformationModelTurn(
+      [{ role: "user", content: "what is the latest stable version of Node.js?" }],
+      new Date("2026-08-30T01:15:00.000Z"),
+    );
+
+    expect(messages[0].content).toContain("Freshness-sensitive public-information request as of Sunday 30 August 2026.");
+    expect(messages[0].content).toContain("current authoritative or canonical source");
+    expect(messages[0].content).toContain("verify that no newer authoritative result supersedes it");
+    expect(messages[0].content).toContain("older release page, article, snippet, or mention is not sufficient proof of currentness");
+  });
+
   it("keeps weather public and lets ordinary JARVIS use native web search without authorization", async () => {
     const model = vi.fn(async (systemPrompt: string, messages: { content: string }[], tools?: ClaudeTool[]) => {
       if (hasWebSearch(tools)) {

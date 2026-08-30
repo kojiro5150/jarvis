@@ -126,7 +126,7 @@ Phase III is no longer blocked on the old projection-input gap. The governed con
 
 It is **not complete in the sense of universal convergence**:
 
-- `/api/chat` remains a parallel legacy/compatibility path and is **compatibility-only**. No new private capability, authority model, conversational cognition, or product behavior should be implemented there. New governed conversational work belongs on `/api/lighter/chat`. Retirement should occur only after all production callers have migrated and compatibility evidence shows no required behavior remains;
+- the former `/api/chat` compatibility runtime has been retired after the governed path and production callers were reconciled; `/api/lighter/chat` is the sole production conversational runtime. The historical Sprint 3.149 finding above remains as evidence of the state that existed before retirement;
 - PendingAuthorization remains process-local rather than durable/distributed;
 - private capabilities are still intentionally bounded rather than ambient;
 - Calendar is the strongest live GovernedContext proof; Gmail and Drive remain primarily deterministic release paths;

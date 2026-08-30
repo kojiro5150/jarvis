@@ -194,6 +194,45 @@ describe("POST /api/lighter/chat", () => {
     expect(model).not.toHaveBeenCalled();
   });
 
+  it("uses an explicit current-turn personal plan as user-provided context for public weather without leaking prior Calendar facts", async () => {
+    const calendarConnector = vi.fn();
+    const model = vi.fn(async (systemPrompt: string, messages: ChatMessage[], tools?: ClaudeTool[]) => {
+      if (systemPrompt.includes("bounded conversational capability selector")) {
+        return '{"kind":"capability_request","capability":"public_information","operation":"lookup"}';
+      }
+      expect(systemPrompt).toContain("you may use it as user-provided context without requiring a private connector lookup");
+      expect(messages.at(-1)).toEqual({
+        role: "user",
+        content: "will it rain while I'm at Barwon Health tomorrow?",
+      });
+      expect(JSON.stringify(messages)).not.toContain("Calendar factual result:");
+      expect(JSON.stringify(messages)).not.toContain("Yes. Barwon Health");
+      expect(tools).toEqual([{ type: "web_search_20250305", name: "web_search" }]);
+      return "Based on what you've told me about being at Barwon Health tomorrow, rain is likely during part of the day.";
+    });
+    const response = await createLighterChatHandler(
+      model,
+      { createConnector: calendarConnector, clock: () => new Date("2026-08-30T01:15:00Z") },
+    )(request({
+      specialistId: "jarvis",
+      messages: [
+        { role: "user", content: "Am I at Barwon Health on Monday?" },
+        { role: "assistant", content: "Please explicitly confirm that I may read your Calendar." },
+        { role: "user", content: "yes" },
+        { role: "assistant", content: "Calendar factual result:\nYes. Barwon Health — Mon, 31 Aug, 9:00 AM–4:00 PM" },
+        { role: "user", content: "will it rain while I'm at Barwon Health tomorrow?" },
+      ],
+    }));
+
+    expect(await response.json()).toEqual({
+      reply: "Based on what you've told me about being at Barwon Health tomorrow, rain is likely during part of the day.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(calendarConnector).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(2);
+  });
+
   it.each([
     ["Search my Gmail from the last day.", "1d"],
     ["Show me my emails for the last day.", "1d"],

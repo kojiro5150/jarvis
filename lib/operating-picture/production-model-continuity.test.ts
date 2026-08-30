@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ChatMessage } from "../agents/types";
 import type { DurablePurposeProjectionResult } from "./purpose-projection-retrieval";
 import {
   isDurableContinuityRecallRequest,
@@ -67,13 +66,13 @@ describe("production durable continuity recall adapter", () => {
 
   it("runs the bounded projection→assessment→resolution→render path for relevant continuity", async () => {
     const retrieveProjection = vi.fn(async () => projected());
-    const model = vi.fn(async (_prompt: string, _messages: ChatMessage[]) =>
+    const model = vi.fn(async () =>
       '{"responseType":"continuity_relevance","relevance":"relevant","relevantItemIds":["continuity:1"]}');
+    const createContinuityModelCall = vi.fn(() => model);
 
     const result = await resolveProductionModelContinuityRecall({
       utterance: "What do you remember about status updates?",
-      callModel: model,
-      dependencies: { retrieveProjection },
+      dependencies: { retrieveProjection, createContinuityModelCall },
     });
 
     expect(result).toEqual({
@@ -88,6 +87,7 @@ describe("production durable continuity recall adapter", () => {
     expect(retrieveProjection).toHaveBeenCalledTimes(1);
     expect(model).toHaveBeenCalledTimes(1);
 
+    expect(createContinuityModelCall).toHaveBeenCalledWith(["continuity:1"] as const);
     const serializedModelPayload = JSON.stringify(model.mock.calls[0]?.[1]);
     expect(serializedModelPayload).not.toContain("record:user:1");
     expect(serializedModelPayload).not.toContain("version:user:1");
@@ -102,17 +102,18 @@ describe("production durable continuity recall adapter", () => {
         decisions: Object.freeze([]),
       }));
     const model = vi.fn();
+    const createContinuityModelCall = vi.fn(() => model);
 
     expect(await resolveProductionModelContinuityRecall({
       utterance: "What do you remember about status updates?",
-      callModel: model,
-      dependencies: { retrieveProjection },
+      dependencies: { retrieveProjection, createContinuityModelCall },
     })).toEqual({
       handled: true,
       status: "not_relevant",
       reply: MODEL_CONTINUITY_NO_RELEVANT_REPLY,
     });
 
+    expect(createContinuityModelCall).not.toHaveBeenCalled();
     expect(model).not.toHaveBeenCalled();
   });
 
@@ -122,8 +123,10 @@ describe("production durable continuity recall adapter", () => {
 
     expect(await resolveProductionModelContinuityRecall({
       utterance: "What do you remember about status updates?",
-      callModel: model,
-      dependencies: { retrieveProjection: async () => projected() },
+      dependencies: {
+        retrieveProjection: async () => projected(),
+        createContinuityModelCall: () => model,
+      },
     })).toEqual({
       handled: true,
       status: "not_relevant",
@@ -140,8 +143,10 @@ describe("production durable continuity recall adapter", () => {
 
     expect(await resolveProductionModelContinuityRecall({
       utterance: "What do you remember about status updates?",
-      callModel: model,
-      dependencies: { retrieveProjection: async () => projected() },
+      dependencies: {
+        retrieveProjection: async () => projected(),
+        createContinuityModelCall: () => model,
+      },
     })).toEqual({
       handled: true,
       status: "unavailable",
@@ -153,14 +158,15 @@ describe("production durable continuity recall adapter", () => {
 
   it("fails closed rather than falling back to model-authored memory if persistence retrieval fails", async () => {
     const model = vi.fn();
+    const createContinuityModelCall = vi.fn(() => model);
 
     expect(await resolveProductionModelContinuityRecall({
       utterance: "What do you remember about status updates?",
-      callModel: model,
       dependencies: {
         retrieveProjection: async () => {
           throw new Error("database unavailable");
         },
+        createContinuityModelCall,
       },
     })).toEqual({
       handled: true,
@@ -168,23 +174,25 @@ describe("production durable continuity recall adapter", () => {
       reply: MODEL_CONTINUITY_UNAVAILABLE_REPLY,
     });
 
+    expect(createContinuityModelCall).not.toHaveBeenCalled();
     expect(model).not.toHaveBeenCalled();
   });
 
   it("does nothing for ordinary conversation", async () => {
     const retrieveProjection = vi.fn();
     const model = vi.fn();
+    const createContinuityModelCall = vi.fn(() => model);
 
     expect(await resolveProductionModelContinuityRecall({
       utterance: "Help me think through this decision.",
-      callModel: model,
-      dependencies: { retrieveProjection },
+      dependencies: { retrieveProjection, createContinuityModelCall },
     })).toEqual({
       handled: false,
       status: "unsupported",
     });
 
     expect(retrieveProjection).not.toHaveBeenCalled();
+    expect(createContinuityModelCall).not.toHaveBeenCalled();
     expect(model).not.toHaveBeenCalled();
   });
 

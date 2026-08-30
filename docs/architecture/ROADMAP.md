@@ -103,15 +103,6 @@ Proven but deliberately bounded
     Process-local PendingAuthorization (not durable/distributed)
     Legacy /api/chat retired; the governed /api/lighter/chat path is the sole
     production conversational runtime
-
-Ready for disciplined activation
-    Deterministic Executive Cognition already present in the EOS:
-    Situational Awareness → Attention → Situation Formation → Assessment →
-    Executive Context → Candidate Construction/Evaluation/Comparison →
-    Executive Reasoning
-    First proving question: "What needs my attention?"
-
-Proven but deliberately bounded
     Governed Operating Picture semantic/lifecycle foundation
     Append-only Supabase persistence foundation with live invariant verification
     Low-trust durable representation that does not rehydrate authority/evidence brands

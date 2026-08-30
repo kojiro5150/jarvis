@@ -1,4 +1,7 @@
-import type { PersistedOperatingPictureVersion } from "./persistence-record";
+import type {
+  PersistedOperatingPictureProjectionMetadata,
+  PersistedOperatingPictureVersion,
+} from "./persistence-record";
 
 export type DurableOperatingPictureReadReason =
   | "persistence_unavailable"
@@ -19,6 +22,20 @@ export type DurableOperatingPictureHeadListResult =
     }>
   | Readonly<{
       status: "empty";
+    }>
+  | Readonly<{
+      status: "rejected";
+      reason: DurableOperatingPictureReadReason;
+    }>;
+
+
+export type DurableOperatingPictureProjectionMetadataReadResult =
+  | Readonly<{
+      status: "found";
+      metadata: PersistedOperatingPictureProjectionMetadata;
+    }>
+  | Readonly<{
+      status: "not_found";
     }>
   | Readonly<{
       status: "rejected";
@@ -54,6 +71,9 @@ export type DurableOperatingPictureHistoryReadResult =
 
 export type DurableOperatingPictureStore = Readonly<{
   listRecordHeads(): Promise<DurableOperatingPictureHeadListResult>;
+  getVersionProjectionMetadata(
+    versionId: string,
+  ): Promise<DurableOperatingPictureProjectionMetadataReadResult>;
   getVersion(versionId: string): Promise<DurableOperatingPictureVersionReadResult>;
   getHeadVersion(recordId: string): Promise<DurableOperatingPictureVersionReadResult>;
   listRecordVersions(recordId: string): Promise<DurableOperatingPictureHistoryReadResult>;

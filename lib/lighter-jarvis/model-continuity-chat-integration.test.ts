@@ -59,6 +59,7 @@ const unusedCalendarActDependencies = {
 describe("durable continuity integration in the sole chat runtime", () => {
   it("routes explicit recall through exactly one bounded continuity model call and deterministic rendering", async () => {
     const retrieveProjection = vi.fn(async () => projected());
+    const model = vi.fn(async () => "ordinary model must not run");
     const continuityModel = vi.fn(async (_prompt: string, messages: { role: "user" | "assistant"; content: string }[]) => {
       const payload = JSON.parse(messages[0]?.content ?? "{}");
       expect(payload).toMatchObject({

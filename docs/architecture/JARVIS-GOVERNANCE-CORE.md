@@ -200,6 +200,8 @@ The next milestone must not add vector search, automatic chat-memory extraction,
 > **USER-CONTINUITY-CAPTURE-04:** Capture must use the existing append-only Operating Picture persistence semantics with explicit lifecycle and visibility purpose. Persistence creates durable continuity only; it does not create authority for future acquisition or action.
 
 > **USER-CONTINUITY-CAPTURE-05:** If a model participates in classifying or structuring an explicit capture request, its output must use a closed validated contract. Invalid, ambiguous, widened, or out-of-contract output must fail closed before any durable append.
+
+> **USER-CONTINUITY-CAPTURE-06:** The first explicit user-continuity capture experiment uses `append_only` revision semantics. A later explicit user statement that conflicts with an earlier captured statement is stored as a distinct historical user-authored record; it does not automatically supersede, replace, mutate, or invalidate the earlier record. `explicit_replacement`, latest-wins behaviour, contradiction resolution, and automatic preference/plan replacement require a separate governed milestone and are not authorised by initial capture.
 ## Input/output asymmetry
 
 > **INPUT-FLEX-01:** Ordinary user-facing natural language should not be constrained more than necessary for reliable interpretation. Improving semantic understanding must not itself weaken authority.

@@ -99,7 +99,9 @@ describe("Supabase durable Operating Picture reads", () => {
       },
     });
     expect(fetchImpl).toHaveBeenCalledOnce();
-    expect(String(fetchImpl.mock.calls[0][0])).toContain(
+    const firstCall = fetchImpl.mock.calls.at(0);
+    expect(firstCall).toBeDefined();
+    expect(String(firstCall?.[0])).toContain(
       "/rest/v1/operating_picture_versions?version_id=eq.",
     );
   });

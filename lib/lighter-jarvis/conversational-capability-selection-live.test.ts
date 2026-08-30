@@ -267,6 +267,18 @@ describe("Sprint 3.180b live capability selection", () => {
     )).toBe("The current CEO of OpenAI is Sam Altman.");
   });
 
+  it("skips source/process narration and keeps the first answer-bearing fact", () => {
+    expect(enforceMinimalPublicFactReply(
+      "The ABS is the authoritative source, and result 4 shows July 2026 national data. Victoria's unemployment rate was 5.1% in July 2026, according to the ABS. This was the highest rate in the nation.",
+      "what is the current unemployment rate in Victoria?",
+    )).toBe("Victoria's unemployment rate was 5.1% in July 2026, according to the ABS.");
+
+    expect(enforceMinimalPublicFactReply(
+      "The ABS is the authoritative source, and result 4 shows July 2026 national data.",
+      "what is the current unemployment rate in Victoria?",
+    )).toBe("I couldn't retrieve the public information needed for that answer right now.");
+  });
+
   it("allows a second sentence only when it supplies necessary source context", () => {
     expect(enforceMinimalPublicFactReply(
       "Australia's annual CPI inflation rate is 3.5% for the 12 months to July 2026. According to the ABS, this is the latest available CPI figure. Housing inflation was 5.0%.",

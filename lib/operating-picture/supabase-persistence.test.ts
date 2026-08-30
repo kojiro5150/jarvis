@@ -20,7 +20,7 @@ function versionWith(value: unknown): OperatingPictureRecordVersion<OperatingPic
       attribute: "test",
       revision: "append_only",
     },
-    value,
+    value: value as never,
     statedAt: "2026-08-30T07:20:00Z",
     visibility: ["test"],
   });
@@ -98,6 +98,7 @@ describe("Supabase Operating Picture persistence", () => {
     "previous_version_not_found",
     "previous_version_not_current_head",
     "version_already_exists",
+    "transition_invalid",
   ] as const)("preserves database fail-closed rejection reason %s", async reason => {
     const fetchImpl = vi.fn(async () => new Response(
       JSON.stringify([{ status: "rejected", reason }]),

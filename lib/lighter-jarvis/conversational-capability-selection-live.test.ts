@@ -49,6 +49,15 @@ describe("Sprint 3.180b live capability selection", () => {
     expect(messages[0].content).toContain("say so rather than inferring or fabricating it");
   });
 
+  it("does not treat an incidental freshness word as a public freshness request", () => {
+    const messages = anchorPublicInformationModelTurn(
+      [{ role: "user", content: "latest raw utterance" }],
+      new Date("2026-08-30T01:15:00.000Z"),
+    );
+
+    expect(messages).toEqual([{ role: "user", content: "latest raw utterance" }]);
+  });
+
   it("adds authoritative freshness verification to current-version public queries", () => {
     const messages = anchorPublicInformationModelTurn(
       [{ role: "user", content: "what is the latest stable version of Node.js?" }],

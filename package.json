@@ -11,7 +11,8 @@
     "test": "vitest run",
     "eos:demo": "node scripts/eos-demo.cjs",
     "validate:operations": "node --env-file=.env.local --import tsx scripts/run-operational-validation.ts",
-    "validation-reports": "node --experimental-strip-types --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/browse-operational-validation.ts"
+    "validation-reports": "node --experimental-strip-types --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/browse-operational-validation.ts",
+    "verify:operating-picture:live": "node --env-file=.env.local --import tsx scripts/verify-operating-picture-live.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",

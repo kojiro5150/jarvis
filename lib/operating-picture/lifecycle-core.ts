@@ -162,7 +162,13 @@ export function applyExplicitReplacementSupersession<R extends OperatingPictureR
   record: R,
   proof: ExplicitReplacementSupersessionProof,
 ): OperatingPictureSupersessionResult<R> {
-  if (proof.previousRecordId !== record.id) {
+  if (
+    proof.previousRecordId !== record.id
+    || record.subject.revision !== "explicit_replacement"
+    || proof.subject.namespace !== record.subject.namespace
+    || proof.subject.entity !== record.subject.entity
+    || proof.subject.attribute !== record.subject.attribute
+  ) {
     return Object.freeze({ status: "unchanged", reason: "proof_record_mismatch", record });
   }
 
@@ -173,7 +179,13 @@ export function applyAuthoritativeSnapshotSupersession<R extends OperatingPictur
   record: R,
   proof: AuthoritativeSnapshotSupersessionProof,
 ): OperatingPictureSupersessionResult<R> {
-  if (proof.previousRecordId !== record.id) {
+  if (
+    proof.previousRecordId !== record.id
+    || record.subject.revision !== "authoritative_snapshot"
+    || proof.subject.namespace !== record.subject.namespace
+    || proof.subject.entity !== record.subject.entity
+    || proof.subject.attribute !== record.subject.attribute
+  ) {
     return Object.freeze({ status: "unchanged", reason: "proof_record_mismatch", record });
   }
 

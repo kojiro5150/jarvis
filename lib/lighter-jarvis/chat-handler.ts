@@ -101,6 +101,7 @@ const PUBLIC_WEB_GUIDANCE = [
   "If the user asks about a public person, organisation, brand, website, publication, product, place, event, or topic and you do not have enough specific information to answer well, search the web immediately.",
   "Do not ask the user whether they want you to search the public web. Public web search does not require a permission ceremony.",
   "For stable explanatory questions, answer normally without searching unless search would materially help.",
+  "When the current user utterance explicitly supplies a personal plan, location, or other contextual fact for a public-information question, you may use it as user-provided context without requiring a private connector lookup. Attribute it to the user when material; do not claim it came from Calendar, Gmail, Drive, or any other governed source unless governed context for this turn establishes that.",
   "If web search fails or does not establish the requested fact, say that plainly rather than guessing from memory.",
 ].join("\n");
 

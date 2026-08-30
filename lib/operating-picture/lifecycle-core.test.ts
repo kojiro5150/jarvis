@@ -9,6 +9,7 @@ describe("Governed Operating Picture lifecycle core", () => {
   it("derives staleness only from an explicit staleAfter boundary", () => {
     const record = createUserAssertionRecord({
       id: "user:preference",
+      subject: { namespace: "user", entity: "preferences", attribute: "time_of_day" },
       value: "I prefer mornings.",
       statedAt: "2026-08-30T04:30:00Z",
       visibility: ["planning"],
@@ -43,6 +44,7 @@ describe("Governed Operating Picture lifecycle core", () => {
   it("does not invent a staleness rule when staleAfter is absent", () => {
     const record = createUserAssertionRecord({
       id: "user:role",
+      subject: { namespace: "user", entity: "project", attribute: "role" },
       value: "I am leading this project.",
       statedAt: "2026-08-30T04:30:00Z",
       visibility: ["conversation"],
@@ -58,6 +60,7 @@ describe("Governed Operating Picture lifecycle core", () => {
   it("fails closed on invalid temporal boundaries", () => {
     const record = createUserAssertionRecord({
       id: "user:invalid-stale-after",
+      subject: { namespace: "user", entity: "preferences", attribute: "temporary" },
       value: "Temporary preference.",
       statedAt: "2026-08-30T04:30:00Z",
       visibility: ["planning"],

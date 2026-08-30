@@ -1,4 +1,5 @@
 import type {
+  DurableOperatingPictureHead,
   DurableOperatingPictureHeadListResult,
   DurableOperatingPictureReadReason,
   DurableOperatingPictureStore,

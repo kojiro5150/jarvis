@@ -1,8 +1,8 @@
 # JARVIS Governance Core
 
-**Status:** Frozen pre-implementation doctrine  
+**Status:** Frozen doctrine with implementation status reconciled through 30 August 2026  
 **Frozen:** 30 August 2026  
-**Scope:** Architecture and migration rules only. This document does not claim that the target architecture has been implemented or proven.
+**Scope:** Architecture and migration rules. Implementation is treated as proven only where a bounded milestone is explicitly recorded as verified against code, tests, and observed behaviour; unverified target architecture remains prospective.
 
 > **PLAN-TRUST-01:** Architectural doctrine may be frozen before implementation, but implementation claims remain untrusted until verified against real code, tests, and observed behaviour. A sound plan authorises construction, not confidence.
 

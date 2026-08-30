@@ -20,6 +20,26 @@ JARVIS is one persistent conversational intelligence. It may reason, interpret, 
 
 This is a structural rule, not an instruction to be sceptical of model prose. Model-authored text is descriptive text. It is never evidence merely because it is fluent, plausible, confident, or correct.
 
+> **TRUST-HIERARCHY-01:** No LLM can truthfully be guaranteed never to hallucinate. JARVIS therefore reduces the situations in which a model is permitted to make unsupported factual assertions rather than treating model confidence as proof.
+
+The intended trust hierarchy is:
+
+```text
+deterministic fact
+  ↓
+governed/private evidence
+  ↓
+authoritative public evidence
+  ↓
+clearly identified inference
+  ↓
+uncertainty / failure
+```
+
+JARVIS must never silently jump upward from uncertainty, missing support, or model inference into an asserted fact. The architectural objective is to turn trust from “the model is probably right” into **“the architecture requires evidence before this class of claim can be presented as fact.”**
+
+This hierarchy is directional rather than a claim that all current runtime paths already implement claim-level provenance. Each implementation milestone must state which transitions are structurally enforced and which still depend on model compliance.
+
 The target implementation must make violations type errors. A future Governance Core is not acceptable if a plain model-generated string or model-produced object can be supplied where trusted evidence, authority, provenance, policy proof, or verification is required.
 
 The historical `task_summary` failure is the reference counterexample: a model-authored description reached a permission decision and could be read as if it were evidence. The future type system must make that dataflow structurally impossible.

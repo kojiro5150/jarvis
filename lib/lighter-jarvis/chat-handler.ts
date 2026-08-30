@@ -107,6 +107,55 @@ const PUBLIC_WEB_GUIDANCE = [
 const PUBLIC_WEB_FAILURE_REPLY =
   "I couldn't retrieve the public information needed for that answer right now.";
 
+const PUBLIC_LOCAL_DATE_PARTS = new Intl.DateTimeFormat("en-CA", {
+  timeZone: CALENDAR_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+const PUBLIC_DATE_PRESENTATION = new Intl.DateTimeFormat("en-AU", {
+  timeZone: "UTC",
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+const PUBLIC_LOCAL_TIME_PRESENTATION = new Intl.DateTimeFormat("en-AU", {
+  timeZone: CALENDAR_TIME_ZONE,
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+});
+
+function publicLocalDate(now: Date, offsetDays = 0): string {
+  const parts = Object.fromEntries(
+    PUBLIC_LOCAL_DATE_PARTS.formatToParts(now)
+      .filter(part => part.type !== "literal")
+      .map(part => [part.type, part.value]),
+  );
+  const shifted = new Date(Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day) + offsetDays,
+    12,
+  ));
+  return PUBLIC_DATE_PRESENTATION.format(shifted);
+}
+
+export function buildPublicTemporalGuidance(now: Date): string {
+  return [
+    "Current user-local temporal anchor for public information:",
+    `- Time zone: ${CALENDAR_TIME_ZONE}.`,
+    `- Local time now: ${PUBLIC_LOCAL_TIME_PRESENTATION.format(now)}.`,
+    `- Yesterday: ${publicLocalDate(now, -1)}.`,
+    `- Today: ${publicLocalDate(now)}.`,
+    `- Tomorrow: ${publicLocalDate(now, 1)}.`,
+    "Resolve relative dates and dayparts against this user-local anchor before searching or answering.",
+    "Do not derive today/tomorrow from the server clock, model memory, or dates mentioned in search results.",
+    "When reporting a relative date, make sure its weekday and calendar date agree with this anchor.",
+  ].join("\n");
+}
+
 export function formatCalendarReadResponse(calendar: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["evidence"]>,
   window?: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["window"]>,
   bindingState?: CalendarBindingState): string {
@@ -839,7 +888,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       });
     }
     try {
-      const systemPrompt = `${await buildSpecialistPrompt()}\n\n${PUBLIC_WEB_GUIDANCE}`;
+      const systemPrompt = `${await buildSpecialistPrompt()}\n\n${PUBLIC_WEB_GUIDANCE}\n\n${buildPublicTemporalGuidance(calendarActDependencies.clock())}`;
       // Authority above is resolved from the untouched current utterance first.
       // Only the later, ordinary model call receives the private-release boundary.
       const governedDriveHistoryExcluded = hasGovernedDriveHistory(body.messages);

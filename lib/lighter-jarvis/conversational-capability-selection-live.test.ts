@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createLighterChatHandler } from "./chat-handler";
+import { buildPublicTemporalGuidance, createLighterChatHandler } from "./chat-handler";
 import type { ClaudeTool } from "../claude";
 
 const request = (messages: unknown[]) => new Request("http://localhost/api/lighter/chat", {
@@ -14,9 +14,22 @@ function hasWebSearch(tools?: ClaudeTool[]): boolean {
 }
 
 describe("Sprint 3.180b live capability selection", () => {
+  it("anchors public relative dates to the user's Melbourne local calendar date", () => {
+    const guidance = buildPublicTemporalGuidance(new Date("2026-08-30T01:15:00.000Z"));
+
+    expect(guidance).toContain("Time zone: Australia/Melbourne.");
+    expect(guidance).toContain("Local time now: 11:15 am.");
+    expect(guidance).toContain("Yesterday: Saturday 29 August 2026.");
+    expect(guidance).toContain("Today: Sunday 30 August 2026.");
+    expect(guidance).toContain("Tomorrow: Monday 31 August 2026.");
+    expect(guidance).toContain("Do not derive today/tomorrow from the server clock");
+  });
+
   it("keeps weather public and lets ordinary JARVIS use native web search without authorization", async () => {
-    const model = vi.fn(async (_systemPrompt: string, messages: { content: string }[], tools?: ClaudeTool[]) => {
+    const model = vi.fn(async (systemPrompt: string, messages: { content: string }[], tools?: ClaudeTool[]) => {
       if (hasWebSearch(tools)) {
+        expect(systemPrompt).toContain("Current user-local temporal anchor for public information:");
+        expect(systemPrompt).toContain("Time zone: Australia/Melbourne.");
         return {
           content: [{ type: "text", text: "Tomorrow in Geelong: 17°C with a chance of showers." }],
           text: "Tomorrow in Geelong: 17°C with a chance of showers.",

@@ -1,9 +1,9 @@
 import type {
-  DurableOperatingPictureHead,
   DurableOperatingPictureHeadListResult,
   DurableOperatingPictureReadReason,
   DurableOperatingPictureStore,
 } from "./durable-store-contract";
+import { sameDurableOperatingPictureHeadSet } from "./durable-head-set";
 import {
   recoverOperatingPictureRecordHistoryAfterRestart,
   type OperatingPictureRestartRecoveryResult,
@@ -29,21 +29,6 @@ export type OperatingPictureRestartSnapshotResult =
         | "recovery_classification_invalid"
         | "recovery_snapshot_changed";
     }>;
-
-function sameHeadSet(
-  left: readonly DurableOperatingPictureHead[],
-  right: readonly DurableOperatingPictureHead[],
-): boolean {
-  if (left.length !== right.length) return false;
-
-  const rightByRecordId = new Map<string, string>();
-  for (const head of right) {
-    if (rightByRecordId.has(head.recordId)) return false;
-    rightByRecordId.set(head.recordId, head.versionId);
-  }
-
-  return left.every(head => rightByRecordId.get(head.recordId) === head.versionId);
-}
 
 function headsFrom(
   result: DurableOperatingPictureHeadListResult,
@@ -105,7 +90,11 @@ export async function recoverOperatingPictureSnapshotAfterRestart(
 
   const beforeHeads = headsFrom(before);
   const afterHeads = headsFrom(after);
-  if (!beforeHeads || !afterHeads || !sameHeadSet(beforeHeads, afterHeads)) {
+  if (
+    !beforeHeads
+    || !afterHeads
+    || !sameDurableOperatingPictureHeadSet(beforeHeads, afterHeads)
+  ) {
     return Object.freeze({
       status: "rejected",
       reason: "recovery_snapshot_changed",

@@ -201,10 +201,10 @@ describe("POST /api/lighter/chat", () => {
         return '{"kind":"capability_request","capability":"public_information","operation":"lookup"}';
       }
       expect(systemPrompt).toContain("you may use it as user-provided context without requiring a private connector lookup");
-      expect(messages.at(-1)).toEqual({
-        role: "user",
-        content: "will it rain while I'm at Barwon Health tomorrow?",
-      });
+      expect(messages.at(-1)?.role).toBe("user");
+      expect(messages.at(-1)?.content).toContain("will it rain while I'm at Barwon Health tomorrow?");
+      expect(messages.at(-1)?.content).toContain("Resolved public-information target date: Monday 31 August 2026.");
+      expect(messages.at(-1)?.content).toContain("say so rather than inferring or fabricating it");
       expect(JSON.stringify(messages)).not.toContain("Calendar factual result:");
       expect(JSON.stringify(messages)).not.toContain("Yes. Barwon Health");
       expect(tools).toEqual([{ type: "web_search_20250305", name: "web_search" }]);

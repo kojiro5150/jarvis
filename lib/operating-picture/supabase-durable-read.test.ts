@@ -53,7 +53,9 @@ function row(overrides: RowOverrides = {}) {
   };
 }
 
-function persistence(fetchImpl: typeof fetch) {
+function persistence(
+  fetchImpl: (input: string | URL | Request, init?: RequestInit) => Promise<Response>,
+) {
   return createSupabaseOperatingPicturePersistence({
     url: "https://example.supabase.co",
     secretKey: "server-secret",

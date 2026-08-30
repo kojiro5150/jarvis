@@ -69,6 +69,7 @@ import { GoogleCalendarEventWriteConnector, type CalendarEventWritePort } from "
 import { GoogleCalendarConnector } from "@/lib/connectors/google/calendar";
 import { hasGoogleCalendarWriteScope } from "@/lib/connectors/google/calendar-write-scope";
 import type { ScopedCalendarAcquisitionPort } from "@/lib/governed-conversation/scoped-calendar-evidence-acquisition-adapter";
+import { isDurableContinuityRecallRequest, resolveProductionModelContinuityRecall, type ProductionModelContinuityDependencies } from "@/lib/operating-picture/production-model-continuity";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -398,7 +399,8 @@ const defaultCalendarActDependencies: CalendarActDependencies = {
 export function createLighterChatHandler(callModel: ModelCall = callClaude, calendarDependencies?: ProductionCalendarDependencies,
   gmailDependencies?: ProductionGmailDependencies, gmailSearchDependencies?: ProductionGmailSearchDependencies,
   driveSearchDependencies?: ProductionDriveSearchDependencies, driveReadDependencies?: ProductionDriveReadDependencies,
-  calendarActDependencies: CalendarActDependencies = defaultCalendarActDependencies) {
+  calendarActDependencies: CalendarActDependencies = defaultCalendarActDependencies,
+  modelContinuityDependencies?: ProductionModelContinuityDependencies) {
   return async function POST(request: Request) {
     let body: LighterChatBody;
     try { body = await request.json() as LighterChatBody; }
@@ -937,6 +939,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     if (specialist.id === "jarvis"
       && currentUserUtterance !== undefined
       && !shouldCarryPendingAuthorization
+      && !isDurableContinuityRecallRequest(currentUserUtterance)
       && isConversationalCapabilitySelectionCandidate(currentUserUtterance)) {
       try {
         const selectedIntent = await selectConversationalCapability({
@@ -999,6 +1002,21 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         specialistId: specialist.id,
         execution: "none",
       });
+    }
+    if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {
+      const continuity = await resolveProductionModelContinuityRecall({
+        utterance: currentUserUtterance,
+        callModel: async (systemPrompt, messages) => callModel(systemPrompt, messages),
+        dependencies: modelContinuityDependencies,
+      });
+      if (continuity.handled) {
+        return NextResponse.json({
+          reply: continuity.reply,
+          specialistId: specialist.id,
+          execution: "none",
+          modelContinuity: { status: continuity.status },
+        });
+      }
     }
     try {
       const systemPrompt = `${await buildSpecialistPrompt()}\n\n${PUBLIC_WEB_GUIDANCE}\n\n${buildPublicTemporalGuidance(calendarActDependencies.clock())}`;

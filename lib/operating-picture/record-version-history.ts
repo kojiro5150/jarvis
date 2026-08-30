@@ -4,6 +4,8 @@ import type { OperatingPictureRecord } from "./record-core";
 import type {
   OperatingPictureStalenessResult,
   OperatingPictureSupersessionTransition,
+  StaleOperatingPictureRecord,
+  SupersededOperatingPictureRecord,
 } from "./lifecycle-core";
 
 type VersionedOperatingPictureRecord = Readonly<{
@@ -42,7 +44,7 @@ export function appendOperatingPictureStalenessVersion<R extends OperatingPictur
   previous: OperatingPictureRecordVersion<R>,
   result: OperatingPictureStalenessResult<R>,
   recordedAt: string,
-): OperatingPictureRecordVersion | null {
+): OperatingPictureRecordVersion<StaleOperatingPictureRecord<R>> | null {
   if (!validInstant(recordedAt)) return null;
   if (result.status !== "transitioned") return null;
   if (previous.recordId !== result.record.id) return null;
@@ -63,7 +65,7 @@ export function appendOperatingPictureSupersessionVersion<R extends OperatingPic
   previous: OperatingPictureRecordVersion<R>,
   result: OperatingPictureSupersessionTransition<R>,
   recordedAt: string,
-): OperatingPictureRecordVersion | null {
+): OperatingPictureRecordVersion<SupersededOperatingPictureRecord<R>> | null {
   if (!validInstant(recordedAt)) return null;
   if (previous.recordId !== result.record.id) return null;
   if (previous.record.id !== result.record.id) return null;

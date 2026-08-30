@@ -1,11 +1,31 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Reconciled 2026-08-30 for the Governance Core doctrine freeze. Existing governed Calendar/Gmail/Drive work remains the proven substrate. The next architectural transition is **Governance Core Extraction and Controlled Architectural Collapse**: concentrate trust-bearing obligations into typed, auditable primitives, improve proposal interpretation without granting it trust, and remove compensating specialist/handoff/history/authority scaffolding only after its invariants are classified and preserved.
+**Status:** Living document. Reconciled 2026-08-30 after Governance Core extraction, controlled architectural collapse, and public-information trust hardening. Existing governed Calendar/Gmail/Drive work remains the proven substrate. The next architectural milestone is **Governed Operating Picture**: introduce semantically typed, provenance-preserving continuity without reviving legacy OperationalState, creating ambient private access, or treating model-authored memory as truth.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
 
 ---
 
+## Current next milestone — Governed Operating Picture
+
+The pre-implementation boundary is frozen in `JARVIS-GOVERNANCE-CORE.md` and audited in `docs/audits/GOVERNED-OPERATING-PICTURE-PREIMPLEMENTATION-AUDIT.md`.
+
+The first implementation is deliberately type-first:
+
+~~~text
+semantic class
++ provenance / authorship
++ temporal / lifecycle state
++ purpose-bounded visibility
+        ↓
+immutable Operating Picture record core
+~~~
+
+No persistence, connector acquisition, embeddings, automatic chat-memory extraction, cross-source synthesis, proactive behaviour, or action is authorised by this milestone.
+
+> **First proving question:** Can the type system prevent JARVIS from remembering the wrong kind of thing as truth?
+
+---
 ## Governance Core extraction sequence
 
 The doctrine and sequence are frozen in [JARVIS-GOVERNANCE-CORE.md](./JARVIS-GOVERNANCE-CORE.md). The plan is not yet proven; implementation claims require direct code, test, and behaviour verification.

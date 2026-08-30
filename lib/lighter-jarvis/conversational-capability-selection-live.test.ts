@@ -201,7 +201,7 @@ describe("Sprint 3.180b live capability selection", () => {
   it("requires concise, directly-supported handling for freshness-sensitive public facts", async () => {
     const model = vi.fn(async (systemPrompt: string, _messages: { content: string }[], tools?: ClaudeTool[]) => {
       if (hasWebSearch(tools)) {
-        expect(systemPrompt).toContain("give the smallest complete factual answer");
+        expect(systemPrompt).toContain("the first answer-bearing sentence must state the requested fact itself");
         expect(systemPrompt).toContain("Do not add background, history, rankings, comparisons, trend commentary");
         expect(systemPrompt).toContain("Do not derive or announce a streak");
         expect(systemPrompt).toContain("identify the authoritative source and the relevant measurement, effective, or release period");
@@ -265,6 +265,18 @@ describe("Sprint 3.180b live capability selection", () => {
       "The current CEO of OpenAI is Sam Altman. As of July 2026, Altman was actively serving in this role. He is focusing the company on enterprise deployment.",
       "who is the current CEO of OpenAI?",
     )).toBe("The current CEO of OpenAI is Sam Altman.");
+  });
+
+  it("skips source/process narration and keeps the first answer-bearing fact", () => {
+    expect(enforceMinimalPublicFactReply(
+      "The ABS is the authoritative source, and result 4 shows July 2026 national data. Victoria's unemployment rate was 5.1% in July 2026, according to the ABS. This was the highest rate in the nation.",
+      "what is the current unemployment rate in Victoria?",
+    )).toBe("Victoria's unemployment rate was 5.1% in July 2026, according to the ABS.");
+
+    expect(enforceMinimalPublicFactReply(
+      "The ABS is the authoritative source, and result 4 shows July 2026 national data.",
+      "what is the current unemployment rate in Victoria?",
+    )).toBe("I couldn't retrieve the public information needed for that answer right now.");
   });
 
   it("allows a second sentence only when it supplies necessary source context", () => {

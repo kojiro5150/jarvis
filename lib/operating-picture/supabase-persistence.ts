@@ -171,8 +171,8 @@ export type SupabaseHeadDiscoveryLimits = Readonly<{
 }>;
 
 const DEFAULT_HEAD_DISCOVERY_LIMITS: SupabaseHeadDiscoveryLimits = Object.freeze({
-  pageSize: limits.pageSize,
-  maxRecords: limits.maxRecords,
+  pageSize: HEAD_DISCOVERY_PAGE_SIZE,
+  maxRecords: HEAD_DISCOVERY_MAX_RECORDS,
 });
 
 function validHeadDiscoveryLimits(

@@ -5,18 +5,15 @@ import type {
 } from "./durable-store-contract";
 import type { PersistedOperatingPictureVersion } from "./persistence-record";
 
-export type OperatingPictureRecoveryDisposition =
-  | "recoverable_user_continuity"
-  | "recoverable_model_continuity"
-  | "requires_source_revalidation";
-
-export type OperatingPictureRecoveryReason =
-  | "user_authorship_persists_as_historical_continuity"
-  | "model_authorship_persists_as_low_trust_continuity"
-  | "governed_fact_requires_source_revalidation"
-  | "governed_plan_requires_source_revalidation"
-  | "governed_commitment_requires_source_revalidation"
-  | "governed_decision_requires_source_revalidation";
+export type {
+  OperatingPictureRecoveryDisposition,
+  OperatingPictureRecoveryReason,
+} from "./recovery-classification";
+import {
+  classifyOperatingPictureRecovery,
+  type OperatingPictureRecoveryDisposition,
+  type OperatingPictureRecoveryReason,
+} from "./recovery-classification";
 
 export type RecoveredOperatingPictureVersion = Readonly<{
   version: PersistedOperatingPictureVersion;
@@ -42,120 +39,14 @@ export type OperatingPictureRestartRecoveryResult =
 function classifyPersistedOperatingPictureVersion(
   version: PersistedOperatingPictureVersion,
 ): RecoveredOperatingPictureVersion | null {
-  switch (version.semanticClass) {
-    case "fact":
-      if (
-        version.authorshipSource !== null
-        || version.provenanceSource === null
-      ) {
-        return null;
-      }
-      return Object.freeze({
-        version,
-        disposition: "requires_source_revalidation",
-        reason: "governed_fact_requires_source_revalidation",
-      });
+  const classification = classifyOperatingPictureRecovery(version);
+  if (!classification) return null;
 
-    case "user_assertion":
-    case "preference":
-      if (
-        version.authorshipSource !== "user"
-        || version.provenanceSource !== null
-      ) {
-        return null;
-      }
-      return Object.freeze({
-        version,
-        disposition: "recoverable_user_continuity",
-        reason: "user_authorship_persists_as_historical_continuity",
-      });
-
-    case "inference":
-    case "recommendation":
-    case "open_question":
-      if (
-        version.authorshipSource !== "model"
-        || version.provenanceSource !== null
-      ) {
-        return null;
-      }
-      return Object.freeze({
-        version,
-        disposition: "recoverable_model_continuity",
-        reason: "model_authorship_persists_as_low_trust_continuity",
-      });
-
-    case "plan":
-      if (
-        version.authorshipSource === "user"
-        && version.provenanceSource === null
-      ) {
-        return Object.freeze({
-          version,
-          disposition: "recoverable_user_continuity",
-          reason: "user_authorship_persists_as_historical_continuity",
-        });
-      }
-      if (
-        version.authorshipSource === "governed_system"
-        && version.provenanceSource !== null
-      ) {
-        return Object.freeze({
-          version,
-          disposition: "requires_source_revalidation",
-          reason: "governed_plan_requires_source_revalidation",
-        });
-      }
-      return null;
-
-    case "commitment":
-      if (
-        version.authorshipSource === "user"
-        && version.provenanceSource === null
-      ) {
-        return Object.freeze({
-          version,
-          disposition: "recoverable_user_continuity",
-          reason: "user_authorship_persists_as_historical_continuity",
-        });
-      }
-      if (
-        version.authorshipSource === "governed_source"
-        && version.provenanceSource !== null
-      ) {
-        return Object.freeze({
-          version,
-          disposition: "requires_source_revalidation",
-          reason: "governed_commitment_requires_source_revalidation",
-        });
-      }
-      return null;
-
-    case "decision":
-      if (
-        version.authorshipSource === "user"
-        && version.provenanceSource === null
-      ) {
-        return Object.freeze({
-          version,
-          disposition: "recoverable_user_continuity",
-          reason: "user_authorship_persists_as_historical_continuity",
-        });
-      }
-      if (
-        version.authorshipSource === "governed_decision_source"
-        && version.provenanceSource !== null
-      ) {
-        return Object.freeze({
-          version,
-          disposition: "requires_source_revalidation",
-          reason: "governed_decision_requires_source_revalidation",
-        });
-      }
-      return null;
-  }
-
-  return null;
+  return Object.freeze({
+    version,
+    disposition: classification.disposition,
+    reason: classification.reason,
+  });
 }
 
 export async function recoverOperatingPictureRecordHistoryAfterRestart(

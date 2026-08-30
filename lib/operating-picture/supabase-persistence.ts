@@ -3,9 +3,15 @@ import type {
   OperatingPictureRecordVersion,
 } from "./record-version-history";
 import {
+  parsePersistedOperatingPictureVersionRow,
   serializeOperatingPictureVersion,
   type PersistedOperatingPictureVersion,
 } from "./persistence-record";
+import type {
+  DurableOperatingPictureHistoryReadResult,
+  DurableOperatingPictureStore,
+  DurableOperatingPictureVersionReadResult,
+} from "./durable-store-contract";
 
 export type SupabaseOperatingPictureAppendReason =
   | "invalid_payload"
@@ -44,6 +50,114 @@ const KNOWN_REJECTION_REASONS = new Set<SupabaseOperatingPictureAppendReason>([
   "version_already_exists",
   "transition_invalid",
 ]);
+
+
+const VERSION_SELECT = [
+  "version_id",
+  "record_id",
+  "previous_version_id",
+  "recorded_at",
+  "semantic_class",
+  "lifecycle",
+  "subject_namespace",
+  "subject_entity",
+  "subject_attribute",
+  "revision_semantics",
+  "visibility_purposes",
+  "valid_from",
+  "valid_until",
+  "stale_after",
+  "superseded_by",
+  "payload",
+  "authorship_source",
+  "authorship_at",
+  "provenance_source",
+  "provenance_observed_at",
+].join(",");
+
+function serverHeaders(config: SupabaseOperatingPictureConfig): Readonly<Record<string, string>> {
+  return Object.freeze({
+    apikey: config.secretKey,
+    authorization: `Bearer ${config.secretKey}`,
+  });
+}
+
+async function readRows(
+  fetchImpl: FetchLike,
+  url: string,
+  config: SupabaseOperatingPictureConfig,
+): Promise<
+  | Readonly<{ status: "ok"; rows: readonly unknown[] }>
+  | Readonly<{ status: "rejected"; reason: "persistence_unavailable" | "unexpected_persistence_response" }>
+> {
+  let response: Response;
+  try {
+    response = await fetchImpl(url, {
+      method: "GET",
+      headers: serverHeaders(config),
+      cache: "no-store",
+    });
+  } catch {
+    return Object.freeze({ status: "rejected", reason: "persistence_unavailable" });
+  }
+
+  if (!response.ok) {
+    return Object.freeze({ status: "rejected", reason: "persistence_unavailable" });
+  }
+
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    return Object.freeze({ status: "rejected", reason: "unexpected_persistence_response" });
+  }
+
+  if (!Array.isArray(body)) {
+    return Object.freeze({ status: "rejected", reason: "unexpected_persistence_response" });
+  }
+
+  return Object.freeze({ status: "ok", rows: Object.freeze([...body]) });
+}
+
+function orderPersistedHistory(
+  rows: readonly PersistedOperatingPictureVersion[],
+  recordId: string,
+  headVersionId: string,
+): readonly PersistedOperatingPictureVersion[] | null {
+  const byId = new Map<string, PersistedOperatingPictureVersion>();
+  for (const row of rows) {
+    if (row.recordId !== recordId || byId.has(row.versionId)) return null;
+    byId.set(row.versionId, row);
+  }
+
+  const head = byId.get(headVersionId);
+  if (!head) return null;
+
+  const chain: PersistedOperatingPictureVersion[] = [];
+  const seen = new Set<string>();
+  let cursor: PersistedOperatingPictureVersion | undefined = head;
+
+  while (cursor) {
+    if (seen.has(cursor.versionId)) return null;
+    seen.add(cursor.versionId);
+    chain.push(cursor);
+
+    if (cursor.previousVersionId === null) break;
+    const previous = byId.get(cursor.previousVersionId);
+    if (!previous) return null;
+    cursor = previous;
+  }
+
+  if (chain.length !== rows.length) return null;
+  const ordered = chain.reverse();
+
+  if (ordered[0]?.previousVersionId !== null) return null;
+  for (let index = 1; index < ordered.length; index += 1) {
+    if (ordered[index].previousVersionId !== ordered[index - 1].versionId) return null;
+  }
+
+  return Object.freeze(ordered);
+}
 
 function rpcPayload(version: PersistedOperatingPictureVersion): Readonly<Record<string, unknown>> {
   return Object.freeze({
@@ -97,6 +211,7 @@ export function createSupabaseOperatingPicturePersistence(
   appendVersion: (
     version: OperatingPictureRecordVersion<OperatingPictureHistoryRecord>,
   ) => Promise<SupabaseOperatingPictureAppendResult>;
+  durableStore: DurableOperatingPictureStore;
 }> {
   if (!validConfig(config)) {
     throw new Error("Invalid Supabase Operating Picture configuration.");
@@ -116,8 +231,7 @@ export function createSupabaseOperatingPicturePersistence(
           {
             method: "POST",
             headers: {
-              apikey: config.secretKey,
-              authorization: `Bearer ${config.secretKey}`,
+              ...serverHeaders(config),
               "content-type": "application/json",
             },
             body: JSON.stringify(rpcPayload(persisted)),
@@ -184,5 +298,92 @@ export function createSupabaseOperatingPicturePersistence(
         reason: "unexpected_persistence_response",
       });
     },
+
+    durableStore: Object.freeze({
+      async getVersion(versionId: string): Promise<DurableOperatingPictureVersionReadResult> {
+        const encodedVersionId = encodeURIComponent(versionId);
+        const result = await readRows(
+          fetchImpl,
+          `${config.url}/rest/v1/operating_picture_versions?version_id=eq.${encodedVersionId}&select=${VERSION_SELECT}&limit=2`,
+          config,
+        );
+        if (result.status === "rejected") return result;
+        if (result.rows.length === 0) return Object.freeze({ status: "not_found" });
+        if (result.rows.length !== 1) {
+          return Object.freeze({ status: "rejected", reason: "persistence_integrity_failure" });
+        }
+
+        const version = parsePersistedOperatingPictureVersionRow(result.rows[0]);
+        if (!version || version.versionId !== versionId) {
+          return Object.freeze({ status: "rejected", reason: "persistence_integrity_failure" });
+        }
+        return Object.freeze({ status: "found", version });
+      },
+
+      async getHeadVersion(recordId: string): Promise<DurableOperatingPictureVersionReadResult> {
+        const history = await this.listRecordVersions(recordId);
+        if (history.status !== "found") return history;
+        const version = history.versions[history.versions.length - 1];
+        if (!version || version.versionId !== history.headVersionId) {
+          return Object.freeze({ status: "rejected", reason: "persistence_integrity_failure" });
+        }
+        return Object.freeze({ status: "found", version });
+      },
+
+      async listRecordVersions(recordId: string): Promise<DurableOperatingPictureHistoryReadResult> {
+        const encodedRecordId = encodeURIComponent(recordId);
+        const [headResult, versionsResult] = await Promise.all([
+          readRows(
+            fetchImpl,
+            `${config.url}/rest/v1/operating_picture_heads?record_id=eq.${encodedRecordId}&select=record_id,version_id&limit=2`,
+            config,
+          ),
+          readRows(
+            fetchImpl,
+            `${config.url}/rest/v1/operating_picture_versions?record_id=eq.${encodedRecordId}&select=${VERSION_SELECT}`,
+            config,
+          ),
+        ]);
+
+        if (headResult.status === "rejected") return headResult;
+        if (versionsResult.status === "rejected") return versionsResult;
+
+        if (headResult.rows.length === 0 && versionsResult.rows.length === 0) {
+          return Object.freeze({ status: "not_found" });
+        }
+        if (headResult.rows.length !== 1 || versionsResult.rows.length === 0) {
+          return Object.freeze({ status: "rejected", reason: "persistence_integrity_failure" });
+        }
+
+        const head = headResult.rows[0];
+        if (typeof head !== "object" || head === null || Array.isArray(head)) {
+          return Object.freeze({ status: "rejected", reason: "persistence_integrity_failure" });
+        }
+        const headRecord = head as Record<string, unknown>;
+        if (headRecord.record_id !== recordId || typeof headRecord.version_id !== "string") {
+          return Object.freeze({ status: "rejected", reason: "persistence_integrity_failure" });
+        }
+
+        const parsed: PersistedOperatingPictureVersion[] = [];
+        for (const row of versionsResult.rows) {
+          const version = parsePersistedOperatingPictureVersionRow(row);
+          if (!version) {
+            return Object.freeze({ status: "rejected", reason: "persistence_integrity_failure" });
+          }
+          parsed.push(version);
+        }
+
+        const ordered = orderPersistedHistory(parsed, recordId, headRecord.version_id);
+        if (!ordered) {
+          return Object.freeze({ status: "rejected", reason: "persistence_integrity_failure" });
+        }
+
+        return Object.freeze({
+          status: "found",
+          headVersionId: headRecord.version_id,
+          versions: ordered,
+        });
+      },
+    }),
   });
 }

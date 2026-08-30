@@ -6,7 +6,12 @@ import type {
   OperatingPictureSupersessionTransition,
 } from "./lifecycle-core";
 
-export type OperatingPictureRecordVersion<R extends OperatingPictureRecord = OperatingPictureRecord> = Readonly<{
+type VersionedOperatingPictureRecord = Readonly<{
+  id: string;
+  lifecycle: "current" | "stale" | "superseded" | "withdrawn";
+}>;
+
+export type OperatingPictureRecordVersion<R extends VersionedOperatingPictureRecord = OperatingPictureRecord> = Readonly<{
   versionId: string;
   recordId: string;
   previousVersionId: string | null;

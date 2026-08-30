@@ -84,7 +84,7 @@ Public-information handling must never be described as hallucination-proof. The 
 
 ## Governed Operating Picture doctrine
 
-**Status:** Frozen 30 August 2026 before implementation. This section defines the trust boundary for the next milestone; it does not claim that a governed operating picture already exists.
+**Status:** Adopted 30 August 2026. The semantic/lifecycle foundation and server-owned Supabase persistence foundation have now been implemented and directly verified within their bounded scopes. These rules remain the governing trust boundary for all later Operating Picture persistence, retrieval, projection, capture and model-facing use.
 
 > **OPERATING-PICTURE-01:** The Governed Operating Picture is a purpose-bounded projection of known operational context. It is not a transcript, embedding index, undifferentiated memory store, or model-authored world model.
 
@@ -122,7 +122,7 @@ recommendation
 open_question
 ~~~
 
-This vocabulary is a governance distinction, not an instruction to persist all classes immediately. Each class must earn a source, lifecycle, visibility and update contract before production persistence is introduced.
+This vocabulary is a governance distinction, not an instruction to capture every class from every source. Durable storage now exists, but persistence alone does not authorise capture, retrieval, model visibility or trust promotion. Each production source/class path must still earn an explicit source, lifecycle, visibility, update and retrieval contract.
 
 ### Relationship to existing state
 
@@ -145,11 +145,31 @@ model prose            --------X--> governed evidence
 - **Conversation history** may preserve conversational meaning but cannot manufacture provenance, freshness or authority.
 - **Legacy Memory / OperationalState surfaces** do not become the new Operating Picture by renaming them.
 
-### First implementation constraint
+### Implementation progression
 
-The first implementation milestone must be **types and lifecycle semantics only**. It must not add persistence, vector search, connector reads, model retrieval, cross-source synthesis, proactive notifications, autonomous action, or UI claims that JARVIS now “knows” the user's world.
+The original first implementation constraint was intentionally **types and lifecycle semantics only**. That historical constraint has now been satisfied and verified. The subsequent persistence foundation was introduced only after the semantic boundary was proven.
 
-A successful first implementation should make category confusion structurally difficult before making the Operating Picture useful.
+~~~text
+semantic/lifecycle core — verified
+        ↓
+append-only low-trust persistence — verified live
+        ↓
+store parity + restart durability — next
+        ↓
+safe read-side reconstruction
+        ↓
+purpose-bounded projection
+        ↓
+narrow model-facing continuity
+~~~
+
+The current milestone must not add vector search, automatic chat-memory extraction, broad connector ingestion, cross-source synthesis, proactive notifications, autonomous action, or a generic ambient-memory API.
+
+> **PERSISTENCE-TRUST-01:** A persisted row is durable data/history, not a trust-bearing value. Reading data from storage must never by itself construct `GovernedEvidence`, `AuthorityEvidence`, policy proof, verification proof, completion proof, or fresh provider truth.
+
+> **STORE-PARITY-01:** Durable persistence must reproduce the already-verified Operating Picture append/reject/head/history semantics. A persistence adapter may not create a second semantic source of truth or silently weaken lifecycle, identity, replacement, staleness, or replay invariants.
+
+> **RESTART-DURABILITY-01:** After process restart, JARVIS may recover only the durable Operating Picture state that was validly persisted. Restart recovery must not revive consumed authority, pending approval, stale references, model-only context, or any process-local governance state.
 ## Input/output asymmetry
 
 > **INPUT-FLEX-01:** Ordinary user-facing natural language should not be constrained more than necessary for reliable interpretation. Improving semantic understanding must not itself weaken authority.

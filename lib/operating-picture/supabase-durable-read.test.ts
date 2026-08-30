@@ -64,7 +64,10 @@ function persistence(
 
 describe("Supabase durable Operating Picture reads", () => {
   it("returns an exact low-trust persisted version without trust rehydration", async () => {
-    const fetchImpl = vi.fn(async () => new Response(JSON.stringify([row()]), {
+    const fetchImpl = vi.fn(async (
+      _input: string | URL | Request,
+      _init?: RequestInit,
+    ) => new Response(JSON.stringify([row()]), {
       status: 200,
       headers: { "content-type": "application/json" },
     }));

@@ -4,7 +4,6 @@ import type {
   DurableOperatingPictureStore,
 } from "./durable-store-contract";
 import type {
-  DurableOperatingPictureProjectionExclusionReason,
   DurableOperatingPictureProjectionItem,
 } from "./durable-projection";
 import type {
@@ -25,10 +24,7 @@ export type DurablePurposeRetrievalResult =
       status: "excluded";
       recordId: string;
       headVersionId: string;
-      reason:
-        | "purpose_not_visible"
-        | "lifecycle_not_current"
-        | "source_revalidation_required";
+      reason: DurablePurposeRetrievalExclusionReason;
     }>
   | Readonly<{
       status: "rejected";
@@ -65,11 +61,16 @@ function metadataMatchesVersion(
     && metadata.provenanceObservedAt === version.provenanceObservedAt;
 }
 
+type DurablePurposeRetrievalExclusionReason =
+  | "purpose_not_visible"
+  | "lifecycle_not_current"
+  | "source_revalidation_required";
+
 function exclusionReason(
   metadata: PersistedOperatingPictureProjectionMetadata,
   purpose: string,
   disposition: OperatingPictureRecoveryDisposition,
-): DurableOperatingPictureProjectionExclusionReason | null {
+): DurablePurposeRetrievalExclusionReason | null {
   if (disposition === "requires_source_revalidation") {
     return "source_revalidation_required";
   }

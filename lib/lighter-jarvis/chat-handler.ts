@@ -109,7 +109,7 @@ const PUBLIC_WEB_GUIDANCE = [
   "If authoritative results establish multiple candidates for the same freshness-sensitive attribute, compare them before answering. Once a newer or otherwise superseding candidate is established, do not label an older candidate current, latest, newest, most recent, stable, active, incumbent, or equivalent.",
   "When the user's freshness term is ambiguous within the source's own taxonomy, preserve that taxonomy instead of collapsing it. For example, if a project distinguishes Current from LTS, report both relevant categories rather than silently treating one as the meaning of stable.",
   "Do not combine nearby rows, adjacent dates, similarly named entities, snippets, or separate sources into a stronger claim than any retrieved result supports.",
-  "Answer the user's exact question first. For a simple freshness-sensitive factual question, give the smallest complete factual answer: normally one sentence, or a second sentence only when necessary to identify the authoritative source/period or preserve an essential source taxonomy.",
+  "Answer the user's exact question first. For a simple freshness-sensitive factual question, the first answer-bearing sentence must state the requested fact itself, not describe the search process, source authority, result numbering, or what remains to be checked. Give the smallest complete factual answer: normally one sentence, or a second sentence only when necessary to identify the authoritative source/period or preserve an essential source taxonomy.",
   "Do not add background, history, rankings, comparisons, trend commentary, implications, recommendations, adjacent metrics, or other interesting context unless the user explicitly asked for it or it is strictly necessary to disambiguate the requested fact.",
   "Every additional numeric, historical, comparative, or trend claim must be directly supported by retrieved evidence for that exact claim. Do not derive or announce a streak such as consecutive rises or falls unless an authoritative source explicitly states it or a deterministic non-model computation has established it.",
   "For freshness-sensitive public facts, briefly identify the authoritative source and the relevant measurement, effective, or release period needed to interpret the requested fact.",
@@ -203,6 +203,7 @@ export function hasPublicWebSearchEvidence(result: string | ClaudeResult): boole
 
 const PUBLIC_EXPANSIVE_REQUEST = /\b(?:explain|compare|why|how|analyse|analyze|summary|summarise|summarize|tell me about|what can you tell me|detail|context|background|trend|history)\b/i;
 const PUBLIC_SEARCH_NARRATION = /^(?:i need to|let me|i(?:'|’)ll search|i found evidence|based on (?:the )?search results[:,]?)/i;
+const PUBLIC_PROCESS_ONLY_SENTENCE = /^(?:the\s+\S+(?:\s+\S+){0,5}\s+is\s+(?:the\s+)?authoritative\s+source\b|(?:search\s+)?result\s+\d+\b|the\s+(?:search\s+)?results?\b)/i;
 const PUBLIC_SOURCE_SENTENCE = /\b(?:according to|source|ABS|RBA|Bureau of Meteorology|official|npm|node\.js|OpenAI|Anthropic)\b/i;
 
 export function isMinimalFreshPublicFactQuestion(utterance: string): boolean {
@@ -222,9 +223,11 @@ export function enforceMinimalPublicFactReply(reply: string, utterance: string):
     .split(/(?<=[.!?])\s+/)
     .map(sentence => sentence.trim())
     .filter(Boolean)
-    .filter(sentence => !PUBLIC_SEARCH_NARRATION.test(sentence));
+    .filter(sentence => !PUBLIC_SEARCH_NARRATION.test(sentence))
+    .filter(sentence => !PUBLIC_PROCESS_ONLY_SENTENCE.test(sentence));
 
-  if (sentences.length <= 1) return sentences[0] ?? cleaned;
+  if (sentences.length === 0) return PUBLIC_WEB_FAILURE_REPLY;
+  if (sentences.length === 1) return sentences[0];
 
   const first = sentences[0];
   const second = sentences[1];

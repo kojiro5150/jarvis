@@ -38,6 +38,19 @@ export type PersistedOperatingPictureVersion = Readonly<{
 }>;
 
 
+
+export type PersistedOperatingPictureProjectionMetadata = Readonly<{
+  versionId: string;
+  recordId: string;
+  semanticClass: PersistedOperatingPictureVersion["semanticClass"];
+  lifecycle: PersistedOperatingPictureVersion["lifecycle"];
+  visibilityPurposes: readonly string[];
+  authorshipSource: PersistedOperatingPictureVersion["authorshipSource"];
+  authorshipAt: string | null;
+  provenanceSource: string | null;
+  provenanceObservedAt: string | null;
+}>;
+
 const SEMANTIC_CLASSES = new Set([
   "fact",
   "user_assertion",
@@ -161,6 +174,58 @@ function validSemanticSourceShape(
     default:
       return false;
   }
+}
+
+
+export function parsePersistedOperatingPictureProjectionMetadataRow(
+  row: unknown,
+): PersistedOperatingPictureProjectionMetadata | null {
+  if (typeof row !== "object" || row === null || Array.isArray(row)) return null;
+  const value = row as Record<string, unknown>;
+
+  const semanticClass = value.semantic_class;
+  const lifecycle = value.lifecycle;
+  const authorshipSource = value.authorship_source;
+
+  if (typeof value.version_id !== "string"
+    || typeof value.record_id !== "string"
+    || typeof semanticClass !== "string"
+    || !SEMANTIC_CLASSES.has(semanticClass as never)
+    || typeof lifecycle !== "string"
+    || !LIFECYCLE_STATES.has(lifecycle as never)
+    || !isStringArray(value.visibility_purposes)
+    || (authorshipSource !== null && (
+      typeof authorshipSource !== "string"
+      || !AUTHORSHIP_SOURCES.has(authorshipSource as never)
+    ))
+    || !isValidInstantOrNull(value.authorship_at)
+    || (value.provenance_source !== null && typeof value.provenance_source !== "string")
+    || !isValidInstantOrNull(value.provenance_observed_at)) {
+    return null;
+  }
+
+  if ((authorshipSource === null) !== (value.authorship_at === null)) return null;
+  if ((value.provenance_source === null) !== (value.provenance_observed_at === null)) return null;
+
+  if (!validSemanticSourceShape(
+    semanticClass as PersistedOperatingPictureVersion["semanticClass"],
+    authorshipSource as PersistedOperatingPictureVersion["authorshipSource"],
+    value.provenance_source as string | null,
+  )) {
+    return null;
+  }
+
+  return Object.freeze({
+    versionId: value.version_id,
+    recordId: value.record_id,
+    semanticClass: semanticClass as PersistedOperatingPictureVersion["semanticClass"],
+    lifecycle: lifecycle as PersistedOperatingPictureVersion["lifecycle"],
+    visibilityPurposes: Object.freeze([...value.visibility_purposes]),
+    authorshipSource: authorshipSource as PersistedOperatingPictureVersion["authorshipSource"],
+    authorshipAt: value.authorship_at,
+    provenanceSource: value.provenance_source as string | null,
+    provenanceObservedAt: value.provenance_observed_at,
+  });
 }
 
 export function parsePersistedOperatingPictureVersionRow(

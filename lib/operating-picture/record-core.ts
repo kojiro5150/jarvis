@@ -1,8 +1,12 @@
 import type {
   AuthorityEvidence,
+  CompletionProof,
   GovernedEvidence,
   GovernedProvenance,
   ModelText,
+  PolicyProof,
+  ValidatedOperation,
+  VerificationProof,
 } from "../governance-core/trust-types";
 
 export const OPERATING_PICTURE_CLASSES = [
@@ -48,6 +52,30 @@ export type OperatingPictureSubject = Readonly<{
   revision: OperatingPictureRevisionSemantics;
 }>;
 
+type TrustBearingPayloadValue =
+  | AuthorityEvidence<unknown>
+  | GovernedEvidence<unknown>
+  | GovernedProvenance
+  | PolicyProof<unknown>
+  | VerificationProof<unknown>
+  | CompletionProof<unknown>
+  | ValidatedOperation<unknown>;
+
+type ContainsTrustBearingPayload<T> =
+  T extends TrustBearingPayloadValue
+    ? true
+    : T extends readonly (infer U)[]
+      ? ContainsTrustBearingPayload<U>
+      : T extends object
+        ? true extends {
+            [K in keyof T]-?: ContainsTrustBearingPayload<T[K]>
+          }[keyof T]
+          ? true
+          : false
+        : false;
+
+type TrustSafePayload<T> = ContainsTrustBearingPayload<T> extends true ? never : T;
+
 type BaseRecord<K extends OperatingPictureClass, V> = Readonly<{
   id: string;
   class: K;
@@ -87,26 +115,59 @@ export type RecommendationRecord = BaseRecord<"recommendation", ModelText> & Rea
   }>;
 }>;
 
-export type PlanRecord<T> = BaseRecord<"plan", T> & Readonly<{
+export type UserPlanRecord<T> = BaseRecord<"plan", T> & Readonly<{
   authorship: Readonly<{
-    source: "user" | "governed_system";
+    source: "user";
     statedAt: string;
   }>;
 }>;
 
-export type CommitmentRecord<T> = BaseRecord<"commitment", T> & Readonly<{
+export type GovernedPlanRecord<T> = BaseRecord<"plan", T> & Readonly<{
   authorship: Readonly<{
-    source: "user" | "governed_source";
+    source: "governed_system";
+    statedAt: string;
+  }>;
+  evidence: GovernedEvidence<T>;
+  provenance: GovernedProvenance;
+}>;
+
+export type PlanRecord<T> = UserPlanRecord<T> | GovernedPlanRecord<T>;
+
+export type UserCommitmentRecord<T> = BaseRecord<"commitment", T> & Readonly<{
+  authorship: Readonly<{
+    source: "user";
     statedAt: string;
   }>;
 }>;
 
-export type DecisionRecord<T> = BaseRecord<"decision", T> & Readonly<{
+export type GovernedCommitmentRecord<T> = BaseRecord<"commitment", T> & Readonly<{
   authorship: Readonly<{
-    source: "user" | "governed_decision_source";
+    source: "governed_source";
+    statedAt: string;
+  }>;
+  evidence: GovernedEvidence<T>;
+  provenance: GovernedProvenance;
+}>;
+
+export type CommitmentRecord<T> = UserCommitmentRecord<T> | GovernedCommitmentRecord<T>;
+
+export type UserDecisionRecord<T> = BaseRecord<"decision", T> & Readonly<{
+  authorship: Readonly<{
+    source: "user";
     statedAt: string;
   }>;
 }>;
+
+export type GovernedDecisionRecord<T> = BaseRecord<"decision", T> & Readonly<{
+  authorship: Readonly<{
+    source: "governed_decision_source";
+    statedAt: string;
+  }>;
+  evidence: GovernedEvidence<T>;
+  provenance: GovernedProvenance;
+}>;
+
+export type DecisionRecord<T> = UserDecisionRecord<T> | GovernedDecisionRecord<T>;
 
 export type PreferenceRecord<T> = BaseRecord<"preference", T> & Readonly<{
   authorship: Readonly<{
@@ -163,9 +224,9 @@ function common(input: CommonInput): Readonly<{
 }
 
 export function createFactRecord<T>(input: CommonInput & Readonly<{
-  evidence: GovernedEvidence<T>;
+  evidence: GovernedEvidence<TrustSafePayload<T>>;
   provenance: GovernedProvenance;
-}>): FactRecord<T> {
+}>): FactRecord<TrustSafePayload<T>> {
   return Object.freeze({
     ...common(input),
     class: "fact",
@@ -176,9 +237,9 @@ export function createFactRecord<T>(input: CommonInput & Readonly<{
 }
 
 export function createUserAssertionRecord<T>(input: CommonInput & Readonly<{
-  value: T;
+  value: TrustSafePayload<T>;
   statedAt: string;
-}>): UserAssertionRecord<T> {
+}>): UserAssertionRecord<TrustSafePayload<T>> {
   return Object.freeze({
     ...common(input),
     class: "user_assertion",
@@ -212,48 +273,90 @@ export function createRecommendationRecord(input: CommonInput & Readonly<{
 }
 
 export function createPlanRecord<T>(input: CommonInput & Readonly<{
-  value: T;
-  source: "user" | "governed_system";
+  value: TrustSafePayload<T>;
   statedAt: string;
-}>): PlanRecord<T> {
+}>): UserPlanRecord<TrustSafePayload<T>> {
   return Object.freeze({
     ...common(input),
     class: "plan",
     value: input.value,
-    authorship: Object.freeze({ source: input.source, statedAt: input.statedAt }),
+    authorship: Object.freeze({ source: "user", statedAt: input.statedAt }),
+  });
+}
+
+export function createGovernedPlanRecord<T>(input: CommonInput & Readonly<{
+  evidence: GovernedEvidence<TrustSafePayload<T>>;
+  provenance: GovernedProvenance;
+  statedAt: string;
+}>): GovernedPlanRecord<TrustSafePayload<T>> {
+  return Object.freeze({
+    ...common(input),
+    class: "plan",
+    value: input.evidence.value,
+    authorship: Object.freeze({ source: "governed_system", statedAt: input.statedAt }),
+    evidence: input.evidence,
+    provenance: input.provenance,
   });
 }
 
 export function createCommitmentRecord<T>(input: CommonInput & Readonly<{
-  value: T;
-  source: "user" | "governed_source";
+  value: TrustSafePayload<T>;
   statedAt: string;
-}>): CommitmentRecord<T> {
+}>): UserCommitmentRecord<TrustSafePayload<T>> {
   return Object.freeze({
     ...common(input),
     class: "commitment",
     value: input.value,
-    authorship: Object.freeze({ source: input.source, statedAt: input.statedAt }),
+    authorship: Object.freeze({ source: "user", statedAt: input.statedAt }),
+  });
+}
+
+export function createGovernedCommitmentRecord<T>(input: CommonInput & Readonly<{
+  evidence: GovernedEvidence<TrustSafePayload<T>>;
+  provenance: GovernedProvenance;
+  statedAt: string;
+}>): GovernedCommitmentRecord<TrustSafePayload<T>> {
+  return Object.freeze({
+    ...common(input),
+    class: "commitment",
+    value: input.evidence.value,
+    authorship: Object.freeze({ source: "governed_source", statedAt: input.statedAt }),
+    evidence: input.evidence,
+    provenance: input.provenance,
   });
 }
 
 export function createDecisionRecord<T>(input: CommonInput & Readonly<{
-  value: T;
-  source: "user" | "governed_decision_source";
+  value: TrustSafePayload<T>;
   statedAt: string;
-}>): DecisionRecord<T> {
+}>): UserDecisionRecord<TrustSafePayload<T>> {
   return Object.freeze({
     ...common(input),
     class: "decision",
     value: input.value,
-    authorship: Object.freeze({ source: input.source, statedAt: input.statedAt }),
+    authorship: Object.freeze({ source: "user", statedAt: input.statedAt }),
+  });
+}
+
+export function createGovernedDecisionRecord<T>(input: CommonInput & Readonly<{
+  evidence: GovernedEvidence<TrustSafePayload<T>>;
+  provenance: GovernedProvenance;
+  statedAt: string;
+}>): GovernedDecisionRecord<TrustSafePayload<T>> {
+  return Object.freeze({
+    ...common(input),
+    class: "decision",
+    value: input.evidence.value,
+    authorship: Object.freeze({ source: "governed_decision_source", statedAt: input.statedAt }),
+    evidence: input.evidence,
+    provenance: input.provenance,
   });
 }
 
 export function createPreferenceRecord<T>(input: CommonInput & Readonly<{
-  value: T;
+  value: TrustSafePayload<T>;
   statedAt: string;
-}>): PreferenceRecord<T> {
+}>): PreferenceRecord<TrustSafePayload<T>> {
   return Object.freeze({
     ...common(input),
     class: "preference",
@@ -277,13 +380,11 @@ export function createOpenQuestionRecord(input: CommonInput & Readonly<{
 /**
  * OPERATING-PICTURE-05:
  * Authority may be referenced by external audit/history records, but never stored
- * inside an OperatingPictureRecord. Keep this negative type assertion exported
- * only for compile-time regression files.
+ * as the whole Operating Picture record or inside its semantic payload.
  */
 export type ReusableAuthorityMustNotAppearInOperatingPicture = AuthorityEvidence<never> extends OperatingPictureRecord
   ? never
   : true;
-
 
 export function sameOperatingPictureSubject(
   left: OperatingPictureRecord,

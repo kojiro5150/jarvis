@@ -67,6 +67,10 @@ durable continuity
 
 The next milestone must prove that a durable continuity item is created only when the user explicitly asks JARVIS to remember something. Model interpretation may help construct a bounded candidate, but it may not become the author, promote the content into fact, infer standing authority, or capture unrelated transcript material.
 
+For the first experiment, revision semantics are deliberately `append_only`. If the user later explicitly captures a contradictory preference, plan, commitment, decision, or assertion, both statements remain distinct historical user-authored continuity. No automatic supersession, mutation, contradiction resolution, or latest-wins behaviour is authorised yet. `explicit_replacement` requires a later governed reference-resolution milestone.
+
+The same rule applies on the read side. If multiple current records about the same subject are all admissible for a purpose, projection and presentation may not quietly discard the older one, privilege the newer one, or present one as the resolved truth merely because the records conflict. Until a separately governed reconciliation mechanism exists, admissible conflict must remain visible rather than being cosmetically resolved.
+
 > **Current proving question:** Can JARVIS persist a continuity item only when the user explicitly asks it to remember something, while preserving the user's authorship and semantic class, preventing model interpretation from becoming authorship or fact, and avoiding ambient transcript capture or new authority?
 
 ### Explicit exclusions for the current milestone

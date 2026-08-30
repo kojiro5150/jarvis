@@ -186,6 +186,8 @@ The current milestone must not add vector search, automatic chat-memory extracti
 > **MODEL-CONTINUITY-03:** A record classified as `requires_source_revalidation` must not be released to the model as current truth through durable continuity. Source reacquisition must occur through an already-governed source boundary first.
 
 > **MODEL-CONTINUITY-04:** Model output derived from durable continuity remains model output. It cannot promote a projected item into `GovernedEvidence`, authority, provenance, policy proof, verification proof, completion proof, or fresh source truth.
+
+> **MODEL-CONTINUITY-05:** Model reasoning over durable continuity must produce a response that conforms to an explicit closed output schema and is deterministically validated before presentation. For the first model-facing continuity experiment, free-form narrative synthesis directly from projected durable items is not permitted. Invalid, extra-field, out-of-vocabulary, or otherwise non-conforming model output must fail closed rather than being repaired, interpreted, or presented as if valid.
 ## Input/output asymmetry
 
 > **INPUT-FLEX-01:** Ordinary user-facing natural language should not be constrained more than necessary for reliable interpretation. Improving semantic understanding must not itself weaken authority.

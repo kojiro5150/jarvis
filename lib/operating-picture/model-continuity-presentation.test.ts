@@ -47,7 +47,7 @@ function relevantAssessment(): ModelContinuityAssessment {
   return Object.freeze({
     responseType: "continuity_relevance",
     relevance: "relevant",
-    relevantItemIds: Object.freeze(["continuity:1"]),
+    relevantItemIds: Object.freeze(["continuity:1"] as const),
   });
 }
 
@@ -111,7 +111,7 @@ describe("model continuity resolution and presentation", () => {
     const assessment: ModelContinuityAssessment = Object.freeze({
       responseType: "continuity_relevance",
       relevance: "relevant",
-      relevantItemIds: Object.freeze(["continuity:2"]),
+      relevantItemIds: Object.freeze(["continuity:2"] as const),
     });
 
     const resolution = resolveModelContinuityAssessment({

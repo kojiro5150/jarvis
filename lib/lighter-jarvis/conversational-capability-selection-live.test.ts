@@ -169,7 +169,9 @@ describe("Sprint 3.180b live capability selection", () => {
         expect(systemPrompt).toContain("keep freshness-sensitive factual replies minimal by default");
         expect(systemPrompt).toContain("Do not volunteer historical background");
         expect(systemPrompt).toContain("Do not derive or announce a streak");
-        expect(systemPrompt).toContain("identify the authoritative source and relevant as-of date or release period");
+        expect(systemPrompt).toContain("identify the authoritative source and the relevant measurement, effective, or release period");
+        expect(systemPrompt).toContain("Do not volunteer an exact publication, release, update, or retrieval date");
+        expect(systemPrompt).toContain("If an exact source-metadata date is necessary");
         return {
           content: [
             { type: "server_tool_use", name: "web_search", input: { query: "Australia current inflation rate ABS July 2026" } },
@@ -188,6 +190,31 @@ describe("Sprint 3.180b live capability selection", () => {
     ]))).json();
 
     expect(response.reply).toBe("Australia's annual CPI inflation rate is 3.5% for the 12 months to July 2026, according to the ABS.");
+  });
+
+  it("keeps unasked source-metadata dates out of current inflation answers", async () => {
+    const model = vi.fn(async (systemPrompt: string, _messages: { content: string }[], tools?: ClaudeTool[]) => {
+      if (hasWebSearch(tools)) {
+        expect(systemPrompt).toContain("Do not volunteer an exact publication, release, update, or retrieval date");
+        return {
+          content: [
+            { type: "server_tool_use", name: "web_search", input: { query: "Australia current inflation rate ABS July 2026" } },
+            { type: "web_search_tool_result", tool_use_id: "web_search_1", content: [] },
+            { type: "text", text: "Australia's annual CPI inflation rate is 3.5% for the 12 months to July 2026, according to the ABS." },
+          ],
+          text: "Australia's annual CPI inflation rate is 3.5% for the 12 months to July 2026, according to the ABS.",
+        };
+      }
+      return JSON.stringify({ kind: "ordinary_conversation" });
+    });
+    const handler = createLighterChatHandler(model);
+
+    const response = await (await handler(request([
+      { role: "user", content: "what is the current inflation rate in Australia?" },
+    ]))).json();
+
+    expect(response.reply).toBe("Australia's annual CPI inflation rate is 3.5% for the 12 months to July 2026, according to the ABS.");
+    expect(response.reply).not.toMatch(/released|published|updated|retrieved/i);
   });
 
   it("keeps weather public and lets ordinary JARVIS use native web search without authorization", async () => {

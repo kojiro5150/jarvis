@@ -116,7 +116,9 @@ const PUBLIC_WEB_GUIDANCE = [
   "Do not volunteer an exact publication, release, update, or retrieval date merely as provenance metadata unless the user asked for that date or the exact date is necessary to answer the question. A source period such as 'July 2026' is preferable to an unnecessary exact publication date.",
   "If an exact source-metadata date is necessary, present it only when the retrieved authoritative material directly establishes that exact date; otherwise omit it.",
   "Never invent, infer, interpolate, or complete a missing public fact merely because it would make the answer more useful or coherent.",
-  "If sources conflict, identify the conflict or uncertainty instead of silently choosing or blending them.",
+  "Treat results as conflicting only when authoritative evidence for the same entity, same period, same requested attribute, and same relevant measure yields incompatible values.",
+  "Do not call results conflicting merely because the source exposes multiple rows, measures, seasonal adjustments, trend series, revisions, snippets, or representations when they agree on the value needed to answer the user's question.",
+  "If authoritative measures differ but the user's wording does not require choosing between them, preserve the distinction explicitly instead of collapsing them into a generic conflict.",
   "If web search fails or does not establish the requested fact, say that plainly rather than guessing from memory.",
 ].join("\n");
 
@@ -246,7 +248,7 @@ export function anchorPublicInformationModelTurn(messages: readonly ChatMessage[
   }
 
   if (isFreshnessSensitivePublicInformation(utterance)) {
-    constraints.push(`Freshness-sensitive public-information request as of ${publicLocalDate(now)}. Verify the candidate against a current authoritative or canonical source, and verify that no newer authoritative result supersedes it before describing it as current, latest, newest, most recent, stable, active, or incumbent. An older release page, article, snippet, or mention is not sufficient proof of currentness. If authoritative results establish multiple candidates, compare them and discard superseded candidates from the requested freshness label. If the source taxonomy makes the user's term ambiguous, preserve the source taxonomy explicitly rather than collapsing categories.`);
+    constraints.push(`Freshness-sensitive public-information request as of ${publicLocalDate(now)}. Verify the candidate against a current authoritative or canonical source, and verify that no newer authoritative result supersedes it before describing it as current, latest, newest, most recent, stable, active, or incumbent. An older release page, article, snippet, or mention is not sufficient proof of currentness. If authoritative results establish multiple candidates, compare them and discard superseded candidates from the requested freshness label. If the source taxonomy makes the user's term ambiguous, preserve the source taxonomy explicitly rather than collapsing categories. Do not label evidence as conflicting when authoritative observations for the same entity, period, requested attribute, and relevant measure agree on the answer; differences in row type, adjustment method, or representation are not themselves conflicts.`);
   }
 
   if (constraints.length === 0) return copy;

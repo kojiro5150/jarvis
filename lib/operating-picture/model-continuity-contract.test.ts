@@ -200,7 +200,7 @@ describe("narrow model-facing continuity contract", () => {
 
   it.each([
     ["free-form narrative", "This seems relevant because the user prefers concise replies."],
-    ["markdown-wrapped JSON", ```json\n{"responseType":"continuity_relevance","relevance":"relevant","relevantItemIds":["continuity:1"]}\n```],
+    ["markdown-wrapped JSON", "```json\\n{\\\"responseType\\\":\\\"continuity_relevance\\\",\\\"relevance\\\":\\\"relevant\\\",\\\"relevantItemIds\\\":[\\\"continuity:1\\\"]}\\n```"],
     ["extra field", '{"responseType":"continuity_relevance","relevance":"relevant","relevantItemIds":["continuity:1"],"summary":"concise"}'],
     ["unknown vocabulary", '{"responseType":"continuity_relevance","relevance":"maybe","relevantItemIds":["continuity:1"]}'],
     ["unknown continuity ID", '{"responseType":"continuity_relevance","relevance":"relevant","relevantItemIds":["continuity:99"]}'],

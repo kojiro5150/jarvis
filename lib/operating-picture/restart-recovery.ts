@@ -154,6 +154,8 @@ function classifyPersistedOperatingPictureVersion(
       }
       return null;
   }
+
+  return null;
 }
 
 export async function recoverOperatingPictureRecordHistoryAfterRestart(
@@ -179,7 +181,7 @@ export async function recoverOperatingPictureRecordHistoryAfterRestart(
     recovered.push(classified);
   }
 
-  const head = recovered.at(-1);
+  const head = recovered[recovered.length - 1];
   if (!head || head.version.versionId !== history.headVersionId) {
     return Object.freeze({
       status: "rejected",

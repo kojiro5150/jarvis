@@ -41,9 +41,9 @@ createUserAssertionRecord({
   visibility: ["planning"],
 });
 
-// @ts-expect-error model-authored text is not governed evidence and cannot construct a fact
 createFactRecord({
   id: "bad:fact",
+  // @ts-expect-error model-authored text is not governed evidence and cannot construct a fact
   evidence: markModelText("5.1%"),
   provenance,
   visibility: ["conversation"],

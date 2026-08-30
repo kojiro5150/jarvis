@@ -2,6 +2,9 @@ import type {
   FactRecord,
   OperatingPictureRecord,
 } from "./record-core";
+import type {
+  ExactExplicitReplacementResolution,
+} from "./explicit-replacement-reference";
 import {
   sameOperatingPictureRevisionSemantics,
   sameOperatingPictureSubject,
@@ -53,6 +56,16 @@ export type AuthoritativeSnapshotSupersessionProof = Readonly<{
 export type SupersessionProof =
   | ExplicitReplacementSupersessionProof
   | AuthoritativeSnapshotSupersessionProof;
+
+export function createExplicitReplacementDeclarationFromExactResolution(
+  resolution: ExactExplicitReplacementResolution,
+): ExplicitReplacementDeclaration {
+  return Object.freeze({
+    previousRecordId: resolution.previousRecordId,
+    replacementRecordId: resolution.replacementRecordId,
+    statedAt: resolution.confirmedAt,
+  }) as ExplicitReplacementDeclaration;
+}
 
 function parseInstant(value: string): number | null {
   const parsed = Date.parse(value);

@@ -1,59 +1,55 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Reconciled 30 August 2026 after direct verification of the Governed Operating Picture semantic/lifecycle foundation, live Supabase persistence foundation, and the bounded Store Parity & Restart Durability milestone. Existing governed Calendar/Gmail/Drive work remains the proven substrate. The next architectural milestone is **Governed Operating Picture — Purpose-Bounded Durable Projection**.
+**Status:** Living document. Reconciled 30 August 2026 after direct verification of the Governed Operating Picture semantic/lifecycle foundation, live Supabase persistence foundation, Store Parity & Restart Durability, and Purpose-Bounded Durable Projection. Existing governed Calendar/Gmail/Drive work remains the proven substrate. The next architectural milestone is **Governed Operating Picture — Narrow Model-Facing Continuity**.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
 
 ---
 
-## Current next milestone — Governed Operating Picture: Purpose-Bounded Durable Projection
+## Current next milestone — Governed Operating Picture: Narrow Model-Facing Continuity
 
-The prior milestones are now separately recorded in:
+The verified Operating Picture milestones are now recorded in:
 
 - `GOVERNED-OPERATING-PICTURE-FOUNDATION-VERIFICATION.md`
 - `GOVERNED-OPERATING-PICTURE-STORE-PARITY-RESTART-VERIFICATION.md`
+- `GOVERNED-OPERATING-PICTURE-PURPOSE-PROJECTION-VERIFICATION.md`
 
-Store Parity & Restart Durability is now verified within its bounded scope. A fresh process can discover the bounded durable head set, validate and reconstruct each low-trust history chain, classify recovery semantics, and accept an all-record snapshot only when the head set is stable before and after recovery.
+Purpose-Bounded Durable Projection is now verified within its bounded scope, including live operation through the actual JARVIS server → Supabase REST path. The live acceptance sequence independently verified durable head discovery against Supabase SQL, payload-free preflight, purpose-gated single-head retrieval, and stable whole-store projection.
 
-Critically, restart durability did **not** convert persisted rows back into trusted facts. The recovery boundary distinguishes:
-
-~~~text
-user-authored durable continuity
-        → recoverable_user_continuity
-
-model-authored durable continuity
-        → recoverable_model_continuity
-
-governed/source-backed durable records
-        → requires_source_revalidation
-~~~
-
-The next authorised implementation is therefore a deterministic projection layer over the recovered low-trust snapshot:
+The next authorised implementation is deliberately narrower than generic memory:
 
 ~~~text
-stable bounded restart snapshot
+verified purpose-bounded durable projection
         ↓
-explicit purpose
+one explicit model-facing purpose
         ↓
-visibility + lifecycle + recovery-disposition gate
+deterministic projection-to-context adapter
         ↓
-purpose-bounded durable projection
+typed semantic/recovery labels preserved
+        ↓
+one controlled model invocation
 ~~~
 
-The projection must not:
+The model-facing boundary must preserve the distinction between:
 
-- treat `requires_source_revalidation` records as current facts;
-- silently promote model continuity into fact;
-- ignore lifecycle state;
-- bypass each record's declared visibility purposes;
-- expose the complete durable store merely because it exists;
-- construct `GovernedEvidence`, authority, policy proof, verification proof, or completion proof from persistence.
+~~~text
+user continuity
+        ≠ fact
 
-> **Current proving question:** Can deterministic code select only the durable continuity that is legally visible and semantically usable for an explicit purpose, while excluding source-backed records that require revalidation and preserving lifecycle/semantic distinctions?
+model continuity
+        ≠ fact
+
+source-backed durable record requiring revalidation
+        → not model-visible as current truth
+~~~
+
+The next milestone must prove that model access begins **after** deterministic purpose projection. The model must never receive the durable store, unrestricted history, hidden records, stale/superseded/withdrawn heads, or records quarantined for source revalidation.
+
+> **Current proving question:** Can JARVIS use a narrow purpose-bounded durable projection in model-facing reasoning without promoting remembered user/model continuity into fact, widening visibility, or bypassing source revalidation?
 
 ### Explicit exclusions for the current milestone
 
-No model-facing retrieval, automatic chat-memory extraction, embeddings/vector search, broad connector ingestion, cross-source executive synthesis, proactive behaviour, autonomous action, or generic ambient-memory API is authorised yet.
+No automatic chat-memory extraction, embeddings/vector search, broad connector ingestion, generic ambient-memory API, source revalidation implementation, cross-source executive synthesis, proactive behaviour, or autonomous action is authorised yet.
 
 ---
 ## Governance Core extraction sequence
@@ -125,9 +121,10 @@ Proven but deliberately bounded
     Low-trust durable representation that does not rehydrate authority/evidence brands
     Store parity + stable all-record restart recovery snapshot
     Restart recovery trust classification and bounded head discovery
+    Purpose-bounded durable projection with live server REST verification
 
 Ready for disciplined activation
-    Governed Operating Picture purpose-bounded durable projection
+    Governed Operating Picture narrow model-facing continuity
     Deterministic Executive Cognition already present in the EOS:
     Situational Awareness → Attention → Situation Formation → Assessment →
     Executive Context → Candidate Construction/Evaluation/Comparison →

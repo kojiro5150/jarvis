@@ -154,11 +154,20 @@ export function projectDurableOperatingPictureForPurpose(
     });
   }
 
-  if (snapshot.status !== "recovered") {
+  if (snapshot.status === "rejected") {
     return Object.freeze({
       status: "rejected",
       purpose,
       reason: "snapshot_not_recovered",
+    });
+  }
+
+  if (snapshot.status === "empty") {
+    return Object.freeze({
+      status: "empty",
+      purpose,
+      items: Object.freeze([]) as readonly [],
+      decisions: Object.freeze([]),
     });
   }
 

@@ -109,6 +109,9 @@ const PUBLIC_WEB_GUIDANCE = [
   "If authoritative results establish multiple candidates for the same freshness-sensitive attribute, compare them before answering. Once a newer or otherwise superseding candidate is established, do not label an older candidate current, latest, newest, most recent, stable, active, incumbent, or equivalent.",
   "When the user's freshness term is ambiguous within the source's own taxonomy, preserve that taxonomy instead of collapsing it. For example, if a project distinguishes Current from LTS, report both relevant categories rather than silently treating one as the meaning of stable.",
   "Do not combine nearby rows, adjacent dates, similarly named entities, snippets, or separate sources into a stronger claim than any retrieved result supports.",
+  "Answer the user's exact question first and keep freshness-sensitive factual replies minimal by default. Do not volunteer historical background, causal explanations, trend claims, streaks, rankings, or adjacent metrics unless the user asked for them or they are necessary to answer accurately.",
+  "Every additional numeric, historical, comparative, or trend claim must be directly supported by retrieved evidence for that exact claim. Do not derive or announce a streak such as consecutive rises or falls unless an authoritative source explicitly states it or a deterministic non-model computation has established it.",
+  "For freshness-sensitive public facts, briefly identify the authoritative source and relevant as-of date or release period when that can be done without obscuring the answer.",
   "Never invent, infer, interpolate, or complete a missing public fact merely because it would make the answer more useful or coherent.",
   "If sources conflict, identify the conflict or uncertainty instead of silently choosing or blending them.",
   "If web search fails or does not establish the requested fact, say that plainly rather than guessing from memory.",
@@ -179,6 +182,18 @@ const PUBLIC_FRESHNESS_SIGNAL = new RegExp(
   "i",
 );
 
+export function isFreshnessSensitivePublicInformation(utterance: string): boolean {
+  return PUBLIC_FRESHNESS_SIGNAL.test(utterance);
+}
+
+export function hasPublicWebSearchEvidence(result: string | ClaudeResult): boolean {
+  if (typeof result === "string") return false;
+  return result.content.some(block =>
+    block.type === "web_search_tool_result"
+      || (block.type === "server_tool_use" && block.name === "web_search")
+  );
+}
+
 export function anchorPublicInformationModelTurn(messages: readonly ChatMessage[], now: Date): ChatMessage[] {
   const copy = messages.map(message => ({ role: message.role, content: message.content }));
   const currentUserIndex = copy.findLastIndex(message => message.role === "user");
@@ -193,7 +208,7 @@ export function anchorPublicInformationModelTurn(messages: readonly ChatMessage[
     constraints.push(`Resolved public-information target date: ${resolved}. For any public search or factual answer, use this exact local date. Do not use adjacent-day or mismatched-period details.`);
   }
 
-  if (PUBLIC_FRESHNESS_SIGNAL.test(utterance)) {
+  if (isFreshnessSensitivePublicInformation(utterance)) {
     constraints.push(`Freshness-sensitive public-information request as of ${publicLocalDate(now)}. Verify the candidate against a current authoritative or canonical source, and verify that no newer authoritative result supersedes it before describing it as current, latest, newest, most recent, stable, active, or incumbent. An older release page, article, snippet, or mention is not sufficient proof of currentness. If authoritative results establish multiple candidates, compare them and discard superseded candidates from the requested freshness label. If the source taxonomy makes the user's term ambiguous, preserve the source taxonomy explicitly rather than collapsing categories.`);
   }
 
@@ -947,6 +962,14 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         calendarActDependencies.clock(),
       );
       const result = await callModel(systemPrompt, modelMessages, PUBLIC_WEB_TOOLS);
+      if (isFreshnessSensitivePublicInformation(currentUserUtterance)
+        && !hasPublicWebSearchEvidence(result)) {
+        return NextResponse.json({
+          reply: PUBLIC_WEB_FAILURE_REPLY,
+          specialistId: specialist.id,
+          execution: "none",
+        });
+      }
       let reply = typeof result === "string" ? result : result.text;
 
       const calendarRecall = calendarRecallDiagnostics(body.messages);

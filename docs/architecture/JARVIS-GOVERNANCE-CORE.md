@@ -147,21 +147,21 @@ model prose            --------X--> governed evidence
 
 ### Implementation progression
 
-The original first implementation constraint was intentionally **types and lifecycle semantics only**. That historical constraint has now been satisfied and verified. The subsequent persistence foundation was introduced only after the semantic boundary was proven.
+The original type/lifecycle, persistence, store-parity and restart-durability stages have now been implemented and verified within their bounded scopes.
 
 ~~~text
 semantic/lifecycle core — verified
         ↓
 append-only low-trust persistence — verified live
         ↓
-store parity + restart durability — next
+store parity + restart durability — verified
         ↓
-safe read-side reconstruction
-        ↓
-purpose-bounded projection
+purpose-bounded durable projection — next
         ↓
 narrow model-facing continuity
 ~~~
+
+Restart recovery is intentionally **not** trust rehydration. A stable recovered snapshot contains low-trust durable continuity plus an explicit recovery disposition. Source-backed records that require fresh evidence remain quarantined until a separate governed source boundary revalidates them.
 
 The current milestone must not add vector search, automatic chat-memory extraction, broad connector ingestion, cross-source synthesis, proactive notifications, autonomous action, or a generic ambient-memory API.
 
@@ -170,6 +170,14 @@ The current milestone must not add vector search, automatic chat-memory extracti
 > **STORE-PARITY-01:** Durable persistence must reproduce the already-verified Operating Picture append/reject/head/history semantics. A persistence adapter may not create a second semantic source of truth or silently weaken lifecycle, identity, replacement, staleness, or replay invariants.
 
 > **RESTART-DURABILITY-01:** After process restart, JARVIS may recover only the durable Operating Picture state that was validly persisted. Restart recovery must not revive consumed authority, pending approval, stale references, model-only context, or any process-local governance state.
+
+> **DURABLE-PROJECTION-01:** A durable Operating Picture projection must be created for one explicit purpose and may include only records whose declared visibility admits that purpose.
+
+> **DURABLE-PROJECTION-02:** Records classified as `requires_source_revalidation` may not enter a projection as current facts, governed commitments, governed decisions, or other source-backed truth. They remain quarantined until an already-governed source boundary independently re-establishes the required evidence.
+
+> **DURABLE-PROJECTION-03:** Projection must preserve semantic class and lifecycle. Persistence, selection, summarisation, or model fluency may not turn stale/superseded/model-authored/user-asserted material into current fact.
+
+> **DURABLE-PROJECTION-04:** Absence from a purpose-bounded projection means only "not admitted to this projection". It must not be interpreted as evidence that the underlying record or real-world condition does not exist.
 ## Input/output asymmetry
 
 > **INPUT-FLEX-01:** Ordinary user-facing natural language should not be constrained more than necessary for reliable interpretation. Improving semantic understanding must not itself weaken authority.

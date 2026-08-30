@@ -106,6 +106,8 @@ const PUBLIC_WEB_GUIDANCE = [
   "When the user asks for current, latest, newest, most recent, stable, active, incumbent, or otherwise freshness-sensitive public information, establish freshness from a current authoritative or canonical source when available, and verify that no newer authoritative result supersedes the candidate before calling it current or latest.",
   "Do not treat an old release page, dated article, stale snippet, cached result, or a source that merely mentions a candidate as proof that it is still current or latest.",
   "Prefer primary/canonical sources for version, office-holder, schedule, price, policy, product, release, and status claims when those sources are available.",
+  "If authoritative results establish multiple candidates for the same freshness-sensitive attribute, compare them before answering. Once a newer or otherwise superseding candidate is established, do not label an older candidate current, latest, newest, most recent, stable, active, incumbent, or equivalent.",
+  "When the user's freshness term is ambiguous within the source's own taxonomy, preserve that taxonomy instead of collapsing it. For example, if a project distinguishes Current from LTS, report both relevant categories rather than silently treating one as the meaning of stable.",
   "Do not combine nearby rows, adjacent dates, similarly named entities, snippets, or separate sources into a stronger claim than any retrieved result supports.",
   "Never invent, infer, interpolate, or complete a missing public fact merely because it would make the answer more useful or coherent.",
   "If sources conflict, identify the conflict or uncertainty instead of silently choosing or blending them.",
@@ -192,7 +194,7 @@ export function anchorPublicInformationModelTurn(messages: readonly ChatMessage[
   }
 
   if (PUBLIC_FRESHNESS_SIGNAL.test(utterance)) {
-    constraints.push(`Freshness-sensitive public-information request as of ${publicLocalDate(now)}. Verify the candidate against a current authoritative or canonical source, and verify that no newer authoritative result supersedes it before describing it as current, latest, newest, most recent, stable, active, or incumbent. An older release page, article, snippet, or mention is not sufficient proof of currentness.`);
+    constraints.push(`Freshness-sensitive public-information request as of ${publicLocalDate(now)}. Verify the candidate against a current authoritative or canonical source, and verify that no newer authoritative result supersedes it before describing it as current, latest, newest, most recent, stable, active, or incumbent. An older release page, article, snippet, or mention is not sufficient proof of currentness. If authoritative results establish multiple candidates, compare them and discard superseded candidates from the requested freshness label. If the source taxonomy makes the user's term ambiguous, preserve the source taxonomy explicitly rather than collapsing categories.`);
   }
 
   if (constraints.length === 0) return copy;

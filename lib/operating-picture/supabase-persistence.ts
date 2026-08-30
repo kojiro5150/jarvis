@@ -3,6 +3,7 @@ import type {
   OperatingPictureRecordVersion,
 } from "./record-version-history";
 import {
+  parsePersistedOperatingPictureProjectionMetadataRow,
   parsePersistedOperatingPictureVersionRow,
   serializeOperatingPictureVersion,
   type PersistedOperatingPictureVersion,
@@ -10,6 +11,7 @@ import {
 import type {
   DurableOperatingPictureHead,
   DurableOperatingPictureHeadListResult,
+  DurableOperatingPictureProjectionMetadataReadResult,
   DurableOperatingPictureHistoryReadResult,
   DurableOperatingPictureStore,
   DurableOperatingPictureVersionReadResult,
@@ -53,6 +55,19 @@ const KNOWN_REJECTION_REASONS = new Set<SupabaseOperatingPictureAppendReason>([
   "transition_invalid",
 ]);
 
+
+
+const PROJECTION_METADATA_SELECT = [
+  "version_id",
+  "record_id",
+  "semantic_class",
+  "lifecycle",
+  "visibility_purposes",
+  "authorship_source",
+  "authorship_at",
+  "provenance_source",
+  "provenance_observed_at",
+].join(",");
 
 const VERSION_SELECT = [
   "version_id",
@@ -406,6 +421,30 @@ export function createSupabaseOperatingPicturePersistence(
     durableStore: Object.freeze({
       async listRecordHeads(): Promise<DurableOperatingPictureHeadListResult> {
         return listAllHeads(fetchImpl, config, limits);
+      },
+
+
+      async getVersionProjectionMetadata(
+        versionId: string,
+      ): Promise<DurableOperatingPictureProjectionMetadataReadResult> {
+        const encodedVersionId = encodeURIComponent(versionId);
+        const result = await readRows(
+          fetchImpl,
+          `${config.url}/rest/v1/operating_picture_versions?version_id=eq.${encodedVersionId}&select=${PROJECTION_METADATA_SELECT}&limit=2`,
+          config,
+        );
+        if (result.status === "rejected") return result;
+        if (result.rows.length === 0) return Object.freeze({ status: "not_found" });
+        if (result.rows.length !== 1) {
+          return Object.freeze({ status: "rejected", reason: "persistence_integrity_failure" });
+        }
+
+        const metadata = parsePersistedOperatingPictureProjectionMetadataRow(result.rows[0]);
+        if (!metadata || metadata.versionId !== versionId) {
+          return Object.freeze({ status: "rejected", reason: "persistence_integrity_failure" });
+        }
+
+        return Object.freeze({ status: "found", metadata });
       },
 
       async getVersion(versionId: string): Promise<DurableOperatingPictureVersionReadResult> {

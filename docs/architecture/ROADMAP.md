@@ -1,42 +1,59 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Reconciled 30 August 2026 after Governance Core extraction, controlled architectural collapse, public-information trust hardening, and direct verification of the Governed Operating Picture semantic/lifecycle foundation plus its live Supabase persistence foundation. Existing governed Calendar/Gmail/Drive work remains the proven substrate. The next architectural milestone is **Governed Operating Picture — Store Parity & Restart Durability**: connect the already-verified server-owned record semantics to durable persistence without allowing storage to redefine trust, lifecycle, authority, or source truth.
+**Status:** Living document. Reconciled 30 August 2026 after direct verification of the Governed Operating Picture semantic/lifecycle foundation, live Supabase persistence foundation, and the bounded Store Parity & Restart Durability milestone. Existing governed Calendar/Gmail/Drive work remains the proven substrate. The next architectural milestone is **Governed Operating Picture — Purpose-Bounded Durable Projection**.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
 
 ---
 
-## Current next milestone — Governed Operating Picture: Store Parity & Restart Durability
+## Current next milestone — Governed Operating Picture: Purpose-Bounded Durable Projection
 
-The original pre-implementation boundary remains preserved as historical evidence in `docs/audits/GOVERNED-OPERATING-PICTURE-PREIMPLEMENTATION-AUDIT.md`. The implementation and live verification state is recorded in `GOVERNED-OPERATING-PICTURE-FOUNDATION-VERIFICATION.md`.
+The prior milestones are now separately recorded in:
 
-The first proving question has now been answered for the bounded foundation:
+- `GOVERNED-OPERATING-PICTURE-FOUNDATION-VERIFICATION.md`
+- `GOVERNED-OPERATING-PICTURE-STORE-PARITY-RESTART-VERIFICATION.md`
 
-> **Can the type system prevent JARVIS from remembering the wrong kind of thing as truth?**
+Store Parity & Restart Durability is now verified within its bounded scope. A fresh process can discover the bounded durable head set, validate and reconstruct each low-trust history chain, classify recovery semantics, and accept an all-record snapshot only when the head set is stable before and after recovery.
 
-**Verified within the implemented scope.** Semantic class, provenance/authorship shape, lifecycle state, revision semantics, immutable version history, exact-head replacement/supersession mechanics, nested trust-bearing payload exclusion, and governed-source construction boundaries are directly tested. The live Supabase foundation additionally proves append-only version storage, RLS with no browser policies, atomic exact-head append, immutable history, valid lifecycle progression, and stale-head rejection.
-
-The next authorised implementation is narrower than "memory":
+Critically, restart durability did **not** convert persisted rows back into trusted facts. The recovery boundary distinguishes:
 
 ~~~text
-verified in-memory Operating Picture semantics
-        +
-verified low-trust Supabase persistence boundary
-        ↓
-single server-owned store abstraction
-        ↓
-parity of append / reject / head / history semantics
-        ↓
-restart durability proof
+user-authored durable continuity
+        → recoverable_user_continuity
+
+model-authored durable continuity
+        → recoverable_model_continuity
+
+governed/source-backed durable records
+        → requires_source_revalidation
 ~~~
 
-This milestone must prove that durable persistence reproduces the existing store contract rather than creating a second source of truth.
+The next authorised implementation is therefore a deterministic projection layer over the recovered low-trust snapshot:
+
+~~~text
+stable bounded restart snapshot
+        ↓
+explicit purpose
+        ↓
+visibility + lifecycle + recovery-disposition gate
+        ↓
+purpose-bounded durable projection
+~~~
+
+The projection must not:
+
+- treat `requires_source_revalidation` records as current facts;
+- silently promote model continuity into fact;
+- ignore lifecycle state;
+- bypass each record's declared visibility purposes;
+- expose the complete durable store merely because it exists;
+- construct `GovernedEvidence`, authority, policy proof, verification proof, or completion proof from persistence.
+
+> **Current proving question:** Can deterministic code select only the durable continuity that is legally visible and semantically usable for an explicit purpose, while excluding source-backed records that require revalidation and preserving lifecycle/semantic distinctions?
 
 ### Explicit exclusions for the current milestone
 
-No model-facing retrieval, embeddings/vector search, automatic chat-memory extraction, broad connector ingestion, cross-source synthesis, proactive behaviour, autonomous action, or generic "give JARVIS all memory" API is authorised yet.
-
-> **Current proving question:** Can JARVIS restart and recover the same governed Operating Picture state without persistence manufacturing trust or diverging from the in-memory contract?
+No model-facing retrieval, automatic chat-memory extraction, embeddings/vector search, broad connector ingestion, cross-source executive synthesis, proactive behaviour, autonomous action, or generic ambient-memory API is authorised yet.
 
 ---
 ## Governance Core extraction sequence
@@ -106,9 +123,11 @@ Proven but deliberately bounded
     Governed Operating Picture semantic/lifecycle foundation
     Append-only Supabase persistence foundation with live invariant verification
     Low-trust durable representation that does not rehydrate authority/evidence brands
+    Store parity + stable all-record restart recovery snapshot
+    Restart recovery trust classification and bounded head discovery
 
 Ready for disciplined activation
-    Governed Operating Picture store parity + restart durability
+    Governed Operating Picture purpose-bounded durable projection
     Deterministic Executive Cognition already present in the EOS:
     Situational Awareness → Attention → Situation Formation → Assessment →
     Executive Context → Candidate Construction/Evaluation/Comparison →

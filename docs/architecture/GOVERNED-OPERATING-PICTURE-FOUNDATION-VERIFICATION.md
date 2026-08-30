@@ -1,7 +1,7 @@
 # Governed Operating Picture — Foundation Verification Record
 
 **Date:** 30 August 2026  
-**Status:** Verified foundation; next authorised milestone is Store Parity & Restart Durability  
+**Status:** Historical foundation verification; Store Parity & Restart Durability was subsequently verified on 30 August 2026. See `GOVERNED-OPERATING-PICTURE-STORE-PARITY-RESTART-VERIFICATION.md`.  
 **Scope:** Records what has actually been implemented and directly verified. This document does not claim that model-facing durable memory, automatic capture, embeddings, broad connector ingestion, or proactive cognition are complete.
 
 ## 1. Architectural question
@@ -63,9 +63,9 @@ The durable representation intentionally stores semantic payload plus lifecycle,
 
 A row read from Supabase is durable data. It is not automatically `GovernedEvidence`, fresh provider truth, authority, policy proof, verification proof, or completion proof.
 
-## 5. What is not yet earned
+## 5. What was not yet earned at this checkpoint
 
-The following remain explicitly unverified and unauthorised:
+The following were explicitly unverified and unauthorised when this foundation record was frozen. Store parity, low-trust durable reads, bounded head discovery and stable restart recovery were subsequently verified in the next milestone record:
 
 - restart recovery into the server-owned store;
 - parity between the in-memory store contract and durable persistence under all append/reject/head/history cases;
@@ -78,11 +78,11 @@ The following remain explicitly unverified and unauthorised:
 - cross-source executive synthesis from durable state;
 - proactive notifications or autonomous action.
 
-## 6. Next authorised milestone
+## 6. Historical next milestone
 
 > **Governed Operating Picture — Store Parity & Restart Durability**
 
-The next build must prove that durable persistence reproduces the already-verified server-store contract and that a process restart can recover the same valid durable state without reviving process-local authority or creating a second semantic source of truth.
+This was the next authorised build at the time of this record. It has since been completed and promoted to verified bounded status.
 
 ### Current proving question
 
@@ -106,4 +106,4 @@ The next milestone is governed by the existing `OPERATING-PICTURE-01` through `O
 
 **Foundation promoted to verified bounded status.**
 
-The next implementation may build store parity and restart durability. It may not skip directly to "memory", embeddings, model retrieval, or proactive use.
+This promotion remains valid historical evidence. The later Store Parity & Restart Durability milestone is recorded separately and does not retroactively change what this foundation record proved at the time.

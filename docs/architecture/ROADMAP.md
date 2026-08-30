@@ -1,61 +1,77 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Reconciled 30 August 2026 after direct verification of the Governed Operating Picture semantic/lifecycle foundation, live Supabase persistence foundation, Store Parity & Restart Durability, and Purpose-Bounded Durable Projection. Existing governed Calendar/Gmail/Drive work remains the proven substrate. The next architectural milestone is **Governed Operating Picture — Narrow Model-Facing Continuity**.
+**Status:** Living document. Reconciled 30 August 2026 after direct verification of the Governed Operating Picture semantic/lifecycle foundation, live Supabase persistence foundation, Store Parity & Restart Durability, Purpose-Bounded Durable Projection, and Narrow Model-Facing Continuity. Existing governed Calendar/Gmail/Drive work remains the proven substrate. The next architectural milestone is **Governed Operating Picture — Explicit User-Authored Continuity Capture**.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
 
 ---
 
-## Current next milestone — Governed Operating Picture: Narrow Model-Facing Continuity
+## Verified milestone — Governed Operating Picture: Narrow Model-Facing Continuity
 
 The verified Operating Picture milestones are now recorded in:
 
 - `GOVERNED-OPERATING-PICTURE-FOUNDATION-VERIFICATION.md`
 - `GOVERNED-OPERATING-PICTURE-STORE-PARITY-RESTART-VERIFICATION.md`
 - `GOVERNED-OPERATING-PICTURE-PURPOSE-PROJECTION-VERIFICATION.md`
+- `GOVERNED-OPERATING-PICTURE-MODEL-CONTINUITY-VERIFICATION.md`
 
-Purpose-Bounded Durable Projection is now verified within its bounded scope, including live operation through the actual JARVIS server → Supabase REST path. The live acceptance sequence independently verified durable head discovery against Supabase SQL, payload-free preflight, purpose-gated single-head retrieval, and stable whole-store projection.
+Purpose-Bounded Durable Projection is verified within its bounded scope, including live operation through the actual JARVIS server → Supabase REST path. The live acceptance sequence independently verified durable head discovery against Supabase SQL, then exercised payload-free preflight, purpose-gated single-head retrieval, and stable whole-store projection through the real server REST path.
 
-The next authorised implementation is deliberately narrower than generic memory:
+Narrow Model-Facing Continuity is now also verified within bounded explicit-recall scope:
 
 ~~~text
 verified purpose-bounded durable projection
         ↓
-one explicit model-facing purpose
+purpose = conversation
         ↓
 deterministic projection-to-context adapter
         ↓
 typed semantic/recovery labels preserved
         ↓
-one controlled model invocation
+opaque continuity:n identifiers
         ↓
-closed typed output contract
+required closed continuity_relevance tool
         ↓
-deterministic validation before presentation
+deterministic validation
+        ↓
+exact server-side binding resolution
+        ↓
+deterministic attributed rendering
 ~~~
 
-The model-facing boundary must preserve the distinction between:
+The live acceptance sequence proved one real `conversation`-visible user preference could be projected from Supabase and recalled through the sole `/api/lighter/chat` runtime without widening visibility, exposing durable identity, promoting user/model continuity into fact, or falling through to ordinary model-authored memory. One transient post-merge `unavailable` response was observed and recorded; it failed closed correctly. Three immediately following identical requests rendered the same deterministic continuity successfully. This milestone therefore does not claim perfect provider/runtime availability.
+
+> **Verified proving question:** Can JARVIS use a narrow purpose-bounded durable projection in model-facing reasoning without promoting remembered user/model continuity into fact, widening visibility, or bypassing source revalidation?
+>
+> **Answer:** Yes, within the bounded explicit-recall implementation and live acceptance scope.
+
+### Explicit exclusions that remain in force
+
+No automatic chat-memory extraction, ambient continuity injection on every ordinary turn, free-form durable-continuity synthesis, source revalidation implementation, embeddings/vector search, broad connector ingestion, cross-source executive synthesis, proactive behaviour, or autonomous action is authorised by this milestone.
+
+## Current next milestone — Governed Operating Picture: Explicit User-Authored Continuity Capture
+
+The next authorised implementation is deliberately narrower than automatic memory.
 
 ~~~text
-user continuity
-        ≠ fact
-
-model continuity
-        ≠ fact
-
-source-backed durable record requiring revalidation
-        → not model-visible as current truth
+explicit user instruction to remember
+        ↓
+closed capture candidate
+        ↓
+deterministic semantic/authorship validation
+        ↓
+user-authored Operating Picture append contract
+        ↓
+durable continuity
 ~~~
 
-The next milestone must prove that model access begins **after** deterministic purpose projection. The model must never receive the durable store, unrestricted history, hidden records, stale/superseded/withdrawn heads, or records quarantined for source revalidation.
+The next milestone must prove that a durable continuity item is created only when the user explicitly asks JARVIS to remember something. Model interpretation may help construct a bounded candidate, but it may not become the author, promote the content into fact, infer standing authority, or capture unrelated transcript material.
 
-The first model-facing experiment must also use a **closed, typed output contract**. Model output must be deterministically validated against an explicit schema before presentation. Free-form narrative synthesis directly from durable projected items is not authorised for this first experiment; invalid or out-of-contract output must fail closed rather than being repaired or presented.
-
-> **Current proving question:** Can JARVIS use a narrow purpose-bounded durable projection in model-facing reasoning without promoting remembered user/model continuity into fact, widening visibility, or bypassing source revalidation?
+> **Current proving question:** Can JARVIS persist a continuity item only when the user explicitly asks it to remember something, while preserving the user's authorship and semantic class, preventing model interpretation from becoming authorship or fact, and avoiding ambient transcript capture or new authority?
 
 ### Explicit exclusions for the current milestone
 
-No automatic chat-memory extraction, embeddings/vector search, broad connector ingestion, generic ambient-memory API, source revalidation implementation, cross-source executive synthesis, proactive behaviour, or autonomous action is authorised yet.
+No background extraction, automatic conversation summarisation, embeddings/vector search, generic transcript ingestion, model-authored durable facts, broad connector ingestion, source revalidation, proactive behaviour, or autonomous action is authorised yet.
 
 ---
 ## Governance Core extraction sequence
@@ -128,17 +144,18 @@ Proven but deliberately bounded
     Store parity + stable all-record restart recovery snapshot
     Restart recovery trust classification and bounded head discovery
     Purpose-bounded durable projection with live server REST verification
+    Narrow model-facing continuity with live explicit-recall verification
 
 Ready for disciplined activation
-    Governed Operating Picture narrow model-facing continuity
+    Governed Operating Picture explicit user-authored continuity capture
     Deterministic Executive Cognition already present in the EOS:
     Situational Awareness → Attention → Situation Formation → Assessment →
     Executive Context → Candidate Construction/Evaluation/Comparison →
     Executive Reasoning
 
 Known strategic directions, not yet earned
-    Purpose-bounded durable read projection into JARVIS reasoning
-    Controlled conversation capture into semantic Operating Picture records
+    Controlled explicit user-authored continuity capture into semantic Operating Picture records
+    Later expansion beyond explicit recall/capture only after separate governance
     Role-specific operational context
     Governed action approval/execution records
     Full voice-first experience

@@ -23,6 +23,8 @@ describe("Sprint 3.180b live capability selection", () => {
     expect(guidance).toContain("Today: Sunday 30 August 2026.");
     expect(guidance).toContain("Tomorrow: Monday 31 August 2026.");
     expect(guidance).toContain("Do not derive today/tomorrow from the server clock");
+    expect(guidance).toContain("match each reported condition, probability, temperature, warning, or time window to the exact target local date");
+    expect(guidance).toContain("Do not attach an adjacent day's forecast details to the requested date.");
   });
 
   it("keeps weather public and lets ordinary JARVIS use native web search without authorization", async () => {

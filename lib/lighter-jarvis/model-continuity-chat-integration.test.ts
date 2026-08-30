@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 import { createLighterChatHandler } from "./chat-handler";
-import type { ChatMessage } from "../agents/types";
 import type { DurablePurposeProjectionResult } from "../operating-picture/purpose-projection-retrieval";
 
 const request = (body: unknown) => new Request("http://localhost/api/lighter/chat", {
@@ -60,7 +59,8 @@ const unusedCalendarActDependencies = {
 describe("durable continuity integration in the sole chat runtime", () => {
   it("routes explicit recall through exactly one bounded continuity model call and deterministic rendering", async () => {
     const retrieveProjection = vi.fn(async () => projected());
-    const model = vi.fn(async (_prompt: string, messages: ChatMessage[]) => {
+    const model = vi.fn(async () => "ordinary model must not run");
+    const continuityModel = vi.fn(async (_prompt: string, messages: { role: "user" | "assistant"; content: string }[]) => {
       const payload = JSON.parse(messages[0]?.content ?? "{}");
       expect(payload).toMatchObject({
         question: "What do you remember about status updates?",
@@ -86,7 +86,10 @@ describe("durable continuity integration in the sole chat runtime", () => {
       undefined,
       undefined,
       unusedCalendarActDependencies,
-      { retrieveProjection },
+      {
+        retrieveProjection,
+        createContinuityModelCall: () => continuityModel,
+      },
     )(request({
       specialistId: "jarvis",
       messages: [{
@@ -106,7 +109,8 @@ describe("durable continuity integration in the sole chat runtime", () => {
     });
 
     expect(retrieveProjection).toHaveBeenCalledTimes(1);
-    expect(model).toHaveBeenCalledTimes(1);
+    expect(continuityModel).toHaveBeenCalledTimes(1);
+    expect(model).not.toHaveBeenCalled();
   });
 
   it("does not fall through to ordinary model memory when durable continuity is unavailable", async () => {
@@ -123,7 +127,12 @@ describe("durable continuity integration in the sole chat runtime", () => {
       undefined,
       undefined,
       unusedCalendarActDependencies,
-      { retrieveProjection },
+      {
+        retrieveProjection,
+        createContinuityModelCall: () => {
+          throw new Error("continuity model must not be created");
+        },
+      },
     )(request({
       specialistId: "jarvis",
       messages: [{
@@ -145,8 +154,9 @@ describe("durable continuity integration in the sole chat runtime", () => {
 
   it("does not invoke the conversational capability selector before continuity recall", async () => {
     const retrieveProjection = vi.fn(async () => projected());
-    const model = vi.fn(async (_prompt: string, _messages: ChatMessage[]) =>
+    const continuityModel = vi.fn(async () =>
       '{"responseType":"continuity_relevance","relevance":"not_relevant","relevantItemIds":[]}');
+    const model = vi.fn(async () => "ordinary model must not run");
 
     const response = await createLighterChatHandler(
       model,
@@ -156,7 +166,10 @@ describe("durable continuity integration in the sole chat runtime", () => {
       undefined,
       undefined,
       unusedCalendarActDependencies,
-      { retrieveProjection },
+      {
+        retrieveProjection,
+        createContinuityModelCall: () => continuityModel,
+      },
     )(request({
       specialistId: "jarvis",
       messages: [{
@@ -172,7 +185,8 @@ describe("durable continuity integration in the sole chat runtime", () => {
       modelContinuity: { status: "not_relevant" },
     });
 
-    expect(model).toHaveBeenCalledTimes(1);
+    expect(continuityModel).toHaveBeenCalledTimes(1);
+    expect(model).not.toHaveBeenCalled();
   });
 
   it("leaves ordinary conversation on the existing ordinary model path without touching durable projection", async () => {

@@ -1006,7 +1006,6 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {
       const continuity = await resolveProductionModelContinuityRecall({
         utterance: currentUserUtterance,
-        callModel: async (systemPrompt, messages) => callModel(systemPrompt, messages),
         dependencies: modelContinuityDependencies,
       });
       if (continuity.handled) {

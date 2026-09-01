@@ -18,6 +18,7 @@ const TEMPORAL_SCHEDULE_QUESTION = new RegExp(
   "i",
 );
 const CALENDAR_ATTENTION_REQUEST = /^what\s+needs\s+my\s+attention[?!.]?$/i;
+const CALENDAR_MORNING_BRIEF_REQUEST = /^give\s+me\s+my\s+morning\s+brief[?!.]?$/i;
 const CALENDAR_WEEKLY_ALLOCATION_REQUEST =
   /^(?:how\s+(?:is|does)\s+(?:(?:my|this|next)\s+week)\s+(?:allocated|break\s+down)|what(?:'s|\s+is)\s+(?:my\s+)?weekly\s+allocation|show\s+me\s+how\s+(?:(?:my|this|next)\s+week)\s+is\s+allocated)[?!.]?$/i;
 
@@ -26,20 +27,26 @@ export function proposeCalendarRead(currentUserUtterance: string, clock: () => D
   const utterance = currentUserUtterance.trim().replace(/[‘’]/g, "'");
   const attentionRequest = CALENDAR_ATTENTION_REQUEST.test(utterance);
   const weeklyAllocationRequest = CALENDAR_WEEKLY_ALLOCATION_REQUEST.test(utterance);
+  const morningBriefRequest = CALENDAR_MORNING_BRIEF_REQUEST.test(utterance);
   const factualQuery = parseCalendarFactualQuery(utterance) ?? interpretedFactualQuery ?? null;
-  if (!attentionRequest && !weeklyAllocationRequest && !factualQuery && !CALENDAR_REQUEST.test(utterance) && !TEMPORAL_SCHEDULE_QUESTION.test(utterance)) return null;
+  if (!attentionRequest && !weeklyAllocationRequest && !morningBriefRequest && !factualQuery && !CALENDAR_REQUEST.test(utterance) && !TEMPORAL_SCHEDULE_QUESTION.test(utterance)) return null;
+  const now = clock();
   const match = utterance.match(/\b(today|tomorrow|this\s+morning|this\s+afternoon|this\s+evening|this\s+week|next\s+week)\b/i);
   const period = (attentionRequest
     ? "today"
-    : weeklyAllocationRequest
-      ? (/\bnext\s+week\b/i.test(utterance) ? "next_week" : "this_week")
+    : morningBriefRequest
+      ? "this_week"
+      : weeklyAllocationRequest
+        ? (/\bnext\s+week\b/i.test(utterance) ? "next_week" : "this_week")
       : (match?.[1].toLowerCase().replace(/\s+/g, "_") ?? "default")) as CalendarReadPeriod;
 
   return Object.freeze({
     capability: CALENDAR_READ_CAPABILITY,
-    window: resolveCalendarReadWindow(period, clock()),
-    ...(attentionRequest
-      ? { purpose: "calendar_attention" as const }
+    window: resolveCalendarReadWindow(period, now),
+    ...(morningBriefRequest
+      ? { purpose: "calendar_morning_brief" as const, morningBriefTodayWindow: resolveCalendarReadWindow("today", now) }
+      : attentionRequest
+        ? { purpose: "calendar_attention" as const }
       : weeklyAllocationRequest
         ? { purpose: "calendar_weekly_allocation" as const }
         : factualQuery

@@ -1,6 +1,6 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Reconciled 1 September 2026 after direct live verification of the Governed Operating Picture semantic/lifecycle foundation, Supabase persistence foundation, Store Parity & Restart Durability, Purpose-Bounded Durable Projection, Narrow Model-Facing Continuity, Explicit User-Authored Continuity Capture, and Morning Executive Orientation v1. Existing governed Calendar/Gmail/Drive work remains the proven substrate. Morning Executive Orientation v1 is now **LIVE PASS / FROZEN** within bounded Level-1 scope.
+**Status:** Living document. Reconciled 1 September 2026 after direct live verification of the Governed Operating Picture semantic/lifecycle foundation, Supabase persistence foundation, Store Parity & Restart Durability, Purpose-Bounded Durable Projection, Narrow Model-Facing Continuity, Explicit User-Authored Continuity Capture, Morning Executive Orientation v1, and the post-promotion durable-continuity reliability/scalability closure. Existing governed Calendar/Gmail/Drive work remains the proven substrate. Morning Executive Orientation v1 and durable-continuity recall reliability are now **LIVE PASS / FROZEN** within their bounded scopes.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
 
@@ -18,29 +18,39 @@ The verified Operating Picture milestones are now recorded in:
 
 Purpose-Bounded Durable Projection is verified within its bounded scope, including live operation through the actual JARVIS server → Supabase REST path. The live acceptance sequence independently verified durable head discovery against Supabase SQL, then exercised payload-free preflight, purpose-gated single-head retrieval, and stable whole-store projection through the real server REST path.
 
-Narrow Model-Facing Continuity is now also verified within bounded explicit-recall scope:
+Narrow Model-Facing Continuity is now also verified within bounded explicit-recall scope. Its original promotion path remains historically valid, and the production recall path has since gained a bounded reliability/scalability closure under accumulated real use:
 
 ~~~text
 verified purpose-bounded durable projection
         ↓
 purpose = conversation
         ↓
-deterministic projection-to-context adapter
+deterministic bounded partitioning when needed
+        ↓
+per-chunk projection-to-context adapter
         ↓
 typed semantic/recovery labels preserved
         ↓
 opaque continuity:n identifiers
         ↓
-required closed continuity_relevance tool
+provider-compatible closed relevant / not-relevant tool choice
+        ↓
+deterministic canonical relevance assessment
         ↓
 deterministic validation
         ↓
 exact server-side binding resolution
         ↓
 deterministic attributed rendering
+        ↓
+bounded combined reply
 ~~~
 
-The live acceptance sequence proved one real `conversation`-visible user preference could be projected from Supabase and recalled through the sole `/api/lighter/chat` runtime without widening visibility, exposing durable identity, promoting user/model continuity into fact, or falling through to ordinary model-authored memory. One transient post-merge `unavailable` response was observed and recorded; it failed closed correctly. Three immediately following identical requests rendered the same deterministic continuity successfully. This milestone therefore does not claim perfect provider/runtime availability.
+The original per-assessment boundary remains unchanged at **12 continuity items / 16,384 bytes**. Scaling is achieved by composing independently bounded assessments, not by weakening that boundary. Production now also enforces a hard maximum of **8 chunks** and a **65,536-byte** combined rendered-output ceiling.
+
+The original live acceptance sequence proved one real `conversation`-visible user preference could be projected from Supabase and recalled through the sole `/api/lighter/chat` runtime without widening visibility, exposing durable identity, promoting user/model continuity into fact, or falling through to ordinary model-authored memory. Subsequent real product-gap accumulation then crossed the original single-context ceiling and exposed a fail-closed `context_scope_exceeded` condition. PRs #511–#514 added internal stage diagnostics, bounded chunking, and a provider-compatible closed relevance boundary without relaxing deterministic validation. The same broad recall request was then live-verified successfully against the expanded stored product-gap set.
+
+This remains a bounded capability. Fail-closed provider/runtime unavailability is still possible and is not represented as successful recall.
 
 > **Verified proving question:** Can JARVIS use a narrow purpose-bounded durable projection in model-facing reasoning without promoting remembered user/model continuity into fact, widening visibility, or bypassing source revalidation?
 >
@@ -214,7 +224,7 @@ Proven but deliberately bounded
     Store parity + stable all-record restart recovery snapshot
     Restart recovery trust classification and bounded head discovery
     Purpose-bounded durable projection with live server REST verification
-    Narrow model-facing continuity with live explicit-recall verification
+    Narrow model-facing continuity with live explicit-recall verification and bounded post-promotion scalability/reliability closure
     Explicit user-authored continuity capture with live durable write + later recall verification
     Morning Executive Orientation v1 with live positive/negative authority-path verification
 

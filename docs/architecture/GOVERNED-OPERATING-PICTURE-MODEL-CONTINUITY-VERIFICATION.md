@@ -6,6 +6,71 @@
 
 > **Follow-on status:** Explicit User-Authored Continuity Capture was subsequently implemented and verified live on 1 September 2026. See `GOVERNED-OPERATING-PICTURE-USER-CONTINUITY-CAPTURE-VERIFICATION.md`. The sections below describing capture as the next milestone are historical promotion context, not the current roadmap state.
 
+> **Post-promotion reliability/scalability closure — 1 September 2026:** Real product-gap accumulation later exceeded the original single-context recall ceiling and exposed bounded reliability defects under live use. PRs #511–#514 closed that failure sequence without weakening the original per-assessment trust boundary. The original sections below remain the historical promotion record; this addendum records the current production state.
+
+### Post-promotion reliability/scalability closure
+
+The original production design assessed exactly one bounded continuity context. Under real accumulation, a broad explicit recall request later failed closed with:
+
+~~~text
+context_scope_exceeded
+~~~
+
+The root cause was not persistence loss or relevance-model failure. The stable purpose-bounded projection contained more continuity than the original single assessment admitted.
+
+The production repair preserved the original per-assessment limits unchanged:
+
+~~~text
+MAX_MODEL_CONTINUITY_ITEMS = 12
+MAX_MODEL_CONTINUITY_CONTEXT_BYTES = 16_384
+~~~
+
+Scaling now occurs by deterministic bounded partitioning of the already-admitted purpose projection into independently validated chunks. Each chunk is passed through the same context builder and the same deterministic assessment validation. The production resolver additionally enforces:
+
+~~~text
+MAX_MODEL_CONTINUITY_CHUNKS = 8
+MAX_COMBINED_RENDERED_BYTES = 65_536
+~~~
+
+This changes assessment cardinality, not trust strength: JARVIS may perform multiple bounded relevance assessments for one explicit recall, but no individual assessment may exceed the original 12-item / 16,384-byte boundary.
+
+The live failure sequence also exposed a provider-contract mismatch. A single provider tool schema could describe the fields individually but did not guarantee the same cross-field invariant already enforced by JARVIS's deterministic validator. An attempted conditional-schema tightening then failed at the live provider boundary. The final production design therefore uses two provider-compatible closed tools:
+
+~~~text
+continuity_relevance_relevant
+continuity_relevance_not_relevant
+~~~
+
+The relevant tool requires one or more unique IDs drawn only from the exact chunk-local allowed-ID set. The not-relevant tool accepts no fields. JARVIS deterministically maps the selected tool into the canonical internal assessment:
+
+~~~text
+{
+  responseType: "continuity_relevance",
+  relevance: "relevant" | "not_relevant",
+  relevantItemIds: [...]
+}
+~~~
+
+The pre-existing deterministic validator remains authoritative and unchanged after that mapping. Narrative text, malformed input, unexpected tools, unknown IDs, duplicate IDs, inconsistent assessment state, invalid binding, invalid presentation, provider failure, or scope overflow still fail closed.
+
+The closure sequence was:
+
+- **PR #511:** added stage-specific internal diagnostics while preserving the same user-facing fail-closed reply;
+- **PR #512:** added bounded chunking and combined-output limits while retaining the original per-assessment boundary;
+- **PR #513:** tightened the provider schema, which exposed a live provider compatibility failure and was therefore not the final production shape;
+- **PR #514:** replaced that conditional provider schema with two provider-compatible closed relevance tools and deterministic canonicalisation, leaving downstream validation unchanged.
+
+Final live acceptance repeated the broad production request:
+
+~~~text
+What do you remember about JARVIS product gaps?
+~~~
+
+against the accumulated durable set beyond the original 12-item ceiling. JARVIS returned the relevant stored continuity successfully, including newer records added after the original milestone.
+
+> **Closure verdict:** Durable continuity recall reliability/scalability is **LIVE PASS / FROZEN within bounded explicit-recall scope**. The original milestone's trust claims remain unchanged; the production implementation now composes multiple independently bounded assessments when required.
+
+
 ## 1. Proving question
 
 > Can JARVIS use a narrow purpose-bounded durable projection in model-facing reasoning without promoting remembered user/model continuity into fact, widening visibility, or bypassing source revalidation?
@@ -87,26 +152,20 @@ model-authored:
 
 ## 4. Closed model output boundary
 
-The production relevance classifier is not an ordinary free-form model call.
+The original promotion implementation used one required Anthropic `continuity_relevance` tool, as described in the historical implementation sequence above. That was the production boundary at promotion time.
 
-Anthropic is required to call exactly one named tool:
+The post-promotion reliability/scalability closure recorded above changed only the provider-facing representation of the same closed relevance decision. Current production uses two provider-compatible closed tools — one for relevant and one for not relevant — and deterministically canonicalises the selected tool back into the same internal `continuity_relevance` assessment before applying the existing validator.
 
-~~~text
-continuity_relevance
-~~~
+The current provider boundary admits only:
 
-Its schema admits only:
+- relevant → one or more unique IDs drawn from the exact opaque continuity IDs supplied for that bounded chunk;
+- not relevant → no IDs and no additional fields.
 
-- `responseType = continuity_relevance`;
-- `relevance = relevant | not_relevant`;
-- `relevantItemIds` drawn from the exact opaque continuity IDs supplied for that turn;
-- no additional properties.
+The canonical assessment is then validated again by deterministic JARVIS code.
 
-The tool result is then validated again by deterministic JARVIS code.
+Narrative text, malformed output, extra fields, out-of-vocabulary values, unknown IDs, duplicate IDs, internally inconsistent relevance/ID combinations, zero tool calls, multiple tool calls, unexpected tools, or provider failure fail closed.
 
-Narrative text, malformed output, extra fields, out-of-vocabulary values, unknown IDs, duplicate IDs, internally inconsistent relevance/ID combinations, zero tool calls, multiple tool calls, or the wrong tool fail closed.
-
-This satisfies `MODEL-CONTINUITY-05`: model output shape is enforced by both the provider-facing contract and deterministic validation before presentation.
+This continues to satisfy `MODEL-CONTINUITY-05`: provider output remains closed and deterministic JARVIS validation remains authoritative before presentation.
 
 ## 5. Deterministic presentation boundary
 

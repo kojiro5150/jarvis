@@ -31,7 +31,7 @@ import {
   selectCalendarFactualQuery,
 } from "@/lib/lighter-jarvis/calendar-factual-query";
 import { interpretCalendarConversationalIntent, isCalendarConversationalIntentCandidate } from "@/lib/lighter-jarvis/calendar-conversational-intent";
-import { deterministicCapabilityConstraint, isConversationalCapabilitySelectionCandidate, selectConversationalCapability } from "@/lib/lighter-jarvis/conversational-capability-selector";
+import { deterministicCapabilityConstraint, isConversationalCapabilitySelectionCandidate, isUnsupportedGmailMutationRequest, selectConversationalCapability } from "@/lib/lighter-jarvis/conversational-capability-selector";
 import { materializeConversationalPrivateOperation } from "@/lib/lighter-jarvis/conversational-private-operation";
 import { createPendingAuthorization } from "@/lib/lighter-jarvis/pending-authorization";
 import { proposeCalendarRead } from "@/lib/lighter-jarvis/calendar-read-proposal";
@@ -980,6 +980,16 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         execution: "none",
       });
     }
+    if (specialist.id === "jarvis"
+      && currentUserUtterance !== undefined
+      && isUnsupportedGmailMutationRequest(currentUserUtterance)) {
+      return NextResponse.json({
+        reply: "I recognized that as a Gmail action request, but a governed Gmail action path for that operation is not yet available.",
+        specialistId: specialist.id,
+        execution: "none",
+      });
+    }
+
     if (specialist.id === "jarvis"
       && currentUserUtterance !== undefined
       && !shouldCarryPendingAuthorization

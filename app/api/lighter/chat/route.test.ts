@@ -195,6 +195,8 @@ describe("POST /api/lighter/chat", () => {
   });
 
   it("uses an explicit current-turn personal plan as user-provided context for public weather without leaking prior Calendar facts", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-30T01:15:00Z"));
     const calendarConnector = vi.fn();
     const model = vi.fn(async (systemPrompt: string, messages: ChatMessage[], tools?: ClaudeTool[]) => {
       if (systemPrompt.includes("bounded conversational capability selector")) {
@@ -231,6 +233,7 @@ describe("POST /api/lighter/chat", () => {
     });
     expect(calendarConnector).not.toHaveBeenCalled();
     expect(model).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
   });
 
   it.each([

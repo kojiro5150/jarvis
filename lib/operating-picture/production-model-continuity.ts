@@ -23,6 +23,21 @@ export type ProductionModelContinuityDependencies = Readonly<{
   ) => ModelContinuityAssessmentModelCall;
 }>;
 
+export type ProductionModelContinuityUnavailableDiagnostic =
+  | "projection_exception"
+  | "context_projection_not_available"
+  | "context_wrong_purpose"
+  | "context_projection_integrity_failure"
+  | "context_scope_exceeded"
+  | "assessment_invalid_input"
+  | "assessment_model_invalid"
+  | "assessment_model_failed"
+  | "resolution_context_not_ready"
+  | "resolution_binding_integrity_failure"
+  | "resolution_assessment_invalid"
+  | "render_invalid_presentation"
+  | "render_scope_exceeded";
+
 export type ProductionModelContinuityRecallResult =
   | Readonly<{
       handled: false;
@@ -30,8 +45,14 @@ export type ProductionModelContinuityRecallResult =
     }>
   | Readonly<{
       handled: true;
-      status: "rendered" | "not_relevant" | "unavailable";
+      status: "rendered" | "not_relevant";
       reply: string;
+    }>
+  | Readonly<{
+      handled: true;
+      status: "unavailable";
+      reply: string;
+      diagnostic: ProductionModelContinuityUnavailableDiagnostic;
     }>;
 
 const NO_RELEVANT_CONTINUITY_REPLY =
@@ -99,6 +120,7 @@ export async function resolveProductionModelContinuityRecall(input: Readonly<{
       handled: true,
       status: "unavailable",
       reply: CONTINUITY_UNAVAILABLE_REPLY,
+      diagnostic: "projection_exception",
     });
   }
 
@@ -117,6 +139,7 @@ export async function resolveProductionModelContinuityRecall(input: Readonly<{
       handled: true,
       status: "unavailable",
       reply: CONTINUITY_UNAVAILABLE_REPLY,
+      diagnostic: `context_${contextBuild.reason}` as ProductionModelContinuityUnavailableDiagnostic,
     });
   }
 
@@ -136,6 +159,7 @@ export async function resolveProductionModelContinuityRecall(input: Readonly<{
       handled: true,
       status: "unavailable",
       reply: CONTINUITY_UNAVAILABLE_REPLY,
+      diagnostic: `assessment_${reasoning.status}` as ProductionModelContinuityUnavailableDiagnostic,
     });
   }
 
@@ -143,12 +167,21 @@ export async function resolveProductionModelContinuityRecall(input: Readonly<{
     contextBuild,
     assessment: reasoning.assessment,
   });
+  if (resolution.status === "rejected") {
+    return Object.freeze({
+      handled: true,
+      status: "unavailable",
+      reply: CONTINUITY_UNAVAILABLE_REPLY,
+      diagnostic: `resolution_${resolution.reason}` as ProductionModelContinuityUnavailableDiagnostic,
+    });
+  }
   const presentation = projectModelContinuityPresentation(resolution);
   if (!presentation) {
     return Object.freeze({
       handled: true,
       status: "unavailable",
       reply: CONTINUITY_UNAVAILABLE_REPLY,
+      diagnostic: "resolution_context_not_ready",
     });
   }
 
@@ -167,6 +200,7 @@ export async function resolveProductionModelContinuityRecall(input: Readonly<{
       handled: true,
       status: "unavailable",
       reply: CONTINUITY_UNAVAILABLE_REPLY,
+      diagnostic: `render_${rendered.reason}` as ProductionModelContinuityUnavailableDiagnostic,
     });
   }
 

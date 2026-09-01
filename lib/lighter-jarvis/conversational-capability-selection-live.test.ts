@@ -287,6 +287,8 @@ describe("Sprint 3.180b live capability selection", () => {
   });
 
   it("keeps weather public and lets ordinary JARVIS use native web search without authorization", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-30T01:15:00Z"));
     const model = vi.fn(async (systemPrompt: string, messages: { content: string }[], tools?: ClaudeTool[]) => {
       if (hasWebSearch(tools)) {
         expect(systemPrompt).toContain("Current user-local temporal anchor for public information:");
@@ -326,6 +328,7 @@ describe("Sprint 3.180b live capability selection", () => {
     expect(response).not.toHaveProperty("pendingAuthorizationReference");
     expect(model).toHaveBeenCalledTimes(2);
     expect(hasWebSearch(model.mock.calls[1][2])).toBe(true);
+    vi.useRealTimers();
   });
 
   it("still exposes web search to ordinary JARVIS when the selector itself declines public capability", async () => {

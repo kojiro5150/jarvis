@@ -24,6 +24,7 @@ import { createGovernedContext, type GovernedContext } from "@/lib/lighter-jarvi
 import { calendarRecallDiagnostics, displayCalendarClock, normalizedCalendarClock } from "@/lib/lighter-jarvis/calendar-provenance-truthfulness";
 import { resolveLiveCalendarAttention } from "@/lib/lighter-jarvis/live-calendar-attention";
 import { renderGovernedWeeklyCalendarAllocation } from "@/lib/lighter-jarvis/calendar-weekly-allocation-renderer";
+import { renderMorningExecutiveOrientationBrief } from "@/lib/lighter-jarvis/morning-executive-orientation-renderer";
 import {
   isUnsupportedCalendarFactualWording,
   renderCalendarFactualSelection,
@@ -863,6 +864,24 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
             calendarAuthority: { decision: "ALLOW", reason: calendar.reason },
           });
         }
+      }
+
+      if (calendar.purpose === "calendar_morning_brief") {
+        if (!calendar.morningBrief) {
+          return NextResponse.json({
+            reply: "I couldn't safely construct your morning brief from this bounded Calendar read.",
+            specialistId: specialist.id,
+            execution: "none",
+            calendarAuthority: { decision: "ALLOW", reason: calendar.reason },
+          });
+        }
+        const rendered = renderMorningExecutiveOrientationBrief(calendar.morningBrief);
+        return NextResponse.json({
+          reply: rendered ?? "I couldn't safely render your morning brief from the governed Calendar publication.",
+          specialistId: specialist.id,
+          execution: "none",
+          calendarAuthority: { decision: "ALLOW", reason: calendar.reason },
+        });
       }
 
       if (calendar.purpose === "calendar_weekly_allocation") {

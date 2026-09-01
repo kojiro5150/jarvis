@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { assembleMorningExecutiveOrientationBrief } from "./morning-executive-orientation-assembler";
-import type { GovernedWeeklyCalendarAllocationPublication } from "./calendar-weekly-allocation-publisher";
+import { assembleMorningExecutiveOrientationBrief } from "../morning-executive-orientation-assembler";
+import type { GovernedWeeklyCalendarAllocationPublication } from "../calendar-weekly-allocation-publisher";
 
 const weekly: GovernedWeeklyCalendarAllocationPublication = Object.freeze({
   publicationType: "calendar_weekly_time_allocation",

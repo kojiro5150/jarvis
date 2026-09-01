@@ -2,7 +2,9 @@
 
 **Date:** 30 August 2026  
 **Status:** Verified bounded milestone  
-**Next authorised milestone:** Explicit User-Authored Continuity Capture
+**Next authorised milestone at time of promotion:** Explicit User-Authored Continuity Capture
+
+> **Follow-on status:** Explicit User-Authored Continuity Capture was subsequently implemented and verified live on 1 September 2026. See `GOVERNED-OPERATING-PICTURE-USER-CONTINUITY-CAPTURE-VERIFICATION.md`. The sections below describing capture as the next milestone are historical promotion context, not the current roadmap state.
 
 ## 1. Proving question
 

@@ -25,6 +25,7 @@ type OpaqueCalendarAdvicePreference = Readonly<{ calendarAdvicePreferenceReferen
 type OpaqueCalendarAdvice = Readonly<{ calendarAdviceReferenceId: string }>;
 type OpaqueCalendarMoveProposal = Readonly<{ calendarMoveProposalReferenceId: string }>;
 type OpaqueCalendarMoveAuthorization = Readonly<{ calendarMoveAuthorizationReferenceId: string }>;
+type OpaqueUserContinuityCaptureClarification = Readonly<{ userContinuityCaptureClarificationReferenceId: string }>;
 type ConnectorName = "calendar" | "gmail" | "drive";
 type ConnectorServiceStatus =
   | "online"
@@ -92,6 +93,7 @@ export default function UnifiedOpsConsole() {
   const calendarAdviceRef = useRef<OpaqueCalendarAdvice | null>(null);
   const calendarMoveProposalRef = useRef<OpaqueCalendarMoveProposal | null>(null);
   const calendarMoveAuthorizationRef = useRef<OpaqueCalendarMoveAuthorization | null>(null);
+  const userContinuityCaptureClarificationRef = useRef<OpaqueUserContinuityCaptureClarification | null>(null);
   const conversationHistoryRef = useRef(new ConversationTransportHistory());
   const [connectorStatuses, setConnectorStatuses] = useState<Record<
     ConnectorName,
@@ -252,6 +254,12 @@ export default function UnifiedOpsConsole() {
     const authorityRequest = specialist.id === "jarvis"
       ? authorityTurnStateRef.current.beginRequest()
       : null;
+    const captureClarificationReference = specialist.id === "jarvis"
+      ? userContinuityCaptureClarificationRef.current
+      : null;
+    if (specialist.id === "jarvis") {
+      userContinuityCaptureClarificationRef.current = null;
+    }
     const nextMessages = conversationHistoryRef.current.acceptUser(specialist.id, content);
     setConversations((current) => ({
       ...current,
@@ -296,6 +304,9 @@ export default function UnifiedOpsConsole() {
           ...(specialist.id === "jarvis" && calendarMoveAuthorizationRef.current
             ? { calendarMoveAuthorizationReference: calendarMoveAuthorizationRef.current }
             : {}),
+          ...(captureClarificationReference
+            ? { userContinuityCaptureClarificationReference: captureClarificationReference }
+            : {}),
         }),
       });
       const data = (await response.json()) as {
@@ -309,6 +320,7 @@ export default function UnifiedOpsConsole() {
         calendarAdviceReference?: OpaqueCalendarAdvice | null;
         calendarMoveProposalReference?: OpaqueCalendarMoveProposal | null;
         calendarMoveAuthorizationReference?: OpaqueCalendarMoveAuthorization | null;
+        userContinuityCaptureClarificationReference?: OpaqueUserContinuityCaptureClarification | null;
         error?: string;
       };
       if (!response.ok)
@@ -345,6 +357,10 @@ export default function UnifiedOpsConsole() {
       }
       if (data.calendarMoveAuthorizationReference !== undefined) {
         calendarMoveAuthorizationRef.current = data.calendarMoveAuthorizationReference;
+      }
+      if (data.userContinuityCaptureClarificationReference !== undefined) {
+        userContinuityCaptureClarificationRef.current =
+          data.userContinuityCaptureClarificationReference;
       }
       const acceptedMessages = conversationHistoryRef.current.acceptAssistant(specialist.id, reply);
       setConversations((current) => ({ ...current, [specialist.id]: acceptedMessages }));

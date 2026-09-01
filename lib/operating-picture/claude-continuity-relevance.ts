@@ -73,6 +73,34 @@ export function createRequiredClaudeContinuityModelCall(
           },
           required: ["responseType", "relevance", "relevantItemIds"],
           additionalProperties: false,
+          oneOf: [
+            {
+              properties: {
+                relevance: {
+                  type: "string",
+                  enum: ["relevant"],
+                },
+                relevantItemIds: {
+                  type: "array",
+                  minItems: 1,
+                },
+              },
+              required: ["relevance", "relevantItemIds"],
+            },
+            {
+              properties: {
+                relevance: {
+                  type: "string",
+                  enum: ["not_relevant"],
+                },
+                relevantItemIds: {
+                  type: "array",
+                  maxItems: 0,
+                },
+              },
+              required: ["relevance", "relevantItemIds"],
+            },
+          ],
         },
       }],
       tool_choice: {

@@ -14,6 +14,7 @@ The verified Operating Picture milestones are now recorded in:
 - `GOVERNED-OPERATING-PICTURE-STORE-PARITY-RESTART-VERIFICATION.md`
 - `GOVERNED-OPERATING-PICTURE-PURPOSE-PROJECTION-VERIFICATION.md`
 - `GOVERNED-OPERATING-PICTURE-MODEL-CONTINUITY-VERIFICATION.md`
+- `GOVERNED-OPERATING-PICTURE-USER-CONTINUITY-CAPTURE-VERIFICATION.md`
 
 Purpose-Bounded Durable Projection is verified within its bounded scope, including live operation through the actual JARVIS server → Supabase REST path. The live acceptance sequence independently verified durable head discovery against Supabase SQL, then exercised payload-free preflight, purpose-gated single-head retrieval, and stable whole-store projection through the real server REST path.
 

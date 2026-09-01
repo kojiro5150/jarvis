@@ -1,6 +1,6 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Reconciled 30 August 2026 after direct verification of the Governed Operating Picture semantic/lifecycle foundation, live Supabase persistence foundation, Store Parity & Restart Durability, Purpose-Bounded Durable Projection, and Narrow Model-Facing Continuity. Existing governed Calendar/Gmail/Drive work remains the proven substrate. The next architectural milestone is **Governed Operating Picture — Explicit User-Authored Continuity Capture**.
+**Status:** Living document. Reconciled 1 September 2026 after direct live verification of the Governed Operating Picture semantic/lifecycle foundation, Supabase persistence foundation, Store Parity & Restart Durability, Purpose-Bounded Durable Projection, Narrow Model-Facing Continuity, and Explicit User-Authored Continuity Capture. Existing governed Calendar/Gmail/Drive work remains the proven substrate. The next work returns to the existing **real-JARVIS everyday executive cognition trajectory** rather than extending memory by adjacency.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
 
@@ -14,6 +14,7 @@ The verified Operating Picture milestones are now recorded in:
 - `GOVERNED-OPERATING-PICTURE-STORE-PARITY-RESTART-VERIFICATION.md`
 - `GOVERNED-OPERATING-PICTURE-PURPOSE-PROJECTION-VERIFICATION.md`
 - `GOVERNED-OPERATING-PICTURE-MODEL-CONTINUITY-VERIFICATION.md`
+- `GOVERNED-OPERATING-PICTURE-USER-CONTINUITY-CAPTURE-VERIFICATION.md`
 
 Purpose-Bounded Durable Projection is verified within its bounded scope, including live operation through the actual JARVIS server → Supabase REST path. The live acceptance sequence independently verified durable head discovery against Supabase SQL, then exercised payload-free preflight, purpose-gated single-head retrieval, and stable whole-store projection through the real server REST path.
 
@@ -49,37 +50,52 @@ The live acceptance sequence proved one real `conversation`-visible user prefere
 
 No automatic chat-memory extraction, ambient continuity injection on every ordinary turn, free-form durable-continuity synthesis, source revalidation implementation, embeddings/vector search, broad connector ingestion, cross-source executive synthesis, proactive behaviour, or autonomous action is authorised by this milestone.
 
-## Current next milestone — Governed Operating Picture: Explicit User-Authored Continuity Capture
+## Verified milestone — Governed Operating Picture: Explicit User-Authored Continuity Capture
 
-The next authorised implementation is deliberately narrower than automatic memory.
+The bounded capture milestone is now verified live and recorded in:
+
+- `GOVERNED-OPERATING-PICTURE-USER-CONTINUITY-CAPTURE-VERIFICATION.md`
+
+The production path now proves the complete bounded loop:
 
 ~~~text
-explicit user instruction to remember
+explicit current-turn remember/retain instruction
         ↓
-closed capture candidate
+deterministic capture intent
         ↓
-deterministic semantic/authorship validation
+closed semantic classification
         ↓
-user-authored Operating Picture append contract
+deterministic validation
         ↓
-durable continuity
+user-authored append-only Operating Picture record
+        ↓
+durable Supabase persistence
+        ↓
+independent database verification
+        ↓
+later purpose-bounded governed recall
 ~~~
 
-The next milestone must prove that a durable continuity item is created only when the user explicitly asks JARVIS to remember something. Model interpretation may help construct a bounded candidate, but it may not become the author, promote the content into fact, infer standing authority, or capture unrelated transcript material.
+Live acceptance verified both a real conversational write and later recall of a deliberately unique statement. The durable row preserved `preference` as its semantic class, `user` authorship, `append_only` revision semantics, conversation-only visibility, and no provenance or trust-bearing promotion.
 
-For the first experiment, the system does **not** use a model to decide whether a capture instruction exists. Capture intent is a deliberately small deterministic command surface for unmistakable current-turn remember/retain instructions. Inputs outside that grammar remain ordinary conversation. This is intentionally narrower than general natural-language understanding and must not grow into an open-ended regex coverage strategy.
+An unplanned collision between a historical seeded fixture and a new live capture also confirmed the standing read doctrine: two distinct current admissible user-authored records were both surfaced rather than silently reconciled, superseded, or hidden. That behaviour is consistent with `USER-CONTINUITY-READ-01`.
 
-Semantic classification is separately fail-closed. If the content cannot be assigned exactly one admissible class from `user_assertion | preference | plan | commitment | decision`, nothing is persisted. A closed classifier must be able to return an explicit ambiguous/non-committal outcome, and JARVIS asks the user to clarify rather than guessing a permanent append-only class.
+This remains a deliberately bounded capability. It does **not** establish automatic memory, ambient transcript ingestion, embeddings/vector memory, model-authored durable facts, automatic replacement, contradiction resolution, source revalidation, proactive behaviour, or autonomous action.
 
-For the first experiment, revision semantics are deliberately `append_only`. If the user later explicitly captures a contradictory preference, plan, commitment, decision, or assertion, both statements remain distinct historical user-authored continuity. No automatic supersession, mutation, contradiction resolution, or latest-wins behaviour is authorised yet. `explicit_replacement` requires a later governed reference-resolution milestone.
+> **Promotion decision:** Explicit User-Authored Continuity Capture is **VERIFIED WITHIN BOUNDED LIVE SCOPE**.
 
-The same rule applies on the read side. If multiple current records about the same subject are all admissible for a purpose, projection and presentation may not quietly discard the older one, privilege the newer one, or present one as the resolved truth merely because the records conflict. Until a separately governed reconciliation mechanism exists, admissible conflict must remain visible rather than being cosmetically resolved.
+### Current next product direction — return to the real JARVIS
 
-> **Current proving question:** Can JARVIS persist a continuity item only when the user explicitly asks it to remember something, while preserving the user's authorship and semantic class, preventing model interpretation from becoming authorship or fact, and avoiding ambient transcript capture or new authority?
+The Operating Picture capture experiment closed a substrate gap. It is not the new centre of gravity.
 
-### Explicit exclusions for the current milestone
+The roadmap now returns to the existing product trajectory already defined below:
 
-No background extraction, automatic conversation summarisation, embeddings/vector search, generic transcript ingestion, model-authored durable facts, broad connector ingestion, source revalidation, proactive behaviour, or autonomous action is authorised yet.
+> **everyday executive cognition — awareness, orientation, attention, dependency recognition, capacity understanding, planning support, role-aware context, and eventually a stronger voice-first experience**
+
+The next implementation question should be selected from observed everyday executive value and the existing Phase V trajectory, not from architectural adjacency to the memory subsystem.
+
+Memory expansion remains future governed work only when a concrete user need justifies it. In particular, automatic transcript extraction, generic natural-language memory intent, deduplication/reconciliation, automatic preference replacement, broad cross-source continuity, and proactive capture are **not** authorised as the default next sprint.
+
 
 ---
 ## Governance Core extraction sequence
@@ -153,16 +169,15 @@ Proven but deliberately bounded
     Restart recovery trust classification and bounded head discovery
     Purpose-bounded durable projection with live server REST verification
     Narrow model-facing continuity with live explicit-recall verification
+    Explicit user-authored continuity capture with live durable write + later recall verification
 
 Ready for disciplined activation
-    Governed Operating Picture explicit user-authored continuity capture
     Deterministic Executive Cognition already present in the EOS:
     Situational Awareness → Attention → Situation Formation → Assessment →
     Executive Context → Candidate Construction/Evaluation/Comparison →
     Executive Reasoning
 
 Known strategic directions, not yet earned
-    Controlled explicit user-authored continuity capture into semantic Operating Picture records
     Later expansion beyond explicit recall/capture only after separate governance
     Role-specific operational context
     Governed action approval/execution records

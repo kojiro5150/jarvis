@@ -147,7 +147,7 @@ model prose            --------X--> governed evidence
 
 ### Implementation progression
 
-The type/lifecycle, persistence, store-parity, restart-durability, purpose-bounded durable-projection and narrow model-facing continuity stages have now been implemented and verified within their bounded scopes. Purpose-bounded projection and narrow model-facing continuity have both been exercised live through the actual JARVIS server → Supabase REST → sole conversational runtime path.
+The type/lifecycle, persistence, store-parity, restart-durability, purpose-bounded durable-projection, narrow model-facing continuity, and explicit user-authored continuity capture stages have now been implemented and verified within their bounded scopes. Purpose-bounded projection, model-facing continuity, and explicit capture have all been exercised live through the actual JARVIS server → Supabase REST → sole conversational runtime path.
 
 ~~~text
 semantic/lifecycle core — verified
@@ -160,12 +160,14 @@ purpose-bounded durable projection — verified live
         ↓
 narrow model-facing continuity — verified live
         ↓
-explicit user-authored continuity capture — next
+explicit user-authored continuity capture — verified live
+        ↓
+return to everyday executive cognition / real-JARVIS product trajectory
 ~~~
 
 Restart recovery, durable projection and model-facing continuity are intentionally **not** trust rehydration. A projected or recalled item remains low-trust continuity with explicit semantic class and recovery disposition. Source-backed records that require fresh evidence remain quarantined until a separate governed source boundary revalidates them.
 
-The next milestone must not add vector search, automatic chat-memory extraction, broad connector ingestion, cross-source synthesis, proactive notifications, autonomous action, generic ambient memory, or model-authored durable facts.
+The verified capture milestone does not authorise vector search, automatic chat-memory extraction, broad connector ingestion, cross-source synthesis, proactive notifications, autonomous action, generic ambient memory, model-authored durable facts, automatic replacement, or conflict resolution. The default next work returns to the existing everyday executive cognition roadmap rather than extending memory by adjacency.
 
 > **PERSISTENCE-TRUST-01:** A persisted row is durable data/history, not a trust-bearing value. Reading data from storage must never by itself construct `GovernedEvidence`, `AuthorityEvidence`, policy proof, verification proof, completion proof, or fresh provider truth.
 

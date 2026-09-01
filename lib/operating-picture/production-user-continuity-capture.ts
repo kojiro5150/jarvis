@@ -109,9 +109,10 @@ export async function resolveProductionUserContinuityCapture(input: Readonly<{
   clarificationReference?: unknown;
   dependencies?: Partial<ProductionUserContinuityCaptureDependencies>;
 }>): Promise<ProductionUserContinuityCaptureResult> {
-  const dependencies = Object.freeze({
-    ...defaults,
-    ...input.dependencies,
+  const dependencies: ProductionUserContinuityCaptureDependencies = Object.freeze({
+    clock: input.dependencies?.clock ?? defaults.clock,
+    classify: input.dependencies?.classify ?? defaults.classify,
+    persist: input.dependencies?.persist ?? defaults.persist,
   });
 
   const parsed = parseExplicitUserContinuityCaptureRequest(input.utterance);

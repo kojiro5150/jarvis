@@ -1,5 +1,15 @@
-import type { MorningExecutiveOrientationBrief, MorningExecutiveOrientationLimitation } from "../governed-conversation/morning-executive-orientation-contract";
-import { assembleMorningExecutiveOrientationBrief } from "../governed-conversation/morning-executive-orientation-assembler";
+import {
+  MORNING_EXECUTIVE_ORIENTATION_KIND,
+  MORNING_EXECUTIVE_ORIENTATION_SCHEMA_VERSION,
+  MORNING_EXECUTIVE_ORIENTATION_SEMANTICS,
+  MORNING_EXECUTIVE_ORIENTATION_TIME_ZONE,
+  type MorningExecutiveOrientationBrief,
+  type MorningExecutiveOrientationLimitation,
+} from "../governed-conversation/morning-executive-orientation-contract";
+import {
+  assembleMorningExecutiveOrientationBrief,
+  MORNING_EXECUTIVE_ORIENTATION_V1_LIMITATIONS,
+} from "../governed-conversation/morning-executive-orientation-assembler";
 import { renderGovernedWeeklyCalendarAllocation } from "./calendar-weekly-allocation-renderer";
 
 const MELBOURNE_ZONE = "Australia/Melbourne";
@@ -27,7 +37,19 @@ function formatTime(value: string): string {
   return upperMeridiem(timeFormatter.format(new Date(value)));
 }
 
+function exactLimitations(limitations: readonly MorningExecutiveOrientationLimitation[]): boolean {
+  return limitations.length === MORNING_EXECUTIVE_ORIENTATION_V1_LIMITATIONS.length
+    && limitations.every((value, index) => value === MORNING_EXECUTIVE_ORIENTATION_V1_LIMITATIONS[index]);
+}
+
 function revalidate(brief: MorningExecutiveOrientationBrief): MorningExecutiveOrientationBrief | null {
+  if (brief.kind !== MORNING_EXECUTIVE_ORIENTATION_KIND) return null;
+  if (brief.schemaVersion !== MORNING_EXECUTIVE_ORIENTATION_SCHEMA_VERSION) return null;
+  if (brief.semantics !== MORNING_EXECUTIVE_ORIENTATION_SEMANTICS) return null;
+  if (brief.timeZone !== MORNING_EXECUTIVE_ORIENTATION_TIME_ZONE) return null;
+  if (brief.weeklyCapacity.period !== "this_week") return null;
+  if (!exactLimitations(brief.limitations)) return null;
+
   return assembleMorningExecutiveOrientationBrief({
     observedAt: brief.observedAt,
     coverage: brief.coverage,

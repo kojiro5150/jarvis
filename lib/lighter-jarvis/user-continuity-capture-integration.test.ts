@@ -114,6 +114,45 @@ describe("sole-runtime explicit user continuity capture integration", () => {
     expect(model).not.toHaveBeenCalled();
   });
 
+  it("fails closed on an unrecognised clarification turn instead of falling through to ordinary Claude", async () => {
+    const persist = vi.fn();
+    const { post, model } = handler({
+      clock: () => new Date("2026-09-01T05:45:00.000Z"),
+      classify: async () => ({
+        status: "classified",
+        classification: {
+          responseType: "user_continuity_capture_classification",
+          status: "ambiguous",
+          semanticClass: null,
+        },
+      }),
+      persist,
+    });
+
+    const first = await (await post(request([
+      { role: "user", content: "Remember that we should probably do X." },
+    ]))).json();
+
+    const second = await (await post(request([
+      { role: "user", content: "Remember that we should probably do X." },
+      { role: "assistant", content: first.reply },
+      { role: "user", content: "Actually, what is on my calendar?" },
+    ], {
+      userContinuityCaptureClarificationReference:
+        first.userContinuityCaptureClarificationReference,
+    }))).json();
+
+    expect(second).toEqual({
+      reply: "I didn't recognise that as one of the five options, so I didn't save what you asked me to remember.",
+      specialistId: "jarvis",
+      execution: "none",
+      userContinuityCapture: { status: "clarification_unrecognised" },
+      userContinuityCaptureClarificationReference: null,
+    });
+    expect(model).not.toHaveBeenCalled();
+    expect(persist).not.toHaveBeenCalled();
+  });
+
   it("round-trips only an opaque clarification handle and persists the original statement on the next exact class turn", async () => {
     const persist = vi.fn(async (_candidate: UserContinuityCaptureCandidate) => ({
       status: "persisted" as const,

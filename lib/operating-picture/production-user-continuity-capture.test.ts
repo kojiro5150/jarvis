@@ -182,7 +182,7 @@ describe("production explicit user continuity capture", () => {
     expect(JSON.stringify(persist.mock.calls[0][0])).not.toContain('"statement":"preference"');
   });
 
-  it("abandons a one-shot clarification on unrelated language rather than guessing or persisting", async () => {
+  it("fails closed and explicitly reports loss when a one-shot clarification is not one of the five classes", async () => {
     const first = await resolveProductionUserContinuityCapture({
       utterance: "Remember that we should probably do X.",
       dependencies: dependencies({
@@ -203,7 +203,10 @@ describe("production explicit user continuity capture", () => {
       clarificationReference: first.clarificationReference,
       dependencies: dependencies({ persist }),
     })).toEqual({
-      handled: false,
+      handled: true,
+      status: "clarification_unrecognised",
+      reply: "I didn't recognise that as one of the five options, so I didn't save what you asked me to remember.",
+      clarificationReference: null,
     });
     expect(persist).not.toHaveBeenCalled();
 

@@ -1,5 +1,11 @@
 export const USER_CONTINUITY_CAPTURE_PURPOSE = "conversation" as const;
 
+declare const USER_CONTINUITY_CAPTURE_STATEMENT: unique symbol;
+
+export type UserContinuityCaptureStatement = string & Readonly<{
+  [USER_CONTINUITY_CAPTURE_STATEMENT]: "user_continuity_capture_statement";
+}>;
+
 export const USER_CONTINUITY_CAPTURE_CLASSES = [
   "user_assertion",
   "preference",
@@ -13,7 +19,7 @@ export type UserContinuityCaptureClass =
 
 export type ExplicitUserContinuityCaptureRequest = Readonly<{
   intent: "explicit_user_continuity_capture";
-  statement: string;
+  statement: UserContinuityCaptureStatement;
 }>;
 
 export type ExplicitUserContinuityCaptureRequestResult =
@@ -50,7 +56,7 @@ export type UserContinuityCaptureCandidate = Readonly<{
   captureIntent: "explicit_user_instruction";
   semanticClass: UserContinuityCaptureClass;
   value: Readonly<{
-    statement: string;
+    statement: UserContinuityCaptureStatement;
   }>;
   authorship: Readonly<{
     source: "user";
@@ -67,7 +73,7 @@ export type UserContinuityCaptureCandidateResult =
     }>
   | Readonly<{
       status: "clarification_required";
-      statement: string;
+      statement: UserContinuityCaptureStatement;
     }>
   | Readonly<{
       status: "rejected";
@@ -92,13 +98,13 @@ function validInstant(value: string): boolean {
   return Number.isFinite(Date.parse(value));
 }
 
-function matchedStatement(utterance: string): string | null {
+function matchedStatement(utterance: string): UserContinuityCaptureStatement | null {
   for (const pattern of CAPTURE_PATTERNS) {
     const match = utterance.match(pattern);
     if (!match) continue;
     const statement = match[1];
     if (!statement || statement.trim().length === 0) return null;
-    return statement;
+    return statement as UserContinuityCaptureStatement;
   }
   return null;
 }

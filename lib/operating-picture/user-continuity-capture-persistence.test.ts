@@ -6,26 +6,32 @@ import {
   createUserContinuityCaptureRecord,
   type UserContinuityCapturePersistenceDependencies,
 } from "./user-continuity-capture-persistence";
-import type {
-  UserContinuityCaptureCandidate,
-  UserContinuityCaptureClass,
+import {
+  buildUserContinuityCaptureCandidate,
+  parseExplicitUserContinuityCaptureRequest,
+  validateUserContinuityCaptureClassification,
+  type UserContinuityCaptureCandidate,
+  type UserContinuityCaptureClass,
 } from "./user-continuity-capture-contract";
 
 function candidate(
   semanticClass: UserContinuityCaptureClass = "preference",
   statement = "I prefer short status updates.",
 ): UserContinuityCaptureCandidate {
-  return Object.freeze({
-    captureIntent: "explicit_user_instruction",
+  const request = parseExplicitUserContinuityCaptureRequest(`Remember that ${statement}`);
+  if (request.status !== "matched") throw new Error("expected matched capture");
+  const classification = validateUserContinuityCaptureClassification({
+    responseType: "user_continuity_capture_classification",
+    status: "classified",
     semanticClass,
-    value: Object.freeze({ statement }),
-    authorship: Object.freeze({
-      source: "user",
-      statedAt: "2026-09-01T04:15:00.000Z",
-    }),
-    visibilityPurposes: Object.freeze(["conversation"]) as readonly ["conversation"],
-    revisionSemantics: "append_only",
   });
+  const result = buildUserContinuityCaptureCandidate(
+    request.request,
+    classification,
+    "2026-09-01T04:15:00.000Z",
+  );
+  if (result.status !== "ready") throw new Error("expected ready candidate");
+  return result.candidate;
 }
 
 describe("explicit user continuity capture persistence boundary", () => {

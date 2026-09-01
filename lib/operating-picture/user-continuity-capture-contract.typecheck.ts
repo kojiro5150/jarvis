@@ -29,46 +29,19 @@ const _plainStatement: UserContinuityCaptureStatement = "model could have writte
 // @ts-expect-error model-authored text cannot become a user-authored capture statement
 const _modelStatement: UserContinuityCaptureStatement = modelText;
 
-// Candidate authorship, purpose, revision semantics and class are closed.
+type CaptureClass = UserContinuityCaptureCandidate["semanticClass"];
+type CaptureSource = UserContinuityCaptureCandidate["authorship"]["source"];
+type CaptureRevision = UserContinuityCaptureCandidate["revisionSemantics"];
+type CaptureVisibility = UserContinuityCaptureCandidate["visibilityPurposes"][number];
+
 // @ts-expect-error fact is not an admissible user continuity capture class
-const _factCandidate: UserContinuityCaptureCandidate = {
-  captureIntent: "explicit_user_instruction",
-  semanticClass: "fact",
-  value: { statement: parsed.status === "matched" ? parsed.request.statement : modelText },
-  authorship: { source: "user", statedAt: "2026-09-01T04:15:00.000Z" },
-  visibilityPurposes: ["conversation"],
-  revisionSemantics: "append_only",
-};
-
+const _factClass: CaptureClass = "fact";
 // @ts-expect-error model authorship cannot inhabit a user-authored capture candidate
-const _modelAuthoredCandidate: UserContinuityCaptureCandidate = {
-  captureIntent: "explicit_user_instruction",
-  semanticClass: "preference",
-  value: { statement: parsed.status === "matched" ? parsed.request.statement : modelText },
-  authorship: { source: "model", statedAt: "2026-09-01T04:15:00.000Z" },
-  visibilityPurposes: ["conversation"],
-  revisionSemantics: "append_only",
-};
-
+const _modelSource: CaptureSource = "model";
 // @ts-expect-error capture candidates cannot request replacement semantics
-const _replacementCandidate: UserContinuityCaptureCandidate = {
-  captureIntent: "explicit_user_instruction",
-  semanticClass: "preference",
-  value: { statement: parsed.status === "matched" ? parsed.request.statement : modelText },
-  authorship: { source: "user", statedAt: "2026-09-01T04:15:00.000Z" },
-  visibilityPurposes: ["conversation"],
-  revisionSemantics: "explicit_replacement",
-};
-
+const _replacementRevision: CaptureRevision = "explicit_replacement";
 // @ts-expect-error capture candidates cannot widen visibility beyond conversation
-const _widenedVisibility: UserContinuityCaptureCandidate = {
-  captureIntent: "explicit_user_instruction",
-  semanticClass: "preference",
-  value: { statement: parsed.status === "matched" ? parsed.request.statement : modelText },
-  authorship: { source: "user", statedAt: "2026-09-01T04:15:00.000Z" },
-  visibilityPurposes: ["planning"],
-  revisionSemantics: "append_only",
-};
+const _planningVisibility: CaptureVisibility = "planning";
 
 // Trust-bearing objects cannot inhabit the statement slot.
 // @ts-expect-error authority evidence is not a user capture statement
@@ -79,10 +52,10 @@ const _evidenceStatement: UserContinuityCaptureStatement = evidence;
 void [
   _plainStatement,
   _modelStatement,
-  _factCandidate,
-  _modelAuthoredCandidate,
-  _replacementCandidate,
-  _widenedVisibility,
+  _factClass,
+  _modelSource,
+  _replacementRevision,
+  _planningVisibility,
   _authorityStatement,
   _evidenceStatement,
 ];

@@ -11,6 +11,11 @@ describe("required Anthropic continuity relevance boundary", () => {
     expect(source).toContain('name: TOOL_NAME');
     expect(source).toContain('additionalProperties: false');
     expect(source).toContain('enum: [...allowedIds]');
+    expect(source).toContain('oneOf:');
+    expect(source).toContain('enum: ["relevant"]');
+    expect(source).toContain('minItems: 1');
+    expect(source).toContain('enum: ["not_relevant"]');
+    expect(source).toContain('maxItems: 0');
     expect(source).toContain('toolUses.length !== 1');
     expect(source).toContain('content.some(hasNonEmptyTextBlock)');
     expect(source).not.toContain("callClaude(");

@@ -70,6 +70,7 @@ import { GoogleCalendarConnector } from "@/lib/connectors/google/calendar";
 import { hasGoogleCalendarWriteScope } from "@/lib/connectors/google/calendar-write-scope";
 import type { ScopedCalendarAcquisitionPort } from "@/lib/governed-conversation/scoped-calendar-evidence-acquisition-adapter";
 import { isDurableContinuityRecallRequest, resolveProductionModelContinuityRecall, type ProductionModelContinuityDependencies } from "@/lib/operating-picture/production-model-continuity";
+import { resolveProductionUserContinuityCapture, type ProductionUserContinuityCaptureDependencies } from "@/lib/operating-picture/production-user-continuity-capture";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -83,6 +84,7 @@ interface LighterChatBody {
   calendarAdviceReference?: unknown;
   calendarMoveProposalReference?: unknown;
   calendarMoveAuthorizationReference?: unknown;
+  userContinuityCaptureClarificationReference?: unknown;
 }
 type ModelCall = (
   systemPrompt: string,
@@ -400,7 +402,8 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
   gmailDependencies?: ProductionGmailDependencies, gmailSearchDependencies?: ProductionGmailSearchDependencies,
   driveSearchDependencies?: ProductionDriveSearchDependencies, driveReadDependencies?: ProductionDriveReadDependencies,
   calendarActDependencies: CalendarActDependencies = defaultCalendarActDependencies,
-  modelContinuityDependencies?: ProductionModelContinuityDependencies) {
+  modelContinuityDependencies?: ProductionModelContinuityDependencies,
+  userContinuityCaptureDependencies?: Partial<ProductionUserContinuityCaptureDependencies>) {
   return async function POST(request: Request) {
     let body: LighterChatBody;
     try { body = await request.json() as LighterChatBody; }
@@ -428,6 +431,28 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     const shouldCarryPendingAuthorization = Object.hasOwn(body, "pendingAuthorizationReference")
       && !freshCapabilityRequest
       && !standingGmailAuthorityRequest;
+
+    if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {
+      const capture = await resolveProductionUserContinuityCapture({
+        utterance: currentUserUtterance,
+        ...(Object.hasOwn(body, "userContinuityCaptureClarificationReference")
+          ? { clarificationReference: body.userContinuityCaptureClarificationReference }
+          : {}),
+        ...(userContinuityCaptureDependencies
+          ? { dependencies: userContinuityCaptureDependencies }
+          : {}),
+      });
+      if (capture.handled) {
+        return NextResponse.json({
+          reply: capture.reply,
+          specialistId: specialist.id,
+          execution: "none",
+          userContinuityCapture: { status: capture.status },
+          userContinuityCaptureClarificationReference:
+            capture.clarificationReference ?? null,
+        });
+      }
+    }
 
     if (specialist.id === "jarvis" && standingGmailAuthorityRequest) {
       return NextResponse.json({

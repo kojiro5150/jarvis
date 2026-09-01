@@ -39,6 +39,7 @@ export type ProductionUserContinuityCaptureResult = Readonly<{
   status?:
     | "persisted"
     | "clarification_required"
+    | "clarification_unrecognised"
     | "classification_unavailable"
     | "persistence_unavailable";
   reply?: string;
@@ -174,6 +175,13 @@ export async function resolveProductionUserContinuityCapture(input: Readonly<{
           dependencies,
         );
       }
+
+      return Object.freeze({
+        handled: true,
+        status: "clarification_unrecognised",
+        reply: "I didn't recognise that as one of the five options, so I didn't save what you asked me to remember.",
+        clarificationReference: null,
+      });
     }
   }
 

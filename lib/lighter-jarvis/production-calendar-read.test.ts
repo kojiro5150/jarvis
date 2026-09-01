@@ -330,4 +330,163 @@ describe("production calendar.read authority ordering", () => {
     });
     expect(deps.listBetween).toHaveBeenCalledOnce();
   });
+  it("retains Morning Brief windows through pending confirmation and composes from one complete weekly read", async () => {
+    const events = [
+      {
+        ...event,
+        id: "morning",
+        title: "Morning review",
+        start: "2026-08-31T23:00:00.000Z",
+        end: "2026-09-01T00:00:00.000Z",
+        timeMode: "routine" as const,
+      },
+      {
+        ...event,
+        id: "afternoon",
+        title: "Afternoon review",
+        start: "2026-09-01T05:00:00.000Z",
+        end: "2026-09-01T06:00:00.000Z",
+        timeMode: "deep_work" as const,
+      },
+      {
+        ...event,
+        id: "tomorrow",
+        title: "Tomorrow review",
+        start: "2026-09-02T00:00:00.000Z",
+        end: "2026-09-02T01:00:00.000Z",
+        timeMode: "reflection" as const,
+      },
+    ];
+    const listBetween = vi.fn();
+    const listBetweenWithCompleteness = vi.fn(async (start: string, end: string, requestedLimit?: number) => ({
+      events,
+      completeness: {
+        sourceId: "google-calendar" as const,
+        windowStart: start,
+        windowEnd: end,
+        requestedLimit: requestedLimit ?? 0,
+        targetDiscovery: "calendar_list" as const,
+        targetCount: 1,
+        targets: [{
+          calendarId: "primary",
+          status: "complete" as const,
+          returnedCount: events.length,
+          continuation: "none" as const,
+        }],
+        mergedReturnedCount: events.length,
+        mergeTruncated: false,
+        completeness: "complete" as const,
+        observedAt: "2026-09-01T08:30:00.000Z",
+      },
+    }));
+    const deps = {
+      createConnector: () => ({
+        source: "google" as const,
+        listBetween,
+        listBetweenWithCompleteness,
+      }),
+      clock: () => new Date("2026-09-01T08:30:00.000Z"),
+    };
+
+    const pending = await resolveProductionCalendarRead({
+      currentUserUtterance: "Give me my morning brief.",
+    }, deps);
+
+    expect(pending).toMatchObject({
+      decision: "ASK",
+      purpose: "calendar_morning_brief",
+      window: {
+        period: "this_week",
+        start: "2026-08-30T14:00:00.000Z",
+        end: "2026-09-06T14:00:00.000Z",
+      },
+      morningBriefTodayWindow: {
+        period: "today",
+        start: "2026-08-31T14:00:00.000Z",
+        end: "2026-09-01T14:00:00.000Z",
+      },
+      morningBrief: null,
+    });
+    expect(listBetweenWithCompleteness).not.toHaveBeenCalled();
+
+    const confirmed = await resolveProductionCalendarRead({
+      currentUserUtterance: "Yes",
+      pendingAuthorizationReference: pending.pendingAuthorizationReference,
+    }, deps);
+
+    expect(listBetweenWithCompleteness).toHaveBeenCalledOnce();
+    expect(listBetweenWithCompleteness).toHaveBeenCalledWith(
+      "2026-08-30T14:00:00.000Z",
+      "2026-09-06T14:00:00.000Z",
+      100,
+    );
+    expect(confirmed).toMatchObject({
+      decision: "ALLOW",
+      purpose: "calendar_morning_brief",
+      morningBrief: {
+        kind: "morning_executive_orientation_brief",
+        semantics: "factual_orientation_not_priority_or_advice",
+        coverage: { state: "bounded_complete_request" },
+        today: {
+          period: "today",
+          timedCommitments: [
+            { title: "Morning review" },
+            { title: "Afternoon review" },
+          ],
+        },
+        weeklyCapacity: {
+          period: "this_week",
+          allocation: { period: "this_week" },
+        },
+      },
+    });
+    expect(confirmed.morningBrief?.today.timedCommitments.map(item => item.title))
+      .not.toContain("Tomorrow review");
+  });
+
+  it("withholds Morning Brief composition when the weekly acquisition is partial", async () => {
+    const listBetween = vi.fn();
+    const listBetweenWithCompleteness = vi.fn(async (start: string, end: string, requestedLimit?: number) => ({
+      events: [event],
+      completeness: {
+        sourceId: "google-calendar" as const,
+        windowStart: start,
+        windowEnd: end,
+        requestedLimit: requestedLimit ?? 0,
+        targetDiscovery: "calendar_list" as const,
+        targetCount: 1,
+        targets: [{
+          calendarId: "primary",
+          status: "partial" as const,
+          returnedCount: 1,
+          continuation: "present" as const,
+        }],
+        mergedReturnedCount: 1,
+        mergeTruncated: false,
+        completeness: "partial" as const,
+        observedAt: "2026-09-01T08:30:00.000Z",
+      },
+    }));
+    const deps = {
+      createConnector: () => ({
+        source: "google" as const,
+        listBetween,
+        listBetweenWithCompleteness,
+      }),
+      clock: () => new Date("2026-09-01T08:30:00.000Z"),
+    };
+
+    const pending = await resolveProductionCalendarRead({
+      currentUserUtterance: "Give me my morning brief.",
+    }, deps);
+    const confirmed = await resolveProductionCalendarRead({
+      currentUserUtterance: "Yes",
+      pendingAuthorizationReference: pending.pendingAuthorizationReference,
+    }, deps);
+
+    expect(confirmed.decision).toBe("ALLOW");
+    expect(confirmed.evidence?.coverageState).toBe("bounded_partial_request");
+    expect(confirmed.morningBrief).toBeNull();
+  });
+
 });

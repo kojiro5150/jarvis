@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { assembleMorningExecutiveOrientationBrief } from "../governed-conversation/morning-executive-orientation-assembler";
-import type { GovernedWeeklyCalendarAllocationPublication } from "../governed-conversation/calendar-weekly-allocation-publisher";
+import type {
+  GovernedWeeklyCalendarAllocationPublication,
+} from "../governed-conversation/calendar-weekly-allocation-publisher";
+import type { MorningExecutiveOrientationBrief } from "../governed-conversation/morning-executive-orientation-contract";
 import { renderMorningExecutiveOrientationBrief } from "./morning-executive-orientation-renderer";
 
 const weekly: GovernedWeeklyCalendarAllocationPublication = Object.freeze({
@@ -107,11 +110,15 @@ describe("renderMorningExecutiveOrientationBrief", () => {
   });
 
   it("fails closed if the publication is tampered after assembly", () => {
-    const tampered = {
+    const tampered: MorningExecutiveOrientationBrief = {
       ...brief(),
       weeklyCapacity: {
-        period: "this_week" as const,
-        allocation: { ...weekly, totalTimedMinutes: 661 },
+        period: "this_week",
+        allocation: {
+          ...weekly,
+          period: "this_week",
+          totalTimedMinutes: 661,
+        },
       },
     };
 

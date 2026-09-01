@@ -190,4 +190,31 @@ describe("calendar.read proposal boundary", () => {
       currentUserUtterance: "What needs my attention?",
     })).toMatchObject({ decision: "ASK", authorityEvidence: [] });
   });
+  it("binds Morning Brief purpose plus exact weekly and today windows without granting authority", () => {
+    const clock = () => new Date("2026-09-01T08:30:00.000Z");
+    const proposedOperation = proposeCalendarRead("Give me my morning brief.", clock);
+
+    expect(proposedOperation).toMatchObject({
+      capability: "calendar.read",
+      purpose: "calendar_morning_brief",
+      window: {
+        period: "this_week",
+        start: "2026-08-30T14:00:00.000Z",
+        end: "2026-09-06T14:00:00.000Z",
+        timeZone: "Australia/Melbourne",
+      },
+      morningBriefTodayWindow: {
+        period: "today",
+        start: "2026-08-31T14:00:00.000Z",
+        end: "2026-09-01T14:00:00.000Z",
+        timeZone: "Australia/Melbourne",
+      },
+    });
+
+    expect(evaluateCalendarReadAuthority({
+      proposedOperation: proposedOperation!,
+      currentUserUtterance: "Give me my morning brief.",
+    })).toMatchObject({ decision: "ASK", authorityEvidence: [] });
+  });
+
 });

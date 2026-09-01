@@ -151,6 +151,7 @@ describe("production durable continuity recall adapter", () => {
       handled: true,
       status: "unavailable",
       reply: MODEL_CONTINUITY_UNAVAILABLE_REPLY,
+      diagnostic: "assessment_model_invalid",
     });
 
     expect(model).toHaveBeenCalledTimes(1);
@@ -172,10 +173,29 @@ describe("production durable continuity recall adapter", () => {
       handled: true,
       status: "unavailable",
       reply: MODEL_CONTINUITY_UNAVAILABLE_REPLY,
+      diagnostic: "projection_exception",
     });
 
     expect(createContinuityModelCall).not.toHaveBeenCalled();
     expect(model).not.toHaveBeenCalled();
+  });
+
+  it("classifies a rejected durable projection without widening the user-facing reply", async () => {
+    expect(await resolveProductionModelContinuityRecall({
+      utterance: "What do you remember about status updates?",
+      dependencies: {
+        retrieveProjection: async () => Object.freeze({
+          status: "rejected",
+          purpose: "conversation",
+          reason: "persistence_unavailable",
+        }),
+      },
+    })).toEqual({
+      handled: true,
+      status: "unavailable",
+      reply: MODEL_CONTINUITY_UNAVAILABLE_REPLY,
+      diagnostic: "context_projection_not_available",
+    });
   });
 
   it("does nothing for ordinary conversation", async () => {

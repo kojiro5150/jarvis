@@ -91,7 +91,219 @@ function partitionModelContinuityContext(
   projection: DurablePurposeProjectionResult,
 ): ModelContinuityContextPartitionResult {
   if (projection.status !== "projected") {
-    const partition = partitionModelContinuityContext(projection);
+    const contextBuild = buildModelContinuityContext(projection);
+    if (contextBuild.status === "empty") {
+      return Object.freeze({ status: "empty" });
+    }
+    if (contextBuild.status !== "ready") {
+      return Object.freeze({
+        status: "rejected",
+        diagnostic: contextDiagnostic(contextBuild.reason),
+      });
+    }
+    return Object.freeze({
+      status: "ready",
+      chunks: Object.freeze([contextBuild]),
+    });
+  }
+
+  const chunks: ReadyModelContinuityContextBuild[] = [];
+  let currentItems: Extract<DurablePurposeProjectionResult, { status: "projected" }>["items"][number][] = [];
+
+  for (const item of projection.items) {
+    const candidateItems = [...currentItems, item];
+    const candidateBuild = buildModelContinuityContext(
+      projectedSlice(projection, candidateItems),
+    );
+
+    if (candidateBuild.status === "ready") {
+      currentItems = candidateItems;
+      continue;
+    }
+
+    if (
+      candidateBuild.status !== "rejected"
+      || candidateBuild.reason !== "context_scope_exceeded"
+      || currentItems.length === 0
+    ) {
+      return Object.freeze({
+        status: "rejected",
+        diagnostic: candidateBuild.status === "rejected"
+          ? contextDiagnostic(candidateBuild.reason)
+          : "context_scope_exceeded",
+      });
+    }
+
+    const completedBuild = buildModelContinuityContext(
+      projectedSlice(projection, currentItems),
+    );
+    if (completedBuild.status !== "ready") {
+      return Object.freeze({
+        status: "rejected",
+        diagnostic: completedBuild.status === "rejected"
+          ? contextDiagnostic(completedBuild.reason)
+          : "context_scope_exceeded",
+      });
+    }
+
+    chunks.push(completedBuild);
+    if (chunks.length >= MAX_MODEL_CONTINUITY_CHUNKS) {
+      return Object.freeze({
+        status: "rejected",
+        diagnostic: "context_scope_exceeded",
+      });
+    }
+
+    currentItems = [item];
+    const singleBuild = buildModelContinuityContext(
+      projectedSlice(projection, currentItems),
+    );
+    if (singleBuild.status !== "ready") {
+      return Object.freeze({
+        status: "rejected",
+        diagnostic: singleBuild.status === "rejected"
+          ? contextDiagnostic(singleBuild.reason)
+          : "context_scope_exceeded",
+      });
+    }
+  }
+
+  if (currentItems.length > 0) {
+    const completedBuild = buildModelContinuityContext(
+      projectedSlice(projection, currentItems),
+    );
+    if (completedBuild.status !== "ready") {
+      return Object.freeze({
+        status: "rejected",
+        diagnostic: completedBuild.status === "rejected"
+          ? contextDiagnostic(completedBuild.reason)
+          : "context_scope_exceeded",
+      });
+    }
+    chunks.push(completedBuild);
+  }
+
+  if (chunks.length === 0) {
+    return Object.freeze({ status: "empty" });
+  }
+
+  if (chunks.length > MAX_MODEL_CONTINUITY_CHUNKS) {
+    return Object.freeze({
+      status: "rejected",
+      diagnostic: "context_scope_exceeded",
+    });
+  }
+
+  return Object.freeze({
+    status: "ready",
+    chunks: Object.freeze(chunks),
+  });
+}
+
+const RECALL_PATTERNS = [
+  /^what do you remember about\s+(.+)$/i,
+  /^what have i told you about\s+(.+)$/i,
+  /^show me what you remember about\s+(.+)$/i,
+  /^do you remember what i said about\s+(.+)$/i,
+] as const;
+
+function contextDiagnostic(
+  reason: Extract<ReturnType<typeof buildModelContinuityContext>, { status: "rejected" }>["reason"],
+): ProductionModelContinuityUnavailableDiagnostic {
+  switch (reason) {
+    case "projection_not_available": return "context_projection_not_available";
+    case "wrong_purpose": return "context_wrong_purpose";
+    case "projection_integrity_failure": return "context_projection_integrity_failure";
+    case "context_scope_exceeded": return "context_scope_exceeded";
+  }
+}
+
+function assessmentDiagnostic(
+  status: Exclude<Awaited<ReturnType<typeof assessModelContinuityRelevance>>["status"], "assessed">,
+): ProductionModelContinuityUnavailableDiagnostic {
+  switch (status) {
+    case "invalid_input": return "assessment_invalid_input";
+    case "model_invalid": return "assessment_model_invalid";
+    case "model_failed": return "assessment_model_failed";
+  }
+}
+
+function resolutionDiagnostic(
+  reason: Extract<ReturnType<typeof resolveModelContinuityAssessment>, { status: "rejected" }>["reason"],
+): ProductionModelContinuityUnavailableDiagnostic {
+  switch (reason) {
+    case "context_not_ready": return "resolution_context_not_ready";
+    case "binding_integrity_failure": return "resolution_binding_integrity_failure";
+    case "assessment_invalid": return "resolution_assessment_invalid";
+  }
+}
+
+function renderDiagnostic(
+  reason: Extract<ReturnType<typeof renderModelContinuityPresentation>, { status: "rejected" }>["reason"],
+): ProductionModelContinuityUnavailableDiagnostic {
+  switch (reason) {
+    case "invalid_presentation": return "render_invalid_presentation";
+    case "render_scope_exceeded": return "render_scope_exceeded";
+  }
+}
+
+function normalizedRecallUtterance(value: string): string {
+  return value
+    .normalize("NFKC")
+    .replace(/[‘’]/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function isDurableContinuityRecallRequest(utterance: string): boolean {
+  const normalized = normalizedRecallUtterance(utterance);
+  return RECALL_PATTERNS.some(pattern => {
+    const match = normalized.match(pattern);
+    return typeof match?.[1] === "string" && match[1].trim().length > 0;
+  });
+}
+
+async function defaultProjection(): Promise<DurablePurposeProjectionResult> {
+  const config = loadSupabaseOperatingPictureConfig();
+  if (!config) {
+    return Object.freeze({
+      status: "rejected",
+      purpose: MODEL_CONTINUITY_PURPOSE,
+      reason: "persistence_unavailable",
+    });
+  }
+
+  const { durableStore } = createSupabaseOperatingPicturePersistence(config);
+  return retrieveDurableOperatingPictureForPurpose(
+    durableStore,
+    MODEL_CONTINUITY_PURPOSE,
+  );
+}
+
+export async function resolveProductionModelContinuityRecall(input: Readonly<{
+  utterance: string;
+  dependencies?: ProductionModelContinuityDependencies;
+}>): Promise<ProductionModelContinuityRecallResult> {
+  if (!isDurableContinuityRecallRequest(input.utterance)) {
+    return Object.freeze({
+      handled: false,
+      status: "unsupported",
+    });
+  }
+
+  let projection: DurablePurposeProjectionResult;
+  try {
+    projection = await (input.dependencies?.retrieveProjection ?? defaultProjection)();
+  } catch {
+    return Object.freeze({
+      handled: true,
+      status: "unavailable",
+      reply: CONTINUITY_UNAVAILABLE_REPLY,
+      diagnostic: "projection_exception",
+    });
+  }
+
+  const partition = partitionModelContinuityContext(projection);
 
   if (partition.status === "empty") {
     return Object.freeze({
@@ -157,11 +369,9 @@ function partitionModelContinuityContext(
     }
 
     const rendered = renderModelContinuityPresentation(presentation);
-
     if (rendered.status === "not_relevant") {
       continue;
     }
-
     if (rendered.status !== "rendered") {
       return Object.freeze({
         handled: true,
@@ -171,8 +381,7 @@ function partitionModelContinuityContext(
       });
     }
 
-    const lines = rendered.text.split("\n");
-    renderedLines.push(...lines.slice(1));
+    renderedLines.push(...rendered.text.split("\n").slice(1));
   }
 
   if (renderedLines.length === 0) {

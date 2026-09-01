@@ -149,7 +149,7 @@ describe("production explicit user continuity capture", () => {
     });
     expect(first.clarificationReference).toBeTruthy();
 
-    const persist = vi.fn(async () => ({
+    const persist = vi.fn(async (_candidate: UserContinuityCaptureCandidate) => ({
       status: "persisted" as const,
       recordId: "user-continuity:test-clarified",
       versionId: "version-2",

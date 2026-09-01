@@ -7,6 +7,41 @@ import {
   resolveProductionModelContinuityRecall,
 } from "./production-model-continuity";
 
+function projectedMany(count: number): Extract<DurablePurposeProjectionResult, { status: "projected" }> {
+  const items = Array.from({ length: count }, (_, index) => Object.freeze({
+    recordId: `record:user:${index + 1}`,
+    versionId: `version:user:${index + 1}`,
+    purpose: "conversation",
+    semanticClass: "user_assertion" as const,
+    lifecycle: "current" as const,
+    recoveryDisposition: "recoverable_user_continuity" as const,
+    subject: Object.freeze({
+      namespace: "user",
+      entity: "product_gap",
+      attribute: `gap_${index + 1}`,
+      revision: "append_only" as const,
+    }),
+    payload: Object.freeze({ statement: `JARVIS product gap ${index + 1}` }),
+    visibilityPurposes: Object.freeze(["conversation"]),
+    validFrom: null,
+    validUntil: null,
+    staleAfter: null,
+    authorshipSource: "user" as const,
+    authorshipAt: "2026-09-01T10:00:00.000Z",
+  }));
+
+  return Object.freeze({
+    status: "projected",
+    purpose: "conversation",
+    items: Object.freeze(items),
+    decisions: Object.freeze(items.map(item => Object.freeze({
+      recordId: item.recordId,
+      headVersionId: item.versionId,
+      status: "admitted" as const,
+    }))),
+  });
+}
+
 function projected(): Extract<DurablePurposeProjectionResult, { status: "projected" }> {
   return Object.freeze({
     status: "projected",
@@ -91,6 +126,34 @@ describe("production durable continuity recall adapter", () => {
     const serializedModelPayload = JSON.stringify(model.mock.calls[0]?.[1]);
     expect(serializedModelPayload).not.toContain("record:user:1");
     expect(serializedModelPayload).not.toContain("version:user:1");
+  });
+
+  it("recalls continuity beyond the single-context item limit by using bounded relevance chunks", async () => {
+    const createContinuityModelCall = vi.fn((allowedContinuityIds: readonly string[]) =>
+      vi.fn(async () => JSON.stringify({
+        responseType: "continuity_relevance",
+        relevance: "relevant",
+        relevantItemIds: allowedContinuityIds,
+      })));
+
+    const result = await resolveProductionModelContinuityRecall({
+      utterance: "What do you remember about JARVIS product gaps?",
+      dependencies: {
+        retrieveProjection: async () => projectedMany(13),
+        createContinuityModelCall,
+      },
+    });
+
+    expect(result.status).toBe("rendered");
+    expect(createContinuityModelCall).toHaveBeenCalledTimes(2);
+    expect(createContinuityModelCall.mock.calls[0]?.[0]).toHaveLength(12);
+    expect(createContinuityModelCall.mock.calls[1]?.[0]).toHaveLength(1);
+
+    if (result.status === "rendered") {
+      expect(result.reply).toContain('{"statement":"JARVIS product gap 1"}');
+      expect(result.reply).toContain('{"statement":"JARVIS product gap 13"}');
+      expect(result.reply.match(/Relevant remembered context:/g)).toHaveLength(1);
+    }
   });
 
   it("returns deterministic no-relevant continuity without a model call for an empty projection", async () => {

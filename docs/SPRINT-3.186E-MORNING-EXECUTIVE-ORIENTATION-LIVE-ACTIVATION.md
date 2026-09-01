@@ -1,6 +1,7 @@
 # Sprint 3.186E — Morning Executive Orientation Live Activation and Acceptance
 
-**Status:** Implementation for review  
+**Status:** **LIVE PASS / FROZEN — verified 1 September 2026**  
+**Live acceptance record:** `docs/SPRINT-3.186-MORNING-EXECUTIVE-ORIENTATION-LIVE-PASS.md`  
 **Baseline:** merged Sprint 3.186C / PR #508 (`9e5de0d27d8433a65e4ae4ccd4355eec3cb506b0`)  
 **Supported-change composition:** Deferred / not activated  
 **Model participation in Morning Brief:** None  
@@ -110,3 +111,5 @@ Any later supported-change work must preserve the existing `deterministic_policy
 ## Exit condition
 
 > The production JARVIS route can truthfully answer `Give me my morning brief.` after explicit Calendar confirmation using one complete governed Calendar read, a closed structured publication, and deterministic model-free rendering.
+
+This exit condition was subsequently verified against the live production path on 1 September 2026. The implementation document is now historical evidence of the shipped boundary; the frozen live acceptance record is `docs/SPRINT-3.186-MORNING-EXECUTIVE-ORIENTATION-LIVE-PASS.md`.

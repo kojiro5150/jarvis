@@ -30,6 +30,15 @@ export type MorningExecutiveOrientationAssemblyInput = Readonly<{
   weeklyAllocation: GovernedWeeklyCalendarAllocationPublication;
 }>;
 
+const WEEKLY_MODES = Object.freeze([
+  "routine",
+  "deep_work",
+  "reflection",
+  "development",
+  "self_care",
+  "unclassified",
+] as const);
+
 function isTimestamp(value: string): boolean {
   return Number.isFinite(Date.parse(value))
     && /(?:Z|[+-]\d{2}:\d{2})$/.test(value);
@@ -40,7 +49,7 @@ function isWindow(start: string, end: string): boolean {
 }
 
 function weeklyArithmeticReconciles(publication: GovernedWeeklyCalendarAllocationPublication): boolean {
-  const values = Object.values(publication.minutesByMode);
+  const values = WEEKLY_MODES.map(mode => publication.minutesByMode[mode]);
   if (values.some(minutes => !Number.isFinite(minutes) || minutes < 0)) return false;
   if (!Number.isFinite(publication.semanticUnavailableMinutes) || publication.semanticUnavailableMinutes < 0) return false;
   if (!Number.isFinite(publication.precedenceTieMinutes) || publication.precedenceTieMinutes < 0) return false;

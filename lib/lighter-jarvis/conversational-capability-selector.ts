@@ -25,6 +25,7 @@ const SELECTOR_PROMPT = [
 const PUBLIC_INFORMATION_SIGNAL = /\b(?:weather|rain|forecast|temperature|ssrn)\b/i;
 const GMAIL_SIGNAL = /\b(?:gmail|gmails|email|emails|inbox)\b/i;
 const GMAIL_REQUEST_FORM = /(?:\b(?:show|check|get|search|find|list|read|open|summari[sz]e)\b|^\s*(?:what|which|who|where|when|how)\b)/i;
+const GMAIL_MUTATION_SIGNAL = /(?:\b(?:send|reply|forward|archive|delete|trash|move|label|route|filter)\b|\b(?:create|make|add)\b[^.]{0,60}\b(?:label|folder|filter|rule)\b)/i;
 const DRIVE_SIGNAL = /\bdrive\b/i;
 const CONVERSATION_HISTORY_REFERENCE =
   /\b(?:what\s+(?:were|was)\s+(?:we|i|you)\s+(?:talking|discussing)\s+about|what\s+did\s+we\s+(?:talk|discuss)\s+about)\s+before\s+(?:that|the)\s+(?:email|message)\b/i;
@@ -53,6 +54,12 @@ export function deterministicCapabilityConstraint(utterance: string): Determinis
 
 export function isConversationalCapabilitySelectionCandidate(utterance: string): boolean {
   return deterministicCapabilityConstraint(utterance) !== null;
+}
+
+export function isUnsupportedGmailMutationRequest(utterance: string): boolean {
+  const normalized = utterance.normalize("NFKC");
+  return GMAIL_SIGNAL.test(normalized)
+    && GMAIL_MUTATION_SIGNAL.test(normalized);
 }
 
 function parseModelJson(text: string): unknown {

@@ -8,7 +8,8 @@ import type {
 } from "./model-continuity-assessment";
 import type { ModelContinuityId } from "./model-continuity-contract";
 
-const TOOL_NAME = "continuity_relevance";
+const RELEVANT_TOOL_NAME = "continuity_relevance_relevant";
+const NOT_RELEVANT_TOOL_NAME = "continuity_relevance_not_relevant";
 
 type AnthropicToolUseBlock = Readonly<{
   type: "tool_use";
@@ -33,6 +34,49 @@ function hasNonEmptyTextBlock(value: unknown): boolean {
     && block.text.trim().length > 0;
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object"
+    && value !== null
+    && !Array.isArray(value);
+}
+
+function canonicalAssessmentFromToolUse(toolUse: AnthropicToolUseBlock): string {
+  if (!isPlainObject(toolUse.input)) {
+    throw new Error("Continuity classifier returned invalid tool input.");
+  }
+
+  if (toolUse.name === RELEVANT_TOOL_NAME) {
+    const keys = Object.keys(toolUse.input);
+    if (
+      keys.length !== 1
+      || keys[0] !== "relevantItemIds"
+      || !Array.isArray(toolUse.input.relevantItemIds)
+    ) {
+      throw new Error("Continuity relevant classifier returned invalid tool input.");
+    }
+
+    return JSON.stringify({
+      responseType: "continuity_relevance",
+      relevance: "relevant",
+      relevantItemIds: toolUse.input.relevantItemIds,
+    });
+  }
+
+  if (toolUse.name === NOT_RELEVANT_TOOL_NAME) {
+    if (Object.keys(toolUse.input).length !== 0) {
+      throw new Error("Continuity not-relevant classifier returned invalid tool input.");
+    }
+
+    return JSON.stringify({
+      responseType: "continuity_relevance",
+      relevance: "not_relevant",
+      relevantItemIds: [],
+    });
+  }
+
+  throw new Error("Continuity classifier returned an unexpected tool.");
+}
+
 export function createRequiredClaudeContinuityModelCall(
   allowedContinuityIds: readonly ModelContinuityId[],
 ): ModelContinuityAssessmentModelCall {
@@ -49,63 +93,40 @@ export function createRequiredClaudeContinuityModelCall(
         role: message.role,
         content: message.content,
       })),
-      tools: [{
-        name: TOOL_NAME,
-        description: "Return only the closed durable-continuity relevance assessment.",
-        input_schema: {
-          type: "object",
-          properties: {
-            responseType: {
-              type: "string",
-              enum: ["continuity_relevance"],
-            },
-            relevance: {
-              type: "string",
-              enum: ["relevant", "not_relevant"],
-            },
-            relevantItemIds: {
-              type: "array",
-              items: {
-                type: "string",
-                enum: [...allowedIds],
+      tools: [
+        {
+          name: RELEVANT_TOOL_NAME,
+          description: "Use only when one or more supplied continuity items are directly relevant. Return the relevant continuity IDs only.",
+          input_schema: {
+            type: "object",
+            properties: {
+              relevantItemIds: {
+                type: "array",
+                minItems: 1,
+                uniqueItems: true,
+                items: {
+                  type: "string",
+                  enum: [...allowedIds],
+                },
               },
             },
+            required: ["relevantItemIds"],
+            additionalProperties: false,
           },
-          required: ["responseType", "relevance", "relevantItemIds"],
-          additionalProperties: false,
-          oneOf: [
-            {
-              properties: {
-                relevance: {
-                  type: "string",
-                  enum: ["relevant"],
-                },
-                relevantItemIds: {
-                  type: "array",
-                  minItems: 1,
-                },
-              },
-              required: ["relevance", "relevantItemIds"],
-            },
-            {
-              properties: {
-                relevance: {
-                  type: "string",
-                  enum: ["not_relevant"],
-                },
-                relevantItemIds: {
-                  type: "array",
-                  maxItems: 0,
-                },
-              },
-              required: ["relevance", "relevantItemIds"],
-            },
-          ],
         },
-      }],
+        {
+          name: NOT_RELEVANT_TOOL_NAME,
+          description: "Use only when none of the supplied continuity items are directly relevant.",
+          input_schema: {
+            type: "object",
+            properties: {},
+            required: [],
+            additionalProperties: false,
+          },
+        },
+      ],
       tool_choice: {
-        type: "tool",
-        name: TOOL_NAME,
+        type: "any",
       },
     } as MessageCreateParamsNonStreaming);
 
@@ -116,13 +137,10 @@ export function createRequiredClaudeContinuityModelCall(
     }
 
     const toolUses = content.filter(isToolUseBlock);
-    if (
-      toolUses.length !== 1
-      || toolUses[0].name !== TOOL_NAME
-    ) {
+    if (toolUses.length !== 1) {
       throw new Error("Continuity classifier did not return exactly one required tool use.");
     }
 
-    return JSON.stringify(toolUses[0].input);
+    return canonicalAssessmentFromToolUse(toolUses[0]);
   };
 }

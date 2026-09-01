@@ -68,6 +68,46 @@ const RECALL_PATTERNS = [
   /^do you remember what i said about\s+(.+)$/i,
 ] as const;
 
+function contextDiagnostic(
+  reason: Extract<ReturnType<typeof buildModelContinuityContext>, { status: "rejected" }>["reason"],
+): ProductionModelContinuityUnavailableDiagnostic {
+  switch (reason) {
+    case "projection_not_available": return "context_projection_not_available";
+    case "wrong_purpose": return "context_wrong_purpose";
+    case "projection_integrity_failure": return "context_projection_integrity_failure";
+    case "context_scope_exceeded": return "context_scope_exceeded";
+  }
+}
+
+function assessmentDiagnostic(
+  status: Exclude<Awaited<ReturnType<typeof assessModelContinuityRelevance>>["status"], "assessed">,
+): ProductionModelContinuityUnavailableDiagnostic {
+  switch (status) {
+    case "invalid_input": return "assessment_invalid_input";
+    case "model_invalid": return "assessment_model_invalid";
+    case "model_failed": return "assessment_model_failed";
+  }
+}
+
+function resolutionDiagnostic(
+  reason: Extract<ReturnType<typeof resolveModelContinuityAssessment>, { status: "rejected" }>["reason"],
+): ProductionModelContinuityUnavailableDiagnostic {
+  switch (reason) {
+    case "context_not_ready": return "resolution_context_not_ready";
+    case "binding_integrity_failure": return "resolution_binding_integrity_failure";
+    case "assessment_invalid": return "resolution_assessment_invalid";
+  }
+}
+
+function renderDiagnostic(
+  reason: Extract<ReturnType<typeof renderModelContinuityPresentation>, { status: "rejected" }>["reason"],
+): ProductionModelContinuityUnavailableDiagnostic {
+  switch (reason) {
+    case "invalid_presentation": return "render_invalid_presentation";
+    case "render_scope_exceeded": return "render_scope_exceeded";
+  }
+}
+
 function normalizedRecallUtterance(value: string): string {
   return value
     .normalize("NFKC")
@@ -139,7 +179,7 @@ export async function resolveProductionModelContinuityRecall(input: Readonly<{
       handled: true,
       status: "unavailable",
       reply: CONTINUITY_UNAVAILABLE_REPLY,
-      diagnostic: `context_${contextBuild.reason}` as ProductionModelContinuityUnavailableDiagnostic,
+      diagnostic: contextDiagnostic(contextBuild.reason),
     });
   }
 
@@ -159,7 +199,7 @@ export async function resolveProductionModelContinuityRecall(input: Readonly<{
       handled: true,
       status: "unavailable",
       reply: CONTINUITY_UNAVAILABLE_REPLY,
-      diagnostic: `assessment_${reasoning.status}` as ProductionModelContinuityUnavailableDiagnostic,
+      diagnostic: assessmentDiagnostic(reasoning.status),
     });
   }
 
@@ -172,7 +212,7 @@ export async function resolveProductionModelContinuityRecall(input: Readonly<{
       handled: true,
       status: "unavailable",
       reply: CONTINUITY_UNAVAILABLE_REPLY,
-      diagnostic: `resolution_${resolution.reason}` as ProductionModelContinuityUnavailableDiagnostic,
+      diagnostic: resolutionDiagnostic(resolution.reason),
     });
   }
   const presentation = projectModelContinuityPresentation(resolution);
@@ -200,7 +240,7 @@ export async function resolveProductionModelContinuityRecall(input: Readonly<{
       handled: true,
       status: "unavailable",
       reply: CONTINUITY_UNAVAILABLE_REPLY,
-      diagnostic: `render_${rendered.reason}` as ProductionModelContinuityUnavailableDiagnostic,
+      diagnostic: renderDiagnostic(rendered.reason),
     });
   }
 

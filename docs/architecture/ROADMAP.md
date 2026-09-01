@@ -67,6 +67,10 @@ durable continuity
 
 The next milestone must prove that a durable continuity item is created only when the user explicitly asks JARVIS to remember something. Model interpretation may help construct a bounded candidate, but it may not become the author, promote the content into fact, infer standing authority, or capture unrelated transcript material.
 
+For the first experiment, the system does **not** use a model to decide whether a capture instruction exists. Capture intent is a deliberately small deterministic command surface for unmistakable current-turn remember/retain instructions. Inputs outside that grammar remain ordinary conversation. This is intentionally narrower than general natural-language understanding and must not grow into an open-ended regex coverage strategy.
+
+Semantic classification is separately fail-closed. If the content cannot be assigned exactly one admissible class from `user_assertion | preference | plan | commitment | decision`, nothing is persisted. A closed classifier must be able to return an explicit ambiguous/non-committal outcome, and JARVIS asks the user to clarify rather than guessing a permanent append-only class.
+
 For the first experiment, revision semantics are deliberately `append_only`. If the user later explicitly captures a contradictory preference, plan, commitment, decision, or assertion, both statements remain distinct historical user-authored continuity. No automatic supersession, mutation, contradiction resolution, or latest-wins behaviour is authorised yet. `explicit_replacement` requires a later governed reference-resolution milestone.
 
 The same rule applies on the read side. If multiple current records about the same subject are all admissible for a purpose, projection and presentation may not quietly discard the older one, privilege the newer one, or present one as the resolved truth merely because the records conflict. Until a separately governed reconciliation mechanism exists, admissible conflict must remain visible rather than being cosmetically resolved.

@@ -1,15 +1,19 @@
 import type { CalendarFactualQuery } from "./calendar-factual-query";
+import type { CalendarReadWindow } from "./calendar-read-window";
+
 export const CALENDAR_READ_CAPABILITY = "calendar.read" as const;
 export type ProposedCalendarReadOperation = Readonly<{
   capability: typeof CALENDAR_READ_CAPABILITY;
-  window: import("./calendar-read-window").CalendarReadWindow;
+  window: CalendarReadWindow;
   /**
-   * Optional presentation intent retained inside the server-owned pending
-   * operation. It never grants authority or widens the Calendar read.
+   * Optional presentation/composition intent retained inside the server-owned
+   * pending operation. It never grants authority or widens the Calendar read.
    */
-  purpose?: "calendar_attention" | "calendar_weekly_allocation" | "calendar_factual_query" | "calendar_advise" | "calendar_act_validation";
+  purpose?: "calendar_attention" | "calendar_weekly_allocation" | "calendar_factual_query" | "calendar_morning_brief" | "calendar_advise" | "calendar_act_validation";
   /** Server-owned deterministic factual selector intent; never model context. */
   factualQuery?: CalendarFactualQuery;
+  /** Exact today sub-window bound at proposal time for Morning Brief composition. */
+  morningBriefTodayWindow?: CalendarReadWindow;
 }>;
 /** Retained name for the closed Calendar proposal API. */
 export type ProposedOperation = ProposedCalendarReadOperation;
@@ -38,14 +42,6 @@ const EXPLICIT_READ = /(?:\b(?:show|check|view|see|list|read|open)\b[\s\S]*\b(?:
 const NEGATED_READ = /\b(?:(?:do\s+not|don't|cannot|can't|never|not)\b[^.!?\n]{0,80}\b(?:show|check|view|see|list|read|open)|(?:show|check|view|see|list|read|open)\b[^.!?\n]{0,80}\bnot\b[^.!?\n]{0,40}\b(?:my\s+)?calendars?)\b/i;
 const NON_READ_ONLY_WORDING = /\b(?:add|book|cancel|create|delete|edit|invite|move|remove|reschedule|schedule|update|write)\b/i;
 
-/**
- * Evaluates the complete isolated authority policy for Calendar reads.
- *
- * This is an eligibility decision, not a grant or an execution instruction.
- * The proposed operation is non-authoritative. Only an applicable explicit
- * statement in the current utterance can establish authority; prior context,
- * ambiguous wording and read-write wording cannot.
- */
 export function evaluateCalendarReadAuthority(
   request: CalendarReadAuthorityRequest,
 ): CalendarReadAuthorityDecision {

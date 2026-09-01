@@ -1,215 +1,388 @@
-# JARVIS — Phase 1
+# JARVIS
 
-Personal AI dashboard shell. Next.js (App Router, TypeScript, Tailwind), deployable free on Vercel. Single-user, not commercial.
+JARVIS is a personal **Executive Operating System**: one persistent intelligence that combines natural conversation with governed access to private data, durable continuity, deterministic executive cognition, public research, and narrowly authorised action.
 
-## Design Philosophy
+> **JARVIS may propose authority-requiring operations. JARVIS may never manufacture the authority to perform them.**
+>
+> **JARVIS is unconstrained in cognition and constrained in authority.**
 
-**[DESIGN_CONSTITUTION.md](./DESIGN_CONSTITUTION.md) is the canonical source of truth for how JARVIS behaves and how the system is architected.** Read it before adding features or editing agent prompts. If code and constitution ever disagree, fix the code.
+The product boundary is:
 
-Short version, for orientation:
+~~~text
+USER ↔ JARVIS
+~~~
 
-- JARVIS is an operating system, not a chatbot — its job is orchestration, not expertise (Principle 1).
-- It demonstrates capability rather than announcing it, never opens with a limitation, and always leaves Sam better positioned than before the response (Principles 2, 4, 7).
-- It speaks in executive language — operational picture, priority, recommendation, signal, risk, decision — with calm, unflattering confidence (Principles 5, 6).
-- The system has two layers (Principle 8): **Executive Operations** — JARVIS and DAWNWATCH, who maintain situational awareness and orchestrate but aren't subject-matter experts — and **Specialist Intelligence** — ORACLE, HERALD, CO-WORK, STEVE, PHDSS, and MARCUS, each with a bounded function. This is encoded as `tier: "executive" | "specialist"` on `AgentDefinition` (`lib/agents/types.ts`) and drives the grouped sections in `components/AgentRail.tsx`.
-- Facts, inferences, recommendations, and unknowns stay distinguishable — never fabricated certainty (Principle 16).
+Named specialists may still exist as internal reasoning or implementation modules, but they are not the user's coordination model and they do not carry independent authority.
 
-Implementation:
+## Current state — 1 September 2026
 
-- `lib/agents/persona.ts` — `CHARACTER_RULES` / `withCharacter()`, the shared behavioral rules appended to every agent's system prompt. Tune tone once here rather than per agent.
-- `lib/agents/*.ts` — one file per agent, each carrying its role, tier, and system prompt.
-- `lib/briefing.ts` — computes each agent's opening state from an `OperationalPicture` (local memory + connectors, see below), no model call, renders instantly. JARVIS's opening brief follows a fixed executive-briefing template (see the comment above `jarvisBrief()`).
+JARVIS is well beyond the original Phase-1 dashboard prototype. The current repository includes a single governed conversational runtime, live Google connectors, a Governed Operating Picture with durable Supabase-backed continuity, bounded public-web research, deterministic executive cognition, and one narrowly verified Calendar action path.
 
-One deliberate exception, noted in the constitution: **STEVE** (Engineering and software) is allowed to discuss the actual stack (Next.js, Vercel, Supabase, etc.) because that's literally the job when Sam is in an engineering conversation with him — Principle 3 only restricts *unprompted* architecture talk from the other agents.
+The current product direction is **everyday executive cognition**: awareness, orientation, attention, dependency recognition, capacity understanding, planning support, role-aware context and progressively stronger voice-first use.
 
-## Architecture
+For the current architectural and product state, see:
 
-Before contributing to this repository, please read:
-
-- [Engineering Constitution](./docs/ENGINEERING_CONSTITUTION.md)
 - [North Star](./docs/architecture/NORTH_STAR.md)
-- [Constitutional Publication Principles](./docs/CONSTITUTIONAL-PUBLICATION-PRINCIPLES.md) for the
-  permanent rules governing immutable Executive Operating System publications
-- [ADR-0023 — Evidence-Driven Canonical Evolution](./docs/architecture/ADR-0023-Evidence-Driven-Canonical-Evolution.md)
-  for the evidentiary standard governing when new canonical publications may be introduced
+- [Engineering Constitution](./docs/ENGINEERING_CONSTITUTION.md)
+- [JARVIS Governance Core](./docs/architecture/JARVIS-GOVERNANCE-CORE.md)
+- [Roadmap](./docs/architecture/ROADMAP.md)
 
-## What's in Phase 1
+## Core trust model
 
-- **v2 UI**: a persistent left agent rail, a top bar, a dashboard column that is always JARVIS's overall operational view (an enlarged central orb with quick actions, then a responsive card grid — DAWNWATCH Briefing, Calendar Snapshot, Communications Snapshot, Projects Overview, Agent Status, Live Intelligence Feed, Voice Interface, JARVIS Memory, Quick Commands), and a fixed-height conversation dock docked across the bottom of the screen (~30–35vh, independent scroll, persistent input, full markdown rendering with collapsible sections for long replies). Selecting a different agent in the rail changes who the dock is talking to — it never changes what the dashboard above it shows; that dashboard is always JARVIS's operational view. See `components/dashboard/DashboardShell.tsx`.
-- 8 agents — JARVIS, DAWNWATCH, ORACLE, HERALD, STEVE, CO-WORK, PHDSS, MARCUS — each defined in its own file under `lib/agents/`, with its own system prompt, tier, and accent color.
-- `/api/chat` — a server-only route that calls the Claude API. Your Anthropic key never reaches the browser.
-- A local, file-backed **project memory** layer (`lib/memory/`) and **Calendar / Gmail / Drive connector interfaces** (`lib/connectors/`) — see "Memory & Connectors" below. Calendar and Gmail both now have real Google connectors (OAuth, read-only); Drive is still local-only — that's future work.
-- Voice (ElevenLabs) is stubbed in the UI but not wired up — that's a later phase.
+JARVIS deliberately separates cognition from authority.
 
-## v2 UI architecture
+Model output may interpret, explain, challenge, synthesise, draft and propose. It does **not** become evidence, provenance, authority, verification or completion proof merely because it is fluent or correct.
 
-The redesign is a presentation-layer swap only — **zero backend files changed**. `lib/operational-state.ts`, every file under `lib/connectors/` and `lib/memory/`, `lib/briefing.ts`, `lib/context-builder.ts`, every `lib/agents/*.ts` prompt, the OAuth routes, and every `app/api/*` route are byte-for-byte what Sprint 2.7 (v11) shipped. What changed is how that same data is arranged on screen:
+The governing rule is:
 
-- `components/dashboard/DashboardShell.tsx` — the new top-level layout. Lifts one `useAgentConversation(agent)` instance so both the orb and the conversation dock share the same `loading`/`messages`/`send` without duplicating fetch logic. Owns which agent the rail has selected, and passes the *same* `operationalState` to the dashboard cards, the orb, and the dock — there's still exactly one `OperationalState` per render, per Sprint 2.4.
-- `components/dashboard/OrbCenterpiece.tsx` — the enlarged orb (reuses the existing `Orb.tsx` unchanged, just at a bigger size) plus Voice / Search / Brief Me / Focus / Ask JARVIS quick actions. Voice and Search are honest inert placeholders, matching the existing "Voice channel standing by" language rather than pretending those features exist.
-- `components/dashboard/ConversationDock.tsx` — fixed-height dock (`clamp(280px, 32vh, 420px)`, i.e. 30–35% of viewport height as requested) across the bottom of the screen, independent scroll region, persistent input bar. The dashboard column above it is a separate scroll container — nothing in the dock can move it.
-- `lib/useAgentConversation.ts` — the conversation state/fetch logic extracted from the old `CommandConsole.tsx`, unchanged in behavior (same request shape to `/api/chat`, same error copy), just reusable outside one component.
-- `components/markdown/MarkdownMessage.tsx` + `components/ui/CollapsibleSection.tsx` — full Markdown/GFM/syntax-highlighted rendering for every message; responses with two or more `##` headings automatically split into collapsible sections (first one open) instead of one long wall of text.
-- New cards replacing the old right-hand `RightPanel.tsx`: `components/cards/VoiceInterfaceCard.tsx`, `QuickCommandsCard.tsx`, and `MemoryGaugeCard.tsx` (same copy/behavior as before, including the exact Calendar/Gmail 3-phrase status language, just relocated into the card grid), plus a new `LiveSystemFeedCard.tsx` that re-presents the same `OperationalState` (latest email, next commitment, leading signal, any non-"online" connector status) as a feed — no new polling, no invented sources.
-- `PrioritiesCard.tsx`, `CalendarCard.tsx`, `ProjectsCard.tsx`, `AgentStatusCard.tsx` — visual restyle only, identical props. `CommunicationsCard.tsx` additionally buckets messages into Needs Reply / Waiting / Automated / Information — a client-side reclassification of the existing `EmailMessage` fields (`needsReply`, `important`, `sourceLabel`, sender-address pattern), not a new backend signal. `AgentStatusCard.tsx` now shows real status (thinking / online / standing by) derived from which agent the dock is currently talking to and whether that request is in flight, rather than a static "All Ready" dot for every agent.
-- Retired: `CommandConsole.tsx`, `RightPanel.tsx`, `components/cards/SignalsRow.tsx`. Their responsibilities moved into the components above; they're excluded from this package rather than kept as dead code.
-- New dependencies, all MIT-licensed, no paid services: `react-markdown`, `remark-gfm`, `rehype-highlight` (plus its transitive `highlight.js`, whose `atom-one-dark` theme is imported in `app/globals.css`).
+~~~text
+model-authored material
+        ↓
+proposal / interpretation / reasoning
+        ↓
+deterministic or governed boundary
+        ↓
+authority / evidence / execution / verification
+~~~
 
-## Memory & Connectors
+Important consequences:
 
-Two related but distinct pieces of architecture, both added ahead of any real backing service so the rest of the app is already coded against the right shape:
+- private acquisition requires an explicit governed path;
+- model output cannot manufacture permission;
+- persisted memory does not rehydrate authority;
+- external actions require independently established authority;
+- consequential completion claims require independent verification;
+- unsupported or invalid states fail closed rather than being filled with plausible prose.
 
-**Local project memory** (`lib/memory/`) — `schema.ts` defines `MemoryStore` (priorities, projects, signals, plus the sections the local connectors read from). `seed.ts` is the default content. `store.ts` is a server-only, file-backed store (`data/memory.json`, created on first run): `readMemory()`, `writeMemory()`, `updateMemory(patch)`. Reads and writes genuinely persist across requests and `npm run dev` restarts on your machine. They will **not** persist on Vercel — its production filesystem is read-only outside `/tmp`, which doesn't survive between invocations — so writes there fail silently (logged, not thrown) and reads fall back to the seed baked into the deployment. That's intentional graceful degradation, not a bug; real persistence is still the Supabase phase. `app/api/memory` exposes this over HTTP (`GET` / `PATCH`).
+## Conversational runtime
 
-**Calendar / Gmail / Drive connectors** (`lib/connectors/`) — one interface per domain (`CalendarConnector`, `GmailConnector`, `DriveConnector`). Drive has only a `LocalDriveConnector`, reading its slice of the local memory store. Calendar and Gmail each have both: a `Local*Connector` and a real `Google*Connector` (`lib/connectors/google/calendar.ts`, `lib/connectors/google/gmail.ts`), selected by each domain's `getXConnector()` factory — nothing above the connector layer (cards, briefing, agent prompts) knows or cares which one is active. The two Google connectors share one token store and one token-refresh helper (`lib/connectors/google/access-token.ts`), since one OAuth grant covers both. `app/api/operational-state` combines memory + all three connectors into the one payload the dashboard and every agent read from.
+The sole production conversational runtime is:
 
-Each connector is intentionally mapped to the specialist whose domain it is, not treated as generic plumbing: Calendar feeds DAWNWATCH/JARVIS, Gmail feeds HERALD, Drive feeds CO-WORK (`lib/briefing.ts`).
+~~~text
+/api/lighter/chat
+~~~
 
-### Connecting Google Calendar + Gmail (real)
+The former compatibility `/api/chat` conversational path has been retired from production use.
 
-Calendar and Gmail share one Google OAuth grant — connecting either one requests both scopes in the same consent screen. Setup:
+Typed and voice turns share the governed conversational path. Deterministic capability and authority handling occurs before ordinary model invocation where the capability permits it.
 
-1. In Google Cloud Console, use (or create) an OAuth 2.0 **Web application** client with the Calendar API **and** the Gmail API both enabled.
-2. Add `http://localhost:3000/api/auth/google/callback` as an Authorized redirect URI (and your production URL's equivalent, if deployed).
-3. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI` in `.env.local` (see `.env.local.example`).
-4. Click **Connect Calendar** or **Connect Gmail** in the dashboard's CONNECTORS panel (both hit the same `/api/auth/google/start`). You'll get Google's consent screen, requesting **only** `calendar.readonly` and `gmail.readonly` — no write, send, or modify access, no other scopes.
-5. Tokens are stored server-side in `data/google-tokens.json` (git-ignored, same pattern as `data/memory.json`) — never sent to the browser, never returned by any API response. One token pair backs both connectors (`lib/connectors/google/access-token.ts`).
+Ordinary free-form model context remains bounded to 40 conversation messages. Current-turn governed paths that do not require the whole transcript can operate before that ordinary-model cap.
 
-**Calendar** reads **every calendar the account can see** (via `calendarList.list`, skipping ones hidden or deleted from your own list) — not just `primary` — fetches the next 7 days from each in parallel, and merges the results into one chronological list. Each event keeps its source calendar (`calendarId`, `calendarName`, and `calendarColor` if set), so a "Governance Engineering" event and a personal calendar event both show up, labeled and color-dotted with the calendar they came from.
+## Governed private capabilities
 
-**Gmail** reads the authenticated account's inbox, excluding promotions/social/spam/trash, and — per Sam's own setup, where `info@governanceengineering.com.au` is a separate address already routed into this same Gmail account — separately queries anything addressed to that mailbox. The two result sets are merged and de-duplicated (an overlap is labeled "Governance Engineering," the more specific and useful attribution), then sorted with unread mail, board/governance keyword matches, Governance Engineering messages, and Gmail's own IMPORTANT marker weighted higher, ties broken by recency. This is genuinely one Google account, not multi-account OAuth — the two labels ("Main Gmail" / "Governance Engineering") describe attribution within a single inbox, detected by recipient address (reliable regardless of how Sam's own Gmail filters are named).
+### Calendar
 
-Both merged lists flow into `OperationalState` (`calendar` / `gmailThreads`), which the Calendar card, the Communications Snapshot card, JARVIS's briefing, DAWNWATCH's briefing, and HERALD's drafting context all read from identically. JARVIS/DAWNWATCH mention a calendar or mailbox by name when it's a real Google event/message and that name is actually informative (local mock data doesn't get this treatment — there's only one source there, naming it would just be noise). Still read-only, still no calendar-source or mailbox-source filter (deferred — default is "everything accessible").
+Calendar is the most mature governed capability.
 
-The dashboard only ever shows one of three phrases per connector — never a raw OAuth or API error: **"Calendar intelligence online / unavailable / refresh required"** and **"Gmail intelligence online / unavailable / refresh required"**. "Unavailable" covers both "never connected" and "token exists but is missing the Gmail scope" (e.g. reconnecting after upgrading from a Calendar-only grant) — either way the fix is the same Connect button. A single calendar or a single Gmail query failing doesn't trigger any of these on its own — it's just skipped and logged server-side, since the rest of the merged view is still fine.
+Verified behaviour includes:
 
-## Project structure
+- bounded factual Calendar reads;
+- deterministic date/time handling in the Melbourne time zone;
+- descriptive weekly allocation and capacity reporting;
+- attention/change detection over supported Calendar changes;
+- Morning Executive Orientation v1;
+- bounded conflict reasoning across **Know → Understand → Advise → Act**;
+- one narrow Calendar move path with:
+  - explicit authority;
+  - fresh pre-write reread;
+  - exact operation validation;
+  - write execution;
+  - independent post-write reread;
+  - exact completion verification.
 
-```
-jarvis/
-  DESIGN_CONSTITUTION.md    # canonical behavior/architecture doc — read first
-  data/
-    memory.json               # created at runtime, git-ignored — local project memory
-    google-tokens.json         # created on first Google connect, git-ignored — OAuth tokens
-  app/
-    api/
-      chat/route.ts             # server-side Claude call, reads ANTHROPIC_API_KEY
-      memory/route.ts           # GET/PATCH raw local memory (priorities/projects/signals)
-      operational-state/route.ts    # GET memory + all 3 connectors, consolidated
-      auth/google/start/route.ts     # redirects to Google's OAuth consent screen
-      auth/google/callback/route.ts  # exchanges code for tokens, stores them, redirects home
-    layout.tsx
-    page.tsx                # renders <DashboardShell />
-    globals.css
-  components/
-    AgentRail.tsx            # left-hand agent list, grouped by tier; JARVIS doubles as "Dashboard"
-    TopBar.tsx                # greeting + clock + status glyphs
-    Orb.tsx                    # animated orb, colored per active agent (unchanged, just used larger)
-    MemoryEditor.tsx          # operational memory editor modal (unchanged)
-    dashboard/
-      DashboardShell.tsx        # top-level v2 layout — rail + dashboard column + conversation dock
-      OrbCenterpiece.tsx           # enlarged orb + quick actions
-      ConversationDock.tsx           # fixed-height bottom dock, independent scroll, persistent input
-    markdown/
-      MarkdownMessage.tsx        # ReactMarkdown + remark-gfm + rehype-highlight, collapsible sections
-    ui/
-      CollapsibleSection.tsx      # generic collapsible panel used by MarkdownMessage
-    cards/
-      PrioritiesCard.tsx
-      CalendarCard.tsx
-      CommunicationsCard.tsx      # now buckets into Needs Reply / Waiting / Automated / Information
-      ProjectsCard.tsx
-      AgentStatusCard.tsx            # real thinking/online/standing-by status, not static
-      LiveSystemFeedCard.tsx          # new — feed view over existing OperationalState
-      VoiceInterfaceCard.tsx            # extracted from the old RightPanel
-      QuickCommandsCard.tsx               # extracted from the old RightPanel
-      MemoryGaugeCard.tsx                   # extracted + expanded from the old RightPanel
-  lib/
-    agents/
-      types.ts                  # AgentDefinition shape, incl. tier: "executive" | "specialist"
-      accent.ts                 # static Tailwind class map per accent color
-      persona.ts                 # shared character rules, applied to every agent prompt
-      jarvis.ts, dawnwatch.ts, oracle.ts, herald.ts,
-      steve.ts, cowork.ts, phdss.ts, marcus.ts   # one file per agent
-      index.ts                   # AGENTS list + getAgent(id)
-    memory/
-      schema.ts                  # MemoryStore shape
-      seed.ts                     # default content
-      store.ts                     # server-only fs-backed read/write/update
-    connectors/
-      types.ts                    # record types, ConnectorStatus, CalendarIntelligenceStatus, GmailIntelligenceStatus
-      calendar-event.ts             # canonical CalendarEvent shape + normalizers (calendar)
-      email-message.ts               # canonical EmailMessage shape + normalizers + priority sort (gmail)
-      calendar.ts, gmail.ts, drive.ts   # interface + Local*Connector + factory, one per domain
-      index.ts                     # barrel + getConnectorStatuses()
-      google/
-        tokens.ts                  # server-only fs-backed OAuth token store (data/google-tokens.json)
-        oauth.ts                    # auth URL builder, code exchange, token refresh (plain fetch)
-        access-token.ts              # shared token-validity/refresh logic (both connectors)
-        auth-error.ts                 # shared GoogleServiceAuthError (not_connected | refresh_failed)
-        calendar.ts                  # GoogleCalendarConnector — every visible calendar, merged
-        gmail.ts                       # GoogleGmailConnector — Main Gmail + Governance Engineering, merged
-    operational-state.ts     # canonical OperationalState service — buildOperationalState()
-    useOperationalState.ts    # client hook: fetch on mount, seed as instant fallback, refresh()
-    useAgentConversation.ts    # conversation state/fetch, lifted out of the old CommandConsole
-    claude.ts                    # server-only Anthropic SDK wrapper
-    briefing.ts                    # computes each agent's opening brief from an OperationalState
-    greeting.ts                    # shared time-of-day greeting (TopBar + briefing.ts)
-    placeholder-data.ts     # deprecated re-export shim — see lib/memory/ instead
-  .env.local.example
-  tailwind.config.ts
-  next.config.mjs
-```
+This does **not** mean JARVIS has generic Calendar write authority. Arbitrary appointment creation and unrestricted Calendar mutation are not established capabilities.
 
-## Run it locally
+### Gmail
 
-```bash
-cd jarvis
-npm install                      # already run for you if you got this via the assistant
+Verified Gmail capability is intentionally bounded.
+
+Current supported behaviour includes:
+
+- bounded Gmail search;
+- bounded recent-message listing;
+- identified-message reads;
+- ordinal result-to-read continuity for supported Gmail result sets;
+- governed authority before private acquisition.
+
+Gmail remains **read-only at the governed action layer**. JARVIS does not currently send replies, create labels, move messages, establish filters or create standing routing rules.
+
+Mutation-shaped Gmail requests are recognised and returned as an explicit unsupported governed-action boundary rather than falling through as ordinary conversation.
+
+### Drive
+
+Verified Drive capability includes:
+
+- bounded Drive search;
+- identified Google Doc reads;
+- governed authority before private acquisition.
+
+Drive is currently read-only through the governed conversational path.
+
+Creating, editing or saving documents back to Drive is not yet a verified capability. Ordinal list-to-read continuity is also not yet at Gmail parity.
+
+## Governed Operating Picture and durable continuity
+
+JARVIS has a persistent Governed Operating Picture designed for **continuity, not transcript storage**.
+
+The Operating Picture preserves semantic class, authorship and lifecycle rather than silently turning remembered material into fact.
+
+Current explicit user-authored continuity flow:
+
+~~~text
+"Remember this: ..."
+        ↓
+deterministic capture intent
+        ↓
+closed semantic classification
+        ↓
+append-only user-authored continuity record
+        ↓
+Supabase persistence
+        ↓
+later purpose-bounded recall
+~~~
+
+Supported low-trust continuity classes include user assertions, preferences, plans, commitments and decisions, plus bounded model-authored inference/recommendation/open-question classes where separately admitted.
+
+Explicit recall uses a purpose-bounded projection and closed relevance assessment. Durable IDs remain server-side; the model receives only opaque chunk-local continuity IDs.
+
+### Recall scalability boundary
+
+The original per-assessment boundary remains:
+
+~~~text
+12 continuity items
+16,384 bytes
+~~~
+
+Larger durable sets are handled through deterministic bounded partitioning, with:
+
+~~~text
+maximum 8 chunks
+maximum 65,536-byte combined rendered reply
+~~~
+
+Each chunk independently passes through the same bounded context construction and deterministic relevance validation. Scaling changes cardinality, not trust strength.
+
+Durable recall reliability/scalability is **LIVE PASS / FROZEN within bounded explicit-recall scope**.
+
+Detailed verification:
+
+- [Model-Facing Continuity Verification](./docs/architecture/GOVERNED-OPERATING-PICTURE-MODEL-CONTINUITY-VERIFICATION.md)
+- [Explicit User-Authored Continuity Capture Verification](./docs/architecture/GOVERNED-OPERATING-PICTURE-USER-CONTINUITY-CAPTURE-VERIFICATION.md)
+
+## Public information and research
+
+JARVIS can use public web search for current or externally changing information.
+
+Current public-information safeguards include:
+
+- explicit user-local temporal grounding for relative dates such as today/tomorrow;
+- freshness checks for current/latest claims;
+- source-period matching;
+- exact entity/date/location/attribute checks;
+- concise answer-first presentation for simple current facts;
+- fail-closed behaviour when required current evidence is not established.
+
+Public research is not treated as hallucination-proof. The architecture progressively narrows when unsupported factual assertions are allowed to reach the user as fact.
+
+Claim-level provenance and evidence-class presentation are still active product-development needs for richer research outputs.
+
+## Executive cognition
+
+JARVIS contains deterministic Executive Operating System machinery for structured operational reasoning, including:
+
+~~~text
+Situational Awareness
+        ↓
+Attention
+        ↓
+Situation Formation
+        ↓
+Assessment
+        ↓
+Executive Context
+        ↓
+Candidate Construction / Evaluation / Comparison
+        ↓
+Executive Reasoning
+~~~
+
+Not every conversational request runs through every stage. Capabilities must earn the minimum required transformations rather than being routed through the full pipeline for architectural neatness.
+
+The standing capability-level test is:
+
+1. **Know** — truthful factual retrieval and deterministic rendering.
+2. **Understand** — semantic interpretation of governed private evidence.
+3. **Advise** — relate evidence to goals, constraints, trade-offs or recommended action.
+4. **Act** — execute an external operation under independently established authority.
+
+Each higher level re-earns trust independently.
+
+## Morning Executive Orientation
+
+The first bounded Morning Executive Orientation capability is live and frozen.
+
+~~~text
+"Give me my morning brief."
+        ↓
+explicit Calendar authority
+        ↓
+one governed complete weekly Calendar read
+        ↓
+closed MorningExecutiveOrientationBrief
+        ↓
+deterministic model-free rendering
+~~~
+
+The current v1 is deliberately **Level 1 — Know**. It reports factual current-day commitments and descriptive weekly allocation. It does not infer priority, urgency, adequacy or recommendation.
+
+See [Sprint 3.186 Morning Executive Orientation — Live Pass](./docs/SPRINT-3.186-MORNING-EXECUTIVE-ORIENTATION-LIVE-PASS.md).
+
+## Development method
+
+JARVIS is developed through small evidence-led increments.
+
+Default loop:
+
+~~~text
+small boundary
+→ small implementation
+→ live conversation
+→ observe failure
+→ classify
+→ next smallest change
+~~~
+
+For new private semantic exposure or consequential authority boundaries, the cadence becomes more rigorous:
+
+~~~text
+audit
+→ contract
+→ adversarial paper tests
+→ implementation
+→ synthetic / fixture tests
+→ bounded live acceptance
+~~~
+
+Standing principles:
+
+- architecture before implementation;
+- deterministic before adaptive for facts and authority;
+- typed before dynamic;
+- validation before enforcement;
+- behaviour before orchestration;
+- containment before convergence;
+- verify invariants, not PR descriptions;
+- capabilities are evidence-led;
+- safety boundaries are consequence-led.
+
+## Technology
+
+Current mainline stack:
+
+- **Next.js 16.3.3**
+- **React 19.2**
+- **TypeScript**
+- **Vitest**
+- **Anthropic SDK**
+- **Supabase** for durable Operating Picture / audit persistence where configured
+- **Google Calendar, Gmail and Drive** connectors
+- server-side public web search through the model provider
+
+## Local development
+
+Install dependencies and start the development server:
+
+~~~bash
+npm install
 cp .env.local.example .env.local
-# edit .env.local and set ANTHROPIC_API_KEY=sk-ant-...
 npm run dev
-```
+~~~
 
-Open http://localhost:3000. Click an agent in the left rail, then type into the console — it calls `/api/chat`, which calls Claude server-side with that agent's system prompt.
+Then open:
 
-If the console shows "Intelligence link not established," `.env.local` isn't set (or the dev server needs a restart after editing it).
+~~~text
+http://localhost:3000
+~~~
 
-## Tests
+The development environment requires an Anthropic API key for model-backed functionality. Google and Supabase capabilities require their corresponding server-side configuration.
 
-```bash
+Do not commit `.env.local`, Google credentials, access tokens, Supabase secrets or generated local state.
+
+## Verification
+
+Run the normal verification battery:
+
+~~~bash
+npm run lint
+npm run typecheck
 npm test
-```
+npm run build
+~~~
 
-Runs the Vitest suite under `lib/connectors/__tests__/` — normalization regression coverage for both Google connectors (a Google-shaped event/message fixture, local-record fallback shapes, multi-source merge/priority ordering, and the exact empty-list crash scenarios briefing.ts must never repeat). No network calls; nothing here talks to a real Google API.
+For live Operating Picture verification when the required local configuration is present:
 
-## Deploy to Vercel (Free tier)
+~~~bash
+npm run verify:operating-picture:live -- <command>
+~~~
 
-1. Push this `jarvis/` folder to a GitHub repo (or `vercel` CLI can deploy directly without git).
-2. On [vercel.com](https://vercel.com), "Add New Project" → import the repo.
-3. In Project Settings → Environment Variables, add `ANTHROPIC_API_KEY` (and leave `ELEVENLABS_API_KEY` blank for now — it's unused in Phase 1). If you want Google Calendar working in production too, also add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and a `GOOGLE_REDIRECT_URI` pointing at your deployed domain's `/api/auth/google/callback` — and add that same URL as an Authorized redirect URI on the OAuth client.
-4. Deploy. Vercel's Free (Hobby) tier covers this comfortably — one Next.js app, serverless API route, no database yet.
-5. Because Phase 1 has no server session/auth, don't put anything sensitive in placeholder data before you add real auth. It's fine for now since it's static and public only to you via the URL, but Vercel Hobby URLs are reachable by anyone with the link — consider Vercel's password-protection (Pro feature) or wait until real auth exists in a later phase if that matters to you.
-6. Note: Vercel's production filesystem is read-only outside `/tmp`, so `data/google-tokens.json` (like `data/memory.json`) won't persist between deployments there — Google Calendar in production would need to reconnect after each redeploy until token storage moves to a real database. Fine for local development, an honest limitation in production.
+A green build is necessary but not sufficient for consequential runtime claims. Capabilities that depend on live providers are promoted only after bounded observed behaviour is also checked.
 
-## Security notes
+## Repository orientation
 
-- `ANTHROPIC_API_KEY` is read only inside `lib/claude.ts` and `app/api/chat/route.ts` — both server-only. It is never sent to the client bundle and is not prefixed with `NEXT_PUBLIC_`.
-- The chat route validates input shape/length before calling Claude, and never echoes internal error details (stack traces, key hints) back to the browser.
-- `GOOGLE_CLIENT_SECRET` and the stored Google access/refresh tokens (`data/google-tokens.json`) are read only by server-only modules under `lib/connectors/google/` and the `/api/auth/google/*` routes — never sent to the client, never returned in any API response body. The OAuth callback verifies a state cookie before exchanging any code, and never renders a raw OAuth error — every failure path redirects home the same as success, with the real outcome reflected only via `calendarStatus`'s three permitted phrases.
-- `.env.local` is git-ignored via `.gitignore`; so is `data/*.json`, which now includes the token file alongside project memory.
+The repository is intentionally documentation-heavy because trust boundaries are part of the architecture.
 
-## What's deliberately deferred to later phases
+Start here:
 
-- **Supabase Free** for persistent memory/state that actually survives a Vercel deployment (conversation history per agent, and a real replacement for the local `data/memory.json` and `data/google-tokens.json` files, which — see "Memory & Connectors" above — don't persist in production).
-- **ElevenLabs** voice input/output — the mic buttons in `VoiceInterfaceCard.tsx` and the conversation dock's input bar are visual placeholders only.
-- **Real Drive account** — Calendar and Gmail now both have real Google-backed connectors (see "Connecting Google Calendar + Gmail" above); Drive still only has a local implementation. The same interface + factory pattern applies when that's built.
-- **Auth** — Phase 1 assumes single-user, no login. Add this before putting anything sensitive behind the URL.
+~~~text
+docs/ENGINEERING_CONSTITUTION.md
+docs/architecture/NORTH_STAR.md
+docs/architecture/JARVIS-GOVERNANCE-CORE.md
+docs/architecture/ROADMAP.md
+~~~
 
-## Next steps (Phase 2/3 preview)
+Then use the relevant ADR, sprint specification or verification record for the capability being changed.
 
-- Add `@supabase/supabase-js`; swap `lib/memory/store.ts`'s and `lib/connectors/google/tokens.ts`'s fs reads/writes for Supabase queries, keeping the same call sites so nothing upstream changes.
-- Add `lib/connectors/google/drive.ts` implementing the existing connector interface against the real Drive API, following the same pattern `calendar.ts` and `gmail.ts` already establish (shared token/refresh helpers, server-only token use, graceful fallback to local on failure). Point `DRIVE_CONNECTOR=google` at it once built.
-- Add a calendar-source / mailbox-source filter (deliberately deferred in both Sprint 2.6 and 2.7) — a simple allow-list UI over `calendarList`/label results, since both connectors already fetch per-source before merging.
-- Add ElevenLabs TTS: a server route `app/api/speak/route.ts` that takes agent reply text and returns audio, called from `ConversationDock.tsx` after a reply arrives.
-- Add simple auth (e.g. a single shared passphrase via middleware) before deploying anywhere public.
+Important implementation areas include:
+
+~~~text
+app/api/lighter/chat/         sole governed conversational API
+lib/lighter-jarvis/           conversational capability, authority and presentation logic
+lib/governance-core/          trust-bearing governance primitives and invariants
+lib/operating-picture/        durable semantic/lifecycle continuity architecture
+lib/connectors/               Calendar, Gmail, Drive and provider adapters
+lib/executive-operating-system/ deterministic EOS runtime and publications
+docs/architecture/            governance doctrine, ADRs and verification records
+~~~
+
+## Deliberately unearned capabilities
+
+Do not infer capability merely because a connector or model could technically support it.
+
+Not currently established as general JARVIS capabilities:
+
+- Gmail send/reply/write;
+- Gmail label/filter/routing creation;
+- arbitrary Calendar event creation;
+- unrestricted Calendar mutation;
+- Drive create/edit/save;
+- automatic transcript memory;
+- embeddings/vector memory;
+- ambient cross-source private synthesis;
+- automatic conflict resolution or silent memory supersession;
+- standing authority derived from prior approval;
+- autonomous consequential action;
+- unrestricted proactive behaviour.
+
+These are product and governance questions to be earned from observed need, not a feature queue.
+
+## Current product posture
+
+The memory substrate and Morning Executive Orientation milestones are frozen within their proven scopes.
+
+The next JARVIS milestone should come from **real executive-use burden**, not architectural adjacency. Product gaps discovered during normal use are accumulated explicitly, then prioritised by their practical consequence and cognitive burden.
+
+The goal remains simple:
+
+> **Make JARVIS a trusted executive partner that reduces cognitive burden, improves judgement and turns intention into governed execution without taking authority away from the human.**

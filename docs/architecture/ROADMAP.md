@@ -1,6 +1,6 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Reconciled 1 September 2026 after direct live verification of the Governed Operating Picture semantic/lifecycle foundation, Supabase persistence foundation, Store Parity & Restart Durability, Purpose-Bounded Durable Projection, Narrow Model-Facing Continuity, and Explicit User-Authored Continuity Capture. Existing governed Calendar/Gmail/Drive work remains the proven substrate. The next work returns to the existing **real-JARVIS everyday executive cognition trajectory** rather than extending memory by adjacency.
+**Status:** Living document. Reconciled 1 September 2026 after direct live verification of the Governed Operating Picture semantic/lifecycle foundation, Supabase persistence foundation, Store Parity & Restart Durability, Purpose-Bounded Durable Projection, Narrow Model-Facing Continuity, Explicit User-Authored Continuity Capture, and Morning Executive Orientation v1. Existing governed Calendar/Gmail/Drive work remains the proven substrate. Morning Executive Orientation v1 is now **LIVE PASS / FROZEN** within bounded Level-1 scope.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
 
@@ -83,6 +83,52 @@ An unplanned collision between a historical seeded fixture and a new live captur
 This remains a deliberately bounded capability. It does **not** establish automatic memory, ambient transcript ingestion, embeddings/vector memory, model-authored durable facts, automatic replacement, contradiction resolution, source revalidation, proactive behaviour, or autonomous action.
 
 > **Promotion decision:** Explicit User-Authored Continuity Capture is **VERIFIED WITHIN BOUNDED LIVE SCOPE**.
+
+## Verified milestone — Morning Executive Orientation v1
+
+The bounded Level-1 Morning Executive Orientation milestone is now verified live and frozen in:
+
+- `../SPRINT-3.186-MORNING-EXECUTIVE-ORIENTATION-LIVE-PASS.md`
+
+The live production path proved:
+
+~~~text
+Give me my morning brief.
+        ↓
+Calendar ASK
+        ↓
+explicit yes
+        ↓
+one governed complete weekly Calendar read
+        ↓
+closed MorningExecutiveOrientationBrief
+        ↓
+deterministic model-free renderer
+        ↓
+today's factual commitments + descriptive weekly allocation
+~~~
+
+The positive live path surfaced real Calendar commitments and a weekly allocation that reconciled exactly to 40h. The live output also exposed 1h 30m of `Unclassified` time as equal-duration overlap ties; source inspection confirmed that this disclosure is emitted only when `precedenceTieMinutes > 0`.
+
+A separate negative live path proved:
+
+~~~text
+Give me my morning brief.
+        ↓
+Calendar ASK
+        ↓
+no
+        ↓
+shared Calendar DENY gate
+        ↓
+no read / no Morning Brief
+~~~
+
+The decline wording came from the existing shared Calendar non-ALLOW branch rather than a Morning-Brief-specific implementation.
+
+The milestone remains deliberately Level 1 — Know. It does **not** establish priority, urgency, schedule adequacy, recommendation, supported-change comparison, remembered-context synthesis, Gmail/Drive synthesis, proactive briefing, standing Calendar authority or generic executive synthesis.
+
+> **Promotion decision:** Morning Executive Orientation v1 is **LIVE PASS / FROZEN within bounded Level-1 scope**.
 
 ### Current next product direction — return to the real JARVIS
 
@@ -170,6 +216,7 @@ Proven but deliberately bounded
     Purpose-bounded durable projection with live server REST verification
     Narrow model-facing continuity with live explicit-recall verification
     Explicit user-authored continuity capture with live durable write + later recall verification
+    Morning Executive Orientation v1 with live positive/negative authority-path verification
 
 Ready for disciplined activation
     Deterministic Executive Cognition already present in the EOS:

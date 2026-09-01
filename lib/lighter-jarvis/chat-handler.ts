@@ -1053,6 +1053,12 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         dependencies: modelContinuityDependencies,
       });
       if (continuity.handled) {
+        if (continuity.status === "unavailable") {
+          console.error(
+            "[/api/lighter/chat] Durable continuity recall unavailable:",
+            continuity.diagnostic,
+          );
+        }
         return NextResponse.json({
           reply: continuity.reply,
           specialistId: specialist.id,

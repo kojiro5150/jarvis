@@ -1,6 +1,7 @@
 import {
   buildModelContinuityContext,
   MODEL_CONTINUITY_PURPOSE,
+  type ModelContinuityContextBuildResult,
 } from "./model-continuity-contract";
 import { assessModelContinuityRelevance, type ModelContinuityAssessmentModelCall } from "./model-continuity-assessment";
 import { createRequiredClaudeContinuityModelCall } from "./claude-continuity-relevance";
@@ -61,112 +62,38 @@ const NO_RELEVANT_CONTINUITY_REPLY =
 const CONTINUITY_UNAVAILABLE_REPLY =
   "I can't safely retrieve durable continuity for that request right now.";
 
-const RECALL_PATTERNS = [
-  /^what do you remember about\s+(.+)$/i,
-  /^what have i told you about\s+(.+)$/i,
-  /^show me what you remember about\s+(.+)$/i,
-  /^do you remember what i said about\s+(.+)$/i,
-] as const;
+const MAX_MODEL_CONTINUITY_CHUNKS = 8;
+const MAX_COMBINED_RENDERED_BYTES = 65_536;
 
-function contextDiagnostic(
-  reason: Extract<ReturnType<typeof buildModelContinuityContext>, { status: "rejected" }>["reason"],
-): ProductionModelContinuityUnavailableDiagnostic {
-  switch (reason) {
-    case "projection_not_available": return "context_projection_not_available";
-    case "wrong_purpose": return "context_wrong_purpose";
-    case "projection_integrity_failure": return "context_projection_integrity_failure";
-    case "context_scope_exceeded": return "context_scope_exceeded";
-  }
-}
+type ReadyModelContinuityContextBuild = Extract<
+  ModelContinuityContextBuildResult,
+  { status: "ready" }
+>;
 
-function assessmentDiagnostic(
-  status: Exclude<Awaited<ReturnType<typeof assessModelContinuityRelevance>>["status"], "assessed">,
-): ProductionModelContinuityUnavailableDiagnostic {
-  switch (status) {
-    case "invalid_input": return "assessment_invalid_input";
-    case "model_invalid": return "assessment_model_invalid";
-    case "model_failed": return "assessment_model_failed";
-  }
-}
+type ModelContinuityContextPartitionResult =
+  | Readonly<{ status: "ready"; chunks: readonly ReadyModelContinuityContextBuild[] }>
+  | Readonly<{ status: "empty" }>
+  | Readonly<{ status: "rejected"; diagnostic: ProductionModelContinuityUnavailableDiagnostic }>;
 
-function resolutionDiagnostic(
-  reason: Extract<ReturnType<typeof resolveModelContinuityAssessment>, { status: "rejected" }>["reason"],
-): ProductionModelContinuityUnavailableDiagnostic {
-  switch (reason) {
-    case "context_not_ready": return "resolution_context_not_ready";
-    case "binding_integrity_failure": return "resolution_binding_integrity_failure";
-    case "assessment_invalid": return "resolution_assessment_invalid";
-  }
-}
-
-function renderDiagnostic(
-  reason: Extract<ReturnType<typeof renderModelContinuityPresentation>, { status: "rejected" }>["reason"],
-): ProductionModelContinuityUnavailableDiagnostic {
-  switch (reason) {
-    case "invalid_presentation": return "render_invalid_presentation";
-    case "render_scope_exceeded": return "render_scope_exceeded";
-  }
-}
-
-function normalizedRecallUtterance(value: string): string {
-  return value
-    .normalize("NFKC")
-    .replace(/[‘’]/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-export function isDurableContinuityRecallRequest(utterance: string): boolean {
-  const normalized = normalizedRecallUtterance(utterance);
-  return RECALL_PATTERNS.some(pattern => {
-    const match = normalized.match(pattern);
-    return typeof match?.[1] === "string" && match[1].trim().length > 0;
+function projectedSlice(
+  projection: Extract<DurablePurposeProjectionResult, { status: "projected" }>,
+  items: Extract<DurablePurposeProjectionResult, { status: "projected" }>["items"],
+): DurablePurposeProjectionResult {
+  return Object.freeze({
+    status: "projected",
+    purpose: projection.purpose,
+    items: Object.freeze([...items]),
+    decisions: Object.freeze([]),
   });
 }
 
-async function defaultProjection(): Promise<DurablePurposeProjectionResult> {
-  const config = loadSupabaseOperatingPictureConfig();
-  if (!config) {
-    return Object.freeze({
-      status: "rejected",
-      purpose: MODEL_CONTINUITY_PURPOSE,
-      reason: "persistence_unavailable",
-    });
-  }
+function partitionModelContinuityContext(
+  projection: DurablePurposeProjectionResult,
+): ModelContinuityContextPartitionResult {
+  if (projection.status !== "projected") {
+    const partition = partitionModelContinuityContext(projection);
 
-  const { durableStore } = createSupabaseOperatingPicturePersistence(config);
-  return retrieveDurableOperatingPictureForPurpose(
-    durableStore,
-    MODEL_CONTINUITY_PURPOSE,
-  );
-}
-
-export async function resolveProductionModelContinuityRecall(input: Readonly<{
-  utterance: string;
-  dependencies?: ProductionModelContinuityDependencies;
-}>): Promise<ProductionModelContinuityRecallResult> {
-  if (!isDurableContinuityRecallRequest(input.utterance)) {
-    return Object.freeze({
-      handled: false,
-      status: "unsupported",
-    });
-  }
-
-  let projection: DurablePurposeProjectionResult;
-  try {
-    projection = await (input.dependencies?.retrieveProjection ?? defaultProjection)();
-  } catch {
-    return Object.freeze({
-      handled: true,
-      status: "unavailable",
-      reply: CONTINUITY_UNAVAILABLE_REPLY,
-      diagnostic: "projection_exception",
-    });
-  }
-
-  const contextBuild = buildModelContinuityContext(projection);
-
-  if (contextBuild.status === "empty") {
+  if (partition.status === "empty") {
     return Object.freeze({
       handled: true,
       status: "not_relevant",
@@ -174,60 +101,81 @@ export async function resolveProductionModelContinuityRecall(input: Readonly<{
     });
   }
 
-  if (contextBuild.status !== "ready") {
+  if (partition.status === "rejected") {
     return Object.freeze({
       handled: true,
       status: "unavailable",
       reply: CONTINUITY_UNAVAILABLE_REPLY,
-      diagnostic: contextDiagnostic(contextBuild.reason),
+      diagnostic: partition.diagnostic,
     });
   }
 
-  const allowedContinuityIds = Object.freeze(
-    contextBuild.context.items.map(item => item.continuityId),
-  );
   const createContinuityModelCall = input.dependencies?.createContinuityModelCall
     ?? createRequiredClaudeContinuityModelCall;
-  const reasoning = await assessModelContinuityRelevance({
-    question: input.utterance,
-    context: contextBuild.context,
-    callModel: createContinuityModelCall(allowedContinuityIds),
-  });
+  const renderedLines: string[] = [];
 
-  if (reasoning.status !== "assessed") {
-    return Object.freeze({
-      handled: true,
-      status: "unavailable",
-      reply: CONTINUITY_UNAVAILABLE_REPLY,
-      diagnostic: assessmentDiagnostic(reasoning.status),
+  for (const contextBuild of partition.chunks) {
+    const allowedContinuityIds = Object.freeze(
+      contextBuild.context.items.map(item => item.continuityId),
+    );
+    const reasoning = await assessModelContinuityRelevance({
+      question: input.utterance,
+      context: contextBuild.context,
+      callModel: createContinuityModelCall(allowedContinuityIds),
     });
+
+    if (reasoning.status !== "assessed") {
+      return Object.freeze({
+        handled: true,
+        status: "unavailable",
+        reply: CONTINUITY_UNAVAILABLE_REPLY,
+        diagnostic: assessmentDiagnostic(reasoning.status),
+      });
+    }
+
+    const resolution = resolveModelContinuityAssessment({
+      contextBuild,
+      assessment: reasoning.assessment,
+    });
+    if (resolution.status === "rejected") {
+      return Object.freeze({
+        handled: true,
+        status: "unavailable",
+        reply: CONTINUITY_UNAVAILABLE_REPLY,
+        diagnostic: resolutionDiagnostic(resolution.reason),
+      });
+    }
+
+    const presentation = projectModelContinuityPresentation(resolution);
+    if (!presentation) {
+      return Object.freeze({
+        handled: true,
+        status: "unavailable",
+        reply: CONTINUITY_UNAVAILABLE_REPLY,
+        diagnostic: "resolution_context_not_ready",
+      });
+    }
+
+    const rendered = renderModelContinuityPresentation(presentation);
+
+    if (rendered.status === "not_relevant") {
+      continue;
+    }
+
+    if (rendered.status !== "rendered") {
+      return Object.freeze({
+        handled: true,
+        status: "unavailable",
+        reply: CONTINUITY_UNAVAILABLE_REPLY,
+        diagnostic: renderDiagnostic(rendered.reason),
+      });
+    }
+
+    const lines = rendered.text.split("\n");
+    renderedLines.push(...lines.slice(1));
   }
 
-  const resolution = resolveModelContinuityAssessment({
-    contextBuild,
-    assessment: reasoning.assessment,
-  });
-  if (resolution.status === "rejected") {
-    return Object.freeze({
-      handled: true,
-      status: "unavailable",
-      reply: CONTINUITY_UNAVAILABLE_REPLY,
-      diagnostic: resolutionDiagnostic(resolution.reason),
-    });
-  }
-  const presentation = projectModelContinuityPresentation(resolution);
-  if (!presentation) {
-    return Object.freeze({
-      handled: true,
-      status: "unavailable",
-      reply: CONTINUITY_UNAVAILABLE_REPLY,
-      diagnostic: "resolution_context_not_ready",
-    });
-  }
-
-  const rendered = renderModelContinuityPresentation(presentation);
-
-  if (rendered.status === "not_relevant") {
+  if (renderedLines.length === 0) {
     return Object.freeze({
       handled: true,
       status: "not_relevant",
@@ -235,19 +183,20 @@ export async function resolveProductionModelContinuityRecall(input: Readonly<{
     });
   }
 
-  if (rendered.status !== "rendered") {
+  const reply = ["Relevant remembered context:", ...renderedLines].join("\n");
+  if (Buffer.byteLength(reply, "utf8") > MAX_COMBINED_RENDERED_BYTES) {
     return Object.freeze({
       handled: true,
       status: "unavailable",
       reply: CONTINUITY_UNAVAILABLE_REPLY,
-      diagnostic: renderDiagnostic(rendered.reason),
+      diagnostic: "render_scope_exceeded",
     });
   }
 
   return Object.freeze({
     handled: true,
     status: "rendered",
-    reply: rendered.text,
+    reply,
   });
 }
 

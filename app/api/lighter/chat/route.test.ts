@@ -1772,7 +1772,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
       reply: "Gmail messages from Georgia McDonald <georgia.mcdonald@example.com>:\n- Real subject",
       gmailSearchAuthority: { decision: "ALLOW", reason: "gmail_sender_disambiguation_resolved" },
       gmailSenderDisambiguationReference: null,
-      messageIds: ["message-1"],
+      gmailMessageListReference: { gmailMessageListReferenceId: expect.any(String) },
     });
     expect(model).not.toHaveBeenCalled();
     expect(discoverSenderIdentities).toHaveBeenCalledTimes(1);
@@ -1896,7 +1896,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
       reply: "Gmail messages from Georgia McDonald <georgia.mcdonald@example.com>:\n- Real subject",
       gmailSearchAuthority: { decision: "ALLOW", reason: "gmail_sender_disambiguation_resolved" },
       gmailSenderDisambiguationReference: null,
-      messageIds: ["message-1"],
+      gmailMessageListReference: { gmailMessageListReferenceId: expect.any(String) },
     });
     expect(model).not.toHaveBeenCalled();
     expect(discoverSenderIdentities).toHaveBeenCalledTimes(1);

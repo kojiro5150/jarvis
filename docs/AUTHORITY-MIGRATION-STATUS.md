@@ -1,7 +1,7 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 2 September 2026 (reconciled through bounded Drive ordinal continuity LIVE PASS)
+- **Last updated:** 2 September 2026 (reconciled through bounded Drive ordinal and Gmail named-result continuity LIVE PASS)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
 - **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
 
@@ -51,6 +51,7 @@ Legend:
 | Mechanism | Status | Notes |
 | --- | --- | --- |
 | `GovernedResultSetReference` | ✓ — live and frozen for bounded Drive ordinal continuity | The client receives only opaque scope and result-set handles. The server owns exact result order, 15-minute TTL, six-subsequent-user-turn budget and same-class supersession. The reference may identify a resource but is never authority evidence. Expired, exhausted, superseded, out-of-range, fabricated and cross-scope references fail closed before ordinary-model substitution or connector read. Storage remains module-private and process-local; durable or distributed persistence is not implemented. Gmail and Calendar migration is not authorized by this proof. |
+| `GmailMessageListReference` | ✓ — live and frozen for bounded recent-result ordinal and named-sender continuity | The client receives one opaque handle for at most five ordered message IDs and retained sender identities in module-private state. The configured TTL is 15 minutes. Unique selection creates separate pending `gmail.read` authority; ambiguous, absent, expired, out-of-range and fabricated selections fail closed. Ordinary conversation uses the currently carried reference, but older server entries may coexist until expiry: same-class supersession, scope binding and turn-budget semantics are not claimed. Production proof does not authorize migration to `GovernedResultSetReference`. |
 
 Sprint 3.133 wires the closed identified-message operation into the live JARVIS lighter route.
 Exact `gmail.read <message-id> [field,field]` utterances now proceed from raw utterance authority to
@@ -314,7 +315,7 @@ The frozen product direction is one user-facing JARVIS identity. Internal specia
 | 3 | General `PendingAuthorization` for exact operation confirmation | ✓ — live for the bounded production capabilities; authoritative storage remains process-local |
 | 4 | Live conversational Calendar integration | ✓ — bounded `calendar.read` path |
 | 5 | Separate private acquisition from legacy `OperationalState` assembly | ✓ — COMPLETE since Sprint 3.129; retired/quarantined regressions prove zero callable eager full-state production surfaces |
-| 6 | Extend authority to Gmail, Drive and Memory | △ — bounded Gmail plus Drive search and identified Google Doc read paths are live; Drive ordinal result-to-read continuity is LIVE PASS / FROZEN, while arbitrary `drive.read` and `memory.read` remain unimplemented |
+| 6 | Extend authority to Gmail, Drive and Memory | △ — bounded Gmail plus Drive search and identified Google Doc read paths are live; Gmail named-result and Drive ordinal result-to-read continuity are LIVE PASS / FROZEN, while arbitrary `drive.read` and `memory.read` remain unimplemented |
 | 7 | Named and standing grants, including bounded briefing authority | ○ |
 | 8 | Complete one-JARVIS UX migration and remove authority-bypassing legacy paths | ○ |
 

@@ -102,11 +102,14 @@ Current supported behaviour includes:
 - bounded recent-message listing;
 - identified-message reads;
 - ordinal result-to-read continuity for supported Gmail result sets;
+- strict named-sender result-to-read continuity over the current bounded recent-message result;
 - governed authority before private acquisition.
 
 Gmail remains **read-only at the governed action layer**. JARVIS does not currently send replies, create labels, move messages, establish filters or create standing routing rules.
 
 Mutation-shaped Gmail requests are recognised and returned as an explicit unsupported governed-action boundary rather than falling through as ordinary conversation.
+
+Bounded Gmail named-result continuity is **LIVE PASS / FROZEN**. Unique sender matches and supported ordinals identify one exact server-owned result but always require separate `gmail.read` confirmation. Ambiguous, absent, expired, out-of-range and fabricated selections fail closed. This proof does not authorize fuzzy matching, general anaphora, Gmail mutation or migration to the generic governed result-set mechanism.
 
 ### Drive
 

@@ -8,6 +8,7 @@ import {
 import type { DurablePurposeProjectionResult } from "./purpose-projection-retrieval";
 import type { SupabaseOperatingPictureAppendResult } from "./supabase-persistence";
 import type { ProductGapResolutionTarget } from "./product-gap-resolution-reference";
+import { MODEL_CONTINUITY_PURPOSE } from "./model-continuity-contract";
 
 export type ProductGapResolutionValue = Readonly<{
   status: "resolved";
@@ -82,7 +83,7 @@ export function createProductGapResolutionInitialVersion(input: Readonly<{
       attribute: "status",
       revision: "append_only" as const,
     }),
-    visibility: Object.freeze(["model_continuity_context"]),
+    visibility: Object.freeze([MODEL_CONTINUITY_PURPOSE]),
     value: Object.freeze({ status: "resolved" as const, targetRecordId: input.targetRecordId }),
     statedAt: input.statedAt,
   });

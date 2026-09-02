@@ -6,13 +6,13 @@ import { projectProductGapResolutionStatus } from "./product-gap-resolution-proj
 const original = Object.freeze({
   recordId: "user-continuity:gap",
   versionId: "gap-head",
-  purpose: "model_continuity_context",
+  purpose: "conversation",
   semanticClass: "user_assertion" as const,
   lifecycle: "current" as const,
   recoveryDisposition: "recoverable_user_continuity" as const,
   subject: Object.freeze({ namespace: "user_continuity", entity: "user-continuity:gap", attribute: "user_assertion", revision: "append_only" as const }),
   payload: Object.freeze({ statement: "JARVIS product gap — exact original" }),
-  visibilityPurposes: Object.freeze(["model_continuity_context"]),
+  visibilityPurposes: Object.freeze(["conversation"]),
   validFrom: null,
   validUntil: null,
   staleAfter: null,
@@ -31,7 +31,7 @@ const resolution = Object.freeze({
 });
 
 function projected(items: Extract<DurablePurposeProjectionResult, { status: "projected" }>["items"]): DurablePurposeProjectionResult {
-  return Object.freeze({ status: "projected", purpose: "model_continuity_context", items, decisions: Object.freeze([]) });
+  return Object.freeze({ status: "projected", purpose: "conversation", items, decisions: Object.freeze([]) });
 }
 
 describe("Product Gap effective-status projection", () => {

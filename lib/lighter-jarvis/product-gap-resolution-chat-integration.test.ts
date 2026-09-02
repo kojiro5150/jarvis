@@ -13,20 +13,20 @@ function projection(): Extract<DurablePurposeProjectionResult, { status: "projec
   const item = Object.freeze({
     recordId: "user-continuity:drive-gap",
     versionId: "drive-gap-head",
-    purpose: "model_continuity_context",
+    purpose: "conversation",
     semanticClass: "user_assertion" as const,
     lifecycle: "current" as const,
     recoveryDisposition: "recoverable_user_continuity" as const,
     subject: Object.freeze({ namespace: "user_continuity", entity: "user-continuity:drive-gap", attribute: "user_assertion", revision: "append_only" as const }),
     payload: Object.freeze({ statement: "JARVIS product gap — Drive ordinal continuity." }),
-    visibilityPurposes: Object.freeze(["model_continuity_context"]),
+    visibilityPurposes: Object.freeze(["conversation"]),
     validFrom: null,
     validUntil: null,
     staleAfter: null,
     authorshipSource: "user" as const,
     authorshipAt: "2026-09-01T00:00:00.000Z",
   });
-  return Object.freeze({ status: "projected", purpose: "model_continuity_context", items: Object.freeze([item]), decisions: Object.freeze([]) });
+  return Object.freeze({ status: "projected", purpose: "conversation", items: Object.freeze([item]), decisions: Object.freeze([]) });
 }
 
 const unusedCalendarActDependencies = {

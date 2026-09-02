@@ -23,8 +23,9 @@ import {
 } from "./supabase-persistence";
 import type { OperatingPictureRecordVersion } from "./record-version-history";
 import type { ProductGapResolutionRecord } from "./product-gap-resolution-persistence";
+import { MODEL_CONTINUITY_PURPOSE } from "./model-continuity-contract";
 
-const PURPOSE = "model_continuity_context";
+const PURPOSE = MODEL_CONTINUITY_PURPOSE;
 const PREPARE = /^show me the active jarvis product gaps for resolution[.!?]*$/i;
 const NEXT = /^show me the next jarvis product gaps for resolution[.!?]*$/i;
 const HISTORY = /^show me the jarvis product gap resolution history[.!?]*$/i;

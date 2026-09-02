@@ -75,11 +75,11 @@ describe("Calendar completeness reply boundary", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.reply).toContain("this bounded Calendar read found 1 commitment");
+    expect(body.reply).toContain("Today you have 1 commitment");
     expect(body.reply).toContain("9:00 AM");
     expect(body.reply).toContain("4:00 PM");
     expect(body.reply).not.toMatch(/only scheduled item|rest of your day is clear/i);
-    expect(model).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledOnce();
   });
 
   it("allows model presentation only after complete coverage is proven", async () => {

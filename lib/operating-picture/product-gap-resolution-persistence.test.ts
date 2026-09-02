@@ -10,13 +10,13 @@ function projection(options: { resolved?: boolean; versionId?: string } = {}): D
   const original = {
     recordId: "user-continuity:gap",
     versionId: options.versionId ?? "gap-head",
-    purpose: "model_continuity_context",
+    purpose: "conversation",
     semanticClass: "user_assertion" as const,
     lifecycle: "current" as const,
     recoveryDisposition: "recoverable_user_continuity" as const,
     subject: { namespace: "user_continuity", entity: "user-continuity:gap", attribute: "user_assertion", revision: "append_only" as const },
     payload: { statement: "JARVIS product gap: close it" },
-    visibilityPurposes: ["model_continuity_context"],
+    visibilityPurposes: ["conversation"],
     validFrom: null,
     validUntil: null,
     staleAfter: null,
@@ -32,7 +32,7 @@ function projection(options: { resolved?: boolean; versionId?: string } = {}): D
     payload: { status: "resolved", targetRecordId: original.recordId },
     authorshipAt: "2026-09-02T10:00:00.000Z",
   }] : [original];
-  return { status: "projected", purpose: "model_continuity_context", items, decisions: [] };
+  return { status: "projected", purpose: "conversation", items, decisions: [] };
 }
 
 describe("Product Gap resolution persistence", () => {
@@ -63,7 +63,7 @@ describe("Product Gap resolution persistence", () => {
   it("rejects changed heads, missing targets and sequential duplicates before append", async () => {
     let appends = 0;
     const appendVersion = async () => { appends += 1; return { status: "rejected" as const, reason: "record_already_exists" as const }; };
-    for (const current of [projection({ versionId: "changed" }), projection({ resolved: true }), { status: "empty", purpose: "model_continuity_context", items: [], decisions: [] } as const]) {
+    for (const current of [projection({ versionId: "changed" }), projection({ resolved: true }), { status: "empty", purpose: "conversation", items: [], decisions: [] } as const]) {
       const result = await persistProductGapResolutionAssertion({
         target: { recordId: "user-continuity:gap", versionId: "gap-head" },
         statedAt: "2026-09-02T10:00:00.000Z",

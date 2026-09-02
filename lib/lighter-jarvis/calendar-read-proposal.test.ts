@@ -15,6 +15,23 @@ describe("calendar.read proposal boundary", () => {
   });
 
   it.each([
+    "morning Jarvis, what's on for today?",
+    "Good morning, Jarvis — what's on for today?",
+    "Hey Jarvis, what's on for tomorrow?",
+    "Jarvis, what do I have today?",
+  ])("ignores a closed greeting/direct-address preamble before an otherwise-supported Calendar request: %s", (utterance) => {
+    expect(proposeCalendarRead(utterance)).toMatchObject({ capability: "calendar.read" });
+  });
+
+  it.each([
+    "Morning planning, what's on for today?",
+    "Hi team, what's on for today?",
+    "Jarvis said what's on for today?",
+  ])("does not strip unrelated conversational wording into a Calendar proposal: %s", (utterance) => {
+    expect(proposeCalendarRead(utterance)).toBeNull();
+  });
+
+  it.each([
     "What did my calendar just say?",
     "Why did you ask to read my calendar?",
     "We were talking about my calendar.",

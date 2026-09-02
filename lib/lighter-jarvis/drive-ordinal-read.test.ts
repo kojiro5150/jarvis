@@ -42,6 +42,33 @@ describe("Drive ordinal read proposal", () => {
     });
   });
 
+  it.each(["Read the sixth one.", "read the seventh one", "Open the 6th one.", "Show me the 7th file."])(
+    "never collapses an overflow ordinal to the trailing word one: %s",
+    utterance => {
+      const scope = createGovernedReferentialScopeReference();
+      const result = createGovernedResultSetReference({
+        scopeReference: scope,
+        referentialClass: "drive.search_results",
+        orderedResourceIds: ["file-1", "file-2", "file-3", "file-4", "file-5"],
+        originatingOperation: "drive.search Atlas",
+      })!;
+      advanceGovernedReferentialScopeUserTurn(scope);
+
+      const resolved = resolveDriveOrdinalReadProposal({
+        currentUserUtterance: utterance,
+        governedReferentialScopeReference: scope,
+        governedResultSetReference: result,
+      });
+
+      expect(resolved).toMatchObject({
+        handled: true,
+        reply: "That position is outside the bounded recent Drive result.",
+      });
+      expect(resolved).not.toHaveProperty("pendingAuthorizationReference");
+      expect(JSON.stringify(resolved)).not.toContain("file-1");
+    },
+  );
+
   it("fails closed for out-of-range and fabricated references", () => {
     const scope = createGovernedReferentialScopeReference();
     const result = createGovernedResultSetReference({

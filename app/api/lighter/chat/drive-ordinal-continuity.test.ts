@@ -70,6 +70,48 @@ describe("Drive governed ordinal continuity route", () => {
     expect(model).not.toHaveBeenCalled();
   });
 
+  it.each(["Read the sixth one.", "read the seventh one"])(
+    "fails closed for overflow ordinals on the live route: %s",
+    async utterance => {
+      const model = vi.fn(async () => "ordinary model must not run");
+      const search = vi.fn(async () => [
+        { id: "file-1", name: "One", mimeType: "application/vnd.google-apps.document", modifiedTime: "2026-09-02T00:00:00Z" },
+        { id: "file-2", name: "Two", mimeType: "application/vnd.google-apps.document", modifiedTime: "2026-09-02T00:00:00Z" },
+        { id: "file-3", name: "Three", mimeType: "application/vnd.google-apps.document", modifiedTime: "2026-09-02T00:00:00Z" },
+        { id: "file-4", name: "Four", mimeType: "application/vnd.google-apps.document", modifiedTime: "2026-09-02T00:00:00Z" },
+        { id: "file-5", name: "Five", mimeType: "application/vnd.google-apps.document", modifiedTime: "2026-09-02T00:00:00Z" },
+      ]);
+      const readGoogleDocText = vi.fn();
+      const handler = createLighterChatHandler(
+        model, undefined, undefined, undefined,
+        { createConnector: () => ({ search }) },
+        {
+          loadPolicy: async () => ({ mimeType: "application/vnd.google-apps.document" as const, contentMode: "text" as const, maxBytes: 65536 as const, releaseMode: "complete_verbatim" as const }),
+          hasOAuthCapability: async () => true,
+          createConnector: () => ({ readGoogleDocText }),
+        },
+      );
+
+      const list = await (await handler(request({
+        specialistId: "jarvis",
+        messages: [{ role: "user", content: "drive.search Atlas" }],
+      }))).json();
+
+      const overflow = await (await handler(request({
+        specialistId: "jarvis",
+        messages: [{ role: "user", content: utterance }],
+        governedReferentialScopeReference: list.governedReferentialScopeReference,
+        governedResultSetReference: list.governedResultSetReference,
+      }))).json();
+
+      expect(overflow.reply).toBe("That position is outside the bounded recent Drive result.");
+      expect(overflow).not.toHaveProperty("pendingAuthorizationReference");
+      expect(overflow).not.toHaveProperty("driveReadAuthority");
+      expect(readGoogleDocText).not.toHaveBeenCalled();
+      expect(model).not.toHaveBeenCalled();
+    },
+  );
+
   it("supersedes an older Drive result set within the same governed scope", async () => {
     const model = vi.fn(async () => "ordinary model must not run");
     const search = vi.fn()

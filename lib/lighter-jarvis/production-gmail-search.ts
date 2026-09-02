@@ -13,6 +13,7 @@ import {
 } from "./gmail-search-authority";
 import { proposeNaturalLanguageGmailSearch } from "./gmail-search-proposal";
 import {
+  parseGmailFromHeader,
   renderGmailSenderIdentity,
   resolveGmailSenderIdentity,
   type GmailSenderIdentity,
@@ -368,7 +369,7 @@ async function releaseMetadata(
   }
 
   const adapter = new GmailContentRetrievalAdapter({ connector: createSubjectConnector() });
-  const messages: { sender: string; subject: string }[] = [];
+  const messages: { sender: string; subject: string; senderIdentity: GmailSenderIdentity | null }[] = [];
   for (const id of input.ids) {
     const retrieval = await adapter.retrieve(Object.freeze({
       resource: Object.freeze({ resourceId: id, connectorType: "email" as const }),
@@ -395,9 +396,11 @@ async function releaseMetadata(
         reply: input.retrievalFailureReply,
       });
     }
+    const sender = input.includeSender ? (retrieval.content.sender ?? "(sender unavailable)") : "";
     messages.push({
-      sender: input.includeSender ? (retrieval.content.sender ?? "(sender unavailable)") : "",
+      sender,
       subject: retrieval.content.subject ?? "(no subject)",
+      senderIdentity: input.includeSender ? parseGmailFromHeader(sender) : null,
     });
   }
 
@@ -407,7 +410,12 @@ async function releaseMetadata(
     reason: input.reason,
     messageIds: input.ids,
     ...(input.includeSender
-      ? { gmailMessageListReference: createGmailMessageListReference({ messageIds: input.ids }) }
+      ? {
+          gmailMessageListReference: createGmailMessageListReference({
+            messageIds: input.ids,
+            senderIdentities: messages.map(message => message.senderIdentity),
+          }),
+        }
       : {}),
     reply: input.includeSender
       ? `${input.intro}\n${messages.map(({ sender, subject }, index) => `${index + 1}. From: ${sender}\n   Subject: ${subject}`).join("\n")}`

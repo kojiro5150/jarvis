@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createGmailMessageListReference,
   resolveGmailMessageListReference,
+  resolveGmailMessageListSenderReference,
 } from "./gmail-message-list-reference";
 
 describe("Gmail message-list reference", () => {
@@ -30,11 +31,84 @@ describe("Gmail message-list reference", () => {
     })).toMatchObject({ status: "matched", resourceId: "id-1", ordinal: 1 });
   });
 
+  it("binds a unique named sender only from server-owned result metadata", () => {
+    const reference = createGmailMessageListReference({
+      messageIds: ["id-1", "id-2"],
+      senderIdentities: [
+        { displayName: "Raman Bhola", address: "raman@example.com" },
+        { displayName: "Alex Smith", address: "alex@example.com" },
+      ],
+      now: new Date("2026-09-02T04:00:00.000Z"),
+    })!;
+
+    expect(resolveGmailMessageListSenderReference({
+      reference,
+      currentUserUtterance: "Read the email from Raman Bhola.",
+      now: new Date("2026-09-02T04:01:00.000Z"),
+    })).toMatchObject({
+      status: "matched",
+      resourceId: "id-1",
+      ordinal: 1,
+      reference,
+    });
+  });
+
+  it("fails closed when a named sender is absent or matches more than one bounded result", () => {
+    const reference = createGmailMessageListReference({
+      messageIds: ["id-1", "id-2", "id-3"],
+      senderIdentities: [
+        { displayName: "Raman Bhola", address: "raman@example.com" },
+        { displayName: "Raman Bhola", address: "raman@example.com" },
+        { displayName: "Alex Smith", address: "alex@example.com" },
+      ],
+    })!;
+
+    expect(resolveGmailMessageListSenderReference({
+      reference,
+      currentUserUtterance: "Read the email from Raman Bhola.",
+    })).toMatchObject({ status: "ambiguous", reference });
+
+    expect(resolveGmailMessageListSenderReference({
+      reference,
+      currentUserUtterance: "Read the email from Georgia.",
+    })).toMatchObject({ status: "not_found", reference });
+  });
+
+  it("does not use named result resolution without trusted sender metadata", () => {
+    const reference = createGmailMessageListReference({
+      messageIds: ["id-1"],
+    })!;
+
+    expect(resolveGmailMessageListSenderReference({
+      reference,
+      currentUserUtterance: "Read the email from Raman Bhola.",
+    })).toMatchObject({ status: "not_found", reference });
+  });
+
   it("does not accept a fabricated opaque reference", () => {
     expect(resolveGmailMessageListReference({
       reference: { gmailMessageListReferenceId: "fabricated" },
       currentUserUtterance: "Read the first one.",
     })).toEqual({ status: "invalid", reference: null });
+  });
+
+  it("fails closed for fabricated and expired named-result references", () => {
+    expect(resolveGmailMessageListSenderReference({
+      reference: { gmailMessageListReferenceId: "fabricated" },
+      currentUserUtterance: "Read the email from Raman Bhola.",
+    })).toEqual({ status: "invalid", reference: null });
+
+    const reference = createGmailMessageListReference({
+      messageIds: ["id-1"],
+      senderIdentities: [{ displayName: "Raman Bhola", address: "raman@example.com" }],
+      now: new Date("2026-09-02T04:00:00.000Z"),
+    })!;
+
+    expect(resolveGmailMessageListSenderReference({
+      reference,
+      currentUserUtterance: "Read the email from Raman Bhola.",
+      now: new Date("2026-09-02T04:15:00.000Z"),
+    })).toEqual({ status: "expired", reference: null });
   });
 
   it("fails closed when the ordinal is outside the bounded list", () => {

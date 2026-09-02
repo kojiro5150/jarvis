@@ -9,6 +9,7 @@ import { CALENDAR_TIME_ZONE } from "@/lib/lighter-jarvis/calendar-read-window";
 import { resolveProductionGmailRead, type ProductionGmailDependencies } from "@/lib/lighter-jarvis/production-gmail-read";
 import { resolveProductionGmailSearch, type ProductionGmailSearchDependencies } from "@/lib/lighter-jarvis/production-gmail-search";
 import { resolveGmailOrdinalReadProposal } from "@/lib/lighter-jarvis/gmail-ordinal-read";
+import { resolveGmailNamedResultReadProposal } from "@/lib/lighter-jarvis/gmail-named-result-read";
 import { hasGovernedDriveHistory, hasGovernedGmailHistory, sanitizeModelHistory } from "@/lib/lighter-jarvis/model-history-boundary";
 import {
   GMAIL_NO_PENDING_READ_AUTHORITY_REPLY,
@@ -678,6 +679,33 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           : {}),
         ...(gmailOrdinalRead.gmailMessageListReference !== undefined
           ? { gmailMessageListReference: gmailOrdinalRead.gmailMessageListReference }
+          : {}),
+      });
+    }
+
+    const gmailNamedResultRead = specialist.id === "jarvis" && currentUserUtterance !== undefined
+      ? resolveGmailNamedResultReadProposal({
+          currentUserUtterance,
+          ...(Object.hasOwn(body, "gmailMessageListReference")
+            ? { gmailMessageListReference: body.gmailMessageListReference }
+            : {}),
+        })
+      : null;
+    if (gmailNamedResultRead?.handled) {
+      const requiresReadAuthority = gmailNamedResultRead.pendingAuthorizationReference !== undefined
+        && gmailNamedResultRead.pendingAuthorizationReference !== null;
+      return NextResponse.json({
+        reply: gmailNamedResultRead.reply,
+        specialistId: specialist.id,
+        execution: "none",
+        ...(requiresReadAuthority
+          ? { gmailAuthority: { decision: "ASK", reason: "named_message_selected_requires_read_authority" } }
+          : {}),
+        ...(gmailNamedResultRead.pendingAuthorizationReference !== undefined
+          ? { pendingAuthorizationReference: gmailNamedResultRead.pendingAuthorizationReference }
+          : {}),
+        ...(gmailNamedResultRead.gmailMessageListReference !== undefined
+          ? { gmailMessageListReference: gmailNamedResultRead.gmailMessageListReference }
           : {}),
       });
     }

@@ -1,13 +1,14 @@
 import { DRIVE_READONLY_SCOPE, GOOGLE_DOC_MIME, GoogleDriveReadConnector, type DriveReadConnector } from "../connectors/google/drive-read";
 import { readGoogleTokens } from "../connectors/google/tokens";
 import { evaluateDriveReadAuthority, proposeDriveRead, type DriveReadOperation } from "./drive-read-authority";
+import { resolvePendingAuthorization, type PendingAuthorizationReference } from "./pending-authorization";
 export const DRIVE_READ_MAX_BYTES = 65_536;
 const SYNTAX = "drive.read <provider-file-id> [text]";
 const PREFIX = /^drive\.read(?:\s|$)/; const EXACT = /^drive\.read ([A-Za-z0-9_-]+) \[text\]$/;
 export type DriveContentPolicy = Readonly<{ mimeType: typeof GOOGLE_DOC_MIME; contentMode: "text"; maxBytes: typeof DRIVE_READ_MAX_BYTES; releaseMode: "complete_verbatim" }>;
 export const DRIVE_CONTENT_POLICY: DriveContentPolicy = Object.freeze({ mimeType: GOOGLE_DOC_MIME, contentMode: "text", maxBytes: DRIVE_READ_MAX_BYTES, releaseMode: "complete_verbatim" });
 export type ProductionDriveReadDependencies = Readonly<{ loadPolicy: () => Promise<DriveContentPolicy | null>; hasOAuthCapability: () => Promise<boolean>; createConnector: () => DriveReadConnector }>;
-export type ProductionDriveReadResult = Readonly<{ handled: boolean; decision?: "ALLOW"; reason?: string; reply?: string }>;
+export type ProductionDriveReadResult = Readonly<{ handled: boolean; decision?: "ALLOW" | "ASK" | "DENY"; reason?: string; reply?: string; pendingAuthorizationReference?: PendingAuthorizationReference | null }>;
 const defaults: ProductionDriveReadDependencies = { loadPolicy: async () => DRIVE_CONTENT_POLICY,
   hasOAuthCapability: async () => new Set((await readGoogleTokens())?.scope.split(/\s+/)).has(DRIVE_READONLY_SCOPE),
   createConnector: () => new GoogleDriveReadConnector() };

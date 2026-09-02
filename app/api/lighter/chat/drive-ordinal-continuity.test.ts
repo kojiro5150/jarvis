@@ -154,4 +154,46 @@ describe("Drive governed ordinal continuity route", () => {
     expect(search).toHaveBeenCalledTimes(2);
     expect(model).not.toHaveBeenCalled();
   });
+
+  it.each([
+    "Read the first one from the earlier JARVIS search.",
+    "Read the first one from the previous Drive result.",
+  ])("fails closed before the model for an explicitly superseded Drive result: %s", async utterance => {
+    const model = vi.fn(async () =>
+      "I can read file 1 from the earlier JARVIS search. Please explicitly confirm that I may read that exact Drive file.");
+    const search = vi.fn(async () => [
+      { id: "current-file", name: "Current result", mimeType: "application/vnd.google-apps.document", modifiedTime: "2026-09-02T00:00:00Z" },
+    ]);
+    const readGoogleDocText = vi.fn();
+    const createReadConnector = vi.fn(() => ({ readGoogleDocText }));
+    const handler = createLighterChatHandler(
+      model, undefined, undefined, undefined,
+      { createConnector: () => ({ search }) },
+      {
+        loadPolicy: async () => ({ mimeType: "application/vnd.google-apps.document" as const, contentMode: "text" as const, maxBytes: 65536 as const, releaseMode: "complete_verbatim" as const }),
+        hasOAuthCapability: async () => true,
+        createConnector: createReadConnector,
+      },
+    );
+
+    const current = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "drive.search Current" }],
+    }))).json();
+
+    const stale = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: utterance }],
+      governedReferentialScopeReference: current.governedReferentialScopeReference,
+      governedResultSetReference: current.governedResultSetReference,
+    }))).json();
+
+    expect(stale.reply).toBe("That earlier Drive result is no longer available. Please search Drive again.");
+    expect(stale).not.toHaveProperty("pendingAuthorizationReference");
+    expect(stale).not.toHaveProperty("driveReadAuthority");
+    expect(JSON.stringify(stale)).not.toContain("current-file");
+    expect(createReadConnector).not.toHaveBeenCalled();
+    expect(readGoogleDocText).not.toHaveBeenCalled();
+    expect(model).not.toHaveBeenCalled();
+  });
 });

@@ -211,6 +211,106 @@ describe("Gmail deterministic read usability route", () => {
     expect(model).not.toHaveBeenCalled();
   });
 
+  it("turns resolved sender-search results into bounded ordinal continuity and keeps named multi-match fail-closed", async () => {
+    const model = vi.fn(async () => "ordinary model must not run");
+    const discoverSenderIdentities = vi.fn(async () => ({
+      complete: true,
+      identities: [{ displayName: "Georgia McDonald", address: "georgia@example.com" }],
+    }));
+    const searchByAddress = vi.fn(async () => ["id-1", "id-2"]);
+    const searchDependencies = {
+      createConnector: () => ({ search: vi.fn(async () => []) }),
+      createSenderConnector: () => ({ discoverSenderIdentities, searchByAddress }),
+      createSubjectConnector: () => ({
+        retrieveMessage: async (id: string) => ({
+          subject: id === "id-1" ? "First Georgia message" : "Second Georgia message",
+        }),
+      }),
+      loadPolicy: async () => listPolicy,
+    };
+
+    const retrieveMessage = vi.fn(async (id: string) => ({
+      sender: "Georgia McDonald <georgia@example.com>",
+      subject: id === "id-1" ? "First Georgia message" : "Second Georgia message",
+      plainTextBody: id === "id-1" ? "First body" : "Second body",
+    }));
+    const readDependencies = {
+      createConnector: () => ({ retrieveMessage }),
+      loadPolicy: async () => ({
+        policyVersion: "test-read-v1",
+        rules: [{
+          id: "email",
+          match: { connectorType: "email" as const },
+          processing: "external_processing_permitted" as const,
+          admissibleFields: ["sender", "subject", "plain_text_body"] as const,
+        }],
+      }),
+    };
+
+    const handler = createLighterChatHandler(
+      model,
+      undefined,
+      readDependencies,
+      searchDependencies,
+    );
+
+    const ask = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Show me the emails from Georgia." }],
+    }))).json();
+    expect(ask.gmailSearchAuthority).toMatchObject({ decision: "ASK" });
+
+    const list = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Yes." }],
+      pendingAuthorizationReference: ask.pendingAuthorizationReference,
+    }))).json();
+
+    expect(list.reply).toBe(
+      "Gmail messages from Georgia McDonald <georgia@example.com>:\n- First Georgia message\n- Second Georgia message",
+    );
+    expect(list.gmailMessageListReference).toBeTruthy();
+    expect(searchByAddress).toHaveBeenCalledTimes(1);
+
+    const named = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Read the email from Georgia McDonald." }],
+      gmailMessageListReference: list.gmailMessageListReference,
+    }))).json();
+
+    expect(named.reply).toContain("More than one message");
+    expect(named).not.toHaveProperty("pendingAuthorizationReference");
+    expect(searchByAddress).toHaveBeenCalledTimes(1);
+    expect(retrieveMessage).not.toHaveBeenCalled();
+
+    const ordinalAsk = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Read the first one." }],
+      gmailMessageListReference: list.gmailMessageListReference,
+    }))).json();
+
+    expect(ordinalAsk.gmailAuthority).toEqual({
+      decision: "ASK",
+      reason: "ordinal_message_selected_requires_read_authority",
+    });
+    expect(ordinalAsk.pendingAuthorizationReference).toBeTruthy();
+    expect(searchByAddress).toHaveBeenCalledTimes(1);
+
+    const read = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Yes." }],
+      pendingAuthorizationReference: ordinalAsk.pendingAuthorizationReference,
+    }))).json();
+
+    expect(read.reply).toBe(
+      "From: Georgia McDonald <georgia@example.com>\nSubject: First Georgia message\nPlain text body: First body",
+    );
+    expect(retrieveMessage).toHaveBeenCalledOnce();
+    expect(retrieveMessage).toHaveBeenCalledWith("id-1");
+    expect(searchByAddress).toHaveBeenCalledTimes(1);
+    expect(model).not.toHaveBeenCalled();
+  });
+
   it("fails a hard-reset ordinal reference capability-neutrally without calling the model", async () => {
     const model = vi.fn(async () => "calendar-specific guess must not run");
     const handler = createLighterChatHandler(model);

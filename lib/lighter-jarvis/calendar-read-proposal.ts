@@ -23,7 +23,7 @@ const CALENDAR_WEEKLY_ALLOCATION_REQUEST =
   /^(?:how\s+(?:is|does)\s+(?:(?:my|this|next)\s+week)\s+(?:allocated|break\s+down)|what(?:'s|\s+is)\s+(?:my\s+)?weekly\s+allocation|show\s+me\s+how\s+(?:(?:my|this|next)\s+week)\s+is\s+allocated)[?!.]?$/i;
 
 const CALENDAR_CONVERSATIONAL_PREAMBLE =
-  /^(?:(?:(?:good\s+)?morning|good\s+(?:afternoon|evening)|hello|hi|hey)(?:\s*,?\s+jarvis)?|jarvis)\s*[,!—–-]+\s*/i;
+  /^(?:(?:(?:good\s+)?morning|good\s+(?:afternoon|evening)|hello|hi|hey)(?:\s*,?\s+jarvis)?|jarvis)\s*[,!.—–-]+\s*/i;
 
 export function stripCalendarConversationalPreamble(utterance: string): string {
   return utterance.replace(CALENDAR_CONVERSATIONAL_PREAMBLE, "");

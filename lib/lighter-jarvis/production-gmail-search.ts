@@ -336,6 +336,7 @@ async function executeResolvedSenderSearch(
     policyDeniedReply: `I found Gmail messages from ${senderLabel}, but I can't release their subjects under the current resource policy.`,
     retrievalFailureReply: `I found Gmail messages from ${senderLabel}, but I couldn't safely retrieve their subjects.`,
     includeSender: false,
+    resolvedSenderIdentity: sender,
   }, dependencies);
   return Object.freeze({ ...released, gmailSenderDisambiguationReference: null });
 }
@@ -350,6 +351,7 @@ async function releaseMetadata(
     policyDeniedReply: string;
     retrievalFailureReply: string;
     includeSender: boolean;
+    resolvedSenderIdentity?: GmailSenderIdentity;
   }>,
   dependencies: ProductionGmailSearchDependencies,
 ): Promise<ProductionGmailSearchResult> {
@@ -409,11 +411,13 @@ async function releaseMetadata(
     decision: "ALLOW",
     reason: input.reason,
     messageIds: input.ids,
-    ...(input.includeSender
+    ...(input.includeSender || input.resolvedSenderIdentity
       ? {
           gmailMessageListReference: createGmailMessageListReference({
             messageIds: input.ids,
-            senderIdentities: messages.map(message => message.senderIdentity),
+            senderIdentities: input.resolvedSenderIdentity
+              ? input.ids.map(() => input.resolvedSenderIdentity!)
+              : messages.map(message => message.senderIdentity),
           }),
         }
       : {}),

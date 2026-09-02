@@ -113,12 +113,22 @@ Both references are non-authoritative identifiers stored in module-private serve
 
 ### Target reference
 
-- opaque client handle bound to one exact immutable Product Gap record ID;
+- opaque client handle bound to one exact immutable Product Gap record ID and the exact selected head-version ID;
 - 15-minute TTL;
 - one-shot consumption;
 - selecting a different target through a carried prior target reference consumes the prior target before issuing the new one;
 - fabricated, unknown, expired, consumed, wrong-class and already-effectively-resolved targets fail closed;
 - possession is not authorship or authority; only the closed current-user resolution utterance authors the assertion.
+
+Consuming a target reference does not establish that the target remains eligible. Immediately before persistence, the server must read a fresh durable snapshot and revalidate that:
+
+- the target record still exists;
+- its current head is the exact head version bound into the target reference;
+- it remains a current, conversation-visible, user-authored Product Gap;
+- no valid resolution assertion already targets it; and
+- no integrity failure prevents a unique effective-status decision.
+
+A target that changed, disappeared, left the active set or was resolved after its reference was issued is stale and fails closed. The earlier candidate-list or target-reference snapshot cannot authorize a write against outdated durable state.
 
 No Gmail, Drive, Calendar or generic governed result-set reference is reused. Surface similarity does not establish lifecycle parity.
 
@@ -140,7 +150,17 @@ The new append-only assertion must contain only the minimum deterministic relati
 
 The assertion must not claim why the gap was resolved, which PR fixed it, that production proof exists, or that evidence was independently verified. Those may be documented elsewhere but cannot be inferred into the user's lifecycle assertion.
 
+The resolution assertion uses one deterministic internal record identity derived from the exact target record ID, for example `product-gap-resolution:<sha256(targetRecordId)>`. This identity is never exposed to the client. It provides a persistence-level one-target/one-assertion collision boundary rather than relying only on an earlier read-before-write check.
+
 Duplicate resolution is fail-closed. V1 creates at most one effective resolution assertion per target and adds no reopening transition.
+
+This rule covers three distinct cases:
+
+1. **Sequential duplicate:** the same already-resolved target is selected or submitted again later.
+2. **Stale independent reference:** two list/target flows select the same active original before either writes; after the first succeeds, the second must fail fresh-state revalidation.
+3. **Concurrent race:** two resolution writes pass preflight before either observes the other. Both derive the same assertion record identity, so the durable append boundary permits at most one initial assertion; the losing append returns a deterministic duplicate/stale failure and must not report success.
+
+An assertion targeting a missing, malformed, non-Product-Gap or otherwise ineligible original is rejected. Multiple honestly preserved resolution attempts are **not** a supported v1 history model: only the one successful user-authored assertion is durable Product Gap resolution state. Failed later attempts may be operationally logged, but they are not persisted as resolution assertions.
 
 ## Effective-status projection
 
@@ -191,8 +211,12 @@ Before implementation, tests must prove current code cannot satisfy the contract
 3. No resolution-target reference exists.
 4. Existing explicit-replacement proof rejects an `append_only` Product Gap.
 5. No append-only resolution assertion can be constructed or persisted.
-6. Current projection cannot derive active versus resolved Product Gap status.
-7. Resolution-shaped language can fall through without a governed lifecycle-write boundary.
+6. Sequential duplicate resolution has no governed rejection path.
+7. Two independently issued references can become stale against a later resolution with no fresh-target revalidation contract.
+8. Concurrent writes have no deterministic one-target/one-assertion persistence collision boundary.
+9. Missing or otherwise ineligible targets have no resolution-assertion rejection contract.
+10. Current projection cannot derive active versus resolved Product Gap status.
+11. Resolution-shaped language can fall through without a governed lifecycle-write boundary.
 
 RED evidence must precede production implementation. Tests written only after the new path exists are insufficient.
 
@@ -208,11 +232,14 @@ Implementation is not production-proven until the real path demonstrates:
 6. fabricated, expired, consumed, out-of-range and wrong-class references fail closed;
 7. ambiguous natural descriptions and unsupported trigger paraphrases create no write;
 8. the resolution command appends exactly one user-authored decision assertion;
-9. duplicate resolution fails closed;
-10. both original records remain `append_only` and unchanged;
-11. the active preparation view excludes the two effectively resolved records;
-12. the closed resolution-history view returns each original plus its explicit resolution relationship; and
-13. hard refresh/restart recovery preserves the same effective-status result from durable state.
+9. sequential duplicate resolution fails closed;
+10. two independently issued references to the same original permit only the first successful resolution;
+11. a concurrent two-writer persistence test produces exactly one durable assertion and at most one success response;
+12. missing, changed-head and otherwise ineligible targets fail closed;
+13. both original records remain `append_only` and unchanged;
+14. the active preparation view excludes the two effectively resolved records;
+15. the closed resolution-history view returns each original plus its explicit resolution relationship; and
+16. hard refresh/restart recovery preserves the same effective-status result from durable state.
 
 One green implementation PR proves code integration only. Direct live write, independent durable-row inspection, later recall and restart-shaped recovery are required before this milestone may be marked **LIVE PASS / FROZEN**.
 

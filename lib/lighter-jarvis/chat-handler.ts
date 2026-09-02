@@ -360,7 +360,7 @@ function calendarIntervalKey(start: string, end: string): string {
  * fails closed to the deterministic server formatter.
  */
 const CALENDAR_EXHAUSTIVE_COMPLETENESS_CLAIM =
-  /\b(?:only\s+(?:scheduled\s+)?(?:item|commitment|meeting|event)|(?:nothing|no\s+other\s+(?:commitments?|meetings?|events?|appointments?))\s+(?:else\s+)?(?:scheduled|on\s+(?:your\s+)?calendar)?|rest\s+of\s+(?:your\s+)?(?:day|morning|afternoon|evening|week)\s+(?:is\s+)?clear|(?:day|morning|afternoon|evening|week)\s+is\s+otherwise\s+clear)\b/i;
+  /\b(?:only\s+(?:scheduled\s+)?(?:item|commitment|meeting|event)|(?:that(?:'s|\s+is)\s+)?all\s+(?:that(?:'s|\s+is)\s+)?scheduled(?:\s+for\s+(?:today|tomorrow|this\s+(?:morning|afternoon|evening|week)))?|(?:nothing|no\s+other\s+(?:commitments?|meetings?|events?|appointments?))\s+(?:else\s+)?(?:scheduled|on\s+(?:your\s+)?calendar)?|rest\s+of\s+(?:your\s+)?(?:day|morning|afternoon|evening|week)\s+(?:is\s+)?clear|(?:day|morning|afternoon|evening|week)\s+is\s+otherwise\s+clear)\b/i;
 
 export function calendarReplyPreservesCompleteness(
   content: string,

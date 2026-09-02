@@ -82,6 +82,44 @@ describe("Calendar completeness reply boundary", () => {
     expect(model).toHaveBeenCalledOnce();
   });
 
+  it.each([
+    "That's all that's scheduled for today.",
+    "That is all that is scheduled for today.",
+    "All that's scheduled for today is the 9:00 AM – 4:00 PM commitment.",
+  ])("contains the live all-scheduled completeness claim when coverage is partial: %s", async (modelReply) => {
+    const model = vi.fn(async () => `Good morning. You have one commitment today: 9:00 AM – 4:00 PM. ${modelReply}`);
+    const listBetweenWithCompleteness = vi.fn(async () => ({
+      events: [event],
+      completeness: completeness("partial"),
+    }));
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => ({
+        source: "google" as const,
+        listBetween: vi.fn(),
+        listBetweenWithCompleteness,
+      }),
+      clock: () => new Date("2026-09-02T02:05:00.000Z"),
+    });
+
+    const ask = await (await handler(request([
+      { role: "user", content: "morning Jarvis, what's on for today?" },
+    ]))).json();
+
+    const response = await handler(request([
+      { role: "user", content: "yes" },
+    ], {
+      pendingAuthorizationReference: ask.pendingAuthorizationReference,
+    }));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.reply).toContain("Today you have 1 commitment");
+    expect(body.reply).toContain("9:00 AM");
+    expect(body.reply).toContain("4:00 PM");
+    expect(body.reply).not.toContain(modelReply);
+    expect(model).toHaveBeenCalledOnce();
+  });
+
   it("allows model presentation only after complete coverage is proven", async () => {
     const model = vi.fn(async () => "Today you have one commitment: 9:00 AM – 4:00 PM. That's your only scheduled item today.");
     const listBetweenWithCompleteness = vi.fn(async () => ({

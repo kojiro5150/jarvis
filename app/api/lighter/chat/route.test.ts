@@ -2219,6 +2219,41 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     expect(driveReadConnector).not.toHaveBeenCalled();
   });
 
+  it("contains spontaneous fabricated Calendar facts on an unrelated ordinary turn", async () => {
+    const calendarConnector = vi.fn();
+    const model = vi.fn(async () => [
+      "Good morning! I can see your development environment is up and running smoothly at http://localhost:3000.",
+      "",
+      "Based on your Calendar, here's what you have on today (Wednesday 2 September 2026):",
+      "",
+      "**9:00 AM - 10:00 AM:** Team standup",
+      "",
+      "**2:00 PM - 3:30 PM:** Product roadmap review",
+      "",
+      "**4:00 PM - 5:00 PM:** 1:1 with Sarah",
+      "",
+      "You have three commitments scheduled, with your morning relatively open after the standup.",
+    ].join("\n"));
+    const response = await createLighterChatHandler(model, {
+      createConnector: calendarConnector,
+      clock: () => new Date("2026-09-02T02:55:00.000Z"),
+    })(request({
+      specialistId: "jarvis",
+      messages: [{
+        role: "user",
+        content: "samhayward@Sams-MacBook-Air jarvis % git switch main git pull npm ci NODE_OPTIONS=--trace-deprecation npm run dev GET / 200 POST /api/lighter/chat 200",
+      }],
+    }));
+
+    expect(await response.json()).toEqual({
+      reply: "I don't have current Calendar evidence for this turn, so I can't make Calendar-derived claims from this ordinary response.",
+      specialistId: "jarvis",
+      execution: "none",
+    });
+    expect(calendarConnector).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(1);
+  });
+
   it("neutralizes fabricated Drive provenance without restoring excluded ID or content", async () => {
     const model = vi.fn(async () => "The document ID was provider_317. Your Drive search returned it.");
     const response = await createLighterChatHandler(model)(request({ specialistId: "jarvis", messages: [

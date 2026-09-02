@@ -9,6 +9,7 @@ import {
   ORDINARY_CALENDAR_FACT_REPLY,
   SINGLE_JARVIS_IDENTITY_REPLY,
   CAPABILITY_OVERVIEW_REPLY,
+  ORDINARY_CALENDAR_EVIDENCE_TRUTHFULNESS_REPLY,
 } from "./ordinary-model-reply-guard";
 import {
   hasPriorVisibleCalendarReport,
@@ -35,6 +36,37 @@ describe("ordinary-model reply guard", () => {
   });
 
   const liveReport = "Based on your calendar for tomorrow (Friday, 28 August 2026), you have two commitments:\n10:00 AM – 11:00 AM\n3:00 PM – 4:00 PM";
+
+
+  it.each([
+    "Based on your Calendar, here's what you have on today: 9:00 AM - 10:00 AM Team standup.",
+    "According to your Calendar, you have three meetings today.",
+    "Your Calendar shows a 2:00 PM product roadmap review.",
+    "Looking at your Calendar, the rest of your morning is clear.",
+    "You have three commitments scheduled today.",
+    "You're free this afternoon.",
+  ])("contains fresh Calendar-derived ordinary-model claims without current governed evidence: %s", modelReply => {
+    expect(guardOrdinaryModelReply(modelReply, "npm run dev completed successfully.", false, {
+      hasCurrentCalendarGovernedContext: false,
+      isCalendarRecollection: false,
+    })).toBe(ORDINARY_CALENDAR_EVIDENCE_TRUTHFULNESS_REPLY);
+  });
+
+  it("does not block ordinary discussion about calendars that makes no personal schedule claim", () => {
+    const modelReply = "Calendar applications commonly represent events with start and end times.";
+    expect(guardOrdinaryModelReply(modelReply, "How do calendar apps usually represent events?", false, {
+      hasCurrentCalendarGovernedContext: false,
+      isCalendarRecollection: false,
+    })).toBe(modelReply);
+  });
+
+  it("does not override proven Calendar recollection merely because historical text names the Calendar", () => {
+    const modelReply = "From the earlier Calendar result I reported, the 10:00 AM–11:00 AM commitment was one of the times shown.";
+    expect(guardOrdinaryModelReply(modelReply, "What time did you report earlier?", false, {
+      hasCurrentCalendarGovernedContext: false,
+      isCalendarRecollection: true,
+    })).toBe(modelReply);
+  });
 
   it.each(["My 9 a.m. meeting is the finance review.", "My 10 a.m. meeting is the project review.", "My 9 a.m. meeting tomorrow is a finance review."])(
     "keeps an ordinary timed user fact out of fake authority UX: %s", utterance => {

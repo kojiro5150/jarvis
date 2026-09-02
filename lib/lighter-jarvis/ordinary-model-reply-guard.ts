@@ -21,6 +21,8 @@ export const UNSUPPORTED_CALENDAR_PATH_REPLY =
 export const ORDINARY_CALENDAR_FACT_REPLY = "Thanks — I'll treat that as information you provided.";
 export const CALENDAR_READ_TRUTHFULNESS_REPLY =
   "I haven't read your Calendar on this turn. Calendar reads are available through the governed path when explicitly authorized.";
+export const ORDINARY_CALENDAR_EVIDENCE_TRUTHFULNESS_REPLY =
+  "I don't have current Calendar evidence for this turn, so I can't make Calendar-derived claims from this ordinary response.";
 export const UNSUPPORTED_CALENDAR_WRITE_REPLY =
   "I can help you work with the information here, but Calendar write/update actions are not available in the current governed path.";
 
@@ -53,6 +55,8 @@ const PRIVATE_SOURCE = /\b(?:calendar|gmail|e-?mail|inbox|drive)\b/i;
 const CONFIRMATION_REQUEST = /(?:\b(?:confirm|confirmation|permission|authorize|authorise|approval|consent)\b|\b(?:may|can)\s+I\b|\b(?:reply|respond|say)\s+["'“”]?(?:yes|confirm|approve|allow)\b)/i;
 const PRIVATE_ACCESS = /\b(?:access|read|search|retrieve|check|view|show|look(?:ing)?\s+(?:at|through|in)|connect(?:ing)?\s+to)\b/i;
 const CALENDAR_REQUEST = /\bcalendar\b/i;
+const FRESH_CALENDAR_SOURCE_CLAIM = /(?:\bbased on (?:what(?:'s| is) (?:visible )?(?:in|on) )?(?:your|the) calendar\b|\baccording to (?:your|the) calendar\b|\blooking at (?:your|the) calendar\b|\bfrom (?:your|the) calendar\b|\b(?:your|the) calendar (?:shows|lists|contains|indicates|says|has)\b|\bI (?:can )?(?:see|saw|found|identified)\b[\s\S]{0,100}\b(?:in|on|from) (?:your|the) calendar\b)/i;
+const PERSONAL_SCHEDULE_FACT_CLAIM = /(?:\byou have\s+(?:(?:\d+|one|two|three|four|five)\s+)?(?:commitments?|meetings?|events?|appointments?)\b|\b(?:your|the rest of your)\s+(?:day|morning|afternoon|evening|week)\s+(?:is|looks)\s+(?:clear|open|free)\b|\byou(?:'re| are)\s+(?:free|open)\b|\b(?:commitments?|meetings?|events?|appointments?)\s+(?:scheduled|on your calendar)\b)/i;
 const PRIVATE_ACQUISITION_UTTERANCE = /\bwhat(?:'s| is)\s+on\s+(?:for\s+)?(?:today|tomorrow)\b|\b(?:calendar|gmail|e-?mail|inbox|drive)\b[\s\S]*\b(?:read|search|retrieve|check|view|show|look|access|connect|what(?:'s| is)|on)\b|\b(?:read|search|retrieve|check|view|show|look|access|connect|what(?:'s| is))\b[\s\S]*\b(?:calendar|gmail|e-?mail|inbox|drive)\b/i;
 const PROJECTED_FIELD_ABSENCE = /\b(?:the\s+)?(?:calendar entry|meeting|event)\s+(?:doesn['’]?t|does not)\s+include\s+(?:a\s+)?(?:label|title|description)(?:\s+or\s+(?:a\s+)?(?:label|title|description))?|\b(?:the\s+)?(?:meeting|event)\s+has\s+no\s+(?:title|label|description)(?:\s+in\s+the\s+calendar)?|\bthere\s+is\s+no\s+(?:title|label|description)\s+on\s+(?:the\s+)?(?:meeting|event)\b|\bI don['’]?t have any\s+(?:subject|title|description)(?:\s+or\s+(?:subject|title|description))*\s+information\s+visible\s+in\s+the\s+calendar\s+data\b/gi;
 const UNSAFE_BOUND_DETAIL_RECALL = /(?:\bfrom the calendar information I have\b|\bbased on what['’]s visible (?:in|from) your calendar\b|\bbased on what I can see\b|\bcalendar (?:data|evidence|entries?) I (?:can see|can access|have access to)\b|\bI don['’]?t have access to\b|\bavailable from (?:your|the) calendar\b|\bvisible in (?:the|your) calendar (?:data|entry)\b|\bno subject or description is visible in the calendar entry\b)/i;
@@ -118,6 +122,17 @@ export function guardOrdinaryModelReply(content: string, currentUserUtterance?: 
   const ordinaryCalendarFact = currentUserUtterance
     ? userSuppliedTimedCalendarDetail(currentUserUtterance) !== undefined
     : false;
+  const hasCurrentCalendarEvidence = calendarProvenance?.hasCurrentCalendarGovernedContext === true;
+  const isProvenCalendarRecollection = calendarProvenance?.isCalendarRecollection === true;
+  const freshCalendarSourceClaim = FRESH_CALENDAR_SOURCE_CLAIM.test(content);
+  const unsupportedPersonalScheduleClaim = PERSONAL_SCHEDULE_FACT_CLAIM.test(content)
+    && !ordinaryCalendarFact;
+  if (!hasCurrentCalendarEvidence
+    && !isProvenCalendarRecollection
+    && (freshCalendarSourceClaim || unsupportedPersonalScheduleClaim)) {
+    return ORDINARY_CALENDAR_EVIDENCE_TRUTHFULNESS_REPLY;
+  }
+
   if (calendarProvenance?.previousAssistantWasCalendarContainment
     && /\b(?:calendar|result|matching event|no matching|found|search)\b/i.test(content)) {
     return "That wording was contained and no Calendar read was performed for it.";

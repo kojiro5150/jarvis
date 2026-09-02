@@ -289,10 +289,7 @@ export function formatCalendarReadResponse(calendar: NonNullable<Awaited<ReturnT
     const unbound = (bindingState?.unbound ?? []).map(detail =>
       `You previously mentioned ${detail.label} at ${displayCalendarClock(detail.clock)}, but that time does not match a commitment in this Calendar result, so I cannot associate it with one.`
     ).join("\n");
-    const heading = calendar.evidence.length > 0 && calendar.coverageState !== "bounded_complete_request"
-      ? `${calendarPeriodHeading(window.period)}, this bounded Calendar read found ${count} commitment${count === 1 ? "" : "s"}:`
-      : `${calendarPeriodHeading(window.period)} you have ${count} commitment${count === 1 ? "" : "s"}:`;
-    return `${heading}\n${commitments}${unbound ? `\n${unbound}` : ""}`;
+    return `${calendarPeriodHeading(window.period)} you have ${count} commitment${count === 1 ? "" : "s"}:\n${commitments}${unbound ? `\n${unbound}` : ""}`;
   }
   const coverage = calendar.evidence[0]?.coverageLimit.match(/^window=([^/]+)\/([^;]+);/) ?? null;
   const bounds = window ? [window.start, window.end] : coverage?.slice(1);
@@ -362,6 +359,17 @@ function calendarIntervalKey(start: string, end: string): string {
  * the projected commitment set. Any missing, substituted or extra interval
  * fails closed to the deterministic server formatter.
  */
+const CALENDAR_EXHAUSTIVE_COMPLETENESS_CLAIM =
+  /\b(?:only\s+(?:scheduled\s+)?(?:item|commitment|meeting|event)|(?:nothing|no\s+other\s+(?:commitments?|meetings?|events?|appointments?))\s+(?:else\s+)?(?:scheduled|on\s+(?:your\s+)?calendar)?|rest\s+of\s+(?:your\s+)?(?:day|morning|afternoon|evening|week)\s+(?:is\s+)?clear|(?:day|morning|afternoon|evening|week)\s+is\s+otherwise\s+clear)\b/i;
+
+export function calendarReplyPreservesCompleteness(
+  content: string,
+  coverageState: "bounded_complete_request" | "bounded_partial_request" | "bounded" | undefined,
+): boolean {
+  return coverageState === "bounded_complete_request"
+    || !CALENDAR_EXHAUSTIVE_COMPLETENESS_CLAIM.test(content);
+}
+
 export function calendarReplyPreservesProjection(content: string,
   commitments: readonly Readonly<{ start: string; end: string }>[]): boolean {
   const observed = [...content.matchAll(CALENDAR_REPLY_INTERVAL)].map(match =>
@@ -945,14 +953,6 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       const projected = projectCalendarContext(calendar.evidence!.evidence, calendar.window);
       const bindingState = bindUserCalendarDetails(body.messages, projected.commitments);
       const deterministicReply = formatCalendarReadResponse(calendar.evidence!, calendar.window, bindingState);
-      if (calendar.evidence!.coverageState !== "bounded_complete_request") {
-        return NextResponse.json({
-          reply: deterministicReply,
-          specialistId: specialist.id,
-          execution: "none",
-          calendarAuthority: { decision: "ALLOW", reason: calendar.reason },
-        });
-      }
       const governedContext = createGovernedContext(projectCalendarContext(calendar.evidence!.evidence, calendar.window,
         bindingState.bindings, bindingState.unbound));
       try {
@@ -968,6 +968,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           currentCalendarFallback: fallback,
         });
         const reply = calendarReplyPreservesProjection(guardedReply, projected.commitments)
+          && calendarReplyPreservesCompleteness(guardedReply, calendar.evidence!.coverageState)
           ? guardedReply
           : deterministicReply;
         return NextResponse.json({ reply, specialistId: specialist.id, execution: "none",

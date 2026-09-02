@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  advanceProductGapResolutionListReference,
   consumeProductGapResolutionTargetReference,
   createProductGapResolutionListReference,
   createProductGapResolutionTargetReference,
@@ -61,5 +62,21 @@ describe("Product Gap resolution references", () => {
       reference: expired,
       now: new Date(now.getTime() + 15 * 60 * 1000 + 1),
     })).toBeNull();
+  });
+
+  it("pages at ten exact IDs and rejects history references in active selection", () => {
+    const candidates = Array.from({ length: 11 }, (_, index) => ({
+      recordId: `user-continuity:${index + 1}`,
+      versionId: `version-${index + 1}`,
+      statement: `JARVIS product gap ${index + 1}`,
+    }));
+    const reference = createProductGapResolutionListReference({ candidates, now });
+    expect(reference).not.toBeNull();
+    const next = advanceProductGapResolutionListReference({ reference, now });
+    expect(next?.candidates).toHaveLength(1);
+    expect(next?.candidates[0]?.recordId).toBe("user-continuity:11");
+
+    const history = createProductGapResolutionListReference({ candidates: candidates.slice(0, 1), now, kind: "history" });
+    expect(resolveProductGapResolutionListReference({ reference: history, ordinal: 1, now })).toBeNull();
   });
 });

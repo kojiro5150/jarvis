@@ -84,4 +84,24 @@ describe("Product Gap resolution persistence", () => {
     });
     expect(result).toEqual({ status: "rejected", reason: "already_resolved" });
   });
+
+  it("permits at most one success when two writers race from independent stale references", async () => {
+    const created = new Set<string>();
+    const appendVersion = async (version: Parameters<Parameters<typeof persistProductGapResolutionAssertion>[0]["appendVersion"]>[0]) => {
+      await Promise.resolve();
+      if (created.has(version.recordId)) return { status: "rejected" as const, reason: "record_already_exists" as const };
+      created.add(version.recordId);
+      return { status: "appended" as const, version };
+    };
+    const attempt = () => persistProductGapResolutionAssertion({
+      target: { recordId: "user-continuity:gap", versionId: "gap-head" },
+      statedAt: "2026-09-02T10:00:00.000Z",
+      retrieveProjection: async () => projection(),
+      appendVersion,
+    });
+    const results = await Promise.all([attempt(), attempt()]);
+    expect(results.filter(result => result.status === "persisted")).toHaveLength(1);
+    expect(results.filter(result => result.status === "rejected" && result.reason === "already_resolved")).toHaveLength(1);
+    expect(created).toEqual(new Set([productGapResolutionRecordId("user-continuity:gap")]));
+  });
 });

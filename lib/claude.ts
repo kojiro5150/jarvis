@@ -82,7 +82,7 @@ export async function callClaude(
         betas: ["web-fetch-2025-09-10"],
       } as BetaMessageCreateParamsNonStreaming)
     : await anthropic.messages.create(request as MessageCreateParamsNonStreaming);
-  const content = response.content as ClaudeContentBlock[];
+  const content = response.content as unknown as ClaudeContentBlock[];
 
   const text = content
     .filter((block): block is ClaudeContentBlock & { text: string } => block.type === "text" && typeof block.text === "string")

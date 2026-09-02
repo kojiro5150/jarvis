@@ -52,11 +52,13 @@ describe("Drive ordinal read proposal", () => {
     })!;
     advanceGovernedReferentialScopeUserTurn(scope);
 
-    expect(resolveDriveOrdinalReadProposal({
+    const outOfRange = resolveDriveOrdinalReadProposal({
       currentUserUtterance: "Read the fifth one.",
       governedReferentialScopeReference: scope,
       governedResultSetReference: result,
-    })).toMatchObject({ handled: true, pendingAuthorizationReference: undefined });
+    });
+    expect(outOfRange).toMatchObject({ handled: true });
+    expect(outOfRange).not.toHaveProperty("pendingAuthorizationReference");
 
     expect(resolveDriveOrdinalReadProposal({
       currentUserUtterance: "Read the first one.",

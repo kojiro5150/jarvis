@@ -48,6 +48,8 @@ describe("Sprint 3.144 Drive search scoped regression proofs", () => {
       execution: "none",
       driveSearchAuthority: { decision: "ALLOW", reason: "explicit_drive_search" },
       driveFiles: metadata.slice(0, 5),
+      governedReferentialScopeReference: { governedReferentialScopeId: expect.any(String) },
+      governedResultSetReference: { governedResultSetReferenceId: expect.any(String) },
     });
     expect(Object.keys(body.driveFiles[0])).toEqual(["id", "name", "mimeType", "modifiedTime"]);
     expect(body.driveFiles.map((file: { id: string }) => file.id)).toEqual(metadata.slice(0, 5).map(file => file.id));
@@ -154,7 +156,20 @@ describe("Sprint 3.144 Drive search scoped regression proofs", () => {
 
     await queue.enqueue({ id: 3144, transcript: "drive.search Atlas" });
 
-    expect(voice).toEqual(typed);
+    expect(typed).toMatchObject({
+      driveSearchAuthority: { decision: "ALLOW", reason: "explicit_drive_search" },
+      governedReferentialScopeReference: { governedReferentialScopeId: expect.any(String) },
+      governedResultSetReference: { governedResultSetReferenceId: expect.any(String) },
+    });
+    expect(voice).toMatchObject({
+      reply: typed.reply,
+      specialistId: "jarvis",
+      execution: "none",
+      driveSearchAuthority: { decision: "ALLOW", reason: "explicit_drive_search" },
+      driveFiles: metadata.slice(0, 5),
+      governedReferentialScopeReference: { governedReferentialScopeId: expect.any(String) },
+      governedResultSetReference: { governedResultSetReferenceId: expect.any(String) },
+    });
     expect(harness.search).toHaveBeenNthCalledWith(1, "Atlas", 5);
     expect(harness.search).toHaveBeenNthCalledWith(2, "Atlas", 5);
     expect(harness.model).not.toHaveBeenCalled();

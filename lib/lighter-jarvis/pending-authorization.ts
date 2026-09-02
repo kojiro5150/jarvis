@@ -4,8 +4,9 @@ import type { ProposedCalendarReadOperation } from "./calendar-read-authority";
 import type { ProposedGmailReadOperation } from "./gmail-read-authority";
 import type { ProposedGmailSearchOperation } from "./gmail-search-authority";
 import type { ProposedDriveSearchOperation } from "./drive-search-authority";
+import type { DriveReadOperation } from "./drive-read-authority";
 
-type ProposedOperation = ProposedCalendarReadOperation | ProposedGmailReadOperation | ProposedGmailSearchOperation | ProposedDriveSearchOperation;
+type ProposedOperation = ProposedCalendarReadOperation | ProposedGmailReadOperation | ProposedGmailSearchOperation | ProposedDriveSearchOperation | DriveReadOperation;
 
 /**
  * An opaque, non-authoritative handle that may cross the client boundary.

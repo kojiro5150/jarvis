@@ -19,6 +19,8 @@ type Specialist = {
 type Message = { role: "user" | "assistant"; content: string; error?: boolean };
 type OpaqueGmailSenderDisambiguation = Readonly<{ gmailSenderDisambiguationReferenceId: string }>;
 type OpaqueGmailMessageList = Readonly<{ gmailMessageListReferenceId: string }>;
+type OpaqueGovernedReferentialScope = Readonly<{ governedReferentialScopeId: string }>;
+type OpaqueGovernedResultSet = Readonly<{ governedResultSetReferenceId: string }>;
 type OpaqueCalendarAttentionObservation = Readonly<{ calendarAttentionObservationReferenceId: string }>;
 type OpaqueCalendarConflictReasoning = Readonly<{ calendarConflictReasoningReferenceId: string }>;
 type OpaqueCalendarAdvicePreference = Readonly<{ calendarAdvicePreferenceReferenceId: string }>;
@@ -94,6 +96,8 @@ export default function UnifiedOpsConsole() {
   const authorityTurnStateRef = useRef(new ClientAuthorityTurnState());
   const gmailSenderDisambiguationRef = useRef<OpaqueGmailSenderDisambiguation | null>(null);
   const gmailMessageListRef = useRef<OpaqueGmailMessageList | null>(null);
+  const governedReferentialScopeRef = useRef<OpaqueGovernedReferentialScope | null>(null);
+  const governedResultSetRef = useRef<OpaqueGovernedResultSet | null>(null);
   const calendarAttentionObservationRef = useRef<OpaqueCalendarAttentionObservation | null>(null);
   const calendarConflictReasoningRef = useRef<OpaqueCalendarConflictReasoning | null>(null);
   const calendarAdvicePreferenceRef = useRef<OpaqueCalendarAdvicePreference | null>(null);
@@ -300,6 +304,12 @@ export default function UnifiedOpsConsole() {
           ...(specialist.id === "jarvis" && gmailMessageListRef.current
             ? { gmailMessageListReference: gmailMessageListRef.current }
             : {}),
+          ...(specialist.id === "jarvis" && governedReferentialScopeRef.current
+            ? { governedReferentialScopeReference: governedReferentialScopeRef.current }
+            : {}),
+          ...(specialist.id === "jarvis" && governedResultSetRef.current
+            ? { governedResultSetReference: governedResultSetRef.current }
+            : {}),
           ...(specialist.id === "jarvis" && calendarAttentionObservationRef.current
             ? { calendarAttentionObservationReference: calendarAttentionObservationRef.current }
             : {}),
@@ -328,6 +338,8 @@ export default function UnifiedOpsConsole() {
         pendingAuthorizationReference?: OpaquePendingAuthorization | null;
         gmailSenderDisambiguationReference?: OpaqueGmailSenderDisambiguation | null;
         gmailMessageListReference?: OpaqueGmailMessageList | null;
+        governedReferentialScopeReference?: OpaqueGovernedReferentialScope | null;
+        governedResultSetReference?: OpaqueGovernedResultSet | null;
         calendarAttentionObservationReference?: OpaqueCalendarAttentionObservation;
         calendarConflictReasoningReference?: OpaqueCalendarConflictReasoning | null;
         calendarAdvicePreferenceReference?: OpaqueCalendarAdvicePreference | null;
@@ -353,6 +365,12 @@ export default function UnifiedOpsConsole() {
       }
       if (data.gmailMessageListReference !== undefined) {
         gmailMessageListRef.current = data.gmailMessageListReference;
+      }
+      if (data.governedReferentialScopeReference !== undefined) {
+        governedReferentialScopeRef.current = data.governedReferentialScopeReference;
+      }
+      if (data.governedResultSetReference !== undefined) {
+        governedResultSetRef.current = data.governedResultSetReference;
       }
       if (data.calendarAttentionObservationReference !== undefined) {
         calendarAttentionObservationRef.current = data.calendarAttentionObservationReference;

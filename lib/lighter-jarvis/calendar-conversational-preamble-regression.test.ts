@@ -14,7 +14,10 @@ function request(utterance: string) {
 }
 
 describe("Calendar conversational preamble regression", () => {
-  it("routes the exact field utterance to governed Calendar ASK instead of ordinary-model fallback", async () => {
+  it.each([
+    "morning Jarvis, what's on for today?",
+    "morning Jarvis. What's on for today?",
+  ])("routes the exact field utterance to governed Calendar ASK instead of ordinary-model fallback: %s", async (utterance) => {
     const model = vi.fn();
     const calendarConnector = vi.fn();
     const handler = createLighterChatHandler(model, {
@@ -22,9 +25,7 @@ describe("Calendar conversational preamble regression", () => {
       clock: () => new Date("2026-09-02T02:05:00.000Z"),
     });
 
-    const response = await handler(request(
-      "morning Jarvis, what's on for today?",
-    ));
+    const response = await handler(request(utterance));
     const body = await response.json();
 
     expect(response.status).toBe(200);

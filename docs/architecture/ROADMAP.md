@@ -1,8 +1,26 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Reconciled 2 September 2026 after direct live verification of the Governed Operating Picture semantic/lifecycle foundation, Supabase persistence foundation, Store Parity & Restart Durability, Purpose-Bounded Durable Projection, Narrow Model-Facing Continuity, Explicit User-Authored Continuity Capture, Morning Executive Orientation v1, post-promotion durable-continuity reliability/scalability closure, and bounded Drive ordinal result continuity. Existing governed Calendar/Gmail/Drive work remains the proven substrate. Morning Executive Orientation v1, durable-continuity recall reliability and Drive ordinal continuity are now **LIVE PASS / FROZEN** within their bounded scopes.
+**Status:** Living document. Reconciled 2 September 2026 after direct live verification of the Governed Operating Picture semantic/lifecycle foundation, Supabase persistence foundation, Store Parity & Restart Durability, Purpose-Bounded Durable Projection, Narrow Model-Facing Continuity, Explicit User-Authored Continuity Capture, Morning Executive Orientation v1, post-promotion durable-continuity reliability/scalability closure, bounded Drive ordinal result continuity, and bounded Gmail named-result continuity. Existing governed Calendar/Gmail/Drive work remains the proven substrate. Morning Executive Orientation v1, durable-continuity recall reliability, Drive ordinal continuity and Gmail named-result continuity are now **LIVE PASS / FROZEN** within their bounded scopes.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
+
+---
+
+## Verified milestone — Bounded Gmail named-result continuity
+
+The completed Product Gap #19 production proof is recorded in:
+
+- `../GMAIL-NAMED-RESULT-HANDOFF-LIVE-PASS.md`
+
+The live recent-message path preserves at most five ordered Gmail message IDs and their trusted sender identities behind one opaque, capability-specific reference. Strict named-sender language or the closed ordinal grammar may identify one exact stored result. Identification never inherits Gmail search authority: a separate one-shot `gmail.read` authorization and explicit confirmation remain mandatory before content acquisition.
+
+Direct production testing proved unique, ambiguous and absent sender handling; current-result ownership after a later search; valid and overflow ordinals; exact post-confirmation provider retrieval; the configured 15-minute TTL; and fabricated-reference rejection. The overflow defect discovered during this proof was repaired in PR #535 before promotion.
+
+> **Promotion decision:** Product Gap #19, bounded Gmail named-result continuity, is **LIVE PASS / FROZEN**.
+
+The proof belongs to `gmail-message-list-reference.ts`. It does not import the generic Drive result-set lifecycle: older Gmail server entries may coexist until TTL expiry, and no same-class supersession, scope binding or conversational-turn budget is claimed. It does not authorize migration to `governed-result-set-reference` or promote the separate sender-search-result continuity freeze without its own acceptance evidence.
+
+Three adjacent observations remain open rather than being hidden by promotion: sender-qualified recent-five intent can degrade to a generic recent list; the unbound fallback wording understates the now-live bounded handoff; and some released email bodies require better plain-text normalization.
 
 ---
 

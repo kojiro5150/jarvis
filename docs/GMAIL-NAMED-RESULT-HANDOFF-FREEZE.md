@@ -4,6 +4,8 @@
 **Date:** 2 September 2026  
 **Scope:** One bounded conversational handoff only: a named reference to one message in the immediately preserved recent Gmail result set.
 
+> **Follow-on status:** Product Gap #19 was subsequently implemented, repaired against an ordinal-overflow defect exposed during production-proof work, and directly verified on the live Gmail path. It is now **LIVE PASS / FROZEN** within this bounded recent-result scope. See `GMAIL-NAMED-RESULT-HANDOFF-LIVE-PASS.md`. The pre-implementation statements below remain as the historical proving contract.
+
 ## Field observation
 
 After an authorised recent-Gmail search displayed a bounded ordered result containing Raman Bhola, the natural follow-up:

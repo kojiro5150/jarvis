@@ -92,6 +92,25 @@ describe("Gmail message-list reference", () => {
     })).toEqual({ status: "invalid", reference: null });
   });
 
+  it("fails closed for fabricated and expired named-result references", () => {
+    expect(resolveGmailMessageListSenderReference({
+      reference: { gmailMessageListReferenceId: "fabricated" },
+      currentUserUtterance: "Read the email from Raman Bhola.",
+    })).toEqual({ status: "invalid", reference: null });
+
+    const reference = createGmailMessageListReference({
+      messageIds: ["id-1"],
+      senderIdentities: [{ displayName: "Raman Bhola", address: "raman@example.com" }],
+      now: new Date("2026-09-02T04:00:00.000Z"),
+    })!;
+
+    expect(resolveGmailMessageListSenderReference({
+      reference,
+      currentUserUtterance: "Read the email from Raman Bhola.",
+      now: new Date("2026-09-02T04:15:00.000Z"),
+    })).toEqual({ status: "expired", reference: null });
+  });
+
   it("fails closed when the ordinal is outside the bounded list", () => {
     const reference = createGmailMessageListReference({ messageIds: ["id-1"] })!;
     expect(resolveGmailMessageListReference({

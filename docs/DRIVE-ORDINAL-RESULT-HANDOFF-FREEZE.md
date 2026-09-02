@@ -3,6 +3,8 @@
 **Status:** Frozen before implementation
 **Date:** 2 September 2026
 
+> **Follow-on status:** The bounded Drive ordinal handoff was subsequently implemented, repaired against two defects found through live use, and directly verified in production. It is now **LIVE PASS / FROZEN** within the Drive-only scope defined here. See `DRIVE-ORDINAL-RESULT-HANDOFF-LIVE-PASS.md`. The pre-implementation statements below remain as the historical proving contract.
+
 ## Classification
 
 1. **Capability exists:** Drive search and exact Drive read exist.

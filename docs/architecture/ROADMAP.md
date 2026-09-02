@@ -1,8 +1,26 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Reconciled 1 September 2026 after direct live verification of the Governed Operating Picture semantic/lifecycle foundation, Supabase persistence foundation, Store Parity & Restart Durability, Purpose-Bounded Durable Projection, Narrow Model-Facing Continuity, Explicit User-Authored Continuity Capture, Morning Executive Orientation v1, and the post-promotion durable-continuity reliability/scalability closure. Existing governed Calendar/Gmail/Drive work remains the proven substrate. Morning Executive Orientation v1 and durable-continuity recall reliability are now **LIVE PASS / FROZEN** within their bounded scopes.
+**Status:** Living document. Reconciled 2 September 2026 after direct live verification of the Governed Operating Picture semantic/lifecycle foundation, Supabase persistence foundation, Store Parity & Restart Durability, Purpose-Bounded Durable Projection, Narrow Model-Facing Continuity, Explicit User-Authored Continuity Capture, Morning Executive Orientation v1, post-promotion durable-continuity reliability/scalability closure, and bounded Drive ordinal result continuity. Existing governed Calendar/Gmail/Drive work remains the proven substrate. Morning Executive Orientation v1, durable-continuity recall reliability and Drive ordinal continuity are now **LIVE PASS / FROZEN** within their bounded scopes.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
+
+---
+
+## Verified milestone — Bounded Drive ordinal result continuity
+
+The completed production proof is recorded in:
+
+- `../DRIVE-ORDINAL-RESULT-HANDOFF-LIVE-PASS.md`
+
+The live path now preserves one recent bounded Drive search as an opaque, server-owned ordered result set. A closed ordinal request may identify one exact provider file from that preserved order, but it creates no read authority by itself. JARVIS must create and resolve a separate one-shot `drive.read` pending authorization before the identified Google Doc can be acquired.
+
+Direct production testing proved the positive exact-read path and every required negative lifecycle boundary: out-of-range ordinals, same-class supersession, explicit attempts to revive an earlier search, the six-subsequent-user-turn limit, the configured 15-minute TTL, fabricated handles and cross-scope handles. Two defects found during live testing were repaired before promotion rather than omitted from the record.
+
+> **Promotion decision:** Bounded Drive ordinal result continuity is **LIVE PASS / FROZEN**.
+
+This is the first production proof of `governed-result-set-reference.ts`, not a general migration decision. Gmail and Calendar retain their existing capability-specific reference mechanisms unless a separate product need, parity analysis and live proof justify change.
+
+The milestone closes a Level-1 usability and containment gap. It does not change the roadmap's centre of gravity: next work should still be selected from observed everyday executive value and the existing Phase V trajectory, not from architectural adjacency to a newly proven primitive.
 
 ---
 

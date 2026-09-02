@@ -1,7 +1,7 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 26 August 2026 (through Sprint 3.146; reconciled in Sprint 3.147)
+- **Last updated:** 2 September 2026 (reconciled through bounded Drive ordinal continuity LIVE PASS)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
 - **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
 
@@ -30,8 +30,8 @@ Legend:
 | `calendar.read` | ✓ | ✓ | ✓ — live bounded path | The JARVIS conversational route gates bounded governed Calendar reads. Its deterministic proposal recognizer accepts deliberate high-precision requests rather than Calendar mentions, recall, or discussion. |
 | identified-message `gmail.read` | ✓ | ✓ | ✓ — frozen baseline | The exact `/api/lighter/chat` command path gates one exact message and requested-field set before resource-policy evaluation and acquisition. The development/demo runtime is explicitly wired to a subject-only policy; the lighter path returns deterministic presentation with no model or specialist handoff. Legacy `/api/chat` Gmail execution is contained. |
 | bounded `gmail.search` discovery | ✓ | ✓ | ✓ — exact baseline frozen; NL proposal live | The unchanged exact `1d`/`7d` command path directly allows at most five message IDs. Sprint 3.137 also deterministically proposes those same bounded operations from high-precision natural language, but proposal recognition confers no execution authority: explicit confirmation of server-owned pending state is required. Broader Gmail discovery remains unimplemented. |
-| metadata-only `drive.search` and identified Google Doc `drive.read` | ✓ | ✓ | ✓ — bounded production paths | Search remains metadata-only. `drive.read <provider-file-id> [text]` alone authorizes a 65,536-byte-bounded, complete verbatim Google Docs plain-text export; it has no NL or pending flow and search authority is non-transitive. |
-| `drive.read` | ○ | ○ | ○ | Connector exists; operation-level authority not yet implemented. |
+| metadata-only `drive.search` and identified Google Doc `drive.read` | ✓ | ✓ | ✓ — bounded production paths; ordinal continuity frozen | Search remains metadata-only. `drive.read <provider-file-id> [text]` remains an exact raw-utterance authority path. A recent bounded Drive search may also identify one exact file through a server-owned ordinal result reference, but that selection creates a separate one-shot pending `drive.read` operation and never inherits search authority. Both routes retain the 65,536-byte complete-verbatim Google Docs policy. |
+| arbitrary `drive.read` beyond identified Google Docs | ○ | ○ | ○ | The bounded identified-Google-Doc paths above are live; arbitrary Drive content acquisition is not implemented. |
 | `memory.read` | ○ | ○ | ○ | Memory is still acquired through legacy state-building paths; operation-level authority not yet implemented. |
 | `calendar.write` | ○ | ○ | ○ | Future action capability; not part of current read migration. |
 | `gmail.send` | ○ | ○ | ○ | Future action capability; must never inherit from Gmail read authority. |
@@ -45,6 +45,12 @@ Legend:
 | Standing grants | ○ | No standing-grant store or adjudication yet. |
 | `PendingAuthorization` confirmation | ✓ — live | Server-owned, capability-bound, one-shot state is integrated for Calendar reads, identified-message Gmail reads, and natural-language bounded Gmail and Drive search proposals. The client receives only an opaque reference. Bare, stale, fabricated, unknown, consumed, and capability-mismatched references fail closed and resolve before model invocation. The authoritative registry is a module-private process-local `Map`; durable or distributed persistence remains incomplete. |
 | Resource policy | △ | Mature Gmail content-retrieval policy follows authority for the identified-message path; it is not positive user authority and is not yet composed into a general Authority Engine. |
+
+## Non-authoritative resource identification
+
+| Mechanism | Status | Notes |
+| --- | --- | --- |
+| `GovernedResultSetReference` | ✓ — live and frozen for bounded Drive ordinal continuity | The client receives only opaque scope and result-set handles. The server owns exact result order, 15-minute TTL, six-subsequent-user-turn budget and same-class supersession. The reference may identify a resource but is never authority evidence. Expired, exhausted, superseded, out-of-range, fabricated and cross-scope references fail closed before ordinary-model substitution or connector read. Storage remains module-private and process-local; durable or distributed persistence is not implemented. Gmail and Calendar migration is not authorized by this proof. |
 
 Sprint 3.133 wires the closed identified-message operation into the live JARVIS lighter route.
 Exact `gmail.read <message-id> [field,field]` utterances now proceed from raw utterance authority to
@@ -308,7 +314,7 @@ The frozen product direction is one user-facing JARVIS identity. Internal specia
 | 3 | General `PendingAuthorization` for exact operation confirmation | ✓ — live for the bounded production capabilities; authoritative storage remains process-local |
 | 4 | Live conversational Calendar integration | ✓ — bounded `calendar.read` path |
 | 5 | Separate private acquisition from legacy `OperationalState` assembly | ✓ — COMPLETE since Sprint 3.129; retired/quarantined regressions prove zero callable eager full-state production surfaces |
-| 6 | Extend authority to Gmail, Drive and Memory | △ — bounded Gmail, Drive search, and identified Google Doc read paths are live; arbitrary `drive.read` and `memory.read` are unimplemented |
+| 6 | Extend authority to Gmail, Drive and Memory | △ — bounded Gmail plus Drive search and identified Google Doc read paths are live; Drive ordinal result-to-read continuity is LIVE PASS / FROZEN, while arbitrary `drive.read` and `memory.read` remain unimplemented |
 | 7 | Named and standing grants, including bounded briefing authority | ○ |
 | 8 | Complete one-JARVIS UX migration and remove authority-bypassing legacy paths | ○ |
 

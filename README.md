@@ -114,11 +114,14 @@ Verified Drive capability includes:
 
 - bounded Drive search;
 - identified Google Doc reads;
+- server-owned ordered continuity for recent Drive search results;
+- closed first-through-fifth ordinal selection with separate exact-file read authority;
+- fail-closed handling for out-of-range, expired, turn-exhausted, superseded, fabricated and cross-scope references;
 - governed authority before private acquisition.
 
 Drive is currently read-only through the governed conversational path.
 
-Creating, editing or saving documents back to Drive is not yet a verified capability. Ordinal list-to-read continuity is also not yet at Gmail parity.
+Creating, editing or saving documents back to Drive is not yet a verified capability. Drive ordinal continuity is **LIVE PASS / FROZEN within its bounded read-only scope**; this does not authorize broader anaphora or migration of Gmail or Calendar reference lifecycles.
 
 ## Governed Operating Picture and durable continuity
 

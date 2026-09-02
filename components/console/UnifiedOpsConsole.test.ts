@@ -56,6 +56,19 @@ describe("UnifiedOpsConsole JARVIS Core surface", () => {
     expect(submission).not.toContain("georgia@example.com");
   });
 
+  it("restores composer focus only after a typed response when focus remains unclaimed", () => {
+    expect(source).toContain("const composerInputRef = useRef<HTMLInputElement>(null)");
+    expect(source).toContain("restoreComposerFocusRef.current = document.activeElement === composerInputRef.current");
+    expect(source).toContain('submitMessage(jarvis, originalMessage, "typed")');
+    expect(source).toContain('submitMessage(jarvis, transcript, "voice")');
+    expect(source).toContain('submitMessage(jarvis, "brief me on today", "action")');
+    expect(source).toContain('source === "typed" && restoreComposerFocusRef.current');
+    expect(source).toContain('voiceStateRef.current === "standby"');
+    expect(source).toContain("!sidebarOpenRef.current");
+    expect(source).toContain("composerInputRef.current?.focus()");
+    expect(source).toContain("ref={composerInputRef}");
+  });
+
   it("constructs shared typed and voice requests from synchronously accepted transport history", () => {
     const submission = source.slice(
       source.indexOf("async function submitMessage"),

@@ -101,6 +101,12 @@ export default function UnifiedOpsConsole() {
   > | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const composerInputRef = useRef<HTMLInputElement>(null);
+  const restoreComposerFocusRef = useRef(false);
+  const voiceStateRef = useRef<VoiceState>(voiceSession.state);
+  const sidebarOpenRef = useRef(sidebarOpen);
+  voiceStateRef.current = voiceSession.state;
+  sidebarOpenRef.current = sidebarOpen;
 
   const fetchConnectorStatus = async (live = true) => {
     try {
@@ -249,6 +255,7 @@ export default function UnifiedOpsConsole() {
   async function submitMessage(
     specialist: Specialist,
     content: string,
+    source: "typed" | "voice" | "action",
   ): Promise<void> {
     if (!content) return;
     const authorityRequest = specialist.id === "jarvis"
@@ -371,17 +378,32 @@ export default function UnifiedOpsConsole() {
       setConversations((current) => ({ ...current, [specialist.id]: acceptedMessages }));
     } finally {
       setLoading(false);
+      if (source === "typed" && restoreComposerFocusRef.current) {
+        requestAnimationFrame(() => {
+          const activeElement = document.activeElement;
+          const focusIsUnclaimed = activeElement === document.body
+            || activeElement === document.documentElement
+            || activeElement === null;
+          if (focusIsUnclaimed
+            && voiceStateRef.current === "standby"
+            && !sidebarOpenRef.current) {
+            composerInputRef.current?.focus();
+          }
+          restoreComposerFocusRef.current = false;
+        });
+      }
     }
   }
 
   async function send(event: FormEvent) {
     event.preventDefault();
     const originalMessage = input.trim();
-    await submitMessage(jarvis, originalMessage);
+    restoreComposerFocusRef.current = document.activeElement === composerInputRef.current;
+    await submitMessage(jarvis, originalMessage, "typed");
   }
 
   voiceTurnHandlerRef.current = async ({ transcript }) => {
-    await submitMessage(jarvis, transcript);
+    await submitMessage(jarvis, transcript, "voice");
   };
 
   if (!voiceQueueRef.current) {
@@ -400,7 +422,7 @@ export default function UnifiedOpsConsole() {
   async function briefMe() {
     if (loading) return;
     setSidebarOpen(false);
-    await submitMessage(jarvis, "brief me on today");
+    await submitMessage(jarvis, "brief me on today", "action");
   }
 
   return (
@@ -624,6 +646,7 @@ export default function UnifiedOpsConsole() {
           <form className="composer" onSubmit={send}>
             <span>📎</span>
             <input
+              ref={composerInputRef}
               aria-label={
                 selected
                   ? `Ask ${selected.name} anything`

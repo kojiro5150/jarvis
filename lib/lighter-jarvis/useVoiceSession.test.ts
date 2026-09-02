@@ -16,6 +16,7 @@ describe("useVoiceSession", () => {
   let getUserMedia: ReturnType<typeof vi.fn>;
   let cancelAnimationFrameMock: ReturnType<typeof vi.fn>;
   let fetchMock: ReturnType<typeof vi.fn>;
+  let sampleValue = 144;
 
   class MediaRecorderMock {
     state: RecordingState = "inactive";
@@ -43,7 +44,7 @@ describe("useVoiceSession", () => {
       fftSize: 0,
       smoothingTimeConstant: 0,
       frequencyBinCount: 4,
-      getByteTimeDomainData: (data: Uint8Array) => data.fill(144),
+      getByteTimeDomainData: (data: Uint8Array) => data.fill(sampleValue),
     }));
   }
 
@@ -53,6 +54,7 @@ describe("useVoiceSession", () => {
     connect.mockClear();
     frames.clear();
     nextFrame = 1;
+    sampleValue = 144;
     getUserMedia = vi.fn().mockResolvedValue(stream);
     Object.defineProperty(navigator, "mediaDevices", {
       configurable: true,
@@ -84,24 +86,62 @@ describe("useVoiceSession", () => {
     await waitFor(() => expect(result.current.state).toBe("listening"));
   }
 
-  it("starts real capture, forwards measured amplitude, and fully stops", async () => {
+  function amplitudeFrame(time: number, value: number) {
+    sampleValue = value;
+    const frame = [...frames.values()].at(-1);
+    if (!frame) throw new Error("Expected an active microphone animation frame.");
+    act(() => frame(time));
+  }
+
+  async function finishBySilence(result: RenderHookResult<VoiceSession, void>["result"]) {
+    amplitudeFrame(100, 144);
+    expect(result.current.amplitude).toBe(0.5);
+    amplitudeFrame(200, 128);
+    await waitFor(() => expect(result.current.state).toBe("standby"), { timeout: 2500 });
+  }
+
+  it("auto-submits after real speech followed by sustained silence", async () => {
     const { result } = renderHook(() => useVoiceSession());
 
     expect(result.current).toMatchObject({ state: "standby", amplitude: 0 });
     await start(result);
     expect(getUserMedia).toHaveBeenCalledWith({ audio: true });
 
-    const frame = [...frames.values()][0];
-    act(() => frame(100));
-    expect(result.current.amplitude).toBe(0.5);
-
-    act(() => result.current.toggle());
+    await finishBySilence(result);
     await waitFor(() => expect(result.current.transcript).toBe("Turn on the lights"));
+
     expect(result.current).toMatchObject({ state: "standby", amplitude: 0, error: null });
     expect(fetchMock).toHaveBeenCalledWith("/api/lighter/transcribe", expect.objectContaining({ method: "POST" }));
     expect(stop).toHaveBeenCalledOnce();
     expect(close).toHaveBeenCalledOnce();
     expect(cancelAnimationFrameMock).toHaveBeenCalledOnce();
+  });
+
+  it("does not submit silence before speech has begun", async () => {
+    const { result } = renderHook(() => useVoiceSession());
+    await start(result);
+
+    amplitudeFrame(100, 128);
+    await new Promise(resolve => setTimeout(resolve, 1200));
+
+    expect(result.current.state).toBe("listening");
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    act(() => result.current.toggle());
+    await waitFor(() => expect(result.current.state).toBe("standby"));
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("treats a second Voice press as cancel, not manual submit", async () => {
+    const { result } = renderHook(() => useVoiceSession());
+    await start(result);
+    amplitudeFrame(100, 144);
+
+    act(() => result.current.toggle());
+    await waitFor(() => expect(result.current.state).toBe("standby"));
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.current.transcript).toBeNull();
   });
 
   it("reports microphone permission or device failure as error", async () => {
@@ -119,8 +159,9 @@ describe("useVoiceSession", () => {
     fetchMock.mockResolvedValueOnce(Response.json({ error: "Provider unavailable" }, { status: 502 }));
     const { result } = renderHook(() => useVoiceSession());
     await start(result);
-    act(() => result.current.toggle());
-    await waitFor(() => expect(result.current.state).toBe("error"));
+    amplitudeFrame(100, 144);
+    amplitudeFrame(200, 128);
+    await waitFor(() => expect(result.current.state).toBe("error"), { timeout: 2500 });
     expect(result.current.error).toBe("Provider unavailable");
     expect(result.current.transcript).toBeNull();
   });
@@ -147,7 +188,7 @@ describe("useVoiceSession", () => {
     });
 
     await start(result);
-    act(() => result.current.toggle());
+    await finishBySilence(result);
     await waitFor(() => expect(result.current.transcript).toBe("Turn on the lights"));
     expect(result.current.state).toBe("standby");
   });

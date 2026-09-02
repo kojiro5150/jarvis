@@ -57,6 +57,95 @@ const unusedCalendarActDependencies = {
 };
 
 describe("durable continuity integration in the sole chat runtime", () => {
+  it("enumerates durable product gaps after a hard-refresh-shaped one-message request without ordinary model fallback", async () => {
+    const projection = Object.freeze({
+      status: "projected" as const,
+      purpose: "conversation",
+      items: Object.freeze([
+        Object.freeze({
+          recordId: "user-continuity:1",
+          versionId: "version:1",
+          purpose: "conversation",
+          semanticClass: "user_assertion" as const,
+          lifecycle: "current" as const,
+          recoveryDisposition: "recoverable_user_continuity" as const,
+          subject: Object.freeze({
+            namespace: "user_continuity",
+            entity: "user-continuity:1",
+            attribute: "user_assertion",
+            revision: "append_only" as const,
+          }),
+          payload: Object.freeze({ statement: "JARVIS product gap — first stored gap." }),
+          visibilityPurposes: Object.freeze(["conversation"]),
+          validFrom: null,
+          validUntil: null,
+          staleAfter: null,
+          authorshipSource: "user" as const,
+          authorshipAt: "2026-09-02T00:00:00.000Z",
+        }),
+        Object.freeze({
+          recordId: "user-continuity:2",
+          versionId: "version:2",
+          purpose: "conversation",
+          semanticClass: "user_assertion" as const,
+          lifecycle: "current" as const,
+          recoveryDisposition: "recoverable_user_continuity" as const,
+          subject: Object.freeze({
+            namespace: "user_continuity",
+            entity: "user-continuity:2",
+            attribute: "user_assertion",
+            revision: "append_only" as const,
+          }),
+          payload: Object.freeze({ statement: "JARVIS product gap — second stored gap." }),
+          visibilityPurposes: Object.freeze(["conversation"]),
+          validFrom: null,
+          validUntil: null,
+          staleAfter: null,
+          authorshipSource: "user" as const,
+          authorshipAt: "2026-09-02T00:01:00.000Z",
+        }),
+      ]),
+      decisions: Object.freeze([]),
+    });
+    const retrieveProjection = vi.fn(async () => projection);
+    const continuityModel = vi.fn();
+    const ordinaryModel = vi.fn(async () => "I don't have any stored memory or records about JARVIS product gaps.");
+
+    const response = await createLighterChatHandler(
+      ordinaryModel,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      unusedCalendarActDependencies,
+      {
+        retrieveProjection,
+        createContinuityModelCall: () => continuityModel,
+      },
+    )(request({
+      specialistId: "jarvis",
+      messages: [{
+        role: "user",
+        content: "Show me everything you remember about JARVIS product gaps.",
+      }],
+    }));
+
+    expect(await response.json()).toEqual({
+      reply: [
+        "Stored JARVIS product gaps (2):",
+        "1. JARVIS product gap — first stored gap.",
+        "2. JARVIS product gap — second stored gap.",
+      ].join("\n"),
+      specialistId: "jarvis",
+      execution: "none",
+      modelContinuity: { status: "rendered" },
+    });
+    expect(retrieveProjection).toHaveBeenCalledTimes(1);
+    expect(continuityModel).not.toHaveBeenCalled();
+    expect(ordinaryModel).not.toHaveBeenCalled();
+  });
+
   it("routes explicit recall through exactly one bounded continuity model call and deterministic rendering", async () => {
     const retrieveProjection = vi.fn(async () => projected());
     const model = vi.fn(async () => "ordinary model must not run");

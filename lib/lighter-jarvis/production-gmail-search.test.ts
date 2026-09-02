@@ -447,6 +447,7 @@ describe("production gmail.search", () => {
       decision: "ALLOW",
       reason: "gmail_sender_disambiguation_resolved",
       messageIds: ["one"],
+      gmailMessageListReference: { gmailMessageListReferenceId: expect.any(String) },
       reply: "Gmail messages from Georgia McDonald <georgia.mcdonald@example.com>:\n- Subject one",
       gmailSenderDisambiguationReference: null,
     });

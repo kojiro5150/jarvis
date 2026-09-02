@@ -46,6 +46,13 @@ function requiredReply(reply: string | undefined): string {
   return reply;
 }
 
+function voiceControlLabel(state: VoiceState): string {
+  if (state === "listening") return "LISTENING";
+  if (state === "transcribing") return "TRANSCRIBING";
+  if (state === "error") return "ERROR";
+  return "VOICE";
+}
+
 function HeadComposite({
   voiceState,
   amplitude,
@@ -613,7 +620,7 @@ export default function UnifiedOpsConsole() {
                         <span>ORBITAL GRID · NOMINAL</span>
                         <span>MEMORY SYNC · OK</span>
                         <span>{compactConnectorCountLabel}</span>
-                        <span>VOICE · STANDBY</span>
+                        <span>VOICE · {voiceSession.state.toUpperCase()}</span>
                         <span>SESSION · SECURE</span>
                         <span>ORBITAL GRID · NOMINAL</span>
                         <span>MEMORY SYNC · OK</span>
@@ -622,11 +629,24 @@ export default function UnifiedOpsConsole() {
                     <div className="tools">
                       <button
                         type="button"
+                        className={`voice-control voice-${voiceSession.state}`}
                         onClick={voiceSession.toggle}
                         aria-pressed={voiceSession.state === "listening"}
                         aria-label={`Voice — ${voiceSession.state}`}
+                        data-voice-state={voiceSession.state}
                       >
-                        🎙<small>Voice</small>
+                        <span className="voice-control-icon" aria-hidden="true">🎙</span>
+                        <small>{voiceControlLabel(voiceSession.state)}</small>
+                        <span className="voice-meter" aria-hidden="true">
+                          <span
+                            className="voice-meter-level"
+                            style={{
+                              width: voiceSession.state === "listening"
+                                ? `${Math.round(voiceSession.amplitude * 100)}%`
+                                : "0%",
+                            }}
+                          />
+                        </span>
                       </button>
                       {/* Product decision pending: retain Brief Me until its composer-area value is decided. */}
                       <button
@@ -1405,6 +1425,44 @@ export default function UnifiedOpsConsole() {
         .tools small {
           font: 10px "IBM Plex Mono";
           white-space: nowrap;
+        }
+        .tools .voice-control {
+          min-width: 94px;
+          color: #8a97ad;
+          border: 1px solid transparent;
+          transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+        }
+        .tools .voice-control.voice-listening {
+          border-color: #34d399;
+          color: #34d399;
+          background: rgba(52, 211, 153, 0.08);
+        }
+        .tools .voice-control.voice-transcribing {
+          border-color: #5ee7ff;
+          color: #5ee7ff;
+          background: rgba(94, 231, 255, 0.08);
+        }
+        .tools .voice-control.voice-error {
+          border-color: #f87171;
+          color: #f87171;
+          background: rgba(248, 113, 113, 0.08);
+        }
+        .voice-control-icon {
+          line-height: 1;
+        }
+        .voice-meter {
+          width: 56px;
+          height: 3px;
+          overflow: hidden;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.08);
+        }
+        .voice-meter-level {
+          display: block;
+          height: 100%;
+          border-radius: inherit;
+          background: currentColor;
+          transition: width 80ms linear;
         }
         .tools .brief {
           background: #182234;

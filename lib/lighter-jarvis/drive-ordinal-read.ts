@@ -15,6 +15,7 @@ export type DriveOrdinalReadProposalResult = Readonly<{
 }>;
 
 const ORDINAL_REQUEST = /^(?:please\s+)?(?:read|open|show|summari[sz]e)\s+(?:me\s+)?(?:the\s+)?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th)?|one|two|three|four|five|six|seven|eight|nine|ten)(?:\s+(?:one|file|result|item|document))?[?!.]?$/i;
+const SUPERSEDED_DRIVE_ORDINAL_REQUEST = /^(?:please\s+)?(?:read|open|show|summari[sz]e)\s+(?:me\s+)?(?:the\s+)?(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th)?|one|two|three|four|five|six|seven|eight|nine|ten)(?:\s+(?:one|file|result|item|document))?\s+from\s+(?:the\s+)?(?:earlier|previous|prior)\s+(?:(?:google\s+)?drive\s+(?:search|result)|[a-z0-9_-]+\s+search)[?!.]?$/i;
 
 const ORDINAL_WORDS: Readonly<Record<string, number>> = Object.freeze({
   first: 1, one: 1,
@@ -45,6 +46,13 @@ export function resolveDriveOrdinalReadProposal(input: {
   readonly governedReferentialScopeReference?: unknown;
   readonly governedResultSetReference?: unknown;
 }): DriveOrdinalReadProposalResult {
+  const normalized = input.currentUserUtterance.normalize("NFKC").trim();
+  if (SUPERSEDED_DRIVE_ORDINAL_REQUEST.test(normalized)) {
+    return Object.freeze({
+      handled: true,
+      reply: "That earlier Drive result is no longer available. Please search Drive again.",
+    });
+  }
   const ordinal = requestedOrdinal(input.currentUserUtterance);
   if (ordinal === null) return Object.freeze({ handled: false });
   if (!Object.hasOwn(input, "governedReferentialScopeReference")

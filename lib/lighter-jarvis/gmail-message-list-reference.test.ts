@@ -31,6 +31,25 @@ describe("Gmail message-list reference", () => {
     })).toMatchObject({ status: "matched", resourceId: "id-1", ordinal: 1 });
   });
 
+  it.each([
+    ["Read the first one.", 1],
+    ["Open the second message.", 2],
+    ["Show me the third email.", 3],
+    ["Summarise the fourth one.", 4],
+    ["Please read the fifth mail.", 5],
+    ["Read the most recent one.", 1],
+    ["Read the latest message.", 1],
+  ] as const)("preserves bounded Gmail ordinal form %s", (currentUserUtterance, ordinal) => {
+    const reference = createGmailMessageListReference({
+      messageIds: ["id-1", "id-2", "id-3", "id-4", "id-5"],
+    })!;
+
+    expect(resolveGmailMessageListReference({
+      reference,
+      currentUserUtterance,
+    })).toMatchObject({ status: "matched", resourceId: `id-${ordinal}`, ordinal });
+  });
+
   it("binds a unique named sender only from server-owned result metadata", () => {
     const reference = createGmailMessageListReference({
       messageIds: ["id-1", "id-2"],
@@ -118,4 +137,18 @@ describe("Gmail message-list reference", () => {
       currentUserUtterance: "Read the fifth one.",
     })).toMatchObject({ status: "out_of_range", reference });
   });
+
+  it.each(["Read the sixth one.", "Read the seventh one."])(
+    "never collapses an overflow ordinal to the trailing word one: %s",
+    currentUserUtterance => {
+      const reference = createGmailMessageListReference({
+        messageIds: ["id-1", "id-2", "id-3", "id-4", "id-5"],
+      })!;
+
+      expect(resolveGmailMessageListReference({
+        reference,
+        currentUserUtterance,
+      })).toMatchObject({ status: "out_of_range", reference });
+    },
+  );
 });

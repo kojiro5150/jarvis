@@ -38,4 +38,26 @@ describe("Gmail ordinal read proposal", () => {
     expect(JSON.stringify(proposal)).not.toContain("id-1");
     expect(JSON.stringify(proposal)).not.toContain("id-2");
   });
+
+  it.each(["Read the sixth one.", "Read the seventh one."])(
+    "fails closed for overflow ordinal language without creating read authority: %s",
+    currentUserUtterance => {
+      const listReference = createGmailMessageListReference({
+        messageIds: ["id-1", "id-2", "id-3", "id-4", "id-5"],
+      })!;
+
+      const proposal = resolveGmailOrdinalReadProposal({
+        currentUserUtterance,
+        gmailMessageListReference: listReference,
+      });
+
+      expect(proposal).toMatchObject({
+        handled: true,
+        reply: "That position is outside the bounded recent Gmail result.",
+        gmailMessageListReference: listReference,
+      });
+      expect(proposal).not.toHaveProperty("pendingAuthorizationReference");
+      expect(JSON.stringify(proposal)).not.toContain("id-1");
+    },
+  );
 });

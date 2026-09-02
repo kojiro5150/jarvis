@@ -742,11 +742,15 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         })
       : null;
     if (gmailOrdinalRead?.handled) {
+      const requiresReadAuthority = gmailOrdinalRead.pendingAuthorizationReference !== undefined
+        && gmailOrdinalRead.pendingAuthorizationReference !== null;
       return NextResponse.json({
         reply: gmailOrdinalRead.reply,
         specialistId: specialist.id,
         execution: "none",
-        gmailAuthority: { decision: "ASK", reason: "ordinal_message_selected_requires_read_authority" },
+        ...(requiresReadAuthority
+          ? { gmailAuthority: { decision: "ASK", reason: "ordinal_message_selected_requires_read_authority" } }
+          : {}),
         ...(gmailOrdinalRead.pendingAuthorizationReference !== undefined
           ? { pendingAuthorizationReference: gmailOrdinalRead.pendingAuthorizationReference }
           : {}),

@@ -61,6 +61,10 @@ export function resolveDriveOrdinalReadProposal(input: {
     });
   }
 
+  if (resolution.status !== "resolved" || resolution.resourceId === null) {
+    return Object.freeze({ handled: true, reply: "That recent Drive result is no longer available. Please search Drive again.", governedResultSetReference: null });
+  }
+
   const operation = proposeDriveRead(resolution.resourceId);
   return Object.freeze({
     handled: true,

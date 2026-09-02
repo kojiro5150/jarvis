@@ -200,6 +200,9 @@ function partitionModelContinuityContext(
   });
 }
 
+const PRODUCT_GAP_ENUMERATION_PATTERN =
+  /^show me everything you remember about jarvis product gaps[?.!]*$/i;
+
 const RECALL_PATTERNS = [
   /^what do you remember about\s+(.+)$/i,
   /^what have i told you about\s+(.+)$/i,
@@ -257,9 +260,72 @@ function normalizedRecallUtterance(value: string): string {
 
 export function isDurableContinuityRecallRequest(utterance: string): boolean {
   const normalized = normalizedRecallUtterance(utterance);
+  if (PRODUCT_GAP_ENUMERATION_PATTERN.test(normalized)) return true;
   return RECALL_PATTERNS.some(pattern => {
     const match = normalized.match(pattern);
     return typeof match?.[1] === "string" && match[1].trim().length > 0;
+  });
+}
+
+function productGapStatement(
+  item: Extract<DurablePurposeProjectionResult, { status: "projected" }>["items"][number],
+): string | null {
+  if (item.authorshipSource !== "user"
+    || item.recoveryDisposition !== "recoverable_user_continuity"
+    || item.subject.namespace !== "user_continuity"
+    || typeof item.payload !== "object"
+    || item.payload === null
+    || Array.isArray(item.payload)) {
+    return null;
+  }
+  const statement = (item.payload as Record<string, unknown>).statement;
+  if (typeof statement !== "string") return null;
+  const normalized = statement.normalize("NFKC").trim();
+  return /^JARVIS product gap\b/i.test(normalized) ? normalized : null;
+}
+
+function renderProductGapEnumeration(
+  projection: DurablePurposeProjectionResult,
+): ProductionModelContinuityRecallResult {
+  if (projection.status === "rejected") {
+    return Object.freeze({
+      handled: true,
+      status: "unavailable",
+      reply: CONTINUITY_UNAVAILABLE_REPLY,
+      diagnostic: "context_projection_not_available",
+    });
+  }
+
+  const statements = projection.status === "projected"
+    ? projection.items.map(productGapStatement).filter((value): value is string => value !== null)
+    : [];
+
+  if (statements.length === 0) {
+    return Object.freeze({
+      handled: true,
+      status: "not_relevant",
+      reply: "I don't have any current conversation-visible durable records captured with the JARVIS product gap prefix.",
+    });
+  }
+
+  const reply = [
+    `Stored JARVIS product gaps (${statements.length}):`,
+    ...statements.map((statement, index) => `${index + 1}. ${statement}`),
+  ].join("\n");
+
+  if (Buffer.byteLength(reply, "utf8") > MAX_COMBINED_RENDERED_BYTES) {
+    return Object.freeze({
+      handled: true,
+      status: "unavailable",
+      reply: CONTINUITY_UNAVAILABLE_REPLY,
+      diagnostic: "render_scope_exceeded",
+    });
+  }
+
+  return Object.freeze({
+    handled: true,
+    status: "rendered",
+    reply,
   });
 }
 
@@ -301,6 +367,10 @@ export async function resolveProductionModelContinuityRecall(input: Readonly<{
       reply: CONTINUITY_UNAVAILABLE_REPLY,
       diagnostic: "projection_exception",
     });
+  }
+
+  if (PRODUCT_GAP_ENUMERATION_PATTERN.test(normalizedRecallUtterance(input.utterance))) {
+    return renderProductGapEnumeration(projection);
   }
 
   const partition = partitionModelContinuityContext(projection);

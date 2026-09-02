@@ -16,9 +16,9 @@ function projectedMany(count: number): Extract<DurablePurposeProjectionResult, {
     lifecycle: "current" as const,
     recoveryDisposition: "recoverable_user_continuity" as const,
     subject: Object.freeze({
-      namespace: "user",
-      entity: "product_gap",
-      attribute: `gap_${index + 1}`,
+      namespace: "user_continuity",
+      entity: `user-continuity:${index + 1}`,
+      attribute: "user_assertion",
       revision: "append_only" as const,
     }),
     payload: Object.freeze({ statement: `JARVIS product gap ${index + 1}` }),

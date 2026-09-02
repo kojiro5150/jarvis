@@ -118,6 +118,99 @@ describe("Gmail deterministic read usability route", () => {
     expect(model).not.toHaveBeenCalled();
   });
 
+  it("completes recent list → unique sender-name bind → exact confirmation without a second Gmail search or model call", async () => {
+    const model = vi.fn(async () => "ordinary model must not run");
+    const search = vi.fn(async () => ["id-1", "id-2"]);
+    const searchDependencies = {
+      createConnector: () => ({ search }),
+      createSubjectConnector: () => ({
+        retrieveMessage: async (id: string) => ({
+          sender: id === "id-1" ? "Raman Bhola <raman@example.com>" : "Alex Smith <alex@example.com>",
+          subject: id === "id-1" ? "LinkedIn invitation" : "Other message",
+        }),
+      }),
+      loadPolicy: async () => listPolicy,
+    };
+
+    const retrieveMessage = vi.fn(async (id: string) => ({
+      sender: "Raman Bhola <raman@example.com>",
+      subject: "LinkedIn invitation",
+      plainTextBody: "You are invited to connect.",
+      snippet: "MUST NOT LEAK",
+      providerOnly: id,
+    }));
+    const readDependencies = {
+      createConnector: () => ({ retrieveMessage }),
+      loadPolicy: async () => ({
+        policyVersion: "test-read-v1",
+        rules: [{
+          id: "email",
+          match: { connectorType: "email" as const },
+          processing: "external_processing_permitted" as const,
+          admissibleFields: ["sender", "subject", "plain_text_body"] as const,
+        }],
+      }),
+    };
+
+    const handler = createLighterChatHandler(
+      model,
+      undefined,
+      readDependencies,
+      searchDependencies,
+    );
+
+    const searchAsk = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "What are my emails from the last week?" }],
+    }))).json();
+
+    const list = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Yes." }],
+      pendingAuthorizationReference: searchAsk.pendingAuthorizationReference,
+    }))).json();
+
+    expect(list.reply).toContain("1. From: Raman Bhola <raman@example.com>");
+    expect(list.gmailMessageListReference).toBeTruthy();
+    expect(search).toHaveBeenCalledTimes(1);
+
+    const namedAsk = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Read the email from Raman Bhola." }],
+      gmailMessageListReference: list.gmailMessageListReference,
+    }))).json();
+
+    expect(namedAsk.gmailAuthority).toEqual({
+      decision: "ASK",
+      reason: "named_message_selected_requires_read_authority",
+    });
+    expect(namedAsk.pendingAuthorizationReference).toBeTruthy();
+    expect(namedAsk.reply).toContain("position 1");
+    expect(JSON.stringify(namedAsk)).not.toContain("id-1");
+    expect(JSON.stringify(namedAsk)).not.toContain("raman@example.com");
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(retrieveMessage).not.toHaveBeenCalled();
+
+    const read = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Yes." }],
+      pendingAuthorizationReference: namedAsk.pendingAuthorizationReference,
+    }))).json();
+
+    expect(read.gmailAuthority).toMatchObject({
+      decision: "ALLOW",
+      reason: "pending_authorization_confirmed",
+    });
+    expect(read.reply).toBe(
+      "From: Raman Bhola <raman@example.com>\nSubject: LinkedIn invitation\nPlain text body: You are invited to connect.",
+    );
+    expect(read.reply).not.toContain("MUST NOT LEAK");
+    expect(retrieveMessage).toHaveBeenCalledOnce();
+    expect(retrieveMessage).toHaveBeenCalledWith("id-1");
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(model).not.toHaveBeenCalled();
+  });
+
   it("fails a hard-reset ordinal reference capability-neutrally without calling the model", async () => {
     const model = vi.fn(async () => "calendar-specific guess must not run");
     const handler = createLighterChatHandler(model);

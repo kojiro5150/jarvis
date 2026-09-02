@@ -127,15 +127,30 @@ export type GmailOrdinalSelection =
   | Readonly<{ status: "matched"; resourceId: string; ordinal: number; reference: GmailMessageListReference }>
   | Readonly<{ status: "unsupported" | "invalid" | "expired" | "out_of_range"; reference: GmailMessageListReference | null }>;
 
+const ORDINAL_REQUEST = /^(?:please\s+)?(?:read|open|show|summari[sz]e)\s+(?:me\s+)?(?:the\s+)?(most\s+recent|latest|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th)?|one|two|three|four|five|six|seven|eight|nine|ten)(?:\s+(?:one|email|message|mail|result|item))?[?!.]?$/i;
+
+const ORDINAL_WORDS: Readonly<Record<string, number>> = Object.freeze({
+  "most recent": 1, latest: 1, first: 1, one: 1,
+  second: 2, two: 2,
+  third: 3, three: 3,
+  fourth: 4, four: 4,
+  fifth: 5, five: 5,
+  sixth: 6, six: 6,
+  seventh: 7, seven: 7,
+  eighth: 8, eight: 8,
+  ninth: 9, nine: 9,
+  tenth: 10, ten: 10,
+});
+
 function requestedOrdinal(utterance: string): number | null {
   const normalized = utterance.normalize("NFKC").trim().toLowerCase();
-  if (!/^(?:read|open|show|summari[sz]e)\b/.test(normalized)) return null;
-  if (/\b(?:fifth|5th|five)\b/.test(normalized)) return 5;
-  if (/\b(?:fourth|4th|four)\b/.test(normalized)) return 4;
-  if (/\b(?:third|3rd|three)\b/.test(normalized)) return 3;
-  if (/\b(?:second|2nd|two)\b/.test(normalized)) return 2;
-  if (/\b(?:most recent|latest|first|1st|one)\b/.test(normalized)) return 1;
-  return null;
+  const match = normalized.match(ORDINAL_REQUEST);
+  if (!match) return null;
+  const token = match[1];
+  const wordOrdinal = ORDINAL_WORDS[token];
+  if (wordOrdinal !== undefined) return wordOrdinal;
+  const numeric = Number.parseInt(token, 10);
+  return Number.isInteger(numeric) && numeric > 0 ? numeric : null;
 }
 
 export function resolveGmailMessageListReference(input: {

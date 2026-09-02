@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createLighterChatHandler } from "@/lib/lighter-jarvis/chat-handler";
 import { UNBOUND_ORDINAL_REFERENCE_REPLY } from "@/lib/governance-core/unbound-reference";
+import { createGmailMessageListReference } from "@/lib/lighter-jarvis/gmail-message-list-reference";
 
 const request = (body: unknown) => new Request("http://localhost/api/lighter/chat", {
   method: "POST",
@@ -19,6 +20,41 @@ const listPolicy = Object.freeze({
 });
 
 describe("Gmail deterministic read usability route", () => {
+  it.each(["Read the sixth one.", "Read the seventh one."])(
+    "fails closed at the live route for overflow Gmail ordinals: %s",
+    async currentUserUtterance => {
+      const model = vi.fn(async () => "ordinary model must not run");
+      const retrieveMessage = vi.fn();
+      const handler = createLighterChatHandler(
+        model,
+        undefined,
+        { createConnector: () => ({ retrieveMessage }), loadPolicy: vi.fn() },
+      );
+      const gmailMessageListReference = createGmailMessageListReference({
+        messageIds: ["id-1", "id-2", "id-3", "id-4", "id-5"],
+      })!;
+
+      const response = await handler(request({
+        specialistId: "jarvis",
+        messages: [{ role: "user", content: currentUserUtterance }],
+        gmailMessageListReference,
+      }));
+      const body = await response.json();
+
+      expect(body).toEqual({
+        reply: "That position is outside the bounded recent Gmail result.",
+        specialistId: "jarvis",
+        execution: "none",
+        gmailMessageListReference,
+      });
+      expect(body).not.toHaveProperty("pendingAuthorizationReference");
+      expect(body).not.toHaveProperty("gmailAuthority");
+      expect(JSON.stringify(body)).not.toContain("id-1");
+      expect(retrieveMessage).not.toHaveBeenCalled();
+      expect(model).not.toHaveBeenCalled();
+    },
+  );
+
   it("completes list → ordinal bind → exact confirmation → deterministic content without a model call", async () => {
     const model = vi.fn(async () => "ordinary model must not run");
 

@@ -205,6 +205,7 @@ describe("production gmail.search", () => {
       decision: "ALLOW",
       reason: "pending_authorization_confirmed",
       messageIds: ["one", "two"],
+      gmailMessageListReference: { gmailMessageListReferenceId: expect.any(String) },
       reply: "Gmail messages from Georgia McDonald <georgia@example.com>:\n- Subject one\n- Subject two",
       gmailSenderDisambiguationReference: null,
     });
@@ -340,6 +341,7 @@ describe("production gmail.search", () => {
       decision: "ALLOW",
       reason: "gmail_sender_disambiguation_resolved",
       messageIds: ["one"],
+      gmailMessageListReference: { gmailMessageListReferenceId: expect.any(String) },
       reply: "Gmail messages from Georgia McDonald <georgia.mcdonald@example.com>:\n- Subject one",
       gmailSenderDisambiguationReference: null,
     });

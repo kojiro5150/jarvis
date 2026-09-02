@@ -85,6 +85,7 @@ describe("production durable continuity recall adapter", () => {
     "What have I told you about status updates?",
     "Show me what you remember about status updates.",
     "Do you remember what I said about status updates?",
+    "Show me everything you remember about JARVIS product gaps.",
   ])("recognizes only explicit durable recall forms: %s", (utterance) => {
     expect(isDurableContinuityRecallRequest(utterance)).toBe(true);
   });
@@ -126,6 +127,27 @@ describe("production durable continuity recall adapter", () => {
     const serializedModelPayload = JSON.stringify(model.mock.calls[0]?.[1]);
     expect(serializedModelPayload).not.toContain("record:user:1");
     expect(serializedModelPayload).not.toContain("version:user:1");
+  });
+
+  it("enumerates every current durable JARVIS product-gap record without model relevance selection", async () => {
+    const projection = projectedMany(13);
+    const createContinuityModelCall = vi.fn();
+
+    const result = await resolveProductionModelContinuityRecall({
+      utterance: "Show me everything you remember about JARVIS product gaps.",
+      dependencies: {
+        retrieveProjection: async () => projection,
+        createContinuityModelCall,
+      },
+    });
+
+    expect(result.status).toBe("rendered");
+    expect(createContinuityModelCall).not.toHaveBeenCalled();
+    if (result.status === "rendered") {
+      expect(result.reply).toContain("Stored JARVIS product gaps (13):");
+      expect(result.reply).toContain("1. JARVIS product gap 1");
+      expect(result.reply).toContain("13. JARVIS product gap 13");
+    }
   });
 
   it("recalls continuity beyond the single-context item limit by using bounded relevance chunks", async () => {

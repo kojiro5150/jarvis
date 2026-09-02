@@ -652,18 +652,13 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       advanceGovernedReferentialScopeUserTurn(body.governedReferentialScopeReference);
     }
 
-    const driveRead = specialist.id === "jarvis" && currentUserUtterance !== undefined
-      ? await resolveProductionDriveRead({
-          currentUserUtterance,
-          ...(shouldCarryPendingAuthorization
-            ? { pendingAuthorizationReference: body.pendingAuthorizationReference }
-            : {}),
-        }, driveReadDependencies) : null;
-    if (driveRead?.handled) return NextResponse.json({ reply: driveRead.reply, specialistId: specialist.id, execution: "none",
-      driveReadAuthority: { ...(driveRead.decision ? { decision: driveRead.decision } : {}), reason: driveRead.reason },
-      ...(driveRead.pendingAuthorizationReference !== undefined
-        ? { pendingAuthorizationReference: driveRead.pendingAuthorizationReference }
-        : {}) });
+    const exactDriveRead = specialist.id === "jarvis"
+      && currentUserUtterance !== undefined
+      && /^drive\.read(?:\s|$)/.test(currentUserUtterance)
+      ? await resolveProductionDriveRead({ currentUserUtterance }, driveReadDependencies)
+      : null;
+    if (exactDriveRead?.handled) return NextResponse.json({ reply: exactDriveRead.reply, specialistId: specialist.id, execution: "none",
+      driveReadAuthority: { ...(exactDriveRead.decision ? { decision: exactDriveRead.decision } : {}), reason: exactDriveRead.reason } });
 
     const driveOrdinalRead = specialist.id === "jarvis" && currentUserUtterance !== undefined
       ? resolveDriveOrdinalReadProposal({
@@ -721,6 +716,23 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           ? { governedResultSetReference: driveSearch.governedResultSetReference }
           : {}) });
     }
+
+    const pendingDriveRead = specialist.id === "jarvis" && currentUserUtterance !== undefined
+      && shouldCarryPendingAuthorization
+      ? await resolveProductionDriveRead({
+          currentUserUtterance,
+          pendingAuthorizationReference: body.pendingAuthorizationReference,
+        }, driveReadDependencies)
+      : null;
+    if (pendingDriveRead?.handled) return NextResponse.json({
+      reply: pendingDriveRead.reply,
+      specialistId: specialist.id,
+      execution: "none",
+      driveReadAuthority: { ...(pendingDriveRead.decision ? { decision: pendingDriveRead.decision } : {}), reason: pendingDriveRead.reason },
+      ...(pendingDriveRead.pendingAuthorizationReference !== undefined
+        ? { pendingAuthorizationReference: pendingDriveRead.pendingAuthorizationReference }
+        : {}),
+    });
     const gmailOrdinalRead = specialist.id === "jarvis" && currentUserUtterance !== undefined
       ? resolveGmailOrdinalReadProposal({
           currentUserUtterance,

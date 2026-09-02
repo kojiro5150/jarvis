@@ -7,6 +7,10 @@ import type { VoiceTurn } from "./voice-turn-queue";
 
 export type VoiceState = "standby" | "listening" | "transcribing" | "error";
 
+const VOICE_SPEECH_AMPLITUDE_THRESHOLD = 0.08;
+const VOICE_POST_SPEECH_SILENCE_MS = 1100;
+const VOICE_MAX_RECORDING_MS = 30_000;
+
 export interface VoiceSession {
   state: VoiceState;
   amplitude: number;
@@ -23,6 +27,10 @@ export function useVoiceSession(): VoiceSession {
   const chunksRef = useRef<Blob[]>([]);
   const startedAtRef = useRef(0);
   const mountedRef = useRef(true);
+  const speechDetectedRef = useRef(false);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const maxRecordingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelCaptureRef = useRef(false);
   const [transcribing, setTranscribing] = useState(false);
   const [transcript, setTranscript] = useState<string | null>(null);
   const [turn, setTurn] = useState<VoiceTurn | null>(null);
@@ -62,6 +70,22 @@ export function useVoiceSession(): VoiceSession {
     }
   }, []);
 
+  const clearEndpointTimers = useCallback(() => {
+    if (silenceTimerRef.current !== null) clearTimeout(silenceTimerRef.current);
+    if (maxRecordingTimerRef.current !== null) clearTimeout(maxRecordingTimerRef.current);
+    silenceTimerRef.current = null;
+    maxRecordingTimerRef.current = null;
+  }, []);
+
+  const finishRecording = useCallback((mode: "submit" | "cancel") => {
+    const recorder = recorderRef.current;
+    if (recorder?.state !== "recording") return;
+    cancelCaptureRef.current = mode === "cancel";
+    clearEndpointTimers();
+    recorder.stop();
+    mic.toggle();
+  }, [clearEndpointTimers, mic.toggle]);
+
   useEffect(() => {
     if (!mic.stream || recorderRef.current) return;
     if (typeof MediaRecorder === "undefined") {
@@ -74,12 +98,21 @@ export function useVoiceSession(): VoiceSession {
       recorderRef.current = recorder;
       chunksRef.current = [];
       startedAtRef.current = Date.now();
+      speechDetectedRef.current = false;
+      cancelCaptureRef.current = false;
+      clearEndpointTimers();
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) chunksRef.current.push(event.data);
       };
       recorder.onerror = () => setSessionError("Audio recording failed.");
       recorder.onstop = () => {
         recorderRef.current = null;
+        clearEndpointTimers();
+        if (cancelCaptureRef.current) {
+          chunksRef.current = [];
+          cancelCaptureRef.current = false;
+          return;
+        }
         const mimeType = recorder.mimeType || chunksRef.current[0]?.type || "audio/webm";
         const artifact: AudioCaptureArtifact = {
           blob: new Blob(chunksRef.current, { type: mimeType }),
@@ -96,6 +129,9 @@ export function useVoiceSession(): VoiceSession {
         void transcribe(artifact);
       };
       recorder.start();
+      maxRecordingTimerRef.current = setTimeout(() => {
+        finishRecording(speechDetectedRef.current ? "submit" : "cancel");
+      }, VOICE_MAX_RECORDING_MS);
     } catch (error) {
       recorderRef.current = null;
       setSessionError(error instanceof Error ? error.message : "Unable to start audio recording.");
@@ -104,27 +140,51 @@ export function useVoiceSession(): VoiceSession {
     // Only mic.stream and mic.toggle are read here; mic itself is a new
     // object every render, so depending on it would re-run this every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mic.stream, mic.toggle, transcribe]);
+  }, [clearEndpointTimers, finishRecording, mic.stream, mic.toggle, transcribe]);
+
+  useEffect(() => {
+    if (!mic.active || recorderRef.current?.state !== "recording") return;
+    if (mic.amplitude >= VOICE_SPEECH_AMPLITUDE_THRESHOLD) {
+      speechDetectedRef.current = true;
+      if (silenceTimerRef.current !== null) {
+        clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+      }
+      return;
+    }
+    if (speechDetectedRef.current && silenceTimerRef.current === null) {
+      silenceTimerRef.current = setTimeout(() => {
+        silenceTimerRef.current = null;
+        finishRecording("submit");
+      }, VOICE_POST_SPEECH_SILENCE_MS);
+    }
+  }, [finishRecording, mic.active, mic.amplitude]);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      clearEndpointTimers();
       const recorder = recorderRef.current;
       if (recorder?.state === "recording") {
+        cancelCaptureRef.current = true;
         recorder.onstop = null;
         recorder.stop();
       }
     };
-  }, []);
+  }, [clearEndpointTimers]);
 
   const toggle = useCallback(() => {
+    if (transcribing) return;
     setSessionError(null);
     setTranscript(null);
     const recorder = recorderRef.current;
-    if (recorder?.state === "recording") recorder.stop();
+    if (recorder?.state === "recording") {
+      finishRecording("cancel");
+      return;
+    }
     mic.toggle();
-  }, [mic]);
+  }, [finishRecording, mic, transcribing]);
 
   const error = mic.error || sessionError;
   const state: VoiceState = error ? "error" : transcribing ? "transcribing" : mic.active ? "listening" : "standby";

@@ -20,6 +20,8 @@ import {
 import { guardOrdinaryModelReply } from "@/lib/lighter-jarvis/ordinary-model-reply-guard";
 import { resolveProductionDriveSearch, type ProductionDriveSearchDependencies } from "@/lib/lighter-jarvis/production-drive-search";
 import { resolveProductionDriveRead, type ProductionDriveReadDependencies } from "@/lib/lighter-jarvis/production-drive-read";
+import { resolveDriveOrdinalReadProposal } from "@/lib/lighter-jarvis/drive-ordinal-read";
+import { advanceGovernedReferentialScopeUserTurn } from "@/lib/lighter-jarvis/governed-result-set-reference";
 import { bindUserCalendarDetails, projectCalendarContext, type CalendarBindingState } from "@/lib/lighter-jarvis/calendar-governed-context";
 import { createGovernedContext, type GovernedContext } from "@/lib/lighter-jarvis/governed-context";
 import { calendarRecallDiagnostics, displayCalendarClock, normalizedCalendarClock } from "@/lib/lighter-jarvis/calendar-provenance-truthfulness";
@@ -80,6 +82,8 @@ interface LighterChatBody {
   pendingAuthorizationReference?: unknown;
   gmailSenderDisambiguationReference?: unknown;
   gmailMessageListReference?: unknown;
+  governedReferentialScopeReference?: unknown;
+  governedResultSetReference?: unknown;
   calendarAttentionObservationReference?: unknown;
   calendarConflictReasoningReference?: unknown;
   calendarAdvicePreferenceReference?: unknown;
@@ -642,14 +646,65 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       });
     }
 
+    if (specialist.id === "jarvis"
+      && currentUserUtterance !== undefined
+      && Object.hasOwn(body, "governedReferentialScopeReference")) {
+      advanceGovernedReferentialScopeUserTurn(body.governedReferentialScopeReference);
+    }
+
     const driveRead = specialist.id === "jarvis" && currentUserUtterance !== undefined
-      ? await resolveProductionDriveRead({ currentUserUtterance }, driveReadDependencies) : null;
+      ? await resolveProductionDriveRead({
+          currentUserUtterance,
+          ...(shouldCarryPendingAuthorization
+            ? { pendingAuthorizationReference: body.pendingAuthorizationReference }
+            : {}),
+        }, driveReadDependencies) : null;
     if (driveRead?.handled) return NextResponse.json({ reply: driveRead.reply, specialistId: specialist.id, execution: "none",
-      driveReadAuthority: { ...(driveRead.decision ? { decision: driveRead.decision } : {}), reason: driveRead.reason } });
+      driveReadAuthority: { ...(driveRead.decision ? { decision: driveRead.decision } : {}), reason: driveRead.reason },
+      ...(driveRead.pendingAuthorizationReference !== undefined
+        ? { pendingAuthorizationReference: driveRead.pendingAuthorizationReference }
+        : {}) });
+
+    const driveOrdinalRead = specialist.id === "jarvis" && currentUserUtterance !== undefined
+      ? resolveDriveOrdinalReadProposal({
+          currentUserUtterance,
+          ...(Object.hasOwn(body, "governedReferentialScopeReference")
+            ? { governedReferentialScopeReference: body.governedReferentialScopeReference }
+            : {}),
+          ...(Object.hasOwn(body, "governedResultSetReference")
+            ? { governedResultSetReference: body.governedResultSetReference }
+            : {}),
+        })
+      : null;
+    if (driveOrdinalRead?.handled) {
+      const requiresReadAuthority = driveOrdinalRead.pendingAuthorizationReference !== undefined
+        && driveOrdinalRead.pendingAuthorizationReference !== null;
+      return NextResponse.json({
+        reply: driveOrdinalRead.reply,
+        specialistId: specialist.id,
+        execution: "none",
+        ...(requiresReadAuthority
+          ? { driveReadAuthority: { decision: "ASK", reason: "ordinal_drive_file_selected_requires_read_authority" } }
+          : {}),
+        ...(driveOrdinalRead.pendingAuthorizationReference !== undefined
+          ? { pendingAuthorizationReference: driveOrdinalRead.pendingAuthorizationReference }
+          : {}),
+        ...(driveOrdinalRead.governedReferentialScopeReference !== undefined
+          ? { governedReferentialScopeReference: driveOrdinalRead.governedReferentialScopeReference }
+          : {}),
+        ...(driveOrdinalRead.governedResultSetReference !== undefined
+          ? { governedResultSetReference: driveOrdinalRead.governedResultSetReference }
+          : {}),
+      });
+    }
+
     const driveSearch = specialist.id === "jarvis" && currentUserUtterance !== undefined
       ? await resolveProductionDriveSearch({ currentUserUtterance,
           ...(shouldCarryPendingAuthorization
             ? { pendingAuthorizationReference: body.pendingAuthorizationReference }
+            : {}),
+          ...(Object.hasOwn(body, "governedReferentialScopeReference")
+            ? { governedReferentialScopeReference: body.governedReferentialScopeReference }
             : {}),
         }, driveSearchDependencies) : null;
     if (driveSearch?.handled) {
@@ -658,6 +713,12 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         ...(driveSearch.files ? { driveFiles: driveSearch.files } : {}),
         ...(driveSearch.pendingAuthorizationReference !== undefined
           ? { pendingAuthorizationReference: driveSearch.pendingAuthorizationReference }
+          : {}),
+        ...(driveSearch.governedReferentialScopeReference !== undefined
+          ? { governedReferentialScopeReference: driveSearch.governedReferentialScopeReference }
+          : {}),
+        ...(driveSearch.governedResultSetReference !== undefined
+          ? { governedResultSetReference: driveSearch.governedResultSetReference }
           : {}) });
     }
     const gmailOrdinalRead = specialist.id === "jarvis" && currentUserUtterance !== undefined

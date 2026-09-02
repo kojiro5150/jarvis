@@ -75,6 +75,7 @@ import { hasGoogleCalendarWriteScope } from "@/lib/connectors/google/calendar-wr
 import type { ScopedCalendarAcquisitionPort } from "@/lib/governed-conversation/scoped-calendar-evidence-acquisition-adapter";
 import { isDurableContinuityRecallRequest, resolveProductionModelContinuityRecall, type ProductionModelContinuityDependencies } from "@/lib/operating-picture/production-model-continuity";
 import { resolveProductionUserContinuityCapture, type ProductionUserContinuityCaptureDependencies } from "@/lib/operating-picture/production-user-continuity-capture";
+import { resolveProductionProductGapResolution, type ProductionProductGapResolutionDependencies } from "@/lib/operating-picture/production-product-gap-resolution";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -91,6 +92,8 @@ interface LighterChatBody {
   calendarMoveProposalReference?: unknown;
   calendarMoveAuthorizationReference?: unknown;
   userContinuityCaptureClarificationReference?: unknown;
+  productGapResolutionListReference?: unknown;
+  productGapResolutionTargetReference?: unknown;
 }
 type ModelCall = (
   systemPrompt: string,
@@ -420,7 +423,8 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
   driveSearchDependencies?: ProductionDriveSearchDependencies, driveReadDependencies?: ProductionDriveReadDependencies,
   calendarActDependencies: CalendarActDependencies = defaultCalendarActDependencies,
   modelContinuityDependencies?: ProductionModelContinuityDependencies,
-  userContinuityCaptureDependencies?: Partial<ProductionUserContinuityCaptureDependencies>) {
+  userContinuityCaptureDependencies?: Partial<ProductionUserContinuityCaptureDependencies>,
+  productGapResolutionDependencies?: Partial<ProductionProductGapResolutionDependencies>) {
   return async function POST(request: Request) {
     let body: LighterChatBody;
     try { body = await request.json() as LighterChatBody; }
@@ -467,6 +471,31 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           userContinuityCapture: { status: capture.status },
           userContinuityCaptureClarificationReference:
             capture.clarificationReference ?? null,
+        });
+      }
+    }
+
+    if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {
+      const resolution = await resolveProductionProductGapResolution({
+        utterance: currentUserUtterance,
+        ...(Object.hasOwn(body, "productGapResolutionListReference")
+          ? { listReference: body.productGapResolutionListReference }
+          : {}),
+        ...(Object.hasOwn(body, "productGapResolutionTargetReference")
+          ? { targetReference: body.productGapResolutionTargetReference }
+          : {}),
+        ...(productGapResolutionDependencies
+          ? { dependencies: productGapResolutionDependencies }
+          : {}),
+      });
+      if (resolution.handled) {
+        return NextResponse.json({
+          reply: resolution.reply,
+          specialistId: specialist.id,
+          execution: "none",
+          productGapResolution: { status: resolution.status },
+          productGapResolutionListReference: resolution.listReference ?? null,
+          productGapResolutionTargetReference: resolution.targetReference ?? null,
         });
       }
     }

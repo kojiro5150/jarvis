@@ -30,6 +30,20 @@ describe("UnifiedOpsConsole JARVIS Core surface", () => {
     expect(source).toContain("aria-pressed={voiceSession.state === \"listening\"}");
   });
 
+  it("renders real Voice state and microphone amplitude on the visible control", () => {
+    expect(source).toContain("voiceControlLabel(voiceSession.state)");
+    expect(source).toContain('className={`voice-control voice-${voiceSession.state}`}');
+    expect(source).toContain('data-voice-state={voiceSession.state}');
+    expect(source).toContain('voiceSession.state === "listening"');
+    expect(source).toContain('Math.round(voiceSession.amplitude * 100)');
+    expect(source).toContain("VOICE · {voiceSession.state.toUpperCase()}");
+    expect(source).toContain(".tools .voice-control.voice-listening");
+    expect(source).toContain(".tools .voice-control.voice-transcribing");
+    expect(source).toContain(".tools .voice-control.voice-error");
+    expect(source).toContain(".voice-meter-level");
+    expect(source).not.toContain("<span>VOICE · STANDBY</span>");
+  });
+
   it("retains the opaque Calendar authority references in the shared typed and voice transport", () => {
     const submission = source.slice(
       source.indexOf("async function submitMessage"),

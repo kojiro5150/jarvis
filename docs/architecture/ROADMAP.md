@@ -6,6 +6,20 @@
 
 ---
 
+## Selected bounded repair — Explicit Product Gap resolution assertion
+
+The next governed lifecycle milestone is frozen in:
+
+- `../PRODUCT-GAP-EXPLICIT-RESOLUTION-ASSERTION-FREEZE.md`
+
+Current captured Product Gaps are deliberately `append_only`, while the existing supersession proof requires `explicit_replacement`. Resolution therefore cannot reuse replacement machinery without violating the already-proven capture boundary. The selected design preserves each original record and appends a separate user-authored decision assertion referencing one exactly selected Product Gap.
+
+Target identity and write intent are both deterministic. A bounded server-owned candidate list supports positional selection of one exact stored record; a separate opaque one-shot target reference then permits only the closed current-user resolution grammar. Model similarity, assistant prose, repository evidence and implied completion cannot select or resolve a record.
+
+The implementation PR must begin with a RED-only commit and captured failing run before later production commits return the final PR to green. Drive ordinal continuity and Gmail Product Gap #19 are the two eventual live acceptance cases. No correction, reopening, bulk reconciliation or generalized lifecycle workflow is authorized.
+
+---
+
 ## Verified milestone — Bounded Gmail named-result continuity
 
 The completed Product Gap #19 production proof is recorded in:

@@ -5,48 +5,6 @@ const request = (body: unknown) => new Request("http://localhost/api/lighter/cha
   method: "POST",
   headers: { "content-type": "application/json" },
   body: JSON.stringify(body),
-  it("supersedes an older Drive result set within the same governed scope", async () => {
-    const model = vi.fn(async () => "ordinary model must not run");
-    const search = vi.fn()
-      .mockResolvedValueOnce([{ id: "old-file", name: "Old Atlas", mimeType: "application/vnd.google-apps.document", modifiedTime: "2026-09-01T00:00:00Z" }])
-      .mockResolvedValueOnce([{ id: "new-file", name: "New Atlas", mimeType: "application/vnd.google-apps.document", modifiedTime: "2026-09-02T00:00:00Z" }]);
-    const handler = createLighterChatHandler(
-      model, undefined, undefined, undefined,
-      { createConnector: () => ({ search }) },
-      {
-        loadPolicy: async () => ({ mimeType: "application/vnd.google-apps.document" as const, contentMode: "text" as const, maxBytes: 65536 as const, releaseMode: "complete_verbatim" as const }),
-        hasOAuthCapability: async () => true,
-        createConnector: () => ({ readGoogleDocText: vi.fn() }),
-      },
-    );
-
-    const first = await (await handler(request({
-      specialistId: "jarvis",
-      messages: [{ role: "user", content: "drive.search Atlas" }],
-    }))).json();
-    expect(first.governedReferentialScopeReference).toBeTruthy();
-    expect(first.governedResultSetReference).toBeTruthy();
-
-    const second = await (await handler(request({
-      specialistId: "jarvis",
-      messages: [{ role: "user", content: "drive.search Atlas" }],
-      governedReferentialScopeReference: first.governedReferentialScopeReference,
-      governedResultSetReference: first.governedResultSetReference,
-    }))).json();
-    expect(second.governedReferentialScopeReference).toEqual(first.governedReferentialScopeReference);
-    expect(second.governedResultSetReference).not.toEqual(first.governedResultSetReference);
-
-    const stale = await (await handler(request({
-      specialistId: "jarvis",
-      messages: [{ role: "user", content: "Read the first one." }],
-      governedReferentialScopeReference: first.governedReferentialScopeReference,
-      governedResultSetReference: first.governedResultSetReference,
-    }))).json();
-    expect(stale.reply).toContain("no longer available");
-    expect(stale).not.toHaveProperty("pendingAuthorizationReference");
-    expect(search).toHaveBeenCalledTimes(2);
-    expect(model).not.toHaveBeenCalled();
-  });
 });
 
 describe("Drive governed ordinal continuity route", () => {
@@ -109,6 +67,49 @@ describe("Drive governed ordinal continuity route", () => {
     expect(read.reply).toBe("Drive document (file-1):\nFirst Atlas document");
     expect(readGoogleDocText).toHaveBeenCalledWith("file-1", 65536);
     expect(search).toHaveBeenCalledOnce();
+    expect(model).not.toHaveBeenCalled();
+  });
+
+  it("supersedes an older Drive result set within the same governed scope", async () => {
+    const model = vi.fn(async () => "ordinary model must not run");
+    const search = vi.fn()
+      .mockResolvedValueOnce([{ id: "old-file", name: "Old Atlas", mimeType: "application/vnd.google-apps.document", modifiedTime: "2026-09-01T00:00:00Z" }])
+      .mockResolvedValueOnce([{ id: "new-file", name: "New Atlas", mimeType: "application/vnd.google-apps.document", modifiedTime: "2026-09-02T00:00:00Z" }]);
+    const handler = createLighterChatHandler(
+      model, undefined, undefined, undefined,
+      { createConnector: () => ({ search }) },
+      {
+        loadPolicy: async () => ({ mimeType: "application/vnd.google-apps.document" as const, contentMode: "text" as const, maxBytes: 65536 as const, releaseMode: "complete_verbatim" as const }),
+        hasOAuthCapability: async () => true,
+        createConnector: () => ({ readGoogleDocText: vi.fn() }),
+      },
+    );
+
+    const first = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "drive.search Atlas" }],
+    }))).json();
+    expect(first.governedReferentialScopeReference).toBeTruthy();
+    expect(first.governedResultSetReference).toBeTruthy();
+
+    const second = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "drive.search Atlas" }],
+      governedReferentialScopeReference: first.governedReferentialScopeReference,
+      governedResultSetReference: first.governedResultSetReference,
+    }))).json();
+    expect(second.governedReferentialScopeReference).toEqual(first.governedReferentialScopeReference);
+    expect(second.governedResultSetReference).not.toEqual(first.governedResultSetReference);
+
+    const stale = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Read the first one." }],
+      governedReferentialScopeReference: first.governedReferentialScopeReference,
+      governedResultSetReference: first.governedResultSetReference,
+    }))).json();
+    expect(stale.reply).toContain("no longer available");
+    expect(stale).not.toHaveProperty("pendingAuthorizationReference");
+    expect(search).toHaveBeenCalledTimes(2);
     expect(model).not.toHaveBeenCalled();
   });
 });

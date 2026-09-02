@@ -359,6 +359,17 @@ function calendarIntervalKey(start: string, end: string): string {
  * the projected commitment set. Any missing, substituted or extra interval
  * fails closed to the deterministic server formatter.
  */
+const CALENDAR_EXHAUSTIVE_COMPLETENESS_CLAIM =
+  /\b(?:only\s+(?:scheduled\s+)?(?:item|commitment|meeting|event)|(?:nothing|no\s+other\s+(?:commitments?|meetings?|events?|appointments?))\s+(?:else\s+)?(?:scheduled|on\s+(?:your\s+)?calendar)?|rest\s+of\s+(?:your\s+)?(?:day|morning|afternoon|evening|week)\s+(?:is\s+)?clear|(?:day|morning|afternoon|evening|week)\s+is\s+otherwise\s+clear)\b/i;
+
+export function calendarReplyPreservesCompleteness(
+  content: string,
+  coverageState: "bounded_complete_request" | "bounded_partial_request" | "bounded" | undefined,
+): boolean {
+  return coverageState === "bounded_complete_request"
+    || !CALENDAR_EXHAUSTIVE_COMPLETENESS_CLAIM.test(content);
+}
+
 export function calendarReplyPreservesProjection(content: string,
   commitments: readonly Readonly<{ start: string; end: string }>[]): boolean {
   const observed = [...content.matchAll(CALENDAR_REPLY_INTERVAL)].map(match =>
@@ -957,6 +968,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           currentCalendarFallback: fallback,
         });
         const reply = calendarReplyPreservesProjection(guardedReply, projected.commitments)
+          && calendarReplyPreservesCompleteness(guardedReply, calendar.evidence!.coverageState)
           ? guardedReply
           : deterministicReply;
         return NextResponse.json({ reply, specialistId: specialist.id, execution: "none",

@@ -4,6 +4,8 @@
 **Date:** 2 September 2026
 **Scope:** One explicit user-authored `active → resolved` assertion over one exactly selected durable JARVIS Product Gap record.
 
+> **Follow-on status:** This bounded lifecycle assertion was subsequently implemented, repaired after live preparation exposed a canonical-purpose mismatch, and directly verified through the live JARVIS and Supabase paths. It is now **LIVE PASS / FROZEN** within the exact scope defined here. See `PRODUCT-GAP-EXPLICIT-RESOLUTION-ASSERTION-LIVE-PASS.md`. The pre-implementation statements below remain as the historical proving contract.
+
 ## Proving question
 
 > Can JARVIS let the user explicitly mark one exact durable Product Gap as resolved while preserving the original append-only record, preventing model-selected targets or inferred lifecycle writes, and retaining the complete historical relationship?

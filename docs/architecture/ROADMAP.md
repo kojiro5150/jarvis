@@ -1,22 +1,27 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Reconciled 2 September 2026 after direct live verification of the Governed Operating Picture semantic/lifecycle foundation, Supabase persistence foundation, Store Parity & Restart Durability, Purpose-Bounded Durable Projection, Narrow Model-Facing Continuity, Explicit User-Authored Continuity Capture, Morning Executive Orientation v1, post-promotion durable-continuity reliability/scalability closure, bounded Drive ordinal result continuity, and bounded Gmail named-result continuity. Existing governed Calendar/Gmail/Drive work remains the proven substrate. Morning Executive Orientation v1, durable-continuity recall reliability, Drive ordinal continuity and Gmail named-result continuity are now **LIVE PASS / FROZEN** within their bounded scopes.
+**Status:** Living document. Reconciled 3 September 2026 after direct live verification of the Governed Operating Picture semantic/lifecycle foundation, Supabase persistence foundation, Store Parity & Restart Durability, Purpose-Bounded Durable Projection, Narrow Model-Facing Continuity, Explicit User-Authored Continuity Capture, Morning Executive Orientation v1, post-promotion durable-continuity reliability/scalability closure, bounded Drive ordinal result continuity, bounded Gmail named-result continuity, and bounded explicit Product Gap resolution. Existing governed Calendar/Gmail/Drive work remains the proven substrate. Morning Executive Orientation v1, durable-continuity recall reliability, Drive ordinal continuity, Gmail named-result continuity and Product Gap explicit resolution are now **LIVE PASS / FROZEN** within their bounded scopes.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
 
 ---
 
-## Selected bounded repair — Explicit Product Gap resolution assertion
+## Verified milestone — Explicit Product Gap resolution assertion
 
-The next governed lifecycle milestone is frozen in:
+The completed production proof is recorded in:
 
 - `../PRODUCT-GAP-EXPLICIT-RESOLUTION-ASSERTION-FREEZE.md`
+- `../PRODUCT-GAP-EXPLICIT-RESOLUTION-ASSERTION-LIVE-PASS.md`
 
-Current captured Product Gaps are deliberately `append_only`, while the existing supersession proof requires `explicit_replacement`. Resolution therefore cannot reuse replacement machinery without violating the already-proven capture boundary. The selected design preserves each original record and appends a separate user-authored decision assertion referencing one exactly selected Product Gap.
+Captured Product Gaps remain deliberately `append_only`. Resolution preserves each original record and appends a separate user-authored decision assertion referencing one exactly selected record and selected head. It does not reuse or weaken `explicit_replacement` machinery.
 
-Target identity and write intent are both deterministic. A bounded server-owned candidate list supports positional selection of one exact stored record; a separate opaque one-shot target reference then permits only the closed current-user resolution grammar. Model similarity, assistant prose, repository evidence and implied completion cannot select or resolve a record.
+Target identity and write intent are deterministic. A bounded server-owned candidate list supports positional selection of one exact stored record; a separate opaque one-shot target reference then permits only the closed current-user resolution grammar. Fresh durable-state validation and deterministic assertion identity contain changed targets, sequential duplicates, stale independent references and concurrent races.
 
-The implementation PR must begin with a RED-only commit and captured failing run before later production commits return the final PR to green. Drive ordinal continuity and Gmail Product Gap #19 are the two eventual live acceptance cases. No correction, reopening, bulk reconciliation or generalized lifecycle workflow is authorized.
+Direct production testing proved exact selection and resolution of the two historical Drive gaps and Gmail Product Gap #19; active/history projection; duplicate containment across independent tabs; restart recovery; 15-minute expiry; unsupported grammar and descriptive targeting; wrong-class, fabricated, consumed and rotated references; and targetless-write rejection. Independent Supabase inspection confirmed four exact append-only assertions, including one deliberately disposable throwaway record, with deterministic target-derived identities and no duplicates.
+
+> **Promotion decision:** Bounded Product Gap explicit resolution is **LIVE PASS / FROZEN**.
+
+The initial production preparation failure caused by querying `model_continuity_context` rather than the canonical `conversation` purpose remains recorded. PR #540 repaired that boundary before promotion. This milestone does not authorize correction, reopening, bulk reconciliation, semantic target inference or generalized lifecycle workflow.
 
 ---
 

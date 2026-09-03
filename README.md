@@ -132,6 +132,8 @@ JARVIS has a persistent Governed Operating Picture designed for **continuity, no
 
 The Operating Picture preserves semantic class, authorship and lifecycle rather than silently turning remembered material into fact.
 
+Bounded Product Gap explicit resolution is **LIVE PASS / FROZEN**. JARVIS may prepare a deterministic active list, bind a closed positional selection to one opaque server-owned target, and append one separate user-authored resolution assertion only after the exact resolution command. Original Product Gap records remain unchanged and append-only; descriptive target inference, model-authored lifecycle decisions, duplicate assertions and invalid references fail closed.
+
 Current explicit user-authored continuity flow:
 
 ~~~text

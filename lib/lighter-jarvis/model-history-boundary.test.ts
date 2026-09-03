@@ -22,6 +22,7 @@ describe("ordinary-model history boundary", () => {
     "Subject: Private subject",
     "Snippet: Private snippet\nPlain text body: Private body",
     "Tomorrow is clear.",
+    "Tomorrow you have 1 commitment:\n- 9:00 AM – 4:00 PM — Barwon Health",
     "Calendar factual result:\n- LLEGC September Meeting — Thu, 3 Sep, 6:00 PM–7:30 PM",
     "This week's resolved Calendar allocation:\n- Routine / Transactional: 2h",
     "Next week's resolved Calendar allocation:\n- Routine / Transactional: 37h 30m",

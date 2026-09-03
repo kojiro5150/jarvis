@@ -289,9 +289,11 @@ export function formatCalendarReadResponse(calendar: NonNullable<Awaited<ReturnT
   if (calendar.evidence.length > 0 && window) {
     const includeDate = window.period === "this_week" || window.period === "next_week" || window.period === "default";
     const bindingByStart = new Map((bindingState?.bindings ?? []).map(binding => [binding.commitmentStart, binding.label]));
-    const commitments = calendar.evidence.map(({ start, end }) => {
+    const factualTitles = calendarScheduleTitles(calendar, window);
+    const commitments = calendar.evidence.map(({ start, end }, index) => {
       const label = bindingByStart.get(start);
-      return `- ${includeDate ? `${formatMelbourneDate(start)}, ` : ""}${formatMelbourneTime(start)} – ${formatMelbourneTime(end)}${label ? ` — ${label} (as you mentioned)` : ""}`;
+      const factualTitle = factualTitles?.[index];
+      return `- ${includeDate ? `${formatMelbourneDate(start)}, ` : ""}${formatMelbourneTime(start)} – ${formatMelbourneTime(end)}${factualTitle ? ` — ${factualTitle}` : label ? ` — ${label} (as you mentioned)` : ""}`;
     }).join("\n");
     const count = calendar.evidence.length;
     const unbound = (bindingState?.unbound ?? []).map(detail =>
@@ -305,6 +307,50 @@ export function formatCalendarReadResponse(calendar: NonNullable<Awaited<ReturnT
   if (calendar.evidence.length === 0) return `Your Calendar has no commitments in ${range} (up to five events checked).`;
   const commitments = calendar.evidence.map(({ start, end }) => `- ${formatMelbourne(start)} – ${formatMelbourne(end)}`).join("\n");
   return `Your Calendar has ${calendar.evidence.length} commitment${calendar.evidence.length === 1 ? "" : "s"} in ${range} (up to five events):\n${commitments}`;
+}
+
+function calendarScheduleTitles(
+  calendar: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["evidence"]>,
+  window: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["window"]>,
+): readonly string[] | null {
+  if (calendar.coverageState !== "bounded_complete_request"
+    || (window.period !== "today" && window.period !== "tomorrow")) return null;
+
+  const titlesByInterval = new Map<string, string[]>();
+  for (const event of calendar.factualEvents ?? []) {
+    const key = `${event.start}\u0000${event.end}`;
+    const titles = titlesByInterval.get(key) ?? [];
+    titles.push(event.title);
+    titlesByInterval.set(key, titles);
+  }
+  const titles = calendar.evidence.map(commitment => {
+    const key = `${commitment.start}\u0000${commitment.end}`;
+    return titlesByInterval.get(key)?.shift() ?? null;
+  });
+  return titles.every((title): title is string => typeof title === "string" && title.trim().length > 0)
+    ? Object.freeze(titles)
+    : null;
+}
+
+function attachCalendarScheduleTitles(
+  content: string,
+  commitments: readonly Readonly<{ start: string; end: string }>[],
+  titles: readonly string[],
+): string {
+  const titlesByInterval = new Map<string, string[]>();
+  commitments.forEach((commitment, index) => {
+    const key = calendarIntervalKey(commitment.start, commitment.end);
+    const queued = titlesByInterval.get(key) ?? [];
+    queued.push(titles[index]);
+    titlesByInterval.set(key, queued);
+  });
+  CALENDAR_REPLY_INTERVAL.lastIndex = 0;
+  return content.replace(CALENDAR_REPLY_INTERVAL, (interval, startHour: string, startMinute: string | undefined,
+    startMeridiem: string, endHour: string, endMinute: string | undefined, endMeridiem: string) => {
+    const key = `${normalizedCalendarClock(startHour, startMinute, startMeridiem)}->${normalizedCalendarClock(endHour, endMinute, endMeridiem)}`;
+    const title = titlesByInterval.get(key)?.shift();
+    return title ? `${interval} — ${title}` : interval;
+  });
 }
 
 function calendarPeriodHeading(period: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["window"]>["period"]): string {
@@ -1087,6 +1133,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       const projected = projectCalendarContext(calendar.evidence!.evidence, calendar.window);
       const bindingState = bindUserCalendarDetails(body.messages, projected.commitments);
       const deterministicReply = formatCalendarReadResponse(calendar.evidence!, calendar.window, bindingState);
+      const scheduleTitles = calendarScheduleTitles(calendar.evidence!, calendar.window);
       const governedContext = createGovernedContext(projectCalendarContext(calendar.evidence!.evidence, calendar.window,
         bindingState.bindings, bindingState.unbound));
       try {
@@ -1103,7 +1150,9 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         });
         const reply = calendarReplyPreservesProjection(guardedReply, projected.commitments)
           && calendarReplyPreservesCompleteness(guardedReply, calendar.evidence!.coverageState)
-          ? guardedReply
+          ? scheduleTitles
+            ? attachCalendarScheduleTitles(guardedReply, projected.commitments, scheduleTitles)
+            : guardedReply
           : deterministicReply;
         return NextResponse.json({ reply, specialistId: specialist.id, execution: "none",
           calendarAuthority: { decision: "ALLOW", reason: calendar.reason } });

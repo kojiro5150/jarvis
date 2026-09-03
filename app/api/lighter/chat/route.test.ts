@@ -644,6 +644,40 @@ describe("POST /api/lighter/chat", () => {
     expect(model).toHaveBeenCalledOnce();
   });
 
+  it("attaches complete tomorrow titles after conversational rendering without exposing them to the model", async () => {
+    const event = {
+      id: "event-one", title: "Barwon Health", start: "2026-08-28T00:00:00Z", end: "2026-08-28T07:00:00Z",
+      day: "FRI", time: "10:00", source: "google" as const, calendarId: "primary", calendarName: "Work",
+    };
+    const listBetweenWithCompleteness = vi.fn(async (start: string, end: string, limit = 5) => ({
+      events: [event],
+      completeness: {
+        sourceId: "google-calendar" as const, windowStart: start, windowEnd: end, requestedLimit: limit,
+        targetDiscovery: "calendar_list" as const, targetCount: 1,
+        targets: [{ calendarId: "primary", status: "complete" as const, returnedCount: 1, continuation: "none" as const }],
+        mergedReturnedCount: 1, mergeTruncated: false, completeness: "complete" as const,
+        observedAt: "2026-08-27T00:00:00Z",
+      },
+    }));
+    const model = vi.fn(async () => "Tomorrow you have one commitment: 10:00 AM – 5:00 PM. Your evening is clear.");
+    const handler = createLighterChatHandler(model, {
+      createConnector: () => ({ source: "google" as const, listBetween: vi.fn(async () => [event]), listBetweenWithCompleteness }),
+      clock: () => new Date("2026-08-27T00:00:00Z"),
+    });
+    const ask = await (await handler(request({ specialistId: "jarvis", messages: [
+      { role: "user", content: "What's on for tomorrow?" },
+    ] }))).json();
+    const allow = await (await handler(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "Yes" }],
+      pendingAuthorizationReference: ask.pendingAuthorizationReference,
+    }))).json();
+
+    expect(allow.reply).toBe("Tomorrow you have one commitment: 10:00 AM – 5:00 PM — Barwon Health. Your evening is clear.");
+    expect(model).toHaveBeenCalledOnce();
+    expect(JSON.stringify(model.mock.calls)).not.toContain("Barwon Health");
+  });
+
   it("preserves the governed Calendar commitment set when user history conflicts with model schedule prose", async () => {
     const model = vi.fn()
       .mockResolvedValueOnce(`I've noted that your 9 a.m. meeting tomorrow is a finance review.

@@ -21,6 +21,16 @@ const populatedPlural = Object.freeze({ status: "available" as const, evidence: 
   Object.freeze({ ...populated.evidence[0], commitmentReference: "event:two",
     start: "2026-08-26T11:30:00.000Z", end: "2026-08-26T12:00:00.000Z" }),
 ]) });
+const completeWithTitles = Object.freeze({
+  ...populatedPlural,
+  coverageState: "bounded_complete_request" as const,
+  factualEvents: Object.freeze([
+    Object.freeze({ title: "Board review", start: populated.evidence[0].start,
+      end: populated.evidence[0].end, calendarName: "Work" }),
+    Object.freeze({ title: "URGENT Board Crisis — Deep Work", start: populatedPlural.evidence[1].start,
+      end: populatedPlural.evidence[1].end, calendarName: "Work" }),
+  ]),
+});
 const window = (period: CalendarReadPeriod): CalendarReadWindow => Object.freeze({
   start: "2026-08-25T14:00:00.000Z",
   end: "2026-08-26T14:00:00.000Z",
@@ -61,6 +71,47 @@ describe("deterministic Calendar period presentation", () => {
   it("uses plural grammar for multiple commitments", () => {
     expect(formatCalendarReadResponse(populatedPlural, window("tomorrow"))).toBe(
       "Tomorrow you have 2 commitments:\n- 7:00 PM – 8:00 PM\n- 9:30 PM – 10:00 PM",
+    );
+  });
+
+  it.each(["today", "tomorrow"] as const)("publishes exact titles for a complete %s read", period => {
+    expect(formatCalendarReadResponse(completeWithTitles, window(period))).toBe(
+      `${period === "today" ? "Today" : "Tomorrow"} you have 2 commitments:\n`
+      + "- 7:00 PM – 8:00 PM — Board review\n"
+      + "- 9:30 PM – 10:00 PM — URGENT Board Crisis — Deep Work",
+    );
+  });
+
+  it("does not publish factual titles without complete acquisition", () => {
+    expect(formatCalendarReadResponse({ ...completeWithTitles, coverageState: "bounded_partial_request" }, window("tomorrow")))
+      .toBe("Tomorrow you have 2 commitments:\n- 7:00 PM – 8:00 PM\n- 9:30 PM – 10:00 PM");
+  });
+
+  it("falls back to a consistent time-only list when any title cannot be paired exactly", () => {
+    expect(formatCalendarReadResponse({
+      ...completeWithTitles,
+      factualEvents: Object.freeze([completeWithTitles.factualEvents[0]]),
+    }, window("tomorrow"))).toBe(
+      "Tomorrow you have 2 commitments:\n- 7:00 PM – 8:00 PM\n- 9:30 PM – 10:00 PM",
+    );
+  });
+
+  it("pairs equal-time commitments with their separate exact titles", () => {
+    const sameTime = Object.freeze({
+      ...completeWithTitles,
+      evidence: Object.freeze([
+        populated.evidence[0],
+        Object.freeze({ ...populated.evidence[0], commitmentReference: "event:two" }),
+      ]),
+      factualEvents: Object.freeze([
+        Object.freeze({ title: "First calendar", start: populated.evidence[0].start,
+          end: populated.evidence[0].end, calendarName: "Work" }),
+        Object.freeze({ title: "Second calendar", start: populated.evidence[0].start,
+          end: populated.evidence[0].end, calendarName: "Personal" }),
+      ]),
+    });
+    expect(formatCalendarReadResponse(sameTime, window("tomorrow"))).toBe(
+      "Tomorrow you have 2 commitments:\n- 7:00 PM – 8:00 PM — First calendar\n- 7:00 PM – 8:00 PM — Second calendar",
     );
   });
 });

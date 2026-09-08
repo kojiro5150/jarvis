@@ -5,7 +5,7 @@ import { escapeDriveQueryLiteral, GoogleDriveSearchConnector } from "../connecto
 import { resolveProductionDriveSearch } from "./production-drive-search";
 
 describe("production drive.search", () => {
-  it("authorizes the exact command before constructing the Google connector and preserves provider IDs", async () => {
+  it("authorizes the exact command, preserves metadata internally, and releases only a clean result list", async () => {
     const order: string[] = [];
     const result = await resolveProductionDriveSearch({ currentUserUtterance: "drive.search Atlas" }, { createConnector: () => {
       order.push("connector");
@@ -16,7 +16,23 @@ describe("production drive.search", () => {
     } });
     expect(order).toEqual(["connector", "Atlas:5"]);
     expect(result).toMatchObject({ decision: "ALLOW", files: [{ id: "provider-1" }] });
-    expect(result.reply).toContain("provider-1");
+    expect(result.reply).toBe("Drive files:\n1. Atlas plan — 25 August 2026");
+    expect(result.reply).not.toMatch(/provider-1|application\/pdf|2026-08-25T00:00:00Z/);
+  });
+
+  it("renders modified dates in Melbourne time and contains invalid dates", async () => {
+    const files = [
+      { id: "provider-1", name: "Late UTC file", mimeType: "text/plain", modifiedTime: "2026-08-01T15:48:25.542Z" },
+      { id: "provider-2", name: "Unknown date file", mimeType: "text/plain", modifiedTime: "not-a-date" },
+    ];
+    const result = await resolveProductionDriveSearch({ currentUserUtterance: "drive.search Atlas" },
+      { createConnector: () => ({ search: async () => files }) });
+
+    expect(result.reply).toBe([
+      "Drive files:",
+      "1. Late UTC file — 2 August 2026",
+      "2. Unknown date file — date unavailable",
+    ].join("\n"));
   });
 
   it("preserves exact-command authority even when the client supplies a null pending reference", async () => {

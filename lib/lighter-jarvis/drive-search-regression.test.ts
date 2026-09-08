@@ -35,14 +35,14 @@ function dependencies() {
 }
 
 describe("Sprint 3.144 Drive search scoped regression proofs", () => {
-  it("releases only five deterministic metadata records with original provider IDs and no model synthesis", async () => {
+  it("releases a clean numbered list while retaining five exact metadata records without model synthesis", async () => {
     const harness = dependencies();
     const response = await harness.handler(request("drive.search Atlas"));
     const body = await response.json();
 
     expect(body).toEqual({
       reply: metadata.slice(0, 5).length
-        ? `Drive files:\n${metadata.slice(0, 5).map(file => `- ${file.name} — ${file.mimeType} — ${file.modifiedTime} — ${file.id}`).join("\n")}`
+        ? `Drive files:\n${metadata.slice(0, 5).map((file, index) => `${index + 1}. ${file.name} — ${25 - index} August 2026`).join("\n")}`
         : "No Drive files found.",
       specialistId: "jarvis",
       execution: "none",
@@ -53,6 +53,7 @@ describe("Sprint 3.144 Drive search scoped regression proofs", () => {
     });
     expect(Object.keys(body.driveFiles[0])).toEqual(["id", "name", "mimeType", "modifiedTime"]);
     expect(body.driveFiles.map((file: { id: string }) => file.id)).toEqual(metadata.slice(0, 5).map(file => file.id));
+    expect(body.reply).not.toMatch(/provider-id-|application\/vnd\.google-apps\.document|T00:00:00Z/);
     expect(JSON.stringify(body)).not.toMatch(/snippet|summary|content|download|export/i);
     expect(harness.search).toHaveBeenCalledWith("Atlas", 5);
     expect(harness.model).not.toHaveBeenCalled();

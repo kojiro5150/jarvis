@@ -12,10 +12,28 @@ import {
 const PREFIX = /^drive\.search(?:\s|$)/;
 const EXACT = /^drive\.search (\S(?:[^\r\n]*\S)?)$/;
 const SYNTAX = "drive.search <file name>";
+const DRIVE_RESULT_TIME_ZONE = "Australia/Melbourne";
+const driveResultDateFormatter = new Intl.DateTimeFormat("en-AU", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: DRIVE_RESULT_TIME_ZONE,
+});
 
 export type ProductionDriveSearchDependencies = Readonly<{ createConnector: () => DriveSearchConnector }>;
 export type ProductionDriveSearchResult = Readonly<{ handled: boolean; decision?: "ALLOW" | "ASK" | "DENY"; reason?: string; reply?: string; files?: readonly DriveSearchMetadata[]; pendingAuthorizationReference?: PendingAuthorizationReference | null; governedReferentialScopeReference?: GovernedReferentialScopeReference | null; governedResultSetReference?: GovernedResultSetReference | null }>;
 const defaults: ProductionDriveSearchDependencies = { createConnector: () => new GoogleDriveSearchConnector() };
+
+function formatDriveResultDate(modifiedTime: string): string {
+  const date = new Date(modifiedTime);
+  return Number.isNaN(date.getTime()) ? "date unavailable" : driveResultDateFormatter.format(date);
+}
+
+export function renderDriveSearchResults(files: readonly DriveSearchMetadata[]): string {
+  if (!files.length) return "No Drive files found.";
+  return `Drive files:\n${files.map((file, index) =>
+    `${index + 1}. ${file.name} — ${formatDriveResultDate(file.modifiedTime)}`).join("\n")}`;
+}
 
 /** Exact-command authority plus one bounded proposal form; both execute the same metadata-only operation. */
 export async function resolveProductionDriveSearch(input: { readonly currentUserUtterance: string; readonly pendingAuthorizationReference?: unknown; readonly governedReferentialScopeReference?: unknown }, dependencies: ProductionDriveSearchDependencies = defaults): Promise<ProductionDriveSearchResult> {
@@ -53,7 +71,7 @@ async function execute(operation: ReturnType<typeof proposeDriveSearch>, reason:
       orderedResourceIds: files.map(file => file.id),
       originatingOperation: `drive.search name=${operation.name} max=${operation.maxResults}`,
     });
-    const reply = files.length ? `Drive files:\n${files.map(file => `- ${file.name} — ${file.mimeType} — ${file.modifiedTime} — ${file.id}`).join("\n")}` : "No Drive files found.";
+    const reply = renderDriveSearchResults(files);
     return Object.freeze({ handled: true, decision: "ALLOW", reason, files, reply,
       ...(resultSetReference ? {
         governedReferentialScopeReference: scopeReference as GovernedReferentialScopeReference,

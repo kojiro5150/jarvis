@@ -21,6 +21,7 @@ const CALENDAR_ATTENTION_REQUEST = /^what\s+needs\s+my\s+attention[?!.]?$/i;
 const CALENDAR_MORNING_BRIEF_REQUEST = /^give\s+me\s+my\s+morning\s+brief[?!.]?$/i;
 const CALENDAR_WEEKLY_ALLOCATION_REQUEST =
   /^(?:how\s+(?:is|does)\s+(?:(?:my|this|next)\s+week)\s+(?:allocated|break\s+down)|what(?:'s|\s+is)\s+(?:my\s+)?weekly\s+allocation|show\s+me\s+how\s+(?:(?:my|this|next)\s+week)\s+is\s+allocated)[?!.]?$/i;
+const CALENDAR_FREE_TIME_REQUEST = /^(?:do\s+i\s+have\s+any\s+free\s+time\s+this\s+week)(,?\s+including\s+the\s+weekend)?(?:\?\s+i\s+need\s+to\s+do\s+some\s+more\s+testing\s+on\s+jarvis\.)?[?!.]?$/i;
 
 const CALENDAR_CONVERSATIONAL_PREAMBLE =
   /^(?:(?:(?:good\s+)?morning|good\s+(?:afternoon|evening)|hello|hi|hey)(?:\s*,?\s+jarvis)?|jarvis)\s*[,!.—–-]+\s*/i;
@@ -36,16 +37,17 @@ export function proposeCalendarRead(currentUserUtterance: string, clock: () => D
   );
   const attentionRequest = CALENDAR_ATTENTION_REQUEST.test(utterance);
   const weeklyAllocationRequest = CALENDAR_WEEKLY_ALLOCATION_REQUEST.test(utterance);
+  const freeTimeMatch = utterance.match(CALENDAR_FREE_TIME_REQUEST);
   const morningBriefRequest = CALENDAR_MORNING_BRIEF_REQUEST.test(utterance);
   const factualQuery = parseCalendarFactualQuery(utterance) ?? interpretedFactualQuery ?? null;
-  if (!attentionRequest && !weeklyAllocationRequest && !morningBriefRequest && !factualQuery && !CALENDAR_REQUEST.test(utterance) && !TEMPORAL_SCHEDULE_QUESTION.test(utterance)) return null;
+  if (!attentionRequest && !weeklyAllocationRequest && !freeTimeMatch && !morningBriefRequest && !factualQuery && !CALENDAR_REQUEST.test(utterance) && !TEMPORAL_SCHEDULE_QUESTION.test(utterance)) return null;
   const now = clock();
   const match = utterance.match(/\b(today|tomorrow|this\s+morning|this\s+afternoon|this\s+evening|this\s+week|next\s+week)\b/i);
   const period = (attentionRequest
     ? "today"
     : morningBriefRequest
       ? "this_week"
-      : weeklyAllocationRequest
+      : weeklyAllocationRequest || freeTimeMatch
         ? (/\bnext\s+week\b/i.test(utterance) ? "next_week" : "this_week")
       : (match?.[1].toLowerCase().replace(/\s+/g, "_") ?? "default")) as CalendarReadPeriod;
 
@@ -56,6 +58,8 @@ export function proposeCalendarRead(currentUserUtterance: string, clock: () => D
       ? { purpose: "calendar_morning_brief" as const, morningBriefTodayWindow: resolveCalendarReadWindow("today", now) }
       : attentionRequest
         ? { purpose: "calendar_attention" as const }
+      : freeTimeMatch
+        ? { purpose: "calendar_free_time" as const, freeTimeQuery: Object.freeze({ includeWeekend: Boolean(freeTimeMatch[1]) }) }
       : weeklyAllocationRequest
         ? { purpose: "calendar_weekly_allocation" as const }
         : factualQuery

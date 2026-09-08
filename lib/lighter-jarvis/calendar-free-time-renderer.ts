@@ -6,7 +6,8 @@ const time = new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Melbourne",
 export function renderCalendarFreeTime(result: CalendarFreeTimeResult): string {
   if (result.status === "rejected") {
     if (result.reason === "calendar_incomplete") return "I can't truthfully calculate your free time because this bounded Calendar read was not complete.";
-    return "I couldn't safely calculate your free time from the governed Calendar result.";
+    if (result.reason === "calendar_unavailable") return "I couldn't retrieve the governed Calendar evidence needed to calculate your free time.";
+    return "I couldn't safely calculate your free time because the governed Calendar evidence contained an invalid interval.";
   }
   const scope = "your remembered discretionary work-availability window (6:00 PM–9:00 PM, Melbourne time)";
   if (result.slots.length === 0) return `I found no remaining available discretionary time this week within ${scope}.`;

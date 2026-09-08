@@ -30,7 +30,10 @@ function eventBounds(event: GovernedCalendarEvidenceInput): readonly [number, nu
   }
   const start = Date.parse(event.start);
   const end = Date.parse(event.end);
-  return Number.isFinite(start) && Number.isFinite(end) && end > start ? Object.freeze([start, end]) : null;
+  // A zero-duration provider interval occupies no time. The governed Calendar
+  // publisher admits that shape, so the calculator must not turn it into a
+  // whole-result failure. Reversed or unparseable bounds remain invalid.
+  return Number.isFinite(start) && Number.isFinite(end) && end >= start ? Object.freeze([start, end]) : null;
 }
 
 function merge(intervals: readonly (readonly [number, number])[]): readonly (readonly [number, number])[] {

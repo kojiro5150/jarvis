@@ -52,6 +52,25 @@ describe("governed Calendar free-time calculation", () => {
       .toEqual({ status: "rejected", reason: "calendar_incomplete" });
   });
 
+  it("treats an admitted zero-duration Calendar interval as occupying no time", () => {
+    const window = resolveCalendarReadWindow("this_week", new Date("2026-09-07T07:00:00.000Z"));
+    const result = calculateCalendarFreeTime({ evidence: evidence([
+      governedEvent("2026-09-07T19:00:00+10:00", "2026-09-07T19:00:00+10:00"),
+    ]), window, preference, includeWeekend: false, now: new Date("2026-09-07T07:00:00.000Z") });
+    expect(result.status).toBe("available");
+    if (result.status !== "available") return;
+    expect(result.slots[0]).toEqual({ start: "2026-09-07T08:00:00.000Z", end: "2026-09-07T11:00:00.000Z" });
+  });
+
+  it("keeps reversed Calendar intervals fail-closed and renders the exact reason", () => {
+    const window = resolveCalendarReadWindow("this_week", new Date("2026-09-07T07:00:00.000Z"));
+    const result = calculateCalendarFreeTime({ evidence: evidence([
+      governedEvent("2026-09-07T20:00:00+10:00", "2026-09-07T19:00:00+10:00"),
+    ]), window, preference, includeWeekend: false, now: new Date("2026-09-07T07:00:00.000Z") });
+    expect(result).toEqual({ status: "rejected", reason: "invalid_input" });
+    expect(renderCalendarFreeTime(result)).toBe("I couldn't safely calculate your free time because the governed Calendar evidence contained an invalid interval.");
+  });
+
   it("includes weekend envelopes only on explicit opt-in and renders deterministic clean text", () => {
     const window = resolveCalendarReadWindow("this_week", new Date("2026-09-11T12:00:00.000Z"));
     const result = calculateCalendarFreeTime({ evidence: evidence([]), window, preference, includeWeekend: true, now: new Date("2026-09-11T12:00:00.000Z") });

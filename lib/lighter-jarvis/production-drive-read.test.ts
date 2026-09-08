@@ -21,7 +21,8 @@ describe("identified Google Drive read authority", () => {
     const events: string[] = []; const harness = deps(events);
     const result = await resolveProductionDriveRead({ currentUserUtterance: "drive.read provider_315 [text]" }, harness.dependencies);
     expect(events).toEqual(["policy", "oauth", "connector", `acquire:provider_315:${DRIVE_READ_MAX_BYTES}`]);
-    expect(result).toMatchObject({ handled: true, decision: "ALLOW", reason: "explicit_drive_read", reply: "Drive document (provider_315):\nExact document text." });
+    expect(result).toMatchObject({ handled: true, decision: "ALLOW", reason: "explicit_drive_read", reply: "Drive document:\nExact document text." });
+    expect(result.reply).not.toContain("provider_315");
   });
   it.each(["drive.read", "drive.read provider_315", "drive.read provider_315 [plain]", " drive.read provider_315 [text]", "drive.read report [text] extra"])("fails malformed syntax before policy or connector: %s", async utterance => {
     const harness = deps(); const result = await resolveProductionDriveRead({ currentUserUtterance: utterance }, harness.dependencies);

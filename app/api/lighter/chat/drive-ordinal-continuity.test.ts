@@ -64,7 +64,8 @@ describe("Drive governed ordinal continuity route", () => {
       governedResultSetReference: ordinalAsk.governedResultSetReference,
     }))).json();
     expect(read.driveReadAuthority).toMatchObject({ decision: "ALLOW", reason: "pending_authorization_confirmed" });
-    expect(read.reply).toBe("Drive document (file-1):\nFirst Atlas document");
+    expect(read.reply).toBe("Drive document:\nFirst Atlas document");
+    expect(read.reply).not.toContain("file-1");
     expect(readGoogleDocText).toHaveBeenCalledWith("file-1", 65536);
     expect(search).toHaveBeenCalledOnce();
     expect(model).not.toHaveBeenCalled();

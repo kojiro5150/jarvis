@@ -20,8 +20,9 @@ function harness(modelReply = "ordinary response") {
 describe("route-level drive.read acceptance", () => {
   it("handles the exact command deterministically before model or handoff", async () => {
     const h = harness(); const body = await (await h.handler(request([{ role: "user", content: "drive.read provider-315 [text]" }]))).json();
-    expect(body).toEqual({ reply: "Drive document (provider-315):\ngoverned content", specialistId: "jarvis", execution: "none",
+    expect(body).toEqual({ reply: "Drive document:\ngoverned content", specialistId: "jarvis", execution: "none",
       driveReadAuthority: { decision: "ALLOW", reason: "explicit_drive_read" } });
+    expect(body.reply).not.toContain("provider-315");
     expect(h.readGoogleDocText).toHaveBeenCalledWith("provider-315", 65_536); expect(h.model).not.toHaveBeenCalled();
     expect(body).not.toHaveProperty("routeTo");
   });

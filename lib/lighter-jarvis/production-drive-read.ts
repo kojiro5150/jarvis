@@ -39,7 +39,7 @@ async function acquire(operation: DriveReadOperation, authorityReason: string, d
   if (!await dependencies.hasOAuthCapability()) return Object.freeze({ handled: true as const, decision: "ALLOW" as const, reason: "drive_oauth_scope_unavailable", reply: "Drive content access requires reconnecting Google with the drive.readonly scope." });
   try { const content = await dependencies.createConnector().readGoogleDocText(operation.fileId, policy.maxBytes);
     if (content.fileId !== operation.fileId || content.mimeType !== policy.mimeType) throw new Error("unsupported_drive_mime");
-    return Object.freeze({ handled: true as const, decision: "ALLOW" as const, reason: authorityReason, reply: `Drive document (${operation.fileId}):\n${content.text}` });
+    return Object.freeze({ handled: true as const, decision: "ALLOW" as const, reason: authorityReason, reply: `Drive document:\n${content.text}` });
   } catch (error) { const message = error instanceof Error ? error.message : "";
     const reason = message === "unsupported_drive_mime" ? "drive_content_policy_denied" : message === "drive_content_too_large" ? "drive_content_too_large" : "drive_read_failed";
     const reply = reason === "drive_content_too_large" ? `I can't release that Drive document because it exceeds ${DRIVE_READ_MAX_BYTES} bytes.` : reason === "drive_content_policy_denied" ? "I can't release that Drive file under the current content policy." : "I couldn't retrieve that Drive document right now.";

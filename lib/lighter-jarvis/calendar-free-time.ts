@@ -6,7 +6,7 @@ import { resolveMelbourneLocalInterval, type CalendarReadWindow } from "./calend
 export type CalendarFreeTimeSlot = Readonly<{ start: string; end: string }>;
 export type CalendarFreeTimeResult =
   | Readonly<{ status: "available"; slots: readonly CalendarFreeTimeSlot[]; includeWeekend: boolean; observedAt: string }>
-  | Readonly<{ status: "rejected"; reason: "calendar_unavailable" | "calendar_incomplete" | "invalid_input" }>;
+  | Readonly<{ status: "rejected"; reason: "calendar_unavailable" | "calendar_incomplete" | "weekend_preference_missing" | "invalid_input" }>;
 
 const dateFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Australia/Melbourne", year: "numeric", month: "2-digit", day: "2-digit",
@@ -57,6 +57,9 @@ export function calculateCalendarFreeTime(input: Readonly<{
   if (input.evidence.status !== "available") return Object.freeze({ status: "rejected", reason: "calendar_unavailable" });
   if (input.evidence.coverageState !== "bounded_complete_request") return Object.freeze({ status: "rejected", reason: "calendar_incomplete" });
   if (input.window.period !== "this_week" || !Number.isFinite(input.now.getTime()) || !input.evidence.observedAt) return Object.freeze({ status: "rejected", reason: "invalid_input" });
+  if (input.includeWeekend && (input.preference.weekendStartHour === null || input.preference.weekendEndHour === null)) {
+    return Object.freeze({ status: "rejected", reason: "weekend_preference_missing" });
+  }
   const eventIntervals = input.evidence.evidence.map(eventBounds);
   if (eventIntervals.some(interval => interval === null)) return Object.freeze({ status: "rejected", reason: "invalid_input" });
   const windowStart = Date.parse(input.window.start);
@@ -68,7 +71,11 @@ export function calculateCalendarFreeTime(input: Readonly<{
     const day = weekdayFormatter.format(new Date(resolveMelbourneLocalInterval({ date, startHour: 0, endHour: 24 })!.start));
     const weekday = ["Mon", "Tue", "Wed", "Thu", "Fri"].includes(day);
     if (!weekday && !input.includeWeekend) continue;
-    const envelope = resolveMelbourneLocalInterval({ date, startHour: input.preference.startHour, endHour: input.preference.endHour });
+    const envelope = resolveMelbourneLocalInterval({
+      date,
+      startHour: weekday ? input.preference.startHour : input.preference.weekendStartHour!,
+      endHour: weekday ? input.preference.endHour : input.preference.weekendEndHour!,
+    });
     if (!envelope) return Object.freeze({ status: "rejected", reason: "invalid_input" });
     const start = Math.max(Date.parse(envelope.start), input.now.getTime(), windowStart);
     const end = Math.min(Date.parse(envelope.end), windowEnd);

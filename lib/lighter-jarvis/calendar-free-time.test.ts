@@ -9,6 +9,7 @@ import type { DiscretionaryAvailabilityPreference } from "../operating-picture/d
 const preference: DiscretionaryAvailabilityPreference = Object.freeze({
   timeZone: "Australia/Melbourne", weekdays: Object.freeze([1, 2, 3, 4, 5]) as readonly [1, 2, 3, 4, 5],
   startHour: 18, endHour: 21, weekendPolicy: "explicit_only",
+  weekendStartHour: 8, weekendEndHour: 18,
 });
 
 function governedEvent(start: string, end: string, timezone = "+10:00"): GovernedCalendarEvidenceInput {
@@ -77,8 +78,19 @@ describe("governed Calendar free-time calculation", () => {
     expect(result.status).toBe("available");
     if (result.status !== "available") return;
     expect(result.slots).toHaveLength(2);
-    expect(renderCalendarFreeTime(result)).toContain("Weekend time is included because you explicitly requested it.");
+    expect(result.slots[0]).toEqual({ start: "2026-09-11T22:00:00.000Z", end: "2026-09-12T08:00:00.000Z" });
+    expect(result.slots[1]).toEqual({ start: "2026-09-12T22:00:00.000Z", end: "2026-09-13T08:00:00.000Z" });
+    expect(renderCalendarFreeTime(result)).toContain("Weekend time uses your remembered 8:00 AM–6:00 PM preference because you explicitly requested it.");
     expect(renderCalendarFreeTime(result)).not.toContain("{\"statement\"");
+  });
+
+  it("fails closed for weekend inclusion without the separate weekend preference", () => {
+    const window = resolveCalendarReadWindow("this_week", new Date("2026-09-11T12:00:00.000Z"));
+    const result = calculateCalendarFreeTime({ evidence: evidence([]), window,
+      preference: Object.freeze({ ...preference, weekendStartHour: null, weekendEndHour: null }),
+      includeWeekend: true, now: new Date("2026-09-11T12:00:00.000Z") });
+    expect(result).toEqual({ status: "rejected", reason: "weekend_preference_missing" });
+    expect(renderCalendarFreeTime(result)).toBe("I don't have an explicit current user-authored weekend work-availability preference to use.");
   });
 
   it("constructs Melbourne intervals across daylight-saving offset changes", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DISCRETIONARY_AVAILABILITY_STATEMENT, resolveDiscretionaryAvailabilityPreference } from "./discretionary-availability-preference";
+import { DISCRETIONARY_AVAILABILITY_STATEMENT, DISCRETIONARY_WEEKEND_AVAILABILITY_STATEMENT, resolveDiscretionaryAvailabilityPreference } from "./discretionary-availability-preference";
 import type { DurablePurposeProjectionResult } from "./purpose-projection-retrieval";
 
 function item(statement: string, overrides: Record<string, unknown> = {}) {
@@ -13,8 +13,25 @@ function projection(items: readonly ReturnType<typeof item>[]): DurablePurposePr
 describe("discretionary availability preference admission", () => {
   it("parses only the exact normalized user-authored preference into typed values", () => {
     expect(resolveDiscretionaryAvailabilityPreference(projection([item(DISCRETIONARY_AVAILABILITY_STATEMENT)]))).toEqual({
-      status: "resolved", preference: { timeZone: "Australia/Melbourne", weekdays: [1, 2, 3, 4, 5], startHour: 18, endHour: 21, weekendPolicy: "explicit_only" },
+      status: "resolved", preference: { timeZone: "Australia/Melbourne", weekdays: [1, 2, 3, 4, 5], startHour: 18, endHour: 21, weekendPolicy: "explicit_only", weekendStartHour: null, weekendEndHour: null },
     });
+  });
+
+  it("combines the distinct exact weekend preference without rewriting the weekday record", () => {
+    expect(resolveDiscretionaryAvailabilityPreference(projection([
+      item(DISCRETIONARY_AVAILABILITY_STATEMENT),
+      item(DISCRETIONARY_WEEKEND_AVAILABILITY_STATEMENT),
+    ]))).toEqual({
+      status: "resolved", preference: { timeZone: "Australia/Melbourne", weekdays: [1, 2, 3, 4, 5], startHour: 18, endHour: 21, weekendPolicy: "explicit_only", weekendStartHour: 8, weekendEndHour: 18 },
+    });
+  });
+
+  it("fails closed on a conflicting weekend envelope", () => {
+    expect(resolveDiscretionaryAvailabilityPreference(projection([
+      item(DISCRETIONARY_AVAILABILITY_STATEMENT),
+      item(DISCRETIONARY_WEEKEND_AVAILABILITY_STATEMENT),
+      item("my discretionary weekend work-availability window is Saturday and Sunday, 9:00 AM to 5:00 PM."),
+    ]))).toEqual({ status: "conflicting" });
   });
 
   it("does not admit model-authored or unrelated preferences", () => {

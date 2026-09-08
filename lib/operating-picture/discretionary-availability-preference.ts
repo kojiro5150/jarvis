@@ -5,6 +5,8 @@ import { MODEL_CONTINUITY_PURPOSE } from "./model-continuity-contract";
 
 export const DISCRETIONARY_AVAILABILITY_STATEMENT =
   "my discretionary work-availability window is Monday to Friday, 6:00 PM to 9:00 PM. Weekends are excluded by default and included only when I explicitly request them.";
+export const DISCRETIONARY_WEEKEND_AVAILABILITY_STATEMENT =
+  "my discretionary weekend work-availability window is Saturday and Sunday, 8:00 AM to 6:00 PM.";
 
 export type DiscretionaryAvailabilityPreference = Readonly<{
   timeZone: "Australia/Melbourne";
@@ -12,6 +14,8 @@ export type DiscretionaryAvailabilityPreference = Readonly<{
   startHour: 18;
   endHour: 21;
   weekendPolicy: "explicit_only";
+  weekendStartHour: 8 | null;
+  weekendEndHour: 18 | null;
 }>;
 
 export type DiscretionaryAvailabilityPreferenceResult =
@@ -28,6 +32,8 @@ const preference: DiscretionaryAvailabilityPreference = Object.freeze({
   startHour: 18,
   endHour: 21,
   weekendPolicy: "explicit_only",
+  weekendStartHour: null,
+  weekendEndHour: null,
 });
 
 function normalized(value: string): string {
@@ -54,18 +60,26 @@ export function resolveDiscretionaryAvailabilityPreference(
     && item.semanticClass === "preference",
   );
   let conflicting = false;
+  let weekendEstablished = false;
   const parsed = candidates.flatMap(item => {
     const statement = statementPayload(item.payload);
     if (statement === null) return [];
     if (normalized(statement) === normalized(DISCRETIONARY_AVAILABILITY_STATEMENT)) return [preference];
+    if (normalized(statement) === normalized(DISCRETIONARY_WEEKEND_AVAILABILITY_STATEMENT)) {
+      weekendEstablished = true;
+      return [];
+    }
     if (/\bdiscretionary\s+work-availability\s+window\b/i.test(normalized(statement))) conflicting = true;
+    if (/\bdiscretionary\s+weekend\s+work-availability\s+window\b/i.test(normalized(statement))) conflicting = true;
     return [];
   });
   if (conflicting) return Object.freeze({ status: "conflicting" });
   if (parsed.length === 0) return Object.freeze({ status: "missing" });
   // V1 has one admitted envelope. Identical append-only captures agree; no
   // latest-wins inference is made over durable history.
-  return Object.freeze({ status: "resolved", preference });
+  return Object.freeze({ status: "resolved", preference: weekendEstablished
+    ? Object.freeze({ ...preference, weekendStartHour: 8 as const, weekendEndHour: 18 as const })
+    : preference });
 }
 
 async function defaultProjection(): Promise<DurablePurposeProjectionResult> {

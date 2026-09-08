@@ -190,7 +190,7 @@ describe("durable continuity integration in the sole chat runtime", () => {
     expect(await response.json()).toEqual({
       reply: [
         "Relevant remembered context:",
-        '- You previously stated a preference: {"statement":"I prefer short status updates."}',
+        "- You previously stated a preference: I prefer short status updates.",
       ].join("\n"),
       specialistId: "jarvis",
       execution: "none",

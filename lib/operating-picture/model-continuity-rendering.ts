@@ -50,9 +50,39 @@ function validItem(item: ModelContinuityPresentationItem): boolean {
   return false;
 }
 
-function deterministicValue(value: ModelContinuityPresentationItem["value"]): string | null {
+function exactRememberedStatement(
+  value: ModelContinuityPresentationItem["value"],
+): string | null {
+  if (
+    typeof value !== "object"
+    || value === null
+    || Array.isArray(value)
+    || Object.keys(value).length !== 1
+    || !Object.hasOwn(value, "statement")
+  ) {
+    return null;
+  }
+
+  const descriptor = Object.getOwnPropertyDescriptor(value, "statement");
+  if (
+    !descriptor
+    || !("value" in descriptor)
+    || typeof descriptor.value !== "string"
+    || descriptor.value.length === 0
+  ) {
+    return null;
+  }
+
+  return descriptor.value;
+}
+
+function deterministicValue(item: ModelContinuityPresentationItem): string | null {
+  if (item.continuityType === "remembered_user_continuity") {
+    return exactRememberedStatement(item.value);
+  }
+
   try {
-    const serialized = JSON.stringify(value);
+    const serialized = JSON.stringify(item.value);
     if (typeof serialized !== "string") return null;
     return serialized;
   } catch {
@@ -108,7 +138,7 @@ export function renderModelContinuityPresentation(
       });
     }
 
-    const value = deterministicValue(item.value);
+    const value = deterministicValue(item);
     if (value === null) {
       return Object.freeze({
         status: "rejected",

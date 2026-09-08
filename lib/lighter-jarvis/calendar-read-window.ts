@@ -48,6 +48,28 @@ function boundary(date: Pick<LocalDateTime, "year" | "month" | "day">, hour = 0)
   return localDateTimeToInstant({ ...date, hour, minute: 0, second: 0 });
 }
 
+/** Constructs a DST-safe Melbourne-local interval from one local date. */
+export function resolveMelbourneLocalInterval(input: Readonly<{
+  date: string;
+  startHour: number;
+  startMinute?: number;
+  endHour: number;
+  endMinute?: number;
+}>): Readonly<{ start: string; end: string }> | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(input.date);
+  if (!match || !Number.isInteger(input.startHour) || !Number.isInteger(input.endHour)
+    || input.startHour < 0 || input.startHour > 23 || input.endHour < 0 || input.endHour > 24) return null;
+  const startMinute = input.startMinute ?? 0;
+  const endMinute = input.endMinute ?? 0;
+  if (![startMinute, endMinute].every(value => Number.isInteger(value) && value >= 0 && value <= 59)) return null;
+  const date = { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) };
+  const start = localDateTimeToInstant({ ...date, hour: input.startHour, minute: startMinute, second: 0 });
+  const endDate = input.endHour === 24 ? shiftDate(date, 1) : date;
+  const end = localDateTimeToInstant({ ...endDate, hour: input.endHour === 24 ? 0 : input.endHour, minute: endMinute, second: 0 });
+  if (end.getTime() <= start.getTime()) return null;
+  return Object.freeze({ start: start.toISOString(), end: end.toISOString() });
+}
+
 /** Resolves only the deliberately closed set of Melbourne-local periods. */
 export function resolveCalendarReadWindow(period: CalendarReadPeriod, now: Date): CalendarReadWindow {
   if (!Number.isFinite(now.getTime())) throw new Error("calendar read clock is invalid");

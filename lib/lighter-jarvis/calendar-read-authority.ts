@@ -9,11 +9,13 @@ export type ProposedCalendarReadOperation = Readonly<{
    * Optional presentation/composition intent retained inside the server-owned
    * pending operation. It never grants authority or widens the Calendar read.
    */
-  purpose?: "calendar_attention" | "calendar_weekly_allocation" | "calendar_factual_query" | "calendar_morning_brief" | "calendar_advise" | "calendar_act_validation";
+  purpose?: "calendar_attention" | "calendar_weekly_allocation" | "calendar_factual_query" | "calendar_morning_brief" | "calendar_free_time" | "calendar_advise" | "calendar_act_validation";
   /** Server-owned deterministic factual selector intent; never model context. */
   factualQuery?: CalendarFactualQuery;
   /** Exact today sub-window bound at proposal time for Morning Brief composition. */
   morningBriefTodayWindow?: CalendarReadWindow;
+  /** Closed free-time selector retained inside server-owned pending state. */
+  freeTimeQuery?: Readonly<{ includeWeekend: boolean }>;
 }>;
 /** Retained name for the closed Calendar proposal API. */
 export type ProposedOperation = ProposedCalendarReadOperation;

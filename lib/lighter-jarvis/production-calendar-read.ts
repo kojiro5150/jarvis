@@ -29,16 +29,18 @@ export type ProductionCalendarReadResult = Readonly<{
   pendingAuthorizationReference: PendingAuthorizationReference | null;
   authorityEvidence: readonly unknown[];
   window: import("./calendar-read-window").CalendarReadWindow | null;
-  purpose: "calendar_attention" | "calendar_weekly_allocation" | "calendar_factual_query" | "calendar_morning_brief" | "calendar_advise" | "calendar_act_validation" | null;
+  purpose: "calendar_attention" | "calendar_weekly_allocation" | "calendar_factual_query" | "calendar_morning_brief" | "calendar_free_time" | "calendar_advise" | "calendar_act_validation" | null;
   factualQuery: import("./calendar-factual-query").CalendarFactualQuery | null;
   morningBriefTodayWindow: import("./calendar-read-window").CalendarReadWindow | null;
   morningBrief: MorningExecutiveOrientationBrief | null;
+  freeTimeQuery: Readonly<{ includeWeekend: boolean }> | null;
 }>;
 
 const CALENDAR_DEFAULT_REQUESTED_LIMIT = 5;
 const CALENDAR_WEEKLY_ALLOCATION_REQUESTED_LIMIT = 100;
 const CALENDAR_MORNING_BRIEF_REQUESTED_LIMIT = 100;
 const CALENDAR_FACTUAL_QUERY_REQUESTED_LIMIT = 100;
+const CALENDAR_FREE_TIME_REQUESTED_LIMIT = 100;
 const CALENDAR_ADVISE_REQUESTED_LIMIT = 100;
 const CALENDAR_ACT_VALIDATION_REQUESTED_LIMIT = 100;
 
@@ -46,6 +48,7 @@ function requestedLimitFor(operation: import("./calendar-read-authority").Propos
   if (operation.purpose === "calendar_weekly_allocation") return CALENDAR_WEEKLY_ALLOCATION_REQUESTED_LIMIT;
   if (operation.purpose === "calendar_morning_brief") return CALENDAR_MORNING_BRIEF_REQUESTED_LIMIT;
   if (operation.purpose === "calendar_factual_query") return CALENDAR_FACTUAL_QUERY_REQUESTED_LIMIT;
+  if (operation.purpose === "calendar_free_time") return CALENDAR_FREE_TIME_REQUESTED_LIMIT;
   if (operation.purpose === "calendar_advise") return CALENDAR_ADVISE_REQUESTED_LIMIT;
   if (operation.purpose === "calendar_act_validation") return CALENDAR_ACT_VALIDATION_REQUESTED_LIMIT;
   return CALENDAR_DEFAULT_REQUESTED_LIMIT;
@@ -88,6 +91,7 @@ export async function resolveProductionCalendarRead(input: {
         factualQuery: operation?.factualQuery ?? null,
         morningBriefTodayWindow: operation?.morningBriefTodayWindow ?? null,
         morningBrief: null,
+        freeTimeQuery: operation?.freeTimeQuery ?? null,
       });
     }
 
@@ -99,14 +103,15 @@ export async function resolveProductionCalendarRead(input: {
       evidence, pendingAuthorizationReference: null,
       authorityEvidence: resolution.authorityEvidence, window: operation.window,
       purpose: operation.purpose ?? null, factualQuery: operation.factualQuery ?? null,
-      morningBriefTodayWindow: operation.morningBriefTodayWindow ?? null, morningBrief });
+      morningBriefTodayWindow: operation.morningBriefTodayWindow ?? null, morningBrief,
+      freeTimeQuery: operation.freeTimeQuery ?? null });
   }
 
   const proposedOperation = proposeCalendarRead(input.currentUserUtterance, dependencies.clock, input.interpretedFactualQuery);
   if (proposedOperation === null) {
     return Object.freeze({ handled: false, decision: null, reason: null, evidence: null,
       pendingAuthorizationReference: null, authorityEvidence: Object.freeze([]), window: null, purpose: null, factualQuery: null,
-      morningBriefTodayWindow: null, morningBrief: null });
+      morningBriefTodayWindow: null, morningBrief: null, freeTimeQuery: null });
   }
 
   const authority = evaluateCalendarReadAuthority({
@@ -127,11 +132,13 @@ export async function resolveProductionCalendarRead(input: {
       evidence, pendingAuthorizationReference: null,
       authorityEvidence: acquired.authority.authorityEvidence, window: proposedOperation.window,
       purpose: proposedOperation.purpose ?? null, factualQuery: proposedOperation.factualQuery ?? null,
-      morningBriefTodayWindow: proposedOperation.morningBriefTodayWindow ?? null, morningBrief });
+      morningBriefTodayWindow: proposedOperation.morningBriefTodayWindow ?? null, morningBrief,
+      freeTimeQuery: proposedOperation.freeTimeQuery ?? null });
   }
   return Object.freeze({ handled: true, decision: "ASK", reason: authority.reason,
     evidence: null, pendingAuthorizationReference: createPendingAuthorization(proposedOperation),
     authorityEvidence: authority.authorityEvidence, window: proposedOperation.window,
     purpose: proposedOperation.purpose ?? null, factualQuery: proposedOperation.factualQuery ?? null,
-    morningBriefTodayWindow: proposedOperation.morningBriefTodayWindow ?? null, morningBrief: null });
+    morningBriefTodayWindow: proposedOperation.morningBriefTodayWindow ?? null, morningBrief: null,
+    freeTimeQuery: proposedOperation.freeTimeQuery ?? null });
 }

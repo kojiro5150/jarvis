@@ -76,6 +76,9 @@ import type { ScopedCalendarAcquisitionPort } from "@/lib/governed-conversation/
 import { isDurableContinuityRecallRequest, resolveProductionModelContinuityRecall, type ProductionModelContinuityDependencies } from "@/lib/operating-picture/production-model-continuity";
 import { resolveProductionUserContinuityCapture, type ProductionUserContinuityCaptureDependencies } from "@/lib/operating-picture/production-user-continuity-capture";
 import { resolveProductionProductGapResolution, type ProductionProductGapResolutionDependencies } from "@/lib/operating-picture/production-product-gap-resolution";
+import { resolveProductionDiscretionaryAvailabilityPreference, type ProductionDiscretionaryAvailabilityPreferenceDependencies } from "@/lib/operating-picture/discretionary-availability-preference";
+import { calculateCalendarFreeTime } from "@/lib/lighter-jarvis/calendar-free-time";
+import { renderCalendarFreeTime } from "@/lib/lighter-jarvis/calendar-free-time-renderer";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -470,7 +473,8 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
   calendarActDependencies: CalendarActDependencies = defaultCalendarActDependencies,
   modelContinuityDependencies?: ProductionModelContinuityDependencies,
   userContinuityCaptureDependencies?: Partial<ProductionUserContinuityCaptureDependencies>,
-  productGapResolutionDependencies?: Partial<ProductionProductGapResolutionDependencies>) {
+  productGapResolutionDependencies?: Partial<ProductionProductGapResolutionDependencies>,
+  discretionaryAvailabilityDependencies?: ProductionDiscretionaryAvailabilityPreferenceDependencies) {
   return async function POST(request: Request) {
     let body: LighterChatBody;
     try { body = await request.json() as LighterChatBody; }
@@ -1073,6 +1077,33 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           execution: "none",
           calendarAuthority: { decision: "ALLOW", reason: calendar.reason },
         });
+      }
+
+      if (calendar.purpose === "calendar_free_time") {
+        const remembered = await resolveProductionDiscretionaryAvailabilityPreference(discretionaryAvailabilityDependencies);
+        if (remembered.status !== "resolved") {
+          const reply = remembered.status === "conflicting"
+            ? "I can't safely calculate your free time because the current user-authored availability preferences conflict."
+            : remembered.status === "missing"
+              ? "I don't have an explicit current user-authored discretionary work-availability preference to use."
+              : "I couldn't safely retrieve your discretionary work-availability preference.";
+          return NextResponse.json({ reply, specialistId: specialist.id, execution: "none",
+            calendarAuthority: { decision: "ALLOW", reason: calendar.reason } });
+        }
+        if (!calendar.window || !calendar.freeTimeQuery) {
+          return NextResponse.json({ reply: "I couldn't safely calculate your free time from this bounded request.",
+            specialistId: specialist.id, execution: "none",
+            calendarAuthority: { decision: "ALLOW", reason: calendar.reason } });
+        }
+        const result = calculateCalendarFreeTime({
+          evidence: calendar.evidence!,
+          window: calendar.window,
+          preference: remembered.preference,
+          includeWeekend: calendar.freeTimeQuery.includeWeekend,
+          now: calendarDependencies?.clock() ?? new Date(),
+        });
+        return NextResponse.json({ reply: renderCalendarFreeTime(result), specialistId: specialist.id, execution: "none",
+          calendarAuthority: { decision: "ALLOW", reason: calendar.reason } });
       }
 
       if (calendar.purpose === "calendar_weekly_allocation") {

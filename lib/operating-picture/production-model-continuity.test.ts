@@ -116,7 +116,7 @@ describe("production durable continuity recall adapter", () => {
       status: "rendered",
       reply: [
         "Relevant remembered context:",
-        '- You previously stated a preference: {"statement":"I prefer short status updates."}',
+        "- You previously stated a preference: I prefer short status updates.",
       ].join("\n"),
     });
 
@@ -172,8 +172,9 @@ describe("production durable continuity recall adapter", () => {
     expect(createContinuityModelCall.mock.calls[1]?.[0]).toHaveLength(1);
 
     if (result.status === "rendered") {
-      expect(result.reply).toContain('{"statement":"JARVIS product gap 1"}');
-      expect(result.reply).toContain('{"statement":"JARVIS product gap 13"}');
+      expect(result.reply).toContain("You previously stated: JARVIS product gap 1");
+      expect(result.reply).toContain("You previously stated: JARVIS product gap 13");
+      expect(result.reply).not.toContain('{"statement"');
       expect(result.reply.match(/Relevant remembered context:/g)).toHaveLength(1);
     }
   });

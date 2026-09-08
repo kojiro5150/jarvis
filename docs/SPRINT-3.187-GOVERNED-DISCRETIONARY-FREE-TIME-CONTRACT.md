@@ -2,6 +2,8 @@
 
 Status: frozen for implementation
 
+Amended 2026-09-08: weekend opt-in uses a separately user-authored Saturday–Sunday 8:00 AM–6:00 PM envelope. The weekday record remains append-only and unchanged.
+
 ## Purpose
 
 Answer the closed request “Do I have any free time this week?” only by combining two independently bounded inputs:
@@ -30,6 +32,8 @@ The preference is read from the stable `conversation` durable projection only af
 - has an exact `{ statement: string }` payload; and
 - deterministically parses as: `my discretionary work-availability window is Monday to Friday, 6:00 PM to 9:00 PM. Weekends are excluded by default and included only when I explicitly request them.`
 
+Weekend inclusion additionally requires a current user-authored preference that deterministically parses as: `my discretionary weekend work-availability window is Saturday and Sunday, 8:00 AM to 6:00 PM.` It supplements rather than replaces the weekday statement. Missing or conflicting weekend preference state fails closed only for a query that explicitly includes the weekend.
+
 Case, Unicode compatibility, and whitespace may be normalised; meaning may not be inferred. No model selects or interprets the preference. Identical duplicate statements may agree. Distinct admitted envelopes conflict and fail closed. Missing, rejected, malformed, model-authored, non-current, or conflicting preference state produces no availability answer.
 
 ## Calendar proof
@@ -42,7 +46,7 @@ Every governed Calendar schedule interval intersecting an admitted daily envelop
 
 - Time zone: `Australia/Melbourne`.
 - Default envelope: Monday–Friday, 6:00 PM–9:00 PM.
-- Weekend envelopes are included only when the admitted query explicitly requests them; the same 6:00 PM–9:00 PM hours apply.
+- Weekend envelopes are included only when the admitted query explicitly requests them and the separate weekend preference is established; Saturday and Sunday use 8:00 AM–6:00 PM.
 - Past time is never offered. Each envelope is clipped to the calculation clock.
 - Busy intervals are clipped to each envelope, merged, and subtracted.
 - Every positive-length remainder is retained; v1 invents no minimum-duration preference.

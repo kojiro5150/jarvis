@@ -37,6 +37,7 @@ import {
 } from "@/lib/lighter-jarvis/calendar-factual-query";
 import { interpretCalendarConversationalIntent, isCalendarConversationalIntentCandidate } from "@/lib/lighter-jarvis/calendar-conversational-intent";
 import { deterministicCapabilityConstraint, isConversationalCapabilitySelectionCandidate, isUnsupportedGmailMutationRequest, selectConversationalCapability } from "@/lib/lighter-jarvis/conversational-capability-selector";
+import { resolveClosedResponseFormatInstruction } from "@/lib/lighter-jarvis/response-format-instruction";
 import { materializeConversationalPrivateOperation } from "@/lib/lighter-jarvis/conversational-private-operation";
 import { createPendingAuthorization } from "@/lib/lighter-jarvis/pending-authorization";
 import { proposeCalendarRead } from "@/lib/lighter-jarvis/calendar-read-proposal";
@@ -1230,6 +1231,16 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       && isUnsupportedCalendarFactualWording(currentUserUtterance)) {
       return NextResponse.json({
         reply: "I can check your Calendar for that, but I couldn't resolve the factual query safely from that wording.",
+        specialistId: specialist.id,
+        execution: "none",
+      });
+    }
+    const closedResponseFormat = currentUserUtterance === undefined
+      ? null
+      : resolveClosedResponseFormatInstruction(currentUserUtterance);
+    if (specialist.id === "jarvis" && closedResponseFormat !== null) {
+      return NextResponse.json({
+        reply: closedResponseFormat,
         specialistId: specialist.id,
         execution: "none",
       });

@@ -26,6 +26,8 @@ export interface MeasurementOutcome {
   detail?: string;
 }
 
+export type ScreeningResult = MeasurementCell & MeasurementOutcome & { attempt: number };
+
 export interface ResponseDiagnostics {
   responseCharacters: number;
   contentBlockTypes: string[];
@@ -56,6 +58,29 @@ export function buildScreeningPlan(): MeasurementCell[] {
       targetCharacters,
       historyKind,
     }))));
+}
+
+export function measurementCellKey(cell: MeasurementCell): string {
+  return `${cell.fixtureKind}:${cell.targetCharacters}:${cell.historyKind}`;
+}
+
+export function buildProviderRejectionResumePlan<T extends ScreeningResult>(rows: T[]): {
+  retained: T[];
+  retry: MeasurementCell[];
+} {
+  const expected = buildScreeningPlan();
+  const expectedKeys = new Set(expected.map(measurementCellKey));
+  if (rows.length !== expected.length) throw new Error(`resume report must contain exactly ${expected.length} screening results`);
+  const actualKeys = rows.map(measurementCellKey);
+  if (new Set(actualKeys).size !== actualKeys.length || actualKeys.some(key => !expectedKeys.has(key))) {
+    throw new Error("resume report does not contain the exact screening matrix");
+  }
+  const retryKeys = new Set(rows.filter(row => row.failureKind === "provider_rejection").map(measurementCellKey));
+  if (retryKeys.size === 0) throw new Error("resume report contains no provider_rejection results to retry");
+  return {
+    retained: rows.filter(row => !retryKeys.has(measurementCellKey(row))),
+    retry: expected.filter(cell => retryKeys.has(measurementCellKey(cell))),
+  };
 }
 
 function repeatToLength(seed: string, targetCharacters: number): string {

@@ -26,7 +26,6 @@ export function areValidMessageTranscript(messages: unknown): messages is ChatMe
   );
 }
 
-
 /**
  * Applies the fixed model transport cap without making semantic relevance
  * decisions. The final entry is the incoming turn, leaving 39 history slots.

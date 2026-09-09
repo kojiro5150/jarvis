@@ -8,6 +8,9 @@ This measurement-only harness establishes an empirical private-content processin
 - Live execution requires the explicit `--run` flag and `ANTHROPIC_API_KEY`.
 - All fixtures and retained histories are deterministic and synthetic.
 - Reports contain fixture digests and measurements, never prompt or response content.
+- Raw JSON and exactly one complete JSON code fence are accepted; JSON surrounded by prose remains malformed.
+- Privacy-safe response diagnostics record only response length, block types, text-block count, response format, stop reason, and usage.
+- The report is atomically checkpointed after every completed call. An interrupt preserves completed results and records the remaining count without claiming completion.
 - Real Anthropic token usage is recorded on successful responses. Failed calls report usage as unavailable; the harness never estimates it.
 - Live reports are written under `data/capacity-measurements/`, which is ignored by Git.
 

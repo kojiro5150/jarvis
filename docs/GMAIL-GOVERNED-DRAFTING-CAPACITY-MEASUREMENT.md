@@ -59,3 +59,11 @@ npm run measure:gmail-drafting:live -- --phase screening --resume-report data/ca
 ```
 
 Resume requires the exact 60-cell screening matrix and matching model configuration. It retains passes and fidelity failures, replaces only provider rejections, records the source report digest, and never overwrites the source report.
+
+To retry only fidelity failures after a deterministic validator correction, add:
+
+```bash
+--retry-failure fidelity_failure
+```
+
+The consolidated report records separate `hasThankSignal`, `hasDeclineSignal`, and `hasForbiddenDetail` booleans for newly measured drafts. It never retains draft text. The bounded decline grammar accepts explicit decline, inability to accept or participate, and clear “have to pass”/“pass on” formulations; it does not delegate semantic classification to another model.

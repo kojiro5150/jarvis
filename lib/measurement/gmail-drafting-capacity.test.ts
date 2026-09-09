@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   buildFixture,
   buildHistory,
+  buildReportProgress,
   buildScreeningPlan,
   fixtureDigest,
+  parseMeasurementReply,
   selectBoundaryCandidates,
   validateDraftReply,
 } from "./gmail-drafting-capacity";
@@ -36,6 +38,27 @@ describe("Gmail drafting capacity measurement", () => {
   it("accepts faithful drafts and rejects the Raman fabrication", () => {
     expect(validateDraftReply({ sender: "Raman Bhola", subject: "LinkedIn connection invitation", draft: "Thank you for the invitation, Raman. I appreciate it, but I must politely decline." }).ok).toBe(true);
     expect(validateDraftReply({ sender: "Raman Bhola", subject: "LinkedIn connection invitation", draft: "Thanks. I will decline lunch on Thursday." })).toEqual({ ok: false, detail: "draft introduced forbidden fabricated details" });
+  });
+
+  it("accepts raw JSON", () => {
+    expect(parseMeasurementReply('{"sender":"Raman Bhola"}')).toEqual({ ok: true, value: { sender: "Raman Bhola" }, format: "raw_json" });
+  });
+
+  it("accepts exactly one complete JSON code fence", () => {
+    expect(parseMeasurementReply('```json\n{"sender":"Raman Bhola"}\n```')).toEqual({ ok: true, value: { sender: "Raman Bhola" }, format: "json_fence" });
+  });
+
+  it("rejects prose surrounding otherwise valid JSON", () => {
+    expect(parseMeasurementReply('Here is the result:\n```json\n{"sender":"Raman Bhola"}\n```').ok).toBe(false);
+  });
+
+  it("rejects malformed JSON", () => {
+    expect(parseMeasurementReply('```json\n{"sender":\n```')).toEqual({ ok: false, detail: "response was not valid JSON" });
+  });
+
+  it("represents interrupted checkpoints without claiming completion", () => {
+    expect(buildReportProgress(7, 60, true)).toEqual({ status: "interrupted", completed: 7, remaining: 53, interrupted: true });
+    expect(buildReportProgress(60, 60, false)).toEqual({ status: "completed", completed: 60, remaining: 0, interrupted: false });
   });
 
   it("selects the nearest successful and first failing screening cells", () => {

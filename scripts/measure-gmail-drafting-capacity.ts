@@ -1,15 +1,18 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { CLAUDE_MAX_TOKENS, CLAUDE_MODEL, CLAUDE_TIMEOUT_MS } from "../lib/anthropic-client";
 import { buildSpecialistPrompt } from "../lib/lighter-jarvis/runtime";
+import { writeMeasurementCheckpoint } from "../lib/measurement/measurement-checkpoint";
 import {
   MEASUREMENT_SCHEMA_VERSION,
+  buildReportProgress,
   buildFixture,
   buildHistory,
   buildMeasurementInstruction,
   buildScreeningPlan,
   fixtureDigest,
+  parseMeasurementReply,
   selectBoundaryCandidates,
   validateDraftReply,
   type FailureKind,
@@ -29,6 +32,12 @@ interface ResultRow extends MeasurementCell {
   elapsedMs: number;
   httpStatus?: number;
   stopReason?: string | null;
+  responseFormat?: "raw_json" | "json_fence";
+  responseDiagnostics?: {
+    responseCharacters: number;
+    contentBlockTypes: string[];
+    textBlockCount: number;
+  };
   usage?: UsageRecord;
 }
 
@@ -94,16 +103,42 @@ async function measure(client: Anthropic, systemPrompt: string, cell: Measuremen
     });
     const elapsedMs = Date.now() - started;
     const text = response.content.filter(block => block.type === "text").map(block => block.text).join("");
-    let parsed: unknown;
-    try { parsed = JSON.parse(text); } catch {
-      return { ...base, elapsedMs, status: "failed", failureKind: "malformed_response", detail: "response was not valid JSON", stopReason: response.stop_reason, usage: usage(response.usage) };
+    const responseDiagnostics = {
+      responseCharacters: text.length,
+      contentBlockTypes: response.content.map(block => block.type),
+      textBlockCount: response.content.filter(block => block.type === "text").length,
+    };
+    const parsed = parseMeasurementReply(text);
+    if (!parsed.ok) {
+      return { ...base, elapsedMs, status: "failed", failureKind: "malformed_response", detail: parsed.detail, stopReason: response.stop_reason, usage: usage(response.usage), responseDiagnostics };
     }
-    const fidelity = validateDraftReply(parsed);
-    if (!fidelity.ok) return { ...base, elapsedMs, status: "failed", failureKind: "fidelity_failure", detail: fidelity.detail, stopReason: response.stop_reason, usage: usage(response.usage) };
-    return { ...base, elapsedMs, status: "passed", stopReason: response.stop_reason, usage: usage(response.usage) };
+    const fidelity = validateDraftReply(parsed.value);
+    if (!fidelity.ok) return { ...base, elapsedMs, status: "failed", failureKind: "fidelity_failure", detail: fidelity.detail, stopReason: response.stop_reason, usage: usage(response.usage), responseFormat: parsed.format, responseDiagnostics };
+    return { ...base, elapsedMs, status: "passed", stopReason: response.stop_reason, usage: usage(response.usage), responseFormat: parsed.format, responseDiagnostics };
   } catch (error) {
     return { ...base, elapsedMs: Date.now() - started, status: "failed", ...classifyError(error) };
   }
+}
+
+interface ReportMetadata {
+  generatedAt: string;
+  phase: Phase;
+  projectedCalls: number;
+}
+
+function buildReport(metadata: ReportMetadata, results: ResultRow[], interrupted: boolean) {
+  return {
+    schemaVersion: MEASUREMENT_SCHEMA_VERSION,
+    generatedAt: metadata.generatedAt,
+    updatedAt: new Date().toISOString(),
+    phase: metadata.phase,
+    model: CLAUDE_MODEL,
+    maxOutputTokens: CLAUDE_MAX_TOKENS,
+    timeoutMs: CLAUDE_TIMEOUT_MS,
+    privacy: "Synthetic fixtures only; prompt and response content are not retained.",
+    progress: buildReportProgress(results.length, metadata.projectedCalls, interrupted),
+    results,
+  };
 }
 
 function usage(value: Anthropic.Messages.Usage): UsageRecord {
@@ -133,26 +168,26 @@ async function main(): Promise<void> {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: CLAUDE_TIMEOUT_MS, maxRetries: 0 });
   const systemPrompt = await buildSpecialistPrompt();
   const results: ResultRow[] = [];
+  const metadata = { generatedAt: new Date().toISOString(), phase, projectedCalls: plan.length * attempts };
+  let interrupted = false;
+  process.once("SIGINT", () => {
+    interrupted = true;
+    console.log("\nInterrupt requested; preserving the latest completed checkpoint.");
+  });
+  await writeMeasurementCheckpoint(output, buildReport(metadata, results, false), true);
   for (const cell of plan) {
     for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      if (interrupted) break;
       const row = await measure(client, systemPrompt, cell, attempt);
       results.push(row);
       console.log(`${row.status.toUpperCase()} ${cell.fixtureKind} ${cell.targetCharacters} ${cell.historyKind} attempt ${attempt}${row.failureKind ? ` (${row.failureKind})` : ""}`);
+      await writeMeasurementCheckpoint(output, buildReport(metadata, results, interrupted));
     }
+    if (interrupted) break;
   }
-  const report = {
-    schemaVersion: MEASUREMENT_SCHEMA_VERSION,
-    generatedAt: new Date().toISOString(),
-    phase,
-    model: CLAUDE_MODEL,
-    maxOutputTokens: CLAUDE_MAX_TOKENS,
-    timeoutMs: CLAUDE_TIMEOUT_MS,
-    privacy: "Synthetic fixtures only; prompt and response content are not retained.",
-    results,
-  };
-  await mkdir(dirname(output), { recursive: true });
-  await writeFile(output, `${JSON.stringify(report, null, 2)}\n`, { flag: "wx" });
-  console.log(`Wrote ${output}`);
+  await writeMeasurementCheckpoint(output, buildReport(metadata, results, interrupted));
+  console.log(`${interrupted ? "Preserved partial" : "Wrote complete"} report at ${output}`);
+  if (interrupted) process.exitCode = 130;
 }
 
 main().catch(error => {

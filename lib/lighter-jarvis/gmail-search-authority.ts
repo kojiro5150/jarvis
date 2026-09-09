@@ -19,9 +19,17 @@ export type ProposedGmailSenderSearchOperation = Readonly<{
   resultMode: "sender_match";
 }>;
 
+export type ProposedGmailTopicSearchOperation = Readonly<{
+  capability: typeof GMAIL_SEARCH_CAPABILITY;
+  topic: string;
+  maxResults: 5;
+  resultMode: "topic_match";
+}>;
+
 export type ProposedGmailSearchOperation =
   | ProposedGmailWindowSearchOperation
-  | ProposedGmailSenderSearchOperation;
+  | ProposedGmailSenderSearchOperation
+  | ProposedGmailTopicSearchOperation;
 
 export type GmailSearchAuthorityDecision = Readonly<{
   capability: typeof GMAIL_SEARCH_CAPABILITY;
@@ -55,6 +63,16 @@ export function proposeGmailSenderSearch(senderTerms: readonly string[]): Propos
     identityScanLimit: 100,
     resultMode: "sender_match",
   });
+}
+
+/** Creates a bounded provider-side topic search proposal. It grants no authority. */
+export function proposeGmailTopicSearch(topic: string): ProposedGmailTopicSearchOperation {
+  const normalized = topic.normalize("NFKC").replace(/\s+/g, " ").trim();
+  if (normalized.length < 2 || normalized.length > 80
+    || !/^[\p{L}\p{N}][\p{L}\p{N} '&.()_-]*$/u.test(normalized)) {
+    throw new Error("gmail topic search requires a safe 2-80 character topic");
+  }
+  return Object.freeze({ capability: GMAIL_SEARCH_CAPABILITY, topic: normalized, maxResults: 5, resultMode: "topic_match" });
 }
 
 /** Authority comes exclusively from an exact match of the raw current utterance. */

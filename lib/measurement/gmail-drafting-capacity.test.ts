@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  assessDraftFidelity,
+  buildFailureResumePlan,
   buildFixture,
   buildHistory,
   buildProviderRejectionResumePlan,
@@ -39,6 +41,23 @@ describe("Gmail drafting capacity measurement", () => {
   it("accepts faithful drafts and rejects the Raman fabrication", () => {
     expect(validateDraftReply({ sender: "Raman Bhola", subject: "LinkedIn connection invitation", draft: "Thank you for the invitation, Raman. I appreciate it, but I must politely decline." }).ok).toBe(true);
     expect(validateDraftReply({ sender: "Raman Bhola", subject: "LinkedIn connection invitation", draft: "Thanks. I will decline lunch on Thursday." })).toEqual({ ok: false, detail: "draft introduced forbidden fabricated details" });
+  });
+
+  it.each([
+    "Thank you for the invitation, but I have to pass.",
+    "I appreciate the invitation, but I can't accept.",
+    "I am grateful for the invitation but will not participate.",
+    "Thanks for reaching out. I must decline.",
+  ])("accepts a bounded deterministic decline equivalent: %s", draft => {
+    expect(validateDraftReply({ sender: "Raman Bhola", subject: "LinkedIn connection invitation", draft }).ok).toBe(true);
+  });
+
+  it("reports separate privacy-safe fidelity signals", () => {
+    expect(assessDraftFidelity("Thank you, but I have to pass on lunch on Thursday.")).toEqual({
+      hasThankSignal: true,
+      hasDeclineSignal: true,
+      hasForbiddenDetail: true,
+    });
   });
 
   it("accepts raw JSON", () => {
@@ -85,6 +104,18 @@ describe("Gmail drafting capacity measurement", () => {
     const resume = buildProviderRejectionResumePlan(rows);
     expect(resume.retained).toHaveLength(58);
     expect(resume.retry).toEqual([buildScreeningPlan()[42], buildScreeningPlan()[59]]);
+  });
+
+  it("retains evidence and retries only fidelity failures", () => {
+    const rows = buildScreeningPlan().map((cell, index) => ({
+      ...cell,
+      attempt: 1,
+      status: index < 9 ? "failed" as const : "passed" as const,
+      ...(index < 9 ? { failureKind: "fidelity_failure" as const } : {}),
+    }));
+    const resume = buildFailureResumePlan(rows, "fidelity_failure");
+    expect(resume.retained).toHaveLength(51);
+    expect(resume.retry).toEqual(buildScreeningPlan().slice(0, 9));
   });
 
   it("rejects incomplete or duplicate resume evidence", () => {

@@ -26,6 +26,19 @@ export interface MeasurementOutcome {
   detail?: string;
 }
 
+export interface ResponseDiagnostics {
+  responseCharacters: number;
+  contentBlockTypes: string[];
+  textBlockCount: number;
+}
+
+export interface MeasurementReportProgress {
+  status: "running" | "completed" | "interrupted";
+  completed: number;
+  remaining: number;
+  interrupted: boolean;
+}
+
 const FIXTURE_SIZES: Record<FixtureKind, number[]> = {
   plain_text: [8_000, 16_000, 32_000, 48_000, 64_000],
   forwarded_chain: [14_000, 24_000, 40_000, 60_000],
@@ -99,6 +112,36 @@ export function validateDraftReply(value: unknown): { ok: true; value: DraftMeas
   }
   if (/\blunch\b|\bthursday\b|board approved/.test(draft)) return { ok: false, detail: "draft introduced forbidden fabricated details" };
   return { ok: true, value: candidate as unknown as DraftMeasurementReply };
+}
+
+/** Accepts raw JSON or one complete JSON code fence, never JSON embedded in prose. */
+export function parseMeasurementReply(text: string): { ok: true; value: unknown; format: "raw_json" | "json_fence" } | { ok: false; detail: string } {
+  const trimmed = text.trim();
+  let candidate = trimmed;
+  let format: "raw_json" | "json_fence" = "raw_json";
+  if (trimmed.startsWith("```")) {
+    const match = trimmed.match(/^```json\s*\n([\s\S]*?)\n```$/i);
+    if (!match) return { ok: false, detail: "response was not raw JSON or one complete JSON code fence" };
+    candidate = match[1].trim();
+    format = "json_fence";
+  }
+  try {
+    return { ok: true, value: JSON.parse(candidate), format };
+  } catch {
+    return { ok: false, detail: "response was not valid JSON" };
+  }
+}
+
+export function buildReportProgress(completed: number, total: number, interrupted: boolean): MeasurementReportProgress {
+  if (!Number.isInteger(completed) || !Number.isInteger(total) || completed < 0 || total < 0 || completed > total) {
+    throw new Error("invalid report progress");
+  }
+  return {
+    status: interrupted ? "interrupted" : completed === total ? "completed" : "running",
+    completed,
+    remaining: total - completed,
+    interrupted,
+  };
 }
 
 export function selectBoundaryCandidates(rows: Array<MeasurementCell & MeasurementOutcome>): MeasurementCell[] {

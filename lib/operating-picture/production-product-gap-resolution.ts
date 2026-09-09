@@ -27,6 +27,7 @@ import { MODEL_CONTINUITY_PURPOSE } from "./model-continuity-contract";
 
 const PURPOSE = MODEL_CONTINUITY_PURPOSE;
 const PREPARE = /^show me the active jarvis product gaps for resolution[.!?]*$/i;
+const PREPARE_LAST = /^show me the last active (?:jarvis )?product gap[.!?]*$/i;
 const NEXT = /^show me the next jarvis product gaps for resolution[.!?]*$/i;
 const HISTORY = /^show me the jarvis product gap resolution history[.!?]*$/i;
 const NEXT_HISTORY = /^show me the next jarvis product gap resolution history page[.!?]*$/i;
@@ -105,6 +106,39 @@ export async function resolveProductionProductGapResolution(input: Readonly<{
     appendVersion: input.dependencies?.appendVersion ?? defaults.appendVersion,
   });
   const utterance = normalized(input.utterance);
+
+  if (PREPARE_LAST.test(utterance)) {
+    let projection: DurablePurposeProjectionResult;
+    try { projection = await dependencies.retrieveProjection(); }
+    catch { return rejected("I couldn't safely prepare the last active JARVIS Product Gap right now."); }
+    const status = projectProductGapResolutionStatus(projection);
+    if (status.status === "rejected") {
+      return rejected("I couldn't safely prepare the last active JARVIS Product Gap right now.");
+    }
+    const selected = status.active.at(-1);
+    if (!selected) {
+      return Object.freeze({
+        handled: true,
+        status: "listed",
+        reply: "There are no active conversation-visible JARVIS Product Gaps.",
+        listReference: null,
+        targetReference: null,
+      });
+    }
+    discardProductGapResolutionTargetReference(input.targetReference);
+    const reference = createProductGapResolutionTargetReference({
+      target: { recordId: selected.recordId, versionId: selected.versionId },
+      now: dependencies.clock(),
+    });
+    if (!reference) return rejected("I couldn't safely select that Product Gap.");
+    return Object.freeze({
+      handled: true,
+      status: "selected",
+      reply: `Selected exact Product Gap:\n${selected.statement}\n\nTo author the lifecycle decision, reply exactly: Mark this product gap as resolved.`,
+      listReference: null,
+      targetReference: reference,
+    });
+  }
 
   if (PREPARE.test(utterance)) {
     let projection: DurablePurposeProjectionResult;

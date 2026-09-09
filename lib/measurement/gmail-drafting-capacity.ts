@@ -20,6 +20,12 @@ export interface DraftMeasurementReply {
   draft: string;
 }
 
+export interface DraftFidelitySignals {
+  hasThankSignal: boolean;
+  hasDeclineSignal: boolean;
+  hasForbiddenDetail: boolean;
+}
+
 export interface MeasurementOutcome {
   status: "passed" | "failed";
   failureKind?: FailureKind;
@@ -64,7 +70,7 @@ export function measurementCellKey(cell: MeasurementCell): string {
   return `${cell.fixtureKind}:${cell.targetCharacters}:${cell.historyKind}`;
 }
 
-export function buildProviderRejectionResumePlan<T extends ScreeningResult>(rows: T[]): {
+export function buildFailureResumePlan<T extends ScreeningResult>(rows: T[], failureKind: "provider_rejection" | "fidelity_failure"): {
   retained: T[];
   retry: MeasurementCell[];
 } {
@@ -75,12 +81,16 @@ export function buildProviderRejectionResumePlan<T extends ScreeningResult>(rows
   if (new Set(actualKeys).size !== actualKeys.length || actualKeys.some(key => !expectedKeys.has(key))) {
     throw new Error("resume report does not contain the exact screening matrix");
   }
-  const retryKeys = new Set(rows.filter(row => row.failureKind === "provider_rejection").map(measurementCellKey));
-  if (retryKeys.size === 0) throw new Error("resume report contains no provider_rejection results to retry");
+  const retryKeys = new Set(rows.filter(row => row.failureKind === failureKind).map(measurementCellKey));
+  if (retryKeys.size === 0) throw new Error(`resume report contains no ${failureKind} results to retry`);
   return {
     retained: rows.filter(row => !retryKeys.has(measurementCellKey(row))),
     retry: expected.filter(cell => retryKeys.has(measurementCellKey(cell))),
   };
+}
+
+export function buildProviderRejectionResumePlan<T extends ScreeningResult>(rows: T[]) {
+  return buildFailureResumePlan(rows, "provider_rejection");
 }
 
 function repeatToLength(seed: string, targetCharacters: number): string {
@@ -131,12 +141,21 @@ export function validateDraftReply(value: unknown): { ok: true; value: DraftMeas
   if (candidate.sender !== "Raman Bhola") return { ok: false, detail: "sender fidelity failed" };
   if (candidate.subject !== "LinkedIn connection invitation") return { ok: false, detail: "subject fidelity failed" };
   if (typeof candidate.draft !== "string") return { ok: false, detail: "draft is not a string" };
-  const draft = candidate.draft.toLowerCase();
-  if (!/(thank|appreciat)/.test(draft) || !/(declin|unable|won't be accepting|will not be accepting)/.test(draft)) {
-    return { ok: false, detail: "draft did not both thank and decline" };
-  }
-  if (/\blunch\b|\bthursday\b|board approved/.test(draft)) return { ok: false, detail: "draft introduced forbidden fabricated details" };
+  const signals = assessDraftFidelity(candidate.draft);
+  if (!signals.hasThankSignal && !signals.hasDeclineSignal) return { ok: false, detail: "draft contained neither a thank signal nor a decline signal" };
+  if (!signals.hasThankSignal) return { ok: false, detail: "draft did not contain a thank signal" };
+  if (!signals.hasDeclineSignal) return { ok: false, detail: "draft did not contain a decline signal" };
+  if (signals.hasForbiddenDetail) return { ok: false, detail: "draft introduced forbidden fabricated details" };
   return { ok: true, value: candidate as unknown as DraftMeasurementReply };
+}
+
+export function assessDraftFidelity(draft: string): DraftFidelitySignals {
+  const normalized = draft.toLowerCase().replace(/[’]/g, "'");
+  return {
+    hasThankSignal: /\bthank|\bappreciat|\bgrateful/.test(normalized),
+    hasDeclineSignal: /\bdeclin|\bunable\b|\b(?:cannot|can't|won't|will not|not able to)\s+(?:accept|take you up|participate|join)|\b(?:have|need|must) to pass\b|\bpass on\b/.test(normalized),
+    hasForbiddenDetail: /\blunch\b|\bthursday\b|board approved/.test(normalized),
+  };
 }
 
 /** Accepts raw JSON or one complete JSON code fence, never JSON embedded in prose. */

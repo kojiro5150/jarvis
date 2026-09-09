@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildFixture,
   buildHistory,
+  buildProviderRejectionResumePlan,
   buildReportProgress,
   buildScreeningPlan,
   fixtureDigest,
@@ -72,5 +73,23 @@ describe("Gmail drafting capacity measurement", () => {
       { fixtureKind: "plain_text", historyKind: "empty", targetCharacters: 16_000 },
       { fixtureKind: "plain_text", historyKind: "empty", targetCharacters: 32_000 },
     ]);
+  });
+
+  it("retains evidence and retries only provider rejections", () => {
+    const rows = buildScreeningPlan().map((cell, index) => ({
+      ...cell,
+      attempt: 1,
+      status: index === 42 || index === 59 ? "failed" as const : "passed" as const,
+      ...(index === 42 || index === 59 ? { failureKind: "provider_rejection" as const } : {}),
+    }));
+    const resume = buildProviderRejectionResumePlan(rows);
+    expect(resume.retained).toHaveLength(58);
+    expect(resume.retry).toEqual([buildScreeningPlan()[42], buildScreeningPlan()[59]]);
+  });
+
+  it("rejects incomplete or duplicate resume evidence", () => {
+    const rows = buildScreeningPlan().map(cell => ({ ...cell, attempt: 1, status: "failed" as const, failureKind: "provider_rejection" as const }));
+    expect(() => buildProviderRejectionResumePlan(rows.slice(1))).toThrow("exactly 60");
+    expect(() => buildProviderRejectionResumePlan([rows[0], ...rows.slice(0, -1)])).toThrow("exact screening matrix");
   });
 });

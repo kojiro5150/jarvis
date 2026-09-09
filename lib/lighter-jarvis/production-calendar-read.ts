@@ -1,4 +1,4 @@
-import { getCalendarConnector } from "../connectors/calendar";
+import { GoogleCalendarConnector } from "../connectors/google/calendar";
 import type {
   ScopedCalendarAcquisitionPort,
   ScopedCalendarEvidenceResult,
@@ -54,8 +54,15 @@ function requestedLimitFor(operation: import("./calendar-read-authority").Propos
   return CALENDAR_DEFAULT_REQUESTED_LIMIT;
 }
 
+export function createProductionCalendarConnector(): ScopedCalendarAcquisitionPort {
+  // Governed Calendar reads must never fall back to the local connector when
+  // Google credentials are absent. Instantiating Google directly preserves the
+  // typed `not_connected` failure needed for actionable recovery guidance.
+  return new GoogleCalendarConnector();
+}
+
 const defaults: ProductionCalendarDependencies = {
-  createConnector: () => getCalendarConnector() as unknown as ScopedCalendarAcquisitionPort,
+  createConnector: createProductionCalendarConnector,
   clock: () => new Date(),
 };
 

@@ -10,7 +10,7 @@ const request = (content: string, references: Record<string, unknown> = {}) => n
 });
 
 function projection(): Extract<DurablePurposeProjectionResult, { status: "projected" }> {
-  const item = Object.freeze({
+  const first = Object.freeze({
     recordId: "user-continuity:drive-gap",
     versionId: "drive-gap-head",
     purpose: "conversation",
@@ -26,7 +26,15 @@ function projection(): Extract<DurablePurposeProjectionResult, { status: "projec
     authorshipSource: "user" as const,
     authorshipAt: "2026-09-01T00:00:00.000Z",
   });
-  return Object.freeze({ status: "projected", purpose: "conversation", items: Object.freeze([item]), decisions: Object.freeze([]) });
+  const last = Object.freeze({
+    ...first,
+    recordId: "user-continuity:last-gap",
+    versionId: "last-gap-head",
+    subject: Object.freeze({ ...first.subject, entity: "user-continuity:last-gap" }),
+    payload: Object.freeze({ statement: "JARVIS product gap — Last active acceptance target." }),
+    authorshipAt: "2026-09-02T00:00:00.000Z",
+  });
+  return Object.freeze({ status: "projected", purpose: "conversation", items: Object.freeze([first, last]), decisions: Object.freeze([]) });
 }
 
 const unusedCalendarActDependencies = {
@@ -37,6 +45,46 @@ const unusedCalendarActDependencies = {
 };
 
 describe("Product Gap explicit resolution integration", () => {
+  it("routes last-active preparation into a usable one-shot target reference", async () => {
+    const ordinaryModel = vi.fn(async () => "must not run");
+    const appendVersion = vi.fn(async (version) => ({ status: "appended" as const, version }));
+    const dependencies = {
+      clock: () => new Date("2026-09-02T10:00:00.000Z"),
+      retrieveProjection: async () => projection(),
+      appendVersion,
+    };
+    const handler = createLighterChatHandler(
+      ordinaryModel, undefined, undefined, undefined, undefined, undefined,
+      unusedCalendarActDependencies, undefined, undefined, dependencies,
+    );
+
+    const selectResponse = await handler(request("Show me the last active product gap"));
+    const selected = await selectResponse.json();
+    expect(selected.reply).toContain("Selected exact Product Gap:\nJARVIS product gap — Last active acceptance target.");
+    expect(selected.productGapResolutionTargetReference).toMatch(/^[0-9a-f-]{36}$/);
+    expect(JSON.stringify(selected)).not.toContain("user-continuity:last-gap");
+    expect(ordinaryModel).not.toHaveBeenCalled();
+
+    const writeResponse = await handler(request("Mark this product gap as resolved.", {
+      productGapResolutionTargetReference: selected.productGapResolutionTargetReference,
+    }));
+    expect(await writeResponse.json()).toMatchObject({
+      reply: "That exact JARVIS product gap is now marked resolved.",
+      productGapResolution: { status: "persisted" },
+      productGapResolutionTargetReference: null,
+    });
+    expect(appendVersion).toHaveBeenCalledTimes(1);
+
+    const replayResponse = await handler(request("Mark this product gap as resolved.", {
+      productGapResolutionTargetReference: selected.productGapResolutionTargetReference,
+    }));
+    expect(await replayResponse.json()).toMatchObject({
+      reply: "That Product Gap target is no longer available. Please prepare the active list again.",
+      productGapResolution: { status: "rejected" },
+    });
+    expect(appendVersion).toHaveBeenCalledTimes(1);
+  });
+
   it("routes list, exact selection and user-authored write without ordinary-model target choice", async () => {
     const ordinaryModel = vi.fn(async () => "must not run");
     const appendVersion = vi.fn(async (version) => ({ status: "appended" as const, version }));

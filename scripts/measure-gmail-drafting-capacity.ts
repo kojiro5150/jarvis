@@ -1,0 +1,161 @@
+import Anthropic from "@anthropic-ai/sdk";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { CLAUDE_MAX_TOKENS, CLAUDE_MODEL, CLAUDE_TIMEOUT_MS } from "../lib/anthropic-client";
+import { buildSpecialistPrompt } from "../lib/lighter-jarvis/runtime";
+import {
+  MEASUREMENT_SCHEMA_VERSION,
+  buildFixture,
+  buildHistory,
+  buildMeasurementInstruction,
+  buildScreeningPlan,
+  fixtureDigest,
+  selectBoundaryCandidates,
+  validateDraftReply,
+  type FailureKind,
+  type MeasurementCell,
+} from "../lib/measurement/gmail-drafting-capacity";
+
+type Phase = "screening" | "boundary";
+interface UsageRecord { inputTokens: number; outputTokens: number; cacheCreationInputTokens?: number; cacheReadInputTokens?: number }
+interface ResultRow extends MeasurementCell {
+  attempt: number;
+  status: "passed" | "failed";
+  failureKind?: FailureKind;
+  detail?: string;
+  fixtureDigest: string;
+  historyMessages: number;
+  historyCharacters: number;
+  elapsedMs: number;
+  httpStatus?: number;
+  stopReason?: string | null;
+  usage?: UsageRecord;
+}
+
+function argument(name: string): string | undefined {
+  const index = process.argv.indexOf(name);
+  return index >= 0 ? process.argv[index + 1] : undefined;
+}
+
+function classifyError(error: unknown): { failureKind: FailureKind; detail: string; httpStatus?: number } {
+  if (error instanceof Anthropic.APIConnectionTimeoutError) return { failureKind: "timeout", detail: error.message };
+  if (error instanceof Anthropic.APIError) {
+    const detail = error.message;
+    const contextLimit = /context|token|too long|maximum.*length/i.test(detail);
+    return { failureKind: contextLimit ? "provider_context_limit" : "provider_rejection", detail, httpStatus: error.status };
+  }
+  return { failureKind: "provider_rejection", detail: error instanceof Error ? error.message : "unknown provider error" };
+}
+
+async function loadBoundaryPlan(path: string): Promise<MeasurementCell[]> {
+  const parsed = JSON.parse(await readFile(path, "utf8")) as { phase?: string; results?: ResultRow[] };
+  if (parsed.phase !== "screening" || !Array.isArray(parsed.results)) throw new Error("boundary phase requires a valid screening report");
+  return selectBoundaryCandidates(parsed.results);
+}
+
+function validateCell(cell: MeasurementCell): string | undefined {
+  if (!Number.isInteger(cell.targetCharacters) || cell.targetCharacters <= 0) return "fixture size must be a positive integer";
+  const history = buildHistory(cell.historyKind);
+  if (history.length !== 0 && history.length !== 39) return "history must contain zero or 39 messages";
+  if (history.some(message => message.content.length >= 8_000)) return "history contains an ordinary message at or above 8,000 characters";
+}
+
+async function measure(client: Anthropic, systemPrompt: string, cell: MeasurementCell, attempt: number): Promise<ResultRow> {
+  const started = Date.now();
+  const validationError = validateCell(cell);
+  if (validationError) {
+    return {
+      ...cell,
+      attempt,
+      status: "failed",
+      failureKind: "client_validation",
+      detail: validationError,
+      fixtureDigest: "unavailable",
+      historyMessages: 0,
+      historyCharacters: 0,
+      elapsedMs: Date.now() - started,
+    };
+  }
+  const fixture = buildFixture(cell.fixtureKind, cell.targetCharacters);
+  const history = buildHistory(cell.historyKind);
+  const base = {
+    ...cell,
+    attempt,
+    fixtureDigest: fixtureDigest(fixture),
+    historyMessages: history.length,
+    historyCharacters: history.reduce((sum, message) => sum + message.content.length, 0),
+  };
+  try {
+    const response = await client.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: CLAUDE_MAX_TOKENS,
+      system: systemPrompt,
+      messages: [...history, { role: "user", content: buildMeasurementInstruction(fixture) }],
+    });
+    const elapsedMs = Date.now() - started;
+    const text = response.content.filter(block => block.type === "text").map(block => block.text).join("");
+    let parsed: unknown;
+    try { parsed = JSON.parse(text); } catch {
+      return { ...base, elapsedMs, status: "failed", failureKind: "malformed_response", detail: "response was not valid JSON", stopReason: response.stop_reason, usage: usage(response.usage) };
+    }
+    const fidelity = validateDraftReply(parsed);
+    if (!fidelity.ok) return { ...base, elapsedMs, status: "failed", failureKind: "fidelity_failure", detail: fidelity.detail, stopReason: response.stop_reason, usage: usage(response.usage) };
+    return { ...base, elapsedMs, status: "passed", stopReason: response.stop_reason, usage: usage(response.usage) };
+  } catch (error) {
+    return { ...base, elapsedMs: Date.now() - started, status: "failed", ...classifyError(error) };
+  }
+}
+
+function usage(value: Anthropic.Messages.Usage): UsageRecord {
+  const extended = value as Anthropic.Messages.Usage & { cache_creation_input_tokens?: number; cache_read_input_tokens?: number };
+  return {
+    inputTokens: value.input_tokens,
+    outputTokens: value.output_tokens,
+    ...(typeof extended.cache_creation_input_tokens === "number" ? { cacheCreationInputTokens: extended.cache_creation_input_tokens } : {}),
+    ...(typeof extended.cache_read_input_tokens === "number" ? { cacheReadInputTokens: extended.cache_read_input_tokens } : {}),
+  };
+}
+
+async function main(): Promise<void> {
+  const phase = (argument("--phase") ?? "screening") as Phase;
+  if (phase !== "screening" && phase !== "boundary") throw new Error("--phase must be screening or boundary");
+  const plan = phase === "screening"
+    ? buildScreeningPlan()
+    : await loadBoundaryPlan(resolve(argument("--screening-report") ?? (() => { throw new Error("--screening-report is required for boundary phase"); })()));
+  const attempts = phase === "boundary" ? 5 : 1;
+
+  if (!process.argv.includes("--run")) {
+    console.log(JSON.stringify({ mode: "plan-only", phase, cells: plan.length, attemptsPerCell: attempts, projectedCalls: plan.length * attempts, plan }, null, 2));
+    return;
+  }
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is required with --run");
+  const output = resolve(argument("--output") ?? `data/capacity-measurements/gmail-drafting-${phase}-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: CLAUDE_TIMEOUT_MS, maxRetries: 0 });
+  const systemPrompt = await buildSpecialistPrompt();
+  const results: ResultRow[] = [];
+  for (const cell of plan) {
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      const row = await measure(client, systemPrompt, cell, attempt);
+      results.push(row);
+      console.log(`${row.status.toUpperCase()} ${cell.fixtureKind} ${cell.targetCharacters} ${cell.historyKind} attempt ${attempt}${row.failureKind ? ` (${row.failureKind})` : ""}`);
+    }
+  }
+  const report = {
+    schemaVersion: MEASUREMENT_SCHEMA_VERSION,
+    generatedAt: new Date().toISOString(),
+    phase,
+    model: CLAUDE_MODEL,
+    maxOutputTokens: CLAUDE_MAX_TOKENS,
+    timeoutMs: CLAUDE_TIMEOUT_MS,
+    privacy: "Synthetic fixtures only; prompt and response content are not retained.",
+    results,
+  };
+  await mkdir(dirname(output), { recursive: true });
+  await writeFile(output, `${JSON.stringify(report, null, 2)}\n`, { flag: "wx" });
+  console.log(`Wrote ${output}`);
+}
+
+main().catch(error => {
+  console.error(error instanceof Error ? error.message : error);
+  process.exitCode = 1;
+});

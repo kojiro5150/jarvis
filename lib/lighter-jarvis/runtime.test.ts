@@ -15,7 +15,6 @@ describe("single JARVIS prompt runtime", () => {
   });
 });
 
-
 describe("deterministic model transcript compaction", () => {
   const transcript = (length: number) => Array.from({ length }, (_, index) => ({
     role: index === length - 1 || index % 2 === 0 ? "user" as const : "assistant" as const,

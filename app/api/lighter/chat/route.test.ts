@@ -313,8 +313,8 @@ describe("POST /api/lighter/chat", () => {
     expect(model).not.toHaveBeenCalled();
   });
 
-  it("keeps long-session bare Yes fail-closed before the ordinary-model length rejection", async () => {
-    const model = vi.fn();
+  it("keeps long-session bare Yes non-authoritative while compacting ordinary model history", async () => {
+    const model = vi.fn(async (_systemPrompt: string, _messages: readonly ChatMessage[]) => "No authority inferred.");
     const calendarConnector = vi.fn();
     const gmailReadConnector = vi.fn();
     const gmailSearchConnector = vi.fn();
@@ -327,8 +327,8 @@ describe("POST /api/lighter/chat", () => {
     const response = await handler(request({ specialistId: "jarvis", messages: longTranscript("Yes.") }));
     const body = await response.json();
 
-    expect(response.status).toBe(400);
-    expect(body).toEqual({ error: "`messages` must contain 1-40 valid conversation messages." });
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ reply: "No authority inferred.", execution: "none" });
     expect(body).not.toHaveProperty("gmailAuthority");
     expect(body).not.toHaveProperty("gmailSearchAuthority");
     expect(body).not.toHaveProperty("driveSearchAuthority");
@@ -337,7 +337,9 @@ describe("POST /api/lighter/chat", () => {
     expect(gmailReadConnector).not.toHaveBeenCalled();
     expect(gmailSearchConnector).not.toHaveBeenCalled();
     expect(driveConnector).not.toHaveBeenCalled();
-    expect(model).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledOnce();
+    expect(model.mock.calls[0]![1]).toHaveLength(40);
+    expect(model.mock.calls[0]![1].at(-1)).toEqual({ role: "user", content: "Yes." });
   });
 
   it("keeps a fabricated long-session pending reference fail-closed without reconstructing authority from history", async () => {
@@ -372,7 +374,7 @@ describe("POST /api/lighter/chat", () => {
     ["Gmail", "Search my Gmail from the last week.", "gmailSearchAuthority", "gmail"],
     ["Drive", "Search my Drive for Atlas", "driveSearchAuthority", "drive"],
   ] as const)("keeps a %s pending reference capability-isolated under long history", async (_name, proposal, authorityKey, owner) => {
-    const model = vi.fn();
+    const model = vi.fn(async (_systemPrompt: string, _messages: readonly ChatMessage[]) => "Tomorrow is clear.");
     const listBetween = vi.fn(async () => []);
     const calendarConnector = vi.fn(() => ({ source: "google" as const, listUpcoming: vi.fn(async () => []), listBetween }));
     const gmailSearch = vi.fn(async () => ["gmail-id"]);
@@ -395,7 +397,11 @@ describe("POST /api/lighter/chat", () => {
     expect(gmailSearchConnector).toHaveBeenCalledTimes(owner === "gmail" ? 1 : 0);
     expect(driveConnector).toHaveBeenCalledTimes(owner === "drive" ? 1 : 0);
     expect(gmailReadConnector).not.toHaveBeenCalled();
-    expect(model).not.toHaveBeenCalled();
+    expect(model).toHaveBeenCalledTimes(owner === "calendar" ? 1 : 0);
+    if (owner === "calendar") {
+      expect(model.mock.calls[0]![1]).toHaveLength(40);
+      expect(model.mock.calls[0]![1].at(-1)).toEqual({ role: "user", content: "Yes." });
+    }
   });
 
   it("uses the same long-session pending path for typed and capture-identified voice confirmations", async () => {

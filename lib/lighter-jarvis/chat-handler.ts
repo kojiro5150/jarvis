@@ -287,7 +287,15 @@ export function anchorPublicInformationModelTurn(messages: readonly ChatMessage[
 export function formatCalendarReadResponse(calendar: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["evidence"]>,
   window?: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["window"]>,
   bindingState?: CalendarBindingState): string {
-  if (calendar.status !== "available") return "I couldn't access your Calendar right now.";
+  if (calendar.status !== "available") {
+    if (calendar.failureReason === "calendar_connection_refresh_required") {
+      return "Your Calendar connection has expired. Disconnect and reconnect Google Calendar, then try again.";
+    }
+    if (calendar.failureReason === "calendar_connection_not_connected") {
+      return "Google Calendar is not connected. Connect Google Calendar, then try again.";
+    }
+    return "I couldn't access your Calendar right now.";
+  }
   if (calendar.evidence.length === 0 && window) return clearCalendarPeriod(window.period);
   if (calendar.evidence.length > 0 && window) {
     const includeDate = window.period === "this_week" || window.period === "next_week" || window.period === "default";

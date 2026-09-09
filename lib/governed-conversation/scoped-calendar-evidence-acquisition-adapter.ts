@@ -21,6 +21,7 @@ import {
   publishCalendarConflictEvent,
   type GovernedCalendarConflictEvent,
 } from "./calendar-conflict-observation";
+import { GoogleServiceAuthError } from "../connectors/google/auth-error";
 
 export type GovernedCalendarCoverageState =
   | "bounded_complete_request"
@@ -181,10 +182,15 @@ export async function acquireScopedCalendarEvidence(input: {
         return projected ? [projected] : [];
       })),
     );
-  } catch {
+  } catch (error) {
+    const failureReason = error instanceof GoogleServiceAuthError
+      ? error.reason === "refresh_failed"
+        ? "calendar_connection_refresh_required"
+        : "calendar_connection_not_connected"
+      : "calendar_acquisition_unavailable";
     return sourceResult("unavailable", [], {
       observedAt: input.clock().toISOString(),
-      failureReason: "calendar_acquisition_unavailable",
+      failureReason,
     });
   }
 }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { callClaude } from "@/lib/claude";
 import type { ClaudeResult, ClaudeTool } from "@/lib/claude";
 import type { ChatMessage } from "@/lib/agents/types";
-import { areValidMessages, areValidMessageTranscript, buildSpecialistPrompt } from "@/lib/lighter-jarvis/runtime";
+import { areValidMessages, areValidMessageTranscript, buildSpecialistPrompt, compactModelTranscript } from "@/lib/lighter-jarvis/runtime";
 import { getLighterSpecialist } from "@/lib/lighter-jarvis/specialists";
 import { resolveProductionCalendarRead, type ProductionCalendarDependencies } from "@/lib/lighter-jarvis/production-calendar-read";
 import { CALENDAR_TIME_ZONE } from "@/lib/lighter-jarvis/calendar-read-window";
@@ -501,6 +501,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     if (!areValidMessageTranscript(body.messages)) {
       return NextResponse.json({ error: "`messages` must contain valid conversation messages." }, { status: 400 });
     }
+    const modelTranscript = compactModelTranscript(body.messages);
     const currentUserUtterance = [...body.messages].reverse().find(({ role }) => role === "user")?.content;
     const standingGmailAuthorityRequest = currentUserUtterance !== undefined
       && isGmailStandingAuthorityRequest(currentUserUtterance);
@@ -1165,7 +1166,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         return NextResponse.json({ reply: fallback, specialistId: specialist.id, execution: "none",
           calendarAuthority: { decision: "ALLOW", reason: calendar.reason } });
       }
-      if (!areValidMessages(body.messages)) {
+      if (!areValidMessages(modelTranscript)) {
         return NextResponse.json({ reply: fallback, specialistId: specialist.id, execution: "none",
           calendarAuthority: { decision: "ALLOW", reason: calendar.reason } });
       }
@@ -1177,7 +1178,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         bindingState.bindings, bindingState.unbound));
       try {
         const systemPrompt = await buildSpecialistPrompt();
-        const modelMessages = sanitizeModelHistory(body.messages);
+        const modelMessages = sanitizeModelHistory(modelTranscript);
         const result = await callModel(systemPrompt, modelMessages, undefined, governedContext);
         const modelReply = typeof result === "string" ? result : result.text;
         const guardedReply = guardOrdinaryModelReply(modelReply, currentUserUtterance, false, {
@@ -1268,7 +1269,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         console.error("[/api/lighter/chat] Conversational capability selection failed:", error);
       }
     }
-    if (!areValidMessages(body.messages)) {
+    if (!areValidMessages(modelTranscript)) {
       return NextResponse.json({ error: "`messages` must contain 1-40 valid conversation messages." }, { status: 400 });
     }
     if (specialist.id === "jarvis"
@@ -1319,7 +1320,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       // Only the later, ordinary model call receives the private-release boundary.
       const governedDriveHistoryExcluded = hasGovernedDriveHistory(body.messages);
       const modelMessages = anchorPublicInformationModelTurn(
-        sanitizeModelHistory(body.messages),
+        sanitizeModelHistory(modelTranscript),
         calendarActDependencies.clock(),
       );
       const result = await callModel(systemPrompt, modelMessages, PUBLIC_WEB_TOOLS);
@@ -1361,7 +1362,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
             "Continue only with ordinary conversation, reasoning, or stable explanatory knowledge.",
             "Do not claim current, recent, or specific external facts that require retrieval.",
           ].join("\n\n");
-          const fallbackMessages = sanitizeModelHistory(body.messages);
+          const fallbackMessages = sanitizeModelHistory(modelTranscript);
           const fallbackResult = await callModel(fallbackSystemPrompt, fallbackMessages);
           let fallbackReply = typeof fallbackResult === "string" ? fallbackResult : fallbackResult.text;
 

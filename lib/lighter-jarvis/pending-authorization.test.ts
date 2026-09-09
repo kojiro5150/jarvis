@@ -4,6 +4,7 @@ import {
   resolvePendingAuthorization,
   type PendingAuthorizationReference,
 } from "./pending-authorization";
+import { compactModelTranscript } from "./runtime";
 
 const TEST_WINDOW = Object.freeze({ start: "2026-08-25T00:00:00.000Z", end: "2026-09-01T00:00:00.000Z", timeZone: "Australia/Melbourne", period: "default" as const });
 const operation = Object.freeze({ capability: "calendar.read", window: TEST_WINDOW } as const);
@@ -32,6 +33,25 @@ describe("server-authoritative PendingAuthorization confirmation", () => {
       utterance: "Yes, please.",
       basis: "explicit_confirmation",
     }]);
+  });
+
+  it("resolves from server-owned state after its message-2 origin is absent from a compacted 50-message session", () => {
+    const reference = create();
+    const originatingText = "Show my calendar and create the pending reference.";
+    const transcript = Array.from({ length: 50 }, (_, index) => ({
+      role: index === 49 || index % 2 === 1 ? "user" as const : "assistant" as const,
+      content: index === 1 ? originatingText : index === 49 ? "yes" : `message ${index + 1}`,
+    }));
+    const compacted = compactModelTranscript(transcript);
+
+    expect(compacted).toHaveLength(40);
+    expect(compacted.some(message => message.content === originatingText)).toBe(false);
+    expect(resolve(compacted.at(-1)!.content, reference)).toMatchObject({
+      decision: "ALLOW",
+      reason: "pending_authorization_confirmed",
+      proposedOperation: { capability: "calendar.read", window: TEST_WINDOW },
+      pendingAuthorizationReference: null,
+    });
   });
 
   it("rejects a client-manufactured record and never trusts its operation", () => {

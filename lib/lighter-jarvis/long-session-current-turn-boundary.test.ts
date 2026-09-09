@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createLighterChatHandler } from "./chat-handler";
+import type { ChatMessage } from "../agents/types";
 import type { ProductionUserContinuityCaptureDependencies } from "../operating-picture/production-user-continuity-capture";
 import type { UserContinuityCaptureCandidate } from "../operating-picture/user-continuity-capture-contract";
 
@@ -115,18 +116,20 @@ describe("long-session current-turn boundary", () => {
     expect(model).not.toHaveBeenCalled();
   });
 
-  it("keeps the 40-message cap for ordinary free-form model conversation", async () => {
-    const model = vi.fn();
+  it("compacts ordinary free-form model conversation to 39 history messages plus the incoming turn", async () => {
+    const model = vi.fn(async (_systemPrompt: string, _messages: readonly ChatMessage[]) => "Compacted response.");
     const handler = createLighterChatHandler(model);
 
     const response = await handler(request(longTranscript(
       "Help me think through this problem.",
     )));
 
-    expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({
-      error: "`messages` must contain 1-40 valid conversation messages.",
-    });
-    expect(model).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ reply: "Compacted response." });
+    expect(model).toHaveBeenCalledOnce();
+    const modelMessages = model.mock.calls[0]![1];
+    expect(modelMessages).toHaveLength(40);
+    expect(modelMessages[0]).toEqual({ role: "assistant", content: "historical message 2" });
+    expect(modelMessages.at(-1)).toEqual({ role: "user", content: "Help me think through this problem." });
   });
 });

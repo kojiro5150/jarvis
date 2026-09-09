@@ -1,5 +1,6 @@
 import { GoogleGmailSearchConnector, type GmailSearchConnector } from "../connectors/google/gmail-search";
 import { GoogleGmailSenderSearchConnector, type GmailSenderSearchConnector } from "../connectors/google/gmail-sender-search";
+import { GoogleGmailTopicSearchConnector, type GmailTopicSearchConnector } from "../connectors/google/gmail-topic-search";
 import { GoogleGmailSubjectMetadataConnector } from "../connectors/google/gmail-subject-metadata";
 import { GmailContentRetrievalAdapter, type GmailContentConnector } from "../content-retrieval";
 import { loadContentRetrievalPolicy, type ContentRetrievalPolicy } from "../content-retrieval-policy";
@@ -9,6 +10,7 @@ import {
   type GmailSearchWindow,
   type ProposedGmailSearchOperation,
   type ProposedGmailSenderSearchOperation,
+  type ProposedGmailTopicSearchOperation,
   type ProposedGmailWindowSearchOperation,
 } from "./gmail-search-authority";
 import { proposeNaturalLanguageGmailSearch } from "./gmail-search-proposal";
@@ -34,6 +36,7 @@ const SYNTAX = "gmail.search [newer_than:1d] or gmail.search [newer_than:7d]";
 export type ProductionGmailSearchDependencies = Readonly<{
   createConnector: () => GmailSearchConnector;
   createSenderConnector?: () => GmailSenderSearchConnector;
+  createTopicConnector?: () => GmailTopicSearchConnector;
   createSubjectConnector?: () => GmailContentConnector;
   loadPolicy?: () => Promise<ContentRetrievalPolicy | null>;
 }>;
@@ -50,6 +53,7 @@ export type ProductionGmailSearchResult = Readonly<{
 const defaults = {
   createConnector: () => new GoogleGmailSearchConnector(),
   createSenderConnector: () => new GoogleGmailSenderSearchConnector(),
+  createTopicConnector: () => new GoogleGmailTopicSearchConnector(),
   createSubjectConnector: () => new GoogleGmailSubjectMetadataConnector(),
   loadPolicy: () => loadContentRetrievalPolicy(process.env.CONTENT_RETRIEVAL_POLICY_PATH),
 } satisfies Required<ProductionGmailSearchDependencies>;
@@ -173,7 +177,39 @@ async function execute(
 ): Promise<ProductionGmailSearchResult> {
   return operation.resultMode === "sender_match"
     ? executeSenderSearch(operation, reason, dependencies)
+    : operation.resultMode === "topic_match"
+      ? executeTopicSearch(operation, reason, dependencies)
     : executeWindowSearch(operation, reason, dependencies);
+}
+
+async function executeTopicSearch(
+  operation: ProposedGmailTopicSearchOperation,
+  reason: string,
+  dependencies: ProductionGmailSearchDependencies,
+): Promise<ProductionGmailSearchResult> {
+  const connector = dependencies.createTopicConnector?.() ?? defaults.createTopicConnector();
+  let ids: readonly string[];
+  try {
+    ids = Object.freeze([...(await connector.searchByTopic(operation.topic, operation.maxResults))]
+      .slice(0, operation.maxResults));
+  } catch {
+    return Object.freeze({ handled: true, decision: "ALLOW", reason: "gmail_topic_search_failed",
+      reply: `I couldn't search Gmail for messages matching “${operation.topic}” right now.` });
+  }
+  if (ids.length === 0) {
+    return Object.freeze({ handled: true, decision: "ALLOW", reason: "gmail_topic_not_found", messageIds: ids,
+      reply: `No Gmail messages found matching “${operation.topic}”.` });
+  }
+  return releaseMetadata({
+    ids,
+    reason,
+    intro: `Gmail messages matching “${operation.topic}” (newest first):`,
+    requestingRuntime: "api-lighter-chat:gmail-topic-search",
+    policyFailureReply: "I found matching Gmail messages, but I couldn't safely evaluate the policy required to release their metadata.",
+    policyDeniedReply: "I found matching Gmail messages, but I can't release their metadata under the current resource policy.",
+    retrievalFailureReply: "I found matching Gmail messages, but I couldn't safely retrieve their sender and subject metadata.",
+    includeSender: true,
+  }, dependencies);
 }
 
 async function executeWindowSearch(

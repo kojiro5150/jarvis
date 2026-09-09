@@ -1233,6 +1233,8 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
             return NextResponse.json({
               reply: proposedOperation.resultMode === "sender_match"
                 ? "I can search Gmail for messages from that sender reference. Please explicitly confirm that I may do that."
+                : proposedOperation.resultMode === "topic_match"
+                  ? `I can search Gmail for up to five messages matching “${proposedOperation.topic}”. Please explicitly confirm that I may do that.`
                 : proposedOperation.resultMode === "subject_list"
                   ? `I can retrieve the subjects of up to five recent Gmail messages from the last ${proposedOperation.newerThan === "1d" ? "day" : "7 days"}. Please explicitly confirm that I may do that.`
                   : `I can search Gmail for up to five messages from the last ${proposedOperation.newerThan === "1d" ? "day" : "7 days"}. Please explicitly confirm that I may do that.`,

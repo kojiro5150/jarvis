@@ -4,6 +4,15 @@ import { proposeNaturalLanguageGmailSearch } from "./gmail-search-proposal";
 
 describe("gmail.search natural-language proposal boundary", () => {
   it.each([
+    ["What was my last Rotary email?", "Rotary"],
+    ["What was my latest Barwon Health email?", "Barwon Health"],
+  ] as const)("proposes a bounded topic search without granting authority: %s", (utterance, topic) => {
+    const proposal = proposeNaturalLanguageGmailSearch(utterance);
+    expect(proposal).toEqual({ capability: "gmail.search", topic, maxResults: 5, resultMode: "topic_match" });
+    expect(evaluateGmailSearchAuthority(proposal!, utterance)).toMatchObject({ decision: "ASK" });
+  });
+
+  it.each([
     ["Search my Gmail from the last day", "1d"],
     ["Search my email from the last day.", "1d"],
     ["Search my email for the last day.", "1d"],
@@ -54,6 +63,7 @@ describe("gmail.search natural-language proposal boundary", () => {
     "Read my Gmail from the last day",
     "What's in my Gmail?",
     "gmail.search [q:from:anyone]",
+    "What was my last from:someone@example.com email?",
   ])("does not propose broader or ambiguous Gmail access: %s", utterance => {
     expect(proposeNaturalLanguageGmailSearch(utterance)).toBeNull();
   });

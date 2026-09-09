@@ -5,6 +5,42 @@ import { proposeGmailRead } from "./gmail-read-authority";
 import { proposeGmailSearch, proposeGmailSubjectList } from "./gmail-search-authority";
 
 describe("production gmail.search", () => {
+  it("asks, then executes a bounded provider-side topic search and creates ordinal continuity", async () => {
+    const searchByTopic = vi.fn(async () => ["newest", "older"]);
+    const retrieveMessage = vi.fn(async (id: string) => ({
+      sender: id === "newest" ? "Rotary Club <club@example.org>" : "Member <member@example.org>",
+      subject: id === "newest" ? "Rotary meeting" : "Rotary update",
+      snippet: "MUST NOT LEAK",
+    }));
+    const deps = {
+      createConnector: () => ({ search: vi.fn(async () => []) }),
+      createTopicConnector: () => ({ searchByTopic }),
+      createSubjectConnector: () => ({ retrieveMessage }),
+      loadPolicy: async () => ({
+        policyVersion: "test-v1",
+        rules: [{ id: "email", match: { connectorType: "email" as const },
+          processing: "external_processing_permitted" as const, admissibleFields: ["sender", "subject"] }],
+      }),
+    };
+
+    const proposed = await resolveProductionGmailSearch({ currentUserUtterance: "What was my last Rotary email?" }, deps);
+    expect(proposed).toMatchObject({ handled: true, decision: "ASK", pendingAuthorizationReference: expect.any(Object) });
+    expect(searchByTopic).not.toHaveBeenCalled();
+
+    const allowed = await resolveProductionGmailSearch({ currentUserUtterance: "yes",
+      pendingAuthorizationReference: proposed.pendingAuthorizationReference }, deps);
+    expect(searchByTopic).toHaveBeenCalledWith("Rotary", 5);
+    expect(allowed).toMatchObject({
+      handled: true,
+      decision: "ALLOW",
+      reason: "pending_authorization_confirmed",
+      messageIds: ["newest", "older"],
+      gmailMessageListReference: { gmailMessageListReferenceId: expect.any(String) },
+      reply: "Gmail messages matching “Rotary” (newest first):\n1. From: Rotary Club <club@example.org>\n   Subject: Rotary meeting\n2. From: Member <member@example.org>\n   Subject: Rotary update",
+    });
+    expect(JSON.stringify(allowed)).not.toContain("MUST NOT LEAK");
+  });
+
   it.each(["1d", "7d"] as const)("performs bounded ID-only discovery for %s", async newerThan => {
     const search = vi.fn(async () => ["one", "two", "three", "four", "five", "six"]);
     const createConnector = vi.fn(() => ({ search }));

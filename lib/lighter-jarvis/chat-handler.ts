@@ -7,6 +7,8 @@ import { getLighterSpecialist } from "@/lib/lighter-jarvis/specialists";
 import { resolveProductionCalendarRead, type ProductionCalendarDependencies } from "@/lib/lighter-jarvis/production-calendar-read";
 import { CALENDAR_TIME_ZONE } from "@/lib/lighter-jarvis/calendar-read-window";
 import { resolveProductionGmailRead, type ProductionGmailDependencies } from "@/lib/lighter-jarvis/production-gmail-read";
+import { isGmailPrivateReleaseContentFollowUp, resolveGmailPrivateReleaseReference } from "@/lib/lighter-jarvis/gmail-private-release-reference";
+import { GMAIL_PRIVATE_RELEASE_CONTAINMENT_REPLY, OMITTED_GMAIL_PRIVATE_RELEASE } from "@/lib/lighter-jarvis/gmail-private-release-contract";
 import { resolveProductionGmailSearch, type ProductionGmailSearchDependencies } from "@/lib/lighter-jarvis/production-gmail-search";
 import { resolveGmailOrdinalReadProposal } from "@/lib/lighter-jarvis/gmail-ordinal-read";
 import { resolveGmailNamedResultReadProposal } from "@/lib/lighter-jarvis/gmail-named-result-read";
@@ -97,6 +99,7 @@ interface LighterChatBody {
   userContinuityCaptureClarificationReference?: unknown;
   productGapResolutionListReference?: unknown;
   productGapResolutionTargetReference?: unknown;
+  gmailPrivateReleaseReference?: unknown;
 }
 type ModelCall = (
   systemPrompt: string,
@@ -512,6 +515,19 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       && !freshCapabilityRequest
       && !standingGmailAuthorityRequest;
 
+    if (specialist.id === "jarvis"
+      && currentUserUtterance !== undefined
+      && body.messages.some(({ content }) => content === OMITTED_GMAIL_PRIVATE_RELEASE)
+      && resolveGmailPrivateReleaseReference(body.gmailPrivateReleaseReference)
+      && isGmailPrivateReleaseContentFollowUp(currentUserUtterance)) {
+      return NextResponse.json({
+        reply: GMAIL_PRIVATE_RELEASE_CONTAINMENT_REPLY,
+        specialistId: specialist.id,
+        execution: "none",
+        gmailPrivateReleaseReference: body.gmailPrivateReleaseReference,
+      });
+    }
+
     if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {
       const capture = await resolveProductionUserContinuityCapture({
         utterance: currentUserUtterance,
@@ -922,6 +938,9 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         gmailAuthority: { ...(gmail.decision ? { decision: gmail.decision } : {}), reason: gmail.reason },
         ...(gmail.pendingAuthorizationReference !== undefined
           ? { pendingAuthorizationReference: gmail.pendingAuthorizationReference }
+          : {}),
+        ...(gmail.gmailPrivateReleaseReference !== undefined
+          ? { gmailPrivateReleaseReference: gmail.gmailPrivateReleaseReference }
           : {}) });
     }
     let interpretedCalendarFactualQuery: import("@/lib/lighter-jarvis/calendar-factual-query").CalendarFactualQuery | null = null;

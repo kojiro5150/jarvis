@@ -22,6 +22,8 @@ import {
 import { guardOrdinaryModelReply } from "@/lib/lighter-jarvis/ordinary-model-reply-guard";
 import { resolveProductionDriveSearch, type ProductionDriveSearchDependencies } from "@/lib/lighter-jarvis/production-drive-search";
 import { resolveProductionDriveRead, type ProductionDriveReadDependencies } from "@/lib/lighter-jarvis/production-drive-read";
+import { isDrivePrivateReleaseContentFollowUp, resolveDrivePrivateReleaseReference } from "@/lib/lighter-jarvis/drive-private-release-reference";
+import { DRIVE_PRIVATE_RELEASE_CONTAINMENT_REPLY, OMITTED_DRIVE_PRIVATE_RELEASE } from "@/lib/lighter-jarvis/drive-private-release-contract";
 import { resolveDriveOrdinalReadProposal } from "@/lib/lighter-jarvis/drive-ordinal-read";
 import { advanceGovernedReferentialScopeUserTurn } from "@/lib/lighter-jarvis/governed-result-set-reference";
 import { bindUserCalendarDetails, projectCalendarContext, type CalendarBindingState } from "@/lib/lighter-jarvis/calendar-governed-context";
@@ -101,6 +103,7 @@ interface LighterChatBody {
   productGapResolutionListReference?: unknown;
   productGapResolutionTargetReference?: unknown;
   gmailPrivateReleaseReference?: unknown;
+  drivePrivateReleaseReference?: unknown;
 }
 type ModelCall = (
   systemPrompt: string,
@@ -529,6 +532,19 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       });
     }
 
+    if (specialist.id === "jarvis"
+      && currentUserUtterance !== undefined
+      && body.messages.some(({ content }) => content === OMITTED_DRIVE_PRIVATE_RELEASE)
+      && resolveDrivePrivateReleaseReference(body.drivePrivateReleaseReference)
+      && isDrivePrivateReleaseContentFollowUp(currentUserUtterance)) {
+      return NextResponse.json({
+        reply: DRIVE_PRIVATE_RELEASE_CONTAINMENT_REPLY,
+        specialistId: specialist.id,
+        execution: "none",
+        drivePrivateReleaseReference: body.drivePrivateReleaseReference,
+      });
+    }
+
     if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {
       const capture = await resolveProductionUserContinuityCapture({
         utterance: currentUserUtterance,
@@ -763,7 +779,10 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       ? await resolveProductionDriveRead({ currentUserUtterance }, driveReadDependencies)
       : null;
     if (exactDriveRead?.handled) return NextResponse.json({ reply: exactDriveRead.reply, specialistId: specialist.id, execution: "none",
-      driveReadAuthority: { ...(exactDriveRead.decision ? { decision: exactDriveRead.decision } : {}), reason: exactDriveRead.reason } });
+      driveReadAuthority: { ...(exactDriveRead.decision ? { decision: exactDriveRead.decision } : {}), reason: exactDriveRead.reason },
+      ...(exactDriveRead.drivePrivateReleaseReference
+        ? { drivePrivateReleaseReference: exactDriveRead.drivePrivateReleaseReference }
+        : {}) });
 
     const driveOrdinalRead = specialist.id === "jarvis" && currentUserUtterance !== undefined
       ? resolveDriveOrdinalReadProposal({
@@ -836,6 +855,9 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       driveReadAuthority: { ...(pendingDriveRead.decision ? { decision: pendingDriveRead.decision } : {}), reason: pendingDriveRead.reason },
       ...(pendingDriveRead.pendingAuthorizationReference !== undefined
         ? { pendingAuthorizationReference: pendingDriveRead.pendingAuthorizationReference }
+        : {}),
+      ...(pendingDriveRead.drivePrivateReleaseReference
+        ? { drivePrivateReleaseReference: pendingDriveRead.drivePrivateReleaseReference }
         : {}),
     });
     const gmailOrdinalRead = specialist.id === "jarvis" && currentUserUtterance !== undefined

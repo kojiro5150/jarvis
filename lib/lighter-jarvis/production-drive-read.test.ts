@@ -24,6 +24,20 @@ describe("identified Google Drive read authority", () => {
     expect(result).toMatchObject({ handled: true, decision: "ALLOW", reason: "explicit_drive_read", reply: "Drive document:\nExact document text." });
     expect(result.reply).not.toContain("provider_315");
   });
+  it("creates an opaque server-owned reference for an oversized governed Drive release", async () => {
+    const harness = deps();
+    harness.readGoogleDocText.mockResolvedValueOnce({ ...file,
+      text: "Synthetic Drive continuity fixture. ".repeat(400) });
+    const result = await resolveProductionDriveRead({
+      currentUserUtterance: "drive.read provider_315 [text]",
+    }, harness.dependencies);
+    expect(result.reply?.length).toBeGreaterThan(8_000);
+    expect(result.drivePrivateReleaseReference).toEqual({
+      drivePrivateReleaseReferenceId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+    });
+    expect(JSON.stringify(result.drivePrivateReleaseReference)).not.toContain("provider_315");
+    expect(JSON.stringify(result.drivePrivateReleaseReference)).not.toContain("Synthetic Drive");
+  });
   it.each(["drive.read", "drive.read provider_315", "drive.read provider_315 [plain]", " drive.read provider_315 [text]", "drive.read report [text] extra"])("fails malformed syntax before policy or connector: %s", async utterance => {
     const harness = deps(); const result = await resolveProductionDriveRead({ currentUserUtterance: utterance }, harness.dependencies);
     expect(result.handled).toBe(utterance.startsWith("drive.read")); expect(harness.createConnector).not.toHaveBeenCalled();

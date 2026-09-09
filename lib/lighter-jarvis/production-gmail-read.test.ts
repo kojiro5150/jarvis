@@ -65,6 +65,32 @@ describe("production identified-message Gmail read", () => {
     expect(result.reply).not.toContain("Private snippet");
   });
 
+  it("creates an opaque server-owned reference for an oversized governed Gmail release", async () => {
+    const privateBody = "bounded private content ".repeat(700);
+    const result = await resolveProductionGmailRead({
+      currentUserUtterance: "gmail.read message-large [subject,plain_text_body]",
+    }, {
+      loadPolicy: vi.fn(async () => policy),
+      createConnector: () => ({
+        retrieveMessage: vi.fn(async () => ({
+          id: "message-large",
+          sender: "Raman Bhola <raman@example.test>",
+          subject: "LinkedIn connection invitation",
+          snippet: "Invitation",
+          plainTextBody: privateBody,
+          attachmentFilenames: [],
+          attachmentMimeMetadata: [],
+        })),
+      }),
+    });
+    expect(result.reply?.length).toBeGreaterThan(8_000);
+    expect(result.gmailPrivateReleaseReference).toEqual({
+      gmailPrivateReleaseReferenceId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+    });
+    expect(JSON.stringify(result.gmailPrivateReleaseReference)).not.toContain("message-large");
+    expect(JSON.stringify(result.gmailPrivateReleaseReference)).not.toContain(privateBody);
+  });
+
   it.each([
     "gmail.read", "gmail.read message", "gmail.read message subject", "gmail.read message []",
     "gmail.read message [subject, subject]", "gmail.read message [subject,subject]", "gmail.read message [from]",

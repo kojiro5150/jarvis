@@ -9,6 +9,7 @@ import {
 import { VoiceTurnQueue, type VoiceTurn } from "@/lib/lighter-jarvis/voice-turn-queue";
 import { ClientAuthorityTurnState, type OpaquePendingAuthorization } from "@/lib/lighter-jarvis/client-authority-turn-state";
 import { ConversationTransportHistory } from "@/lib/lighter-jarvis/conversation-transport-history";
+import { projectGmailPrivateReleasesForTransport } from "@/lib/lighter-jarvis/gmail-private-release-transport";
 
 type Specialist = {
   id: string;
@@ -19,6 +20,7 @@ type Specialist = {
 type Message = { role: "user" | "assistant"; content: string; error?: boolean };
 type OpaqueGmailSenderDisambiguation = Readonly<{ gmailSenderDisambiguationReferenceId: string }>;
 type OpaqueGmailMessageList = Readonly<{ gmailMessageListReferenceId: string }>;
+type OpaqueGmailPrivateRelease = Readonly<{ gmailPrivateReleaseReferenceId: string }>;
 type OpaqueGovernedReferentialScope = Readonly<{ governedReferentialScopeId: string }>;
 type OpaqueGovernedResultSet = Readonly<{ governedResultSetReferenceId: string }>;
 type OpaqueCalendarAttentionObservation = Readonly<{ calendarAttentionObservationReferenceId: string }>;
@@ -98,6 +100,7 @@ export default function UnifiedOpsConsole() {
   const authorityTurnStateRef = useRef(new ClientAuthorityTurnState());
   const gmailSenderDisambiguationRef = useRef<OpaqueGmailSenderDisambiguation | null>(null);
   const gmailMessageListRef = useRef<OpaqueGmailMessageList | null>(null);
+  const gmailPrivateReleaseRef = useRef<OpaqueGmailPrivateRelease | null>(null);
   const governedReferentialScopeRef = useRef<OpaqueGovernedReferentialScope | null>(null);
   const governedResultSetRef = useRef<OpaqueGovernedResultSet | null>(null);
   const calendarAttentionObservationRef = useRef<OpaqueCalendarAttentionObservation | null>(null);
@@ -295,10 +298,12 @@ export default function UnifiedOpsConsole() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           specialistId: specialist.id,
-          messages: nextMessages.map(({ role, content: text }) => ({
-            role,
-            content: text,
-          })),
+          messages: specialist.id === "jarvis"
+            ? projectGmailPrivateReleasesForTransport(
+                nextMessages,
+                gmailPrivateReleaseRef.current !== null,
+              )
+            : nextMessages.map(({ role, content: text }) => ({ role, content: text })),
           ...(authorityRequest?.pendingAuthorizationReference
             ? { pendingAuthorizationReference: authorityRequest.pendingAuthorizationReference }
             : {}),
@@ -307,6 +312,9 @@ export default function UnifiedOpsConsole() {
             : {}),
           ...(specialist.id === "jarvis" && gmailMessageListRef.current
             ? { gmailMessageListReference: gmailMessageListRef.current }
+            : {}),
+          ...(specialist.id === "jarvis" && gmailPrivateReleaseRef.current
+            ? { gmailPrivateReleaseReference: gmailPrivateReleaseRef.current }
             : {}),
           ...(specialist.id === "jarvis" && governedReferentialScopeRef.current
             ? { governedReferentialScopeReference: governedReferentialScopeRef.current }
@@ -348,6 +356,7 @@ export default function UnifiedOpsConsole() {
         pendingAuthorizationReference?: OpaquePendingAuthorization | null;
         gmailSenderDisambiguationReference?: OpaqueGmailSenderDisambiguation | null;
         gmailMessageListReference?: OpaqueGmailMessageList | null;
+        gmailPrivateReleaseReference?: OpaqueGmailPrivateRelease | null;
         governedReferentialScopeReference?: OpaqueGovernedReferentialScope | null;
         governedResultSetReference?: OpaqueGovernedResultSet | null;
         calendarAttentionObservationReference?: OpaqueCalendarAttentionObservation;
@@ -377,6 +386,9 @@ export default function UnifiedOpsConsole() {
       }
       if (data.gmailMessageListReference !== undefined) {
         gmailMessageListRef.current = data.gmailMessageListReference;
+      }
+      if (data.gmailPrivateReleaseReference !== undefined) {
+        gmailPrivateReleaseRef.current = data.gmailPrivateReleaseReference;
       }
       if (data.governedReferentialScopeReference !== undefined) {
         governedReferentialScopeRef.current = data.governedReferentialScopeReference;

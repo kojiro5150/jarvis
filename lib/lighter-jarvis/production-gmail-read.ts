@@ -2,6 +2,7 @@ import { authorizeGmailCapability } from "../chat-capabilities/gmail-authority";
 import { GoogleGmailContentConnector } from "../chat-capabilities/google-gmail-content";
 import { GmailContentRetrievalAdapter, GMAIL_CONTENT_FIELDS, type GmailContentConnector, type GmailContentField, type GmailReleasedContent } from "../content-retrieval";
 import { loadContentRetrievalPolicy, type ContentRetrievalPolicy } from "../content-retrieval-policy";
+import { createGmailPrivateReleaseReference, type GmailPrivateReleaseReference } from "./gmail-private-release-reference";
 
 const SYNTAX = "gmail.read <message-id> [sender|subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata]";
 const COMMAND_PREFIX = /^gmail\.read(?:\s|$)/;
@@ -18,6 +19,7 @@ export type ProductionGmailReadResult = Readonly<{
   reason?: string;
   reply?: string;
   pendingAuthorizationReference?: import("./pending-authorization").PendingAuthorizationReference | null;
+  gmailPrivateReleaseReference?: GmailPrivateReleaseReference;
 }>;
 
 const defaults: ProductionGmailDependencies = {
@@ -107,6 +109,13 @@ async function retrieveAuthorized(operation: NonNullable<ReturnType<typeof autho
   }
   if (retrieval.outcome === "denied") return Object.freeze({ handled: true, decision: "ALLOW", reason: "resource_policy_denied", reply: "I can't release that Gmail message under the current resource policy." });
   if (retrieval.outcome === "failed" || !retrieval.content) return Object.freeze({ handled: true, decision: "ALLOW", reason: "gmail_retrieval_failed", reply: "I couldn't retrieve that Gmail message right now." });
-  return Object.freeze({ handled: true, decision: "ALLOW", reason,
-    reply: present(retrieval.content, operation.requestedFields) });
+  const reply = present(retrieval.content, operation.requestedFields);
+  return Object.freeze({ handled: true, decision: "ALLOW", reason, reply,
+    ...(reply.length >= 8_000
+      ? { gmailPrivateReleaseReference: createGmailPrivateReleaseReference({
+          resourceId: operation.request.resource.resourceId,
+          requestedFields: operation.requestedFields,
+          presentation: reply,
+        }) }
+      : {}) });
 }

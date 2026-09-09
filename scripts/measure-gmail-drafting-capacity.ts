@@ -7,6 +7,8 @@ import { buildSpecialistPrompt } from "../lib/lighter-jarvis/runtime";
 import { writeMeasurementCheckpoint } from "../lib/measurement/measurement-checkpoint";
 import {
   MEASUREMENT_SCHEMA_VERSION,
+  assessDraftFidelity,
+  buildFailureResumePlan,
   buildReportProgress,
   buildFixture,
   buildHistory,
@@ -40,6 +42,11 @@ interface ResultRow extends MeasurementCell {
     responseCharacters: number;
     contentBlockTypes: string[];
     textBlockCount: number;
+  };
+  fidelitySignals?: {
+    hasThankSignal: boolean;
+    hasDeclineSignal: boolean;
+    hasForbiddenDetail: boolean;
   };
   usage?: UsageRecord;
 }
@@ -78,7 +85,8 @@ async function loadResume(path: string): Promise<{
   retained: ResultRow[];
   retry: MeasurementCell[];
   sourceReportDigest: string;
-  replacedProviderRejections: number;
+  retryFailureKind: "provider_rejection" | "fidelity_failure";
+  replacedFailures: number;
 }> {
   const content = await readFile(path, "utf8");
   const parsed = JSON.parse(content) as ScreeningReport;
@@ -89,11 +97,18 @@ async function loadResume(path: string): Promise<{
     throw new Error("resume report model configuration does not match the current measurement contract");
   }
   if (!Array.isArray(parsed.results)) throw new Error("resume report results are missing");
-  const resume = buildProviderRejectionResumePlan(parsed.results);
+  const retryFailureKind = (argument("--retry-failure") ?? "provider_rejection") as "provider_rejection" | "fidelity_failure";
+  if (retryFailureKind !== "provider_rejection" && retryFailureKind !== "fidelity_failure") {
+    throw new Error("--retry-failure must be provider_rejection or fidelity_failure");
+  }
+  const resume = retryFailureKind === "provider_rejection"
+    ? buildProviderRejectionResumePlan(parsed.results)
+    : buildFailureResumePlan(parsed.results, retryFailureKind);
   return {
     ...resume,
     sourceReportDigest: createHash("sha256").update(content).digest("hex"),
-    replacedProviderRejections: resume.retry.length,
+    retryFailureKind,
+    replacedFailures: resume.retry.length,
   };
 }
 
@@ -148,8 +163,10 @@ async function measure(client: Anthropic, systemPrompt: string, cell: Measuremen
       return { ...base, elapsedMs, status: "failed", failureKind: "malformed_response", detail: parsed.detail, stopReason: response.stop_reason, usage: usage(response.usage), responseDiagnostics };
     }
     const fidelity = validateDraftReply(parsed.value);
-    if (!fidelity.ok) return { ...base, elapsedMs, status: "failed", failureKind: "fidelity_failure", detail: fidelity.detail, stopReason: response.stop_reason, usage: usage(response.usage), responseFormat: parsed.format, responseDiagnostics };
-    return { ...base, elapsedMs, status: "passed", stopReason: response.stop_reason, usage: usage(response.usage), responseFormat: parsed.format, responseDiagnostics };
+    const parsedObject = parsed.value as { draft?: unknown };
+    const fidelitySignals = typeof parsedObject?.draft === "string" ? assessDraftFidelity(parsedObject.draft) : undefined;
+    if (!fidelity.ok) return { ...base, elapsedMs, status: "failed", failureKind: "fidelity_failure", detail: fidelity.detail, stopReason: response.stop_reason, usage: usage(response.usage), responseFormat: parsed.format, responseDiagnostics, ...(fidelitySignals ? { fidelitySignals } : {}) };
+    return { ...base, elapsedMs, status: "passed", stopReason: response.stop_reason, usage: usage(response.usage), responseFormat: parsed.format, responseDiagnostics, ...(fidelitySignals ? { fidelitySignals } : {}) };
   } catch (error) {
     return { ...base, elapsedMs: Date.now() - started, status: "failed", ...classifyError(error) };
   }
@@ -161,7 +178,8 @@ interface ReportMetadata {
   projectedCalls: number;
   resume?: {
     sourceReportDigest: string;
-    replacedProviderRejections: number;
+    retryFailureKind: "provider_rejection" | "fidelity_failure";
+    replacedFailures: number;
   };
 }
 
@@ -224,7 +242,7 @@ async function main(): Promise<void> {
     generatedAt: new Date().toISOString(),
     phase,
     projectedCalls: orderedPlan.length * attempts,
-    ...(resume ? { resume: { sourceReportDigest: resume.sourceReportDigest, replacedProviderRejections: resume.replacedProviderRejections } } : {}),
+    ...(resume ? { resume: { sourceReportDigest: resume.sourceReportDigest, retryFailureKind: resume.retryFailureKind, replacedFailures: resume.replacedFailures } } : {}),
   };
   let interrupted = false;
   process.once("SIGINT", () => {
@@ -239,7 +257,7 @@ async function main(): Promise<void> {
       const row = await measure(client, systemPrompt, cell, attempt + priorAttempt);
       if (resume) resultByCell.set(measurementCellKey(cell), row);
       else results.push(row);
-      console.log(`${row.status.toUpperCase()} ${cell.fixtureKind} ${cell.targetCharacters} ${cell.historyKind} attempt ${attempt}${row.failureKind ? ` (${row.failureKind})` : ""}`);
+      console.log(`${row.status.toUpperCase()} ${cell.fixtureKind} ${cell.targetCharacters} ${cell.historyKind} attempt ${row.attempt}${row.failureKind ? ` (${row.failureKind})` : ""}`);
       await writeMeasurementCheckpoint(output, buildReport(metadata, reportResults(), interrupted));
     }
     if (interrupted) break;

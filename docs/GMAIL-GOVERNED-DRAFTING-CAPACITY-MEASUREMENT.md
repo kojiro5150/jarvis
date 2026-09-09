@@ -43,3 +43,19 @@ npm run measure:gmail-drafting:live -- --phase boundary --screening-report data/
 The safe bound is not chosen by this harness automatically. Review the evidence and freeze the largest size that passes all five boundary repetitions, apply the agreed safety margin, and use the smallest safe result across all history conditions.
 
 If maximum-admissible history fails because the complete request envelope exceeds provider capacity, stop Gmail drafting work. Create a separate capability-neutral aggregate model-input budgeting contract and PR; do not patch that transport concern into Gmail drafting.
+
+## Resume provider rejections
+
+If billing, quota, or another provider-wide rejection interrupts a complete screening report, inspect the resume plan without making calls:
+
+```bash
+npm run measure:gmail-drafting -- --phase screening --resume-report data/capacity-measurements/gmail-screening.json
+```
+
+Then explicitly rerun only the `provider_rejection` cells into a new consolidated report:
+
+```bash
+npm run measure:gmail-drafting:live -- --phase screening --resume-report data/capacity-measurements/gmail-screening.json --output data/capacity-measurements/gmail-screening-resumed.json
+```
+
+Resume requires the exact 60-cell screening matrix and matching model configuration. It retains passes and fidelity failures, replaces only provider rejections, records the source report digest, and never overwrites the source report.

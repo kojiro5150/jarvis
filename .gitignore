@@ -49,6 +49,7 @@ data/memory.json
 # Deployment-owned operational validation evidence. These reports may contain
 # calendar content and engineering observations; only anonymised summaries are tracked.
 /data/validation-reports/
+/data/capacity-measurements/
 
 # Build and dependency artefacts
 node_modules/

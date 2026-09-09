@@ -12,7 +12,9 @@
     "eos:demo": "node scripts/eos-demo.cjs",
     "validate:operations": "node --env-file=.env.local --import tsx scripts/run-operational-validation.ts",
     "validation-reports": "node --experimental-strip-types --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/browse-operational-validation.ts",
-    "verify:operating-picture:live": "node --env-file=.env.local --import tsx scripts/verify-operating-picture-live.ts"
+    "verify:operating-picture:live": "node --env-file=.env.local --import tsx scripts/verify-operating-picture-live.ts",
+    "measure:gmail-drafting": "node --import tsx scripts/measure-gmail-drafting-capacity.ts",
+    "measure:gmail-drafting:live": "node --env-file=.env.local --import tsx scripts/measure-gmail-drafting-capacity.ts --run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.123.0",

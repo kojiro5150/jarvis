@@ -3,6 +3,7 @@ import { acquireScopedCalendarEvidence } from "./scoped-calendar-evidence-acquis
 import type { CalendarAcquisitionResult } from "../connectors/calendar-acquisition-completeness";
 import type { CalendarEvent } from "../connectors/calendar-event";
 import type { CalendarReadWindow } from "../lighter-jarvis/calendar-read-window";
+import { GoogleServiceAuthError } from "../connectors/google/auth-error";
 
 const window: CalendarReadWindow = Object.freeze({
   start: "2026-08-27T14:00:00.000Z",
@@ -48,6 +49,31 @@ const acquisition = (
     completeness,
     observedAt: "2026-08-28T00:00:00.000Z",
   }),
+});
+
+describe("Calendar authentication failure projection", () => {
+  it.each([
+    ["not_connected", "calendar_connection_not_connected"],
+    ["refresh_failed", "calendar_connection_refresh_required"],
+  ] as const)("preserves typed %s failures", async (reason, failureReason) => {
+    const result = await acquireScopedCalendarEvidence({
+      connector: { source: "google", listBetween: vi.fn(async () => {
+        throw new GoogleServiceAuthError(reason, "provider detail must not leak");
+      }) },
+      clock: () => new Date("2026-09-09T00:00:00.000Z"), requestedLimit: 5, window,
+    });
+    expect(result).toMatchObject({ status: "unavailable", failureReason });
+    expect(JSON.stringify(result)).not.toContain("provider detail");
+  });
+
+  it("keeps unknown acquisition failures generic", async () => {
+    const result = await acquireScopedCalendarEvidence({
+      connector: { source: "google", listBetween: vi.fn(async () => { throw new Error("secret provider failure"); }) },
+      clock: () => new Date("2026-09-09T00:00:00.000Z"), requestedLimit: 5, window,
+    });
+    expect(result).toMatchObject({ status: "unavailable", failureReason: "calendar_acquisition_unavailable" });
+    expect(JSON.stringify(result)).not.toContain("secret provider failure");
+  });
 });
 
 describe("scoped Calendar completeness mapping", () => {

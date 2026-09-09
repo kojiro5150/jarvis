@@ -21,6 +21,18 @@ function evidence(events: readonly GovernedCalendarEvidenceInput[], coverageStat
 }
 
 describe("governed Calendar free-time calculation", () => {
+  it.each([
+    ["calendar_connection_refresh_required", "calendar_refresh_required", "Your Calendar connection has expired. Disconnect and reconnect Google Calendar, then try again."],
+    ["calendar_connection_not_connected", "calendar_not_connected", "Google Calendar is not connected. Connect Google Calendar, then try again."],
+    ["calendar_acquisition_unavailable", "calendar_unavailable", "I couldn't retrieve the governed Calendar evidence needed to calculate your free time."],
+  ] as const)("renders actionable Calendar acquisition state for %s", (failureReason, reason, reply) => {
+    const window = resolveCalendarReadWindow("this_week", new Date("2026-09-07T07:00:00.000Z"));
+    const result = calculateCalendarFreeTime({ evidence: Object.freeze({ status: "unavailable", evidence: Object.freeze([]), failureReason }),
+      window, preference, includeWeekend: false, now: new Date("2026-09-07T07:00:00.000Z") });
+    expect(result).toEqual({ status: "rejected", reason });
+    expect(renderCalendarFreeTime(result)).toBe(reply);
+  });
+
   it("subtracts and merges overlapping busy intervals inside the explicit weekday envelope", () => {
     const window = resolveCalendarReadWindow("this_week", new Date("2026-09-07T07:00:00.000Z"));
     const result = calculateCalendarFreeTime({ evidence: evidence([

@@ -40,6 +40,15 @@ const window = (period: CalendarReadPeriod): CalendarReadWindow => Object.freeze
 
 describe("deterministic Calendar period presentation", () => {
   it.each([
+    ["calendar_connection_refresh_required", "Your Calendar connection has expired. Disconnect and reconnect Google Calendar, then try again."],
+    ["calendar_connection_not_connected", "Google Calendar is not connected. Connect Google Calendar, then try again."],
+    ["calendar_acquisition_unavailable", "I couldn't access your Calendar right now."],
+  ] as const)("renders Calendar acquisition failure %s", (failureReason, expected) => {
+    expect(formatCalendarReadResponse(Object.freeze({ status: "unavailable", evidence: Object.freeze([]), failureReason }), window("today")))
+      .toBe(expected);
+  });
+
+  it.each([
     ["today", "Today is clear."],
     ["tomorrow", "Tomorrow is clear."],
     ["this_morning", "This morning is clear."],

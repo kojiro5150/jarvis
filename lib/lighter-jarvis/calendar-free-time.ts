@@ -6,7 +6,7 @@ import { resolveMelbourneLocalInterval, type CalendarReadWindow } from "./calend
 export type CalendarFreeTimeSlot = Readonly<{ start: string; end: string }>;
 export type CalendarFreeTimeResult =
   | Readonly<{ status: "available"; slots: readonly CalendarFreeTimeSlot[]; includeWeekend: boolean; observedAt: string }>
-  | Readonly<{ status: "rejected"; reason: "calendar_unavailable" | "calendar_incomplete" | "weekend_preference_missing" | "invalid_input" }>;
+  | Readonly<{ status: "rejected"; reason: "calendar_unavailable" | "calendar_not_connected" | "calendar_refresh_required" | "calendar_incomplete" | "weekend_preference_missing" | "invalid_input" }>;
 
 const dateFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Australia/Melbourne", year: "numeric", month: "2-digit", day: "2-digit",
@@ -54,7 +54,14 @@ export function calculateCalendarFreeTime(input: Readonly<{
   includeWeekend: boolean;
   now: Date;
 }>): CalendarFreeTimeResult {
-  if (input.evidence.status !== "available") return Object.freeze({ status: "rejected", reason: "calendar_unavailable" });
+  if (input.evidence.status !== "available") {
+    const reason = input.evidence.failureReason === "calendar_connection_refresh_required"
+      ? "calendar_refresh_required"
+      : input.evidence.failureReason === "calendar_connection_not_connected"
+        ? "calendar_not_connected"
+        : "calendar_unavailable";
+    return Object.freeze({ status: "rejected", reason });
+  }
   if (input.evidence.coverageState !== "bounded_complete_request") return Object.freeze({ status: "rejected", reason: "calendar_incomplete" });
   if (input.window.period !== "this_week" || !Number.isFinite(input.now.getTime()) || !input.evidence.observedAt) return Object.freeze({ status: "rejected", reason: "invalid_input" });
   if (input.includeWeekend && (input.preference.weekendStartHour === null || input.preference.weekendEndHour === null)) {

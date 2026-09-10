@@ -9,9 +9,12 @@ import {
   buildReportProgress,
   buildScreeningPlan,
   buildStepDownConfirmationPlan,
+  buildStepDownCompletionPlan,
+  buildStepDownFidelityRepairPlan,
   buildStepDownProbePlan,
   fixtureDigest,
   measurementCellKey,
+  measurementAttemptKey,
   parseMeasurementReply,
   selectLowestCostFidelityFailure,
   selectBoundaryCandidates,
@@ -54,6 +57,7 @@ describe("Gmail drafting capacity measurement", () => {
     "I am grateful for the invitation but will not participate.",
     "Thank you for reaching out, but I can't connect at this time.",
     "I appreciate the invitation, but I won't be able to connect.",
+    "Thank you for the invitation to connect. I'm not accepting new connections at this time.",
     "Thanks for reaching out. I must decline.",
   ])("accepts a bounded deterministic decline equivalent: %s", draft => {
     expect(validateDraftReply({ sender: "Raman Bhola", subject: "LinkedIn connection invitation", draft }).ok).toBe(true);
@@ -191,5 +195,20 @@ describe("Gmail drafting capacity measurement", () => {
       { ...cells[1], attempt: 1, status: "passed", usage: { inputTokens: 2_000 } },
       { ...cells[2], attempt: 1, status: "failed", failureKind: "fidelity_failure", usage: { inputTokens: 6_000 } },
     ])).toEqual(cells[2]);
+  });
+
+  it("retries only exact fidelity failures and completes only the repaired probe-only cell", () => {
+    const cells = buildScreeningPlan().slice(0, 7);
+    const rows = cells.flatMap((cell, cellIndex) => Array.from({ length: cellIndex === 0 ? 1 : 5 }, (_, index) => ({
+      ...cell,
+      attempt: index + 1,
+      status: (cellIndex === 0 || (cellIndex === 2 && index === 3)) ? "failed" as const : "passed" as const,
+      ...((cellIndex === 0 || (cellIndex === 2 && index === 3)) ? { failureKind: "fidelity_failure" as const } : {}),
+    })));
+    const repair = buildStepDownFidelityRepairPlan(rows);
+    expect(repair.retry.map(measurementAttemptKey)).toEqual([measurementAttemptKey(rows[0]), measurementAttemptKey(rows[9])]);
+    const repaired = rows.map(row => ({ ...row, status: "passed" as const, failureKind: undefined }));
+    expect(buildStepDownCompletionPlan(repaired)).toEqual([2, 3, 4, 5].map(attempt => ({ cell: cells[0], attempt })));
+    expect(() => buildStepDownCompletionPlan(rows)).toThrow("every retained result to pass");
   });
 });

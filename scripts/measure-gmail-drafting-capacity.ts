@@ -17,6 +17,8 @@ import {
   buildProviderRejectionResumePlan,
   buildScreeningPlan,
   buildStepDownConfirmationPlan,
+  buildStepDownCompletionPlan,
+  buildStepDownFidelityRepairPlan,
   buildStepDownProbePlan,
   fixtureDigest,
   measurementAttemptKey,
@@ -29,7 +31,7 @@ import {
   type MeasurementCell,
 } from "../lib/measurement/gmail-drafting-capacity";
 
-type Phase = "screening" | "boundary" | "step_down_probe" | "step_down_confirmation" | "fidelity_diagnostic";
+type Phase = "screening" | "boundary" | "step_down_probe" | "step_down_confirmation" | "step_down_fidelity_repair" | "step_down_completion" | "fidelity_diagnostic";
 interface UsageRecord { inputTokens: number; outputTokens: number; cacheCreationInputTokens?: number; cacheReadInputTokens?: number }
 interface ResultRow extends MeasurementCell {
   attempt: number;
@@ -114,6 +116,47 @@ async function loadFidelityDiagnostic(path: string): Promise<{ cell: Measurement
   }
   return {
     cell: selectLowestCostFidelityFailure(parsed.results),
+    sourceReportDigest: createHash("sha256").update(content).digest("hex"),
+  };
+}
+
+async function loadStepDownFidelityRepair(path: string): Promise<ResumeState> {
+  const content = await readFile(path, "utf8");
+  const parsed = JSON.parse(content) as ScreeningReport;
+  if (parsed.schemaVersion !== MEASUREMENT_SCHEMA_VERSION || parsed.phase !== "step_down_confirmation" || !Array.isArray(parsed.results)
+    || parsed.progress?.status !== "completed" || parsed.progress.remaining !== 0) {
+    throw new Error("step-down fidelity repair requires a compatible completed confirmation report");
+  }
+  const repair = buildStepDownFidelityRepairPlan(parsed.results);
+  return {
+    retained: repair.retained,
+    retryTasks: repair.retry.map(row => ({
+      cell: { fixtureKind: row.fixtureKind, targetCharacters: row.targetCharacters, historyKind: row.historyKind },
+      attempt: row.attempt,
+    })),
+    orderedKeys: parsed.results.map(measurementAttemptKey),
+    sourceReportDigest: createHash("sha256").update(content).digest("hex"),
+    retryFailureKind: "fidelity_failure",
+    replacedFailures: repair.retry.length,
+    totalResults: parsed.results.length,
+    keyFor: measurementAttemptKey,
+  };
+}
+
+async function loadStepDownCompletion(path: string): Promise<{
+  retained: ResultRow[];
+  tasks: Array<{ cell: MeasurementCell; attempt: number }>;
+  sourceReportDigest: string;
+}> {
+  const content = await readFile(path, "utf8");
+  const parsed = JSON.parse(content) as ScreeningReport;
+  if (parsed.schemaVersion !== MEASUREMENT_SCHEMA_VERSION || parsed.phase !== "step_down_fidelity_repair" || !Array.isArray(parsed.results)
+    || parsed.progress?.status !== "completed" || parsed.progress.remaining !== 0) {
+    throw new Error("step-down completion requires a compatible completed fidelity-repair report");
+  }
+  return {
+    retained: parsed.results,
+    tasks: buildStepDownCompletionPlan(parsed.results),
     sourceReportDigest: createHash("sha256").update(content).digest("hex"),
   };
 }
@@ -266,7 +309,7 @@ interface ReportMetadata {
   };
   source?: {
     sourceReportDigest: string;
-    purpose: "step_down_probe" | "step_down_confirmation" | "fidelity_diagnostic";
+    purpose: "step_down_probe" | "step_down_confirmation" | "step_down_completion" | "fidelity_diagnostic";
   };
 }
 
@@ -299,13 +342,13 @@ function usage(value: Anthropic.Messages.Usage): UsageRecord {
 
 async function main(): Promise<void> {
   const phase = (argument("--phase") ?? "screening") as Phase;
-  if (!["screening", "boundary", "step_down_probe", "step_down_confirmation", "fidelity_diagnostic"].includes(phase)) {
-    throw new Error("--phase must be screening, boundary, step_down_probe, step_down_confirmation, or fidelity_diagnostic");
+  if (!["screening", "boundary", "step_down_probe", "step_down_confirmation", "step_down_fidelity_repair", "step_down_completion", "fidelity_diagnostic"].includes(phase)) {
+    throw new Error("unsupported measurement phase");
   }
   const resumePathArgument = argument("--resume-report");
   const resumePath = resumePathArgument ? resolve(resumePathArgument) : undefined;
   if (resumePath && phase !== "screening" && phase !== "boundary") throw new Error("--resume-report is supported only for screening or boundary");
-  const resume = resumePath ? await loadResume(resumePath, phase as "screening" | "boundary") : undefined;
+  let resume = resumePath ? await loadResume(resumePath, phase as "screening" | "boundary") : undefined;
   let plan: MeasurementCell[] = [];
   let tasks: Array<{ cell: MeasurementCell; attempt: number }> = [];
   let initialResults: ResultRow[] = [];
@@ -329,6 +372,16 @@ async function main(): Promise<void> {
     tasks = loaded.tasks;
     attempts = "four additional attempts for successful probes only";
     source = { sourceReportDigest: loaded.sourceReportDigest, purpose: "step_down_confirmation" };
+  } else if (phase === "step_down_fidelity_repair") {
+    resume = await loadStepDownFidelityRepair(resolve(argument("--source-report") ?? (() => { throw new Error("--source-report is required for step_down_fidelity_repair"); })()));
+    tasks = resume.retryTasks;
+    attempts = "selected fidelity failures only";
+  } else if (phase === "step_down_completion") {
+    const loaded = await loadStepDownCompletion(resolve(argument("--source-report") ?? (() => { throw new Error("--source-report is required for step_down_completion"); })()));
+    initialResults = loaded.retained;
+    tasks = loaded.tasks;
+    attempts = "four missing attempts for the repaired probe-only cell";
+    source = { sourceReportDigest: loaded.sourceReportDigest, purpose: "step_down_completion" };
   } else {
     const loaded = await loadFidelityDiagnostic(resolve(argument("--source-report") ?? (() => { throw new Error("--source-report is required for fidelity_diagnostic"); })()));
     plan = [loaded.cell];
@@ -344,7 +397,7 @@ async function main(): Promise<void> {
       resume: Boolean(resume),
       retainedResults: resume?.retained.length ?? initialResults.length,
       cells: new Set(tasks.map(task => measurementCellKey(task.cell))).size,
-      attemptsPerCell: resume ? "selected rejected attempts only" : attempts,
+      attemptsPerCell: resume ? (phase === "step_down_fidelity_repair" ? "selected fidelity failures only" : "selected rejected attempts only") : attempts,
       projectedCalls: tasks.length,
       plan: tasks.map(task => ({ ...task.cell, attempt: task.attempt })),
     }, null, 2));

@@ -125,3 +125,17 @@ npm run measure:gmail-drafting:live -- --phase fidelity_diagnostic --source-repo
 ```
 
 The diagnostic phase selects the fidelity-failing cell with the lowest recorded input-token use. Failed synthetic drafts are printed to the terminal only and are never written into the JSON report. Live diagnostic execution fails closed unless the explicit display flag is present. This exception is limited to deterministic synthetic fixtures and must never be used with real Gmail content.
+
+When diagnosis proves a bounded validator false negative, retry only the exact failed step-down attempt identities:
+
+```bash
+npm run measure:gmail-drafting:live -- --phase step_down_fidelity_repair --source-report data/capacity-measurements/gmail-step-down-confirmed.json --output data/capacity-measurements/gmail-step-down-repaired.json
+```
+
+If every retained and repaired result passes, add the four missing attempts for the previously failed probe-only cell:
+
+```bash
+npm run measure:gmail-drafting:live -- --phase step_down_completion --source-report data/capacity-measurements/gmail-step-down-repaired.json --output data/capacity-measurements/gmail-step-down-complete.json
+```
+
+Fidelity repair preserves all passing attempts and replaces only exact fidelity-failure identities. Completion fails closed if any failure remains and never repeats an already complete cell.

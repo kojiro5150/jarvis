@@ -1,6 +1,6 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Reconciled 10 September 2026 after direct verification of the Governed Operating Picture semantic/lifecycle foundation, Supabase persistence foundation, Store Parity & Restart Durability, Purpose-Bounded Durable Projection, Narrow Model-Facing Continuity, Explicit User-Authored Continuity Capture, Morning Executive Orientation v1, post-promotion durable-continuity reliability/scalability closure, bounded Drive ordinal result continuity, bounded Gmail named-result continuity, bounded explicit Product Gap resolution, Gmail topic search, oversized Gmail/Drive private-release continuity, and the Gmail governed-drafting processing-bound prerequisite. Existing governed Calendar/Gmail/Drive work remains the proven substrate. Promotion remains capability-specific; the processing-bound freeze does not represent governed Gmail drafting as implemented.
+**Status:** Living document. Reconciled 11 September 2026 after direct verification of the Governed Operating Picture semantic/lifecycle foundation, Supabase persistence foundation, Store Parity & Restart Durability, Purpose-Bounded Durable Projection, Narrow Model-Facing Continuity, Explicit User-Authored Continuity Capture, Morning Executive Orientation v1, post-promotion durable-continuity reliability/scalability closure, bounded Drive ordinal result continuity, bounded Gmail named-result continuity, bounded explicit Product Gap resolution, Gmail topic search, oversized Gmail/Drive private-release continuity, the Gmail governed-drafting processing-bound prerequisite, and one live purpose-bounded Gmail invitation-decline composition capability. Existing governed Calendar/Gmail/Drive work remains the proven substrate. Promotion remains capability-specific; this drafting proof does not authorize general drafting, draft persistence, revision, reuse or sending.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
 
@@ -28,9 +28,18 @@ PRs #558–#565 then established the Gmail governed-drafting capacity prerequisi
 
 The final evidence proves a 24,000-code-unit cross-condition ceiling under the measured configuration. The frozen production processing bound is 16,000 code units. Raw reports remain ignored and uncommitted; the freeze record carries their cryptographic provenance and independently verified aggregates.
 
-> **Promotion decision:** The Gmail governed-drafting **capacity prerequisite** is **RESOLVED / FROZEN**. Governed Gmail drafting, summarisation, reply sending and mailbox mutation remain unimplemented and unauthorised.
+> **Promotion decision:** The Gmail governed-drafting **capacity prerequisite** is **RESOLVED / FROZEN**. General Gmail drafting, summarisation, reply sending, Gmail-draft persistence and mailbox mutation remain unimplemented and unauthorised.
 
-The next bounded milestone is governed invitation-decline drafting doctrine, recorded in `../GMAIL-GOVERNED-INVITATION-DECLINE-DRAFTING-CONTRACT.md`. It binds only to the single current conversation-carried Gmail release reference, requires a fresh one-shot exact-message re-read, uses a distinct Gmail-specific governed model channel, enforces the frozen 16,000-code-unit admission bound, and produces a validated proposed draft whose derived private content is omitted from later ordinary model history. The contract does not itself implement or promote the capability.
+PRs #567–#571 then took the governed invitation-decline drafting doctrine through implementation, integration repair, bounded diagnostics and production correction. The capability binds only to the single current conversation-carried Gmail release reference, requires a fresh one-shot exact-message re-read, uses a distinct Gmail-specific governed model channel, enforces the frozen 16,000-code-unit admission bound, and produces a validated proposed draft whose derived private content is omitted from later ordinary model history. Sender and subject are server-owned; the drafting model returns only the proposed body.
+
+The live Raman-shaped production proof then passed against the real governed Gmail path. JARVIS re-read the exact selected LinkedIn invitation under fresh authority, produced a grounded thank-and-decline proposal, preserved the exact server-owned subject, introduced none of the previously fabricated lunch or Thursday details, and stated explicitly that the message had not been sent. Follow-up requests to shorten or send the proposal failed closed through the separate reuse boundary.
+
+> **Promotion decision:** Governed Gmail invitation-decline composition is **LIVE PASS within one exact purpose-bounded class**. It is semantic composition over governed private Gmail evidence, deliberately not a Gmail provider write. The proof does not transfer to another drafting purpose, summarisation, revision, reuse, persistence or sending.
+
+The doctrine and production proof are recorded in:
+
+- `../GMAIL-GOVERNED-INVITATION-DECLINE-DRAFTING-CONTRACT.md`
+- `../GMAIL-GOVERNED-INVITATION-DECLINE-DRAFTING-LIVE-PASS.md`
 
 ---
 

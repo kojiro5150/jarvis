@@ -23,7 +23,7 @@ const SYSTEM_INSTRUCTION = [
   "Prepare only a polite email reply that thanks the sender for the invitation and declines it.",
   "Use only the supplied current-turn Gmail evidence and user instruction.",
   "Do not invent dates, times, meetings, calls, meals, contact details, money, links, actions, or delivery status.",
-  "Return exactly JSON with three string keys: sender, subject, draft.",
+  "Return exactly JSON with one string key: draft. Sender and subject are server-owned and must not be returned or rewritten.",
 ].join("\n");
 
 export const callGmailInvitationDeclineDraftModel: GmailInvitationDeclineDraftModelCall =

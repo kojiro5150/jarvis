@@ -93,6 +93,40 @@ export function buildProviderRejectionResumePlan<T extends ScreeningResult>(rows
   return buildFailureResumePlan(rows, "provider_rejection");
 }
 
+export function measurementAttemptKey(row: MeasurementCell & { attempt: number }): string {
+  return `${measurementCellKey(row)}:${row.attempt}`;
+}
+
+export function buildBoundaryProviderRejectionResumePlan<T extends ScreeningResult>(rows: T[]): {
+  retained: T[];
+  retry: T[];
+} {
+  const attemptsPerCell = 5;
+  const expectedCells = 16;
+  if (rows.length !== expectedCells * attemptsPerCell) {
+    throw new Error(`boundary resume report must contain exactly ${expectedCells * attemptsPerCell} results`);
+  }
+  const screeningKeys = new Set(buildScreeningPlan().map(measurementCellKey));
+  const attemptKeys = rows.map(measurementAttemptKey);
+  if (new Set(attemptKeys).size !== attemptKeys.length || rows.some(row => !screeningKeys.has(measurementCellKey(row)))) {
+    throw new Error("boundary resume report contains duplicate or invalid attempts");
+  }
+  const groups = new Map<string, T[]>();
+  for (const row of rows) groups.set(measurementCellKey(row), [...(groups.get(measurementCellKey(row)) ?? []), row]);
+  if (groups.size !== expectedCells || [...groups.values()].some(group => {
+    const attempts = group.map(row => row.attempt).sort((a, b) => a - b);
+    return attempts.join(",") !== "1,2,3,4,5";
+  })) {
+    throw new Error("boundary resume report must contain attempts 1 through 5 for exactly 16 cells");
+  }
+  const retry = rows.filter(row => row.failureKind === "provider_rejection");
+  if (retry.length === 0) throw new Error("boundary resume report contains no provider_rejection results to retry");
+  return {
+    retained: rows.filter(row => row.failureKind !== "provider_rejection"),
+    retry,
+  };
+}
+
 function repeatToLength(seed: string, targetCharacters: number): string {
   if (!Number.isInteger(targetCharacters) || targetCharacters < seed.length) {
     throw new Error("targetCharacters must be an integer at least as large as the fixture seed");
@@ -153,7 +187,7 @@ export function assessDraftFidelity(draft: string): DraftFidelitySignals {
   const normalized = draft.toLowerCase().replace(/[’]/g, "'");
   return {
     hasThankSignal: /\bthank|\bappreciat|\bgrateful/.test(normalized),
-    hasDeclineSignal: /\bdeclin|\bunable\b|\b(?:cannot|can't|won't|will not|not able to)\s+(?:accept|take you up|participate|join)|\b(?:have|need|must) to pass\b|\bpass on\b/.test(normalized),
+    hasDeclineSignal: /\bdeclin|\bunable\b|\b(?:cannot|can't|not able to)\s+(?:accept|take you up|participate|join|connect)|\b(?:won't|will not)\s+(?:be able to\s+)?(?:accept|take you up|participate|join|connect)|\b(?:have|need|must) to pass\b|\bpass on\b/.test(normalized),
     hasForbiddenDetail: /\blunch\b|\bthursday\b|board approved/.test(normalized),
   };
 }

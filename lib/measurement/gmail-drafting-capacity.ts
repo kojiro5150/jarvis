@@ -34,6 +34,15 @@ export interface MeasurementOutcome {
 
 export type ScreeningResult = MeasurementCell & MeasurementOutcome & { attempt: number };
 
+export function selectLowestCostFidelityFailure<T extends ScreeningResult & { usage?: { inputTokens?: number } }>(rows: T[]): MeasurementCell {
+  const failures = rows
+    .filter(row => row.failureKind === "fidelity_failure")
+    .sort((a, b) => (a.usage?.inputTokens ?? Number.MAX_SAFE_INTEGER) - (b.usage?.inputTokens ?? Number.MAX_SAFE_INTEGER));
+  const selected = failures[0];
+  if (!selected) throw new Error("diagnostic source report contains no fidelity failures");
+  return { fixtureKind: selected.fixtureKind, targetCharacters: selected.targetCharacters, historyKind: selected.historyKind };
+}
+
 export interface ResponseDiagnostics {
   responseCharacters: number;
   contentBlockTypes: string[];

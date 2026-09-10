@@ -162,6 +162,40 @@ export function buildStepDownConfirmationPlan<T extends ScreeningResult>(rows: T
     })));
 }
 
+function validateStepDownConfirmationMatrix<T extends ScreeningResult>(rows: T[]): Map<string, T[]> {
+  if (rows.length !== 31) throw new Error("step-down confirmation report must contain exactly 31 results");
+  const screeningKeys = new Set(buildScreeningPlan().map(measurementCellKey));
+  const attemptKeys = rows.map(measurementAttemptKey);
+  if (new Set(attemptKeys).size !== attemptKeys.length || rows.some(row => !screeningKeys.has(measurementCellKey(row)))) {
+    throw new Error("step-down confirmation report contains duplicate or invalid attempts");
+  }
+  const groups = new Map<string, T[]>();
+  for (const row of rows) groups.set(measurementCellKey(row), [...(groups.get(measurementCellKey(row)) ?? []), row]);
+  const shapes = [...groups.values()].map(group => group.map(row => row.attempt).sort((a, b) => a - b).join(","));
+  if (groups.size !== 7 || shapes.filter(shape => shape === "1").length !== 1 || shapes.filter(shape => shape === "1,2,3,4,5").length !== 6) {
+    throw new Error("step-down confirmation report must contain six complete cells and one probe-only cell");
+  }
+  return groups;
+}
+
+export function buildStepDownFidelityRepairPlan<T extends ScreeningResult>(rows: T[]): { retained: T[]; retry: T[] } {
+  validateStepDownConfirmationMatrix(rows);
+  const retry = rows.filter(row => row.failureKind === "fidelity_failure");
+  if (retry.length === 0) throw new Error("step-down confirmation report contains no fidelity failures to retry");
+  return { retained: rows.filter(row => row.failureKind !== "fidelity_failure"), retry };
+}
+
+export function buildStepDownCompletionPlan<T extends ScreeningResult>(rows: T[]): Array<{ cell: MeasurementCell; attempt: number }> {
+  const groups = validateStepDownConfirmationMatrix(rows);
+  if (rows.some(row => row.status !== "passed")) throw new Error("step-down completion requires every retained result to pass");
+  const probeOnly = [...groups.values()].find(group => group.length === 1)?.[0];
+  if (!probeOnly) throw new Error("step-down completion could not identify the probe-only cell");
+  return [2, 3, 4, 5].map(attempt => ({
+    cell: { fixtureKind: probeOnly.fixtureKind, targetCharacters: probeOnly.targetCharacters, historyKind: probeOnly.historyKind },
+    attempt,
+  }));
+}
+
 export function buildBoundaryProviderRejectionResumePlan<T extends ScreeningResult>(rows: T[]): {
   retained: T[];
   retry: T[];
@@ -235,7 +269,7 @@ export function assessDraftFidelity(draft: string): DraftFidelitySignals {
   const normalized = draft.toLowerCase().replace(/[’]/g, "'");
   return {
     hasThankSignal: /\bthank|\bappreciat|\bgrateful/.test(normalized),
-    hasDeclineSignal: /\bdeclin|\bunable\b|\b(?:cannot|can't|not able to)\s+(?:accept|take you up|participate|join|connect)|\b(?:won't|will not)\s+(?:be able to\s+)?(?:accept|take you up|participate|join|connect)|\b(?:have|need|must) to pass\b|\bpass on\b/.test(normalized),
+    hasDeclineSignal: /\bdeclin|\bunable\b|\bnot accepting\b|\b(?:cannot|can't|not able to)\s+(?:accept|take you up|participate|join|connect)|\b(?:won't|will not)\s+(?:be able to\s+)?(?:accept|take you up|participate|join|connect)|\b(?:have|need|must) to pass\b|\bpass on\b/.test(normalized),
     hasForbiddenDetail: /\blunch\b|\bthursday\b|board approved/.test(normalized),
   };
 }

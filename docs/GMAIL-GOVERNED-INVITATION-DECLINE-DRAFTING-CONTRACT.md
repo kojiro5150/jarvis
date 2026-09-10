@@ -144,18 +144,14 @@ The provider must return exactly:
 
 ```json
 {
-  "sender": "<exact acquired sender display identity>",
-  "subject": "<exact acquired subject>",
   "draft": "<thank-and-decline draft>"
 }
 ```
 
-Raw JSON or one complete JSON code fence may be accepted. Prose around the structure, additional keys, missing keys or non-string values fail closed.
+Raw JSON or one complete JSON code fence may be accepted. Prose around the structure, additional keys, missing keys or a non-string value fail closed. Sender and subject remain server-owned evidence: they are never requested from, accepted from, or rewritten by the model. The visible envelope is constructed deterministically from the freshly acquired Gmail fields.
 
 Deterministic validation requires:
 
-- exact sender equality with acquired evidence;
-- exact subject equality with acquired evidence;
 - a non-empty draft within the ordinary visible-message bound;
 - one bounded thank/appreciation signal;
 - one bounded decline/inability/pass signal;
@@ -217,7 +213,7 @@ V1 does not provide:
 9. Evidence presentation at exactly 16,000 code units is admitted.
 10. Evidence presentation above 16,000 code units fails before model invocation.
 11. No truncation or excerpt substitution occurs.
-12. Exact sender and subject are preserved.
+12. Exact sender and subject are preserved from acquired server evidence; a model attempt to return either field, including a `Re:` subject mutation, fails closed.
 13. A valid thank-and-decline draft passes deterministic validation.
 14. The exact historical fabricated `lunch` and `Thursday` details are rejected.
 15. Unsupported concrete arrangements absent from evidence/instruction are rejected.

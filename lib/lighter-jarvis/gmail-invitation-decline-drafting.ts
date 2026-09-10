@@ -51,8 +51,29 @@ export type GmailInvitationDeclineDraftResult = Readonly<{
   reply?: string;
   pendingAuthorizationReference?: PendingAuthorizationReference | null;
   status?: "selected" | "declined" | "failed" | "drafted";
+  diagnostic?: GmailInvitationDeclineDraftDiagnostic;
   draftRelease?: boolean;
 }>;
+
+export type GmailInvitationDeclineDraftDiagnostic =
+  | "release_not_eligible"
+  | "release_resolution_failed"
+  | "gmail_not_connected"
+  | "gmail_refresh_required"
+  | "retrieval_failed"
+  | "policy_denied"
+  | "required_fields_missing"
+  | "named_addressee_mismatch"
+  | "processing_limit"
+  | "model_call_failed"
+  | "model_response_malformed"
+  | "model_sender_mismatch"
+  | "model_subject_mismatch"
+  | "draft_empty_or_oversized"
+  | "draft_missing_thank"
+  | "draft_missing_decline"
+  | "draft_claimed_action"
+  | "draft_unsupported_detail";
 
 const defaults: GmailInvitationDeclineDraftDependencies = {
   createConnector: () => new GoogleGmailContentConnector(),
@@ -94,14 +115,23 @@ function parseModelResult(raw: string): { sender: string; subject: string; draft
   }
 }
 
-function validateDraft(result: ReturnType<typeof parseModelResult>, context: GmailInvitationDeclineDraftContextSource, instruction: string): string | null {
-  if (!result || result.sender !== context.sender || result.subject !== context.subject) return null;
+function validateDraft(result: ReturnType<typeof parseModelResult>, context: GmailInvitationDeclineDraftContextSource, instruction: string):
+  | Readonly<{ draft: string; diagnostic: null }>
+  | Readonly<{ draft: null; diagnostic: GmailInvitationDeclineDraftDiagnostic }> {
+  if (!result) return { draft: null, diagnostic: "model_response_malformed" };
+  if (result.sender !== context.sender) return { draft: null, diagnostic: "model_sender_mismatch" };
+  if (result.subject !== context.subject) return { draft: null, diagnostic: "model_subject_mismatch" };
   const draft = result.draft.trim();
-  if (!draft || draft.length >= 8_000 || !THANK.test(draft) || !DECLINE.test(draft) || ACTED.test(draft)) return null;
+  if (!draft || draft.length >= 8_000) return { draft: null, diagnostic: "draft_empty_or_oversized" };
+  if (!THANK.test(draft)) return { draft: null, diagnostic: "draft_missing_thank" };
+  if (!DECLINE.test(draft)) return { draft: null, diagnostic: "draft_missing_decline" };
+  if (ACTED.test(draft)) return { draft: null, diagnostic: "draft_claimed_action" };
   const evidenceAndInstruction = `${context.sender}\n${context.subject}\n${context.plainTextBody}\n${instruction}`.toLocaleLowerCase("en-AU");
   const unsupported = [...draft.matchAll(UNSUPPORTED_DETAIL)].map((match) => match[0]);
-  if (unsupported.some((detail) => !evidenceAndInstruction.includes(detail.toLocaleLowerCase("en-AU")))) return null;
-  return draft;
+  if (unsupported.some((detail) => !evidenceAndInstruction.includes(detail.toLocaleLowerCase("en-AU")))) {
+    return { draft: null, diagnostic: "draft_unsupported_detail" };
+  }
+  return { draft, diagnostic: null };
 }
 
 function failureFor(error: unknown): string {
@@ -126,7 +156,7 @@ export async function resolveGmailInvitationDeclineDraft(
     const release = resolveGmailPrivateReleaseReference(input.gmailPrivateReleaseReference);
     const requiredFields = ["sender", "subject", "plain_text_body"] as const;
     if (!release || requiredFields.some((field) => !release.requestedFields.includes(field))) {
-      return Object.freeze({ handled: true, status: "failed", reply: "That prior Gmail message is no longer eligible. Please search for and read the exact message again." });
+      return Object.freeze({ handled: true, status: "failed", diagnostic: "release_not_eligible", reply: "That prior Gmail message is no longer eligible. Please search for and read the exact message again." });
     }
     const originatingReleaseReference = input.gmailPrivateReleaseReference as GmailPrivateReleaseReference;
     const operation: GmailInvitationDeclineDraftOperation = Object.freeze({
@@ -159,7 +189,7 @@ export async function resolveGmailInvitationDeclineDraft(
 
   const operation = authority.proposedOperation;
   const release = resolveGmailPrivateReleaseReference(operation.originatingReleaseReference);
-  if (!release || release.resourceId !== operation.resourceId) return Object.freeze({ handled: true, status: "failed", reply: GMAIL_INVITATION_DECLINE_UNAVAILABLE, pendingAuthorizationReference: null });
+  if (!release || release.resourceId !== operation.resourceId) return Object.freeze({ handled: true, status: "failed", diagnostic: "release_resolution_failed", reply: GMAIL_INVITATION_DECLINE_UNAVAILABLE, pendingAuthorizationReference: null });
 
   try {
     const policy = await dependencies.loadPolicy();
@@ -169,10 +199,16 @@ export async function resolveGmailInvitationDeclineDraft(
       requestingRuntime: "api-lighter-chat-gmail-invitation-decline-draft",
     }, policy);
     if (retrieval.outcome === "failed" && retrieval.failureReason !== "provider_failure") {
-      return Object.freeze({ handled: true, status: "failed", reply: failureFor(new GoogleServiceAuthError(retrieval.failureReason!, "Gmail authentication failed")), pendingAuthorizationReference: null });
+      return Object.freeze({ handled: true, status: "failed", diagnostic: retrieval.failureReason === "refresh_failed" ? "gmail_refresh_required" : "gmail_not_connected", reply: failureFor(new GoogleServiceAuthError(retrieval.failureReason!, "Gmail authentication failed")), pendingAuthorizationReference: null });
     }
-    if (retrieval.outcome !== "permitted" || !retrieval.content?.sender || !retrieval.content.subject || !retrieval.content.plainTextBody) {
-      return Object.freeze({ handled: true, status: "failed", reply: GMAIL_INVITATION_DECLINE_UNAVAILABLE, pendingAuthorizationReference: null });
+    if (retrieval.outcome === "denied") {
+      return Object.freeze({ handled: true, status: "failed", diagnostic: "policy_denied", reply: GMAIL_INVITATION_DECLINE_UNAVAILABLE, pendingAuthorizationReference: null });
+    }
+    if (retrieval.outcome === "failed") {
+      return Object.freeze({ handled: true, status: "failed", diagnostic: "retrieval_failed", reply: GMAIL_INVITATION_DECLINE_UNAVAILABLE, pendingAuthorizationReference: null });
+    }
+    if (!retrieval.content?.sender || !retrieval.content.subject || !retrieval.content.plainTextBody) {
+      return Object.freeze({ handled: true, status: "failed", diagnostic: "required_fields_missing", reply: GMAIL_INVITATION_DECLINE_UNAVAILABLE, pendingAuthorizationReference: null });
     }
     const context: GmailInvitationDeclineDraftContextSource = Object.freeze({
       source: "gmail_invitation_decline_draft",
@@ -181,17 +217,28 @@ export async function resolveGmailInvitationDeclineDraft(
       plainTextBody: retrieval.content.plainTextBody,
     });
     if (operation.namedAddressee && !normalizeName(senderDisplayName(context.sender)).split(" ").includes(normalizeName(operation.namedAddressee))) {
-      return Object.freeze({ handled: true, status: "failed", reply: "The named addressee does not match the current Gmail message. Please restate the request against the current email.", pendingAuthorizationReference: null });
+      return Object.freeze({ handled: true, status: "failed", diagnostic: "named_addressee_mismatch", reply: "The named addressee does not match the current Gmail message. Please restate the request against the current email.", pendingAuthorizationReference: null });
     }
     const presentation = JSON.stringify(context);
     if (presentation.length > GMAIL_INVITATION_DECLINE_MAX_EVIDENCE_CODE_UNITS) {
-      return Object.freeze({ handled: true, status: "failed", reply: GMAIL_INVITATION_DECLINE_PROCESSING_LIMIT, pendingAuthorizationReference: null });
+      return Object.freeze({ handled: true, status: "failed", diagnostic: "processing_limit", reply: GMAIL_INVITATION_DECLINE_PROCESSING_LIMIT, pendingAuthorizationReference: null });
     }
-    const draft = validateDraft(parseModelResult(await dependencies.callDraftModel(operation.instruction, context)), context, operation.instruction);
-    if (!draft) return Object.freeze({ handled: true, status: "failed", reply: GMAIL_INVITATION_DECLINE_UNAVAILABLE, pendingAuthorizationReference: null });
+    let rawModelResult: string;
+    try {
+      rawModelResult = await dependencies.callDraftModel(operation.instruction, context);
+    } catch {
+      return Object.freeze({ handled: true, status: "failed", diagnostic: "model_call_failed", reply: GMAIL_INVITATION_DECLINE_UNAVAILABLE, pendingAuthorizationReference: null });
+    }
+    const validation = validateDraft(parseModelResult(rawModelResult), context, operation.instruction);
+    if (!validation.draft) {
+      const diagnostic = validation.diagnostic ?? "model_response_malformed";
+      return Object.freeze({ handled: true, status: "failed", diagnostic, reply: GMAIL_INVITATION_DECLINE_UNAVAILABLE, pendingAuthorizationReference: null });
+    }
     return Object.freeze({ handled: true, status: "drafted", draftRelease: true, pendingAuthorizationReference: null,
-      reply: `Proposed reply to ${senderDisplayName(context.sender)}\nSubject: ${context.subject}\n\n${draft}\n\nDrafted from the freshly authorised exact Gmail message. This message has not been sent.` });
+      reply: `Proposed reply to ${senderDisplayName(context.sender)}\nSubject: ${context.subject}\n\n${validation.draft}\n\nDrafted from the freshly authorised exact Gmail message. This message has not been sent.` });
   } catch (error) {
-    return Object.freeze({ handled: true, status: "failed", reply: failureFor(error), pendingAuthorizationReference: null });
+    return Object.freeze({ handled: true, status: "failed", diagnostic: error instanceof GoogleServiceAuthError
+      ? error.reason === "refresh_failed" ? "gmail_refresh_required" : "gmail_not_connected"
+      : "retrieval_failed", reply: failureFor(error), pendingAuthorizationReference: null });
   }
 }

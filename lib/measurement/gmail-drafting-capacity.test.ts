@@ -8,7 +8,10 @@ import {
   buildProviderRejectionResumePlan,
   buildReportProgress,
   buildScreeningPlan,
+  buildStepDownConfirmationPlan,
+  buildStepDownProbePlan,
   fixtureDigest,
+  measurementCellKey,
   parseMeasurementReply,
   selectBoundaryCandidates,
   validateDraftReply,
@@ -150,5 +153,33 @@ describe("Gmail drafting capacity measurement", () => {
     })));
     expect(() => buildBoundaryProviderRejectionResumePlan(rows.slice(1))).toThrow("exactly 80");
     expect(() => buildBoundaryProviderRejectionResumePlan([rows[0], ...rows.slice(0, -1)])).toThrow("duplicate or invalid attempts");
+  });
+
+  it("selects only inconsistent boundary cells at their next lower configured size", () => {
+    const cells = buildScreeningPlan().slice(0, 16);
+    const rows = cells.flatMap((cell, cellIndex) => Array.from({ length: 5 }, (_, index) => ({
+      ...cell,
+      attempt: index + 1,
+      status: cellIndex === 4 && index === 2 ? "failed" as const : "passed" as const,
+      ...(cellIndex === 4 && index === 2 ? { failureKind: "fidelity_failure" as const } : {}),
+    })));
+    expect(buildStepDownProbePlan(rows)).toEqual([{
+      fixtureKind: cells[4].fixtureKind,
+      targetCharacters: 8_000,
+      historyKind: cells[4].historyKind,
+    }]);
+  });
+
+  it("confirms only successful step-down probes with attempts two through five", () => {
+    const cells = buildScreeningPlan().slice(0, 3);
+    const plan = buildStepDownConfirmationPlan(cells.map((cell, index) => ({
+      ...cell,
+      attempt: 1,
+      status: index === 1 ? "failed" as const : "passed" as const,
+      ...(index === 1 ? { failureKind: "fidelity_failure" as const } : {}),
+    })));
+    expect(plan).toHaveLength(8);
+    expect(plan.map(task => task.attempt)).toEqual([2, 3, 4, 5, 2, 3, 4, 5]);
+    expect(plan.some(task => measurementCellKey(task.cell) === measurementCellKey(cells[1]))).toBe(false);
   });
 });

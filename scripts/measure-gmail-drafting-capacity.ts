@@ -16,6 +16,8 @@ import {
   buildMeasurementInstruction,
   buildProviderRejectionResumePlan,
   buildScreeningPlan,
+  buildStepDownConfirmationPlan,
+  buildStepDownProbePlan,
   fixtureDigest,
   measurementAttemptKey,
   measurementCellKey,
@@ -26,7 +28,7 @@ import {
   type MeasurementCell,
 } from "../lib/measurement/gmail-drafting-capacity";
 
-type Phase = "screening" | "boundary";
+type Phase = "screening" | "boundary" | "step_down_probe" | "step_down_confirmation";
 interface UsageRecord { inputTokens: number; outputTokens: number; cacheCreationInputTokens?: number; cacheReadInputTokens?: number }
 interface ResultRow extends MeasurementCell {
   attempt: number;
@@ -74,6 +76,34 @@ async function loadBoundaryPlan(path: string): Promise<MeasurementCell[]> {
   return selectBoundaryCandidates(parsed.results);
 }
 
+async function loadStepDownProbe(path: string): Promise<{ plan: MeasurementCell[]; sourceReportDigest: string }> {
+  const content = await readFile(path, "utf8");
+  const parsed = JSON.parse(content) as { phase?: string; results?: ResultRow[] };
+  if (parsed.phase !== "boundary" || !Array.isArray(parsed.results)) throw new Error("step-down probe requires a valid boundary report");
+  return { plan: buildStepDownProbePlan(parsed.results), sourceReportDigest: createHash("sha256").update(content).digest("hex") };
+}
+
+async function loadStepDownConfirmation(path: string): Promise<{
+  retained: ResultRow[];
+  tasks: Array<{ cell: MeasurementCell; attempt: number }>;
+  sourceReportDigest: string;
+}> {
+  const content = await readFile(path, "utf8");
+  const parsed = JSON.parse(content) as ScreeningReport;
+  if (parsed.schemaVersion !== MEASUREMENT_SCHEMA_VERSION || parsed.phase !== "step_down_probe" || !Array.isArray(parsed.results)
+    || parsed.source?.purpose !== "step_down_probe" || parsed.progress?.status !== "completed" || parsed.progress.remaining !== 0) {
+    throw new Error("step-down confirmation requires a compatible probe report");
+  }
+  if (parsed.model !== CLAUDE_MODEL || parsed.maxOutputTokens !== CLAUDE_MAX_TOKENS || parsed.timeoutMs !== CLAUDE_TIMEOUT_MS) {
+    throw new Error("probe report model configuration does not match the current measurement contract");
+  }
+  return {
+    retained: parsed.results,
+    tasks: buildStepDownConfirmationPlan(parsed.results),
+    sourceReportDigest: createHash("sha256").update(content).digest("hex"),
+  };
+}
+
 interface ScreeningReport {
   schemaVersion?: number;
   phase?: string;
@@ -81,6 +111,8 @@ interface ScreeningReport {
   maxOutputTokens?: number;
   timeoutMs?: number;
   results?: ResultRow[];
+  source?: { sourceReportDigest?: string; purpose?: string };
+  progress?: { status?: string; completed?: number; remaining?: number };
 }
 
 interface ResumeState {
@@ -213,6 +245,10 @@ interface ReportMetadata {
     retryFailureKind: "provider_rejection" | "fidelity_failure";
     replacedFailures: number;
   };
+  source?: {
+    sourceReportDigest: string;
+    purpose: "step_down_probe" | "step_down_confirmation";
+  };
 }
 
 function buildReport(metadata: ReportMetadata, results: ResultRow[], interrupted: boolean) {
@@ -226,6 +262,7 @@ function buildReport(metadata: ReportMetadata, results: ResultRow[], interrupted
     timeoutMs: CLAUDE_TIMEOUT_MS,
     privacy: "Synthetic fixtures only; prompt and response content are not retained.",
     ...(metadata.resume ? { resume: metadata.resume } : {}),
+    ...(metadata.source ? { source: metadata.source } : {}),
     progress: buildReportProgress(results.length, metadata.projectedCalls, interrupted),
     results,
   };
@@ -243,29 +280,48 @@ function usage(value: Anthropic.Messages.Usage): UsageRecord {
 
 async function main(): Promise<void> {
   const phase = (argument("--phase") ?? "screening") as Phase;
-  if (phase !== "screening" && phase !== "boundary") throw new Error("--phase must be screening or boundary");
+  if (!["screening", "boundary", "step_down_probe", "step_down_confirmation"].includes(phase)) {
+    throw new Error("--phase must be screening, boundary, step_down_probe, or step_down_confirmation");
+  }
   const resumePathArgument = argument("--resume-report");
   const resumePath = resumePathArgument ? resolve(resumePathArgument) : undefined;
-  const resume = resumePath ? await loadResume(resumePath, phase) : undefined;
-  const plan = phase === "screening"
-    ? buildScreeningPlan()
-    : resume
-      ? []
-      : await loadBoundaryPlan(resolve(argument("--screening-report") ?? (() => { throw new Error("--screening-report is required for boundary phase"); })()));
-  const attempts = phase === "boundary" ? 5 : 1;
-  const tasks = resume?.retryTasks ?? plan.flatMap(cell =>
-    Array.from({ length: attempts }, (_, index) => ({ cell, attempt: index + 1 })));
+  if (resumePath && phase !== "screening" && phase !== "boundary") throw new Error("--resume-report is supported only for screening or boundary");
+  const resume = resumePath ? await loadResume(resumePath, phase as "screening" | "boundary") : undefined;
+  let plan: MeasurementCell[] = [];
+  let tasks: Array<{ cell: MeasurementCell; attempt: number }> = [];
+  let initialResults: ResultRow[] = [];
+  let source: ReportMetadata["source"];
+  let attempts: number | string = 1;
+  if (phase === "screening") {
+    plan = buildScreeningPlan();
+    tasks = resume?.retryTasks ?? plan.map(cell => ({ cell, attempt: 1 }));
+  } else if (phase === "boundary") {
+    attempts = 5;
+    plan = resume ? [] : await loadBoundaryPlan(resolve(argument("--screening-report") ?? (() => { throw new Error("--screening-report is required for boundary phase"); })()));
+    tasks = resume?.retryTasks ?? plan.flatMap(cell => Array.from({ length: 5 }, (_, index) => ({ cell, attempt: index + 1 })));
+  } else if (phase === "step_down_probe") {
+    const loaded = await loadStepDownProbe(resolve(argument("--boundary-report") ?? (() => { throw new Error("--boundary-report is required for step_down_probe"); })()));
+    plan = loaded.plan;
+    tasks = plan.map(cell => ({ cell, attempt: 1 }));
+    source = { sourceReportDigest: loaded.sourceReportDigest, purpose: "step_down_probe" };
+  } else {
+    const loaded = await loadStepDownConfirmation(resolve(argument("--probe-report") ?? (() => { throw new Error("--probe-report is required for step_down_confirmation"); })()));
+    initialResults = loaded.retained;
+    tasks = loaded.tasks;
+    attempts = "four additional attempts for successful probes only";
+    source = { sourceReportDigest: loaded.sourceReportDigest, purpose: "step_down_confirmation" };
+  }
 
   if (!process.argv.includes("--run")) {
     console.log(JSON.stringify({
       mode: "plan-only",
       phase,
       resume: Boolean(resume),
-      retainedResults: resume?.retained.length ?? 0,
-      cells: resume ? new Set(tasks.map(task => measurementCellKey(task.cell))).size : plan.length,
+      retainedResults: resume?.retained.length ?? initialResults.length,
+      cells: new Set(tasks.map(task => measurementCellKey(task.cell))).size,
       attemptsPerCell: resume ? "selected rejected attempts only" : attempts,
       projectedCalls: tasks.length,
-      plan: resume ? tasks.map(task => ({ ...task.cell, attempt: task.attempt })) : plan,
+      plan: tasks.map(task => ({ ...task.cell, attempt: task.attempt })),
     }, null, 2));
     return;
   }
@@ -275,15 +331,16 @@ async function main(): Promise<void> {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: CLAUDE_TIMEOUT_MS, maxRetries: 0 });
   const systemPrompt = await buildSpecialistPrompt();
   const resultByKey = new Map((resume?.retained ?? []).map(row => [resume?.keyFor(row) ?? measurementCellKey(row), row]));
-  const results: ResultRow[] = [];
+  const results: ResultRow[] = [...initialResults];
   const reportResults = () => resume
     ? resume.orderedKeys.map(key => resultByKey.get(key)).filter((row): row is ResultRow => Boolean(row))
     : results;
   const metadata = {
     generatedAt: new Date().toISOString(),
     phase,
-    projectedCalls: resume?.totalResults ?? tasks.length,
+    projectedCalls: resume?.totalResults ?? initialResults.length + tasks.length,
     ...(resume ? { resume: { sourceReportDigest: resume.sourceReportDigest, retryFailureKind: resume.retryFailureKind, replacedFailures: resume.replacedFailures } } : {}),
+    ...(source ? { source } : {}),
   };
   let interrupted = false;
   process.once("SIGINT", () => {

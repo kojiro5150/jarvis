@@ -20,7 +20,6 @@ function release(body = "LinkedIn invitation") {
 }
 
 function dependencies(body = "LinkedIn invitation", model = vi.fn(async () => JSON.stringify({
-  sender: "Raman Bhola <raman@example.invalid>", subject: "Invitation",
   draft: "Hi Raman, thank you for the invitation. I appreciate it, but I must politely decline.",
 }))): GmailInvitationDeclineDraftDependencies {
   return {
@@ -61,8 +60,7 @@ describe("governed Gmail invitation-decline drafting", () => {
   });
 
   it("rejects the historical fabricated lunch and Thursday details", async () => {
-    const model = vi.fn(async () => JSON.stringify({ sender: "Raman Bhola <raman@example.invalid>", subject: "Invitation",
-      draft: "Thank you for the invitation, but I decline lunch on Thursday." }));
+    const model = vi.fn(async () => JSON.stringify({ draft: "Thank you for the invitation, but I decline lunch on Thursday." }));
     const deps = dependencies("LinkedIn invitation", model);
     const selected = await propose(release(), deps);
     const result = await resolveGmailInvitationDeclineDraft({ currentUserUtterance: "yes", pendingAuthorizationReference: selected.pendingAuthorizationReference }, deps);
@@ -92,10 +90,10 @@ describe("governed Gmail invitation-decline drafting", () => {
     expect(model).not.toHaveBeenCalled();
   });
 
-  it("distinguishes malformed structure and exact sender mismatch without exposing content", async () => {
+  it("rejects malformed structure and model-authored envelope fields without exposing content", async () => {
     for (const [raw, diagnostic] of [
       ["not json", "model_response_malformed"],
-      [JSON.stringify({ sender: "Raman", subject: "Invitation", draft: "Thank you, but I decline." }), "model_sender_mismatch"],
+      [JSON.stringify({ sender: "Raman", subject: "Re: Invitation", draft: "Thank you, but I decline." }), "model_response_malformed"],
     ] as const) {
       const deps = dependencies("LinkedIn invitation", vi.fn(async () => raw));
       const selected = await propose(release(), deps);
@@ -104,5 +102,15 @@ describe("governed Gmail invitation-decline drafting", () => {
       expect(JSON.stringify(result)).not.toContain("raman@example.invalid");
       expect(JSON.stringify(result)).not.toContain("LinkedIn invitation");
     }
+  });
+
+  it("constructs the visible sender and exact subject only from acquired server evidence", async () => {
+    const deps = dependencies("LinkedIn invitation", vi.fn(async () => JSON.stringify({
+      draft: "Thank you for the invitation. I appreciate it, but I must decline.",
+    })));
+    const selected = await propose(release(), deps);
+    const result = await resolveGmailInvitationDeclineDraft({ currentUserUtterance: "yes", pendingAuthorizationReference: selected.pendingAuthorizationReference }, deps);
+    expect(result.reply).toContain("Proposed reply to Raman Bhola\nSubject: Invitation\n");
+    expect(result.reply).not.toContain("Subject: Re: Invitation");
   });
 });

@@ -30,6 +30,8 @@ The final evidence proves a 24,000-code-unit cross-condition ceiling under the m
 
 > **Promotion decision:** The Gmail governed-drafting **capacity prerequisite** is **RESOLVED / FROZEN**. Governed Gmail drafting, summarisation, reply sending and mailbox mutation remain unimplemented and unauthorised.
 
+The next bounded milestone is governed invitation-decline drafting doctrine, recorded in `../GMAIL-GOVERNED-INVITATION-DECLINE-DRAFTING-CONTRACT.md`. It binds only to the single current conversation-carried Gmail release reference, requires a fresh one-shot exact-message re-read, uses a distinct Gmail-specific governed model channel, enforces the frozen 16,000-code-unit admission bound, and produces a validated proposed draft whose derived private content is omitted from later ordinary model history. The contract does not itself implement or promote the capability.
+
 ---
 
 ## Verified milestone — Explicit Product Gap resolution assertion

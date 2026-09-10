@@ -10,6 +10,7 @@ import {
   GMAIL_PRIVATE_RELEASE_CONTAINMENT_REPLY,
   OMITTED_GMAIL_PRIVATE_RELEASE,
 } from "./gmail-private-release-contract";
+import { GMAIL_INVITATION_DECLINE_AUTHORITY_PROMPT } from "./gmail-invitation-decline-draft-contract";
 
 function request(messages: readonly Readonly<{ role: "user" | "assistant"; content: string }>[],
   gmailPrivateReleaseReference?: unknown): Request {
@@ -23,11 +24,11 @@ function request(messages: readonly Readonly<{ role: "user" | "assistant"; conte
 describe("Gmail private release chat containment", () => {
   beforeEach(resetGmailPrivateReleaseReferencesForTests);
 
-  it("contains the exact Raman drafting regression without model, provider, or authority", async () => {
+  it("routes the exact Raman drafting regression to fresh bounded authority without model or provider", async () => {
     const privateFixture = `Subject: LinkedIn connection invitation\nPlain text body: ${"private fixture ".repeat(800)}`;
     const reference = createGmailPrivateReleaseReference({
       resourceId: "gmail-private-provider-id",
-      requestedFields: ["subject", "plain_text_body"],
+      requestedFields: ["sender", "subject", "plain_text_body"],
       presentation: privateFixture,
     });
     const model = vi.fn(async () => "Lunch on Thursday");
@@ -37,16 +38,18 @@ describe("Gmail private release chat containment", () => {
       { role: "user", content: "Draft a reply to Raman, saying thank you for the invite but politely decline." },
     ], reference));
     const body = await response.json();
-    expect(body).toEqual({
-      reply: GMAIL_PRIVATE_RELEASE_CONTAINMENT_REPLY,
+    expect(body).toMatchObject({
+      reply: GMAIL_INVITATION_DECLINE_AUTHORITY_PROMPT,
       specialistId: "jarvis",
       execution: "none",
       gmailPrivateReleaseReference: reference,
+      gmailInvitationDeclineDraft: { status: "selected" },
+      pendingAuthorizationReference: { pendingAuthorizationId: expect.any(String) },
     });
     expect(model).not.toHaveBeenCalled();
     expect(JSON.stringify(body)).not.toContain("gmail-private-provider-id");
     expect(JSON.stringify(body)).not.toContain("private fixture");
-    expect(body.reply).not.toMatch(/lunch|Thursday|subject/i);
+    expect(body.reply).not.toMatch(/lunch|Thursday/i);
     expect(resolveGmailPrivateReleaseReference(reference)).not.toBeNull();
   });
 

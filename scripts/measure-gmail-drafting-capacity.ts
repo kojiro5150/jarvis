@@ -23,12 +23,13 @@ import {
   measurementCellKey,
   parseMeasurementReply,
   selectBoundaryCandidates,
+  selectLowestCostFidelityFailure,
   validateDraftReply,
   type FailureKind,
   type MeasurementCell,
 } from "../lib/measurement/gmail-drafting-capacity";
 
-type Phase = "screening" | "boundary" | "step_down_probe" | "step_down_confirmation";
+type Phase = "screening" | "boundary" | "step_down_probe" | "step_down_confirmation" | "fidelity_diagnostic";
 interface UsageRecord { inputTokens: number; outputTokens: number; cacheCreationInputTokens?: number; cacheReadInputTokens?: number }
 interface ResultRow extends MeasurementCell {
   attempt: number;
@@ -100,6 +101,19 @@ async function loadStepDownConfirmation(path: string): Promise<{
   return {
     retained: parsed.results,
     tasks: buildStepDownConfirmationPlan(parsed.results),
+    sourceReportDigest: createHash("sha256").update(content).digest("hex"),
+  };
+}
+
+async function loadFidelityDiagnostic(path: string): Promise<{ cell: MeasurementCell; sourceReportDigest: string }> {
+  const content = await readFile(path, "utf8");
+  const parsed = JSON.parse(content) as ScreeningReport;
+  if (parsed.schemaVersion !== MEASUREMENT_SCHEMA_VERSION || !Array.isArray(parsed.results)
+    || parsed.progress?.status !== "completed" || parsed.progress.remaining !== 0) {
+    throw new Error("fidelity diagnostic requires a compatible completed measurement report");
+  }
+  return {
+    cell: selectLowestCostFidelityFailure(parsed.results),
     sourceReportDigest: createHash("sha256").update(content).digest("hex"),
   };
 }
@@ -183,7 +197,7 @@ function validateCell(cell: MeasurementCell): string | undefined {
   if (history.some(message => message.content.length >= 8_000)) return "history contains an ordinary message at or above 8,000 characters";
 }
 
-async function measure(client: Anthropic, systemPrompt: string, cell: MeasurementCell, attempt: number): Promise<ResultRow> {
+async function measure(client: Anthropic, systemPrompt: string, cell: MeasurementCell, attempt: number, showFailedSyntheticDraft = false): Promise<ResultRow> {
   const started = Date.now();
   const validationError = validateCell(cell);
   if (validationError) {
@@ -229,7 +243,12 @@ async function measure(client: Anthropic, systemPrompt: string, cell: Measuremen
     const fidelity = validateDraftReply(parsed.value);
     const parsedObject = parsed.value as { draft?: unknown };
     const fidelitySignals = typeof parsedObject?.draft === "string" ? assessDraftFidelity(parsedObject.draft) : undefined;
-    if (!fidelity.ok) return { ...base, elapsedMs, status: "failed", failureKind: "fidelity_failure", detail: fidelity.detail, stopReason: response.stop_reason, usage: usage(response.usage), responseFormat: parsed.format, responseDiagnostics, ...(fidelitySignals ? { fidelitySignals } : {}) };
+    if (!fidelity.ok) {
+      if (showFailedSyntheticDraft && typeof parsedObject?.draft === "string") {
+        console.log(`SYNTHETIC FAILED DRAFT (terminal only; excluded from report):\n${parsedObject.draft}`);
+      }
+      return { ...base, elapsedMs, status: "failed", failureKind: "fidelity_failure", detail: fidelity.detail, stopReason: response.stop_reason, usage: usage(response.usage), responseFormat: parsed.format, responseDiagnostics, ...(fidelitySignals ? { fidelitySignals } : {}) };
+    }
     return { ...base, elapsedMs, status: "passed", stopReason: response.stop_reason, usage: usage(response.usage), responseFormat: parsed.format, responseDiagnostics, ...(fidelitySignals ? { fidelitySignals } : {}) };
   } catch (error) {
     return { ...base, elapsedMs: Date.now() - started, status: "failed", ...classifyError(error) };
@@ -247,7 +266,7 @@ interface ReportMetadata {
   };
   source?: {
     sourceReportDigest: string;
-    purpose: "step_down_probe" | "step_down_confirmation";
+    purpose: "step_down_probe" | "step_down_confirmation" | "fidelity_diagnostic";
   };
 }
 
@@ -280,8 +299,8 @@ function usage(value: Anthropic.Messages.Usage): UsageRecord {
 
 async function main(): Promise<void> {
   const phase = (argument("--phase") ?? "screening") as Phase;
-  if (!["screening", "boundary", "step_down_probe", "step_down_confirmation"].includes(phase)) {
-    throw new Error("--phase must be screening, boundary, step_down_probe, or step_down_confirmation");
+  if (!["screening", "boundary", "step_down_probe", "step_down_confirmation", "fidelity_diagnostic"].includes(phase)) {
+    throw new Error("--phase must be screening, boundary, step_down_probe, step_down_confirmation, or fidelity_diagnostic");
   }
   const resumePathArgument = argument("--resume-report");
   const resumePath = resumePathArgument ? resolve(resumePathArgument) : undefined;
@@ -304,12 +323,18 @@ async function main(): Promise<void> {
     plan = loaded.plan;
     tasks = plan.map(cell => ({ cell, attempt: 1 }));
     source = { sourceReportDigest: loaded.sourceReportDigest, purpose: "step_down_probe" };
-  } else {
+  } else if (phase === "step_down_confirmation") {
     const loaded = await loadStepDownConfirmation(resolve(argument("--probe-report") ?? (() => { throw new Error("--probe-report is required for step_down_confirmation"); })()));
     initialResults = loaded.retained;
     tasks = loaded.tasks;
     attempts = "four additional attempts for successful probes only";
     source = { sourceReportDigest: loaded.sourceReportDigest, purpose: "step_down_confirmation" };
+  } else {
+    const loaded = await loadFidelityDiagnostic(resolve(argument("--source-report") ?? (() => { throw new Error("--source-report is required for fidelity_diagnostic"); })()));
+    plan = [loaded.cell];
+    tasks = Array.from({ length: 5 }, (_, index) => ({ cell: loaded.cell, attempt: index + 1 }));
+    attempts = 5;
+    source = { sourceReportDigest: loaded.sourceReportDigest, purpose: "fidelity_diagnostic" };
   }
 
   if (!process.argv.includes("--run")) {
@@ -326,6 +351,10 @@ async function main(): Promise<void> {
     return;
   }
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is required with --run");
+  const showFailedSyntheticDraft = process.argv.includes("--show-failed-synthetic-draft");
+  if (phase === "fidelity_diagnostic" && !showFailedSyntheticDraft) {
+    throw new Error("fidelity_diagnostic live execution requires --show-failed-synthetic-draft");
+  }
   const output = resolve(argument("--output") ?? `data/capacity-measurements/gmail-drafting-${phase}-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);
   if (resumePath && output === resumePath) throw new Error("resume output must not overwrite the source report");
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: CLAUDE_TIMEOUT_MS, maxRetries: 0 });
@@ -350,7 +379,7 @@ async function main(): Promise<void> {
   await writeMeasurementCheckpoint(output, buildReport(metadata, reportResults(), false), true);
   for (const task of tasks) {
     if (interrupted) break;
-    const row = await measure(client, systemPrompt, task.cell, task.attempt);
+    const row = await measure(client, systemPrompt, task.cell, task.attempt, phase === "fidelity_diagnostic" && showFailedSyntheticDraft);
     if (resume) resultByKey.set(resume.keyFor(row), row);
     else results.push(row);
     console.log(`${row.status.toUpperCase()} ${task.cell.fixtureKind} ${task.cell.targetCharacters} ${task.cell.historyKind} attempt ${row.attempt}${row.failureKind ? ` (${row.failureKind})` : ""}`);

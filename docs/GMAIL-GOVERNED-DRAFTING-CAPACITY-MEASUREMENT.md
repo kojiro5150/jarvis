@@ -67,3 +67,17 @@ To retry only fidelity failures after a deterministic validator correction, add:
 ```
 
 The consolidated report records separate `hasThankSignal`, `hasDeclineSignal`, and `hasForbiddenDetail` booleans for newly measured drafts. It never retains draft text. The bounded decline grammar accepts explicit decline, inability to accept or participate, and clear “have to pass”/“pass on” formulations; it does not delegate semantic classification to another model.
+
+For a completed 16-cell, five-attempt boundary report interrupted by provider credit rejection, inspect the exact retry plan:
+
+```bash
+npm run measure:gmail-drafting -- --phase boundary --resume-report data/capacity-measurements/gmail-boundary.json
+```
+
+Then rerun only the rejected attempt identities into a new report:
+
+```bash
+npm run measure:gmail-drafting:live -- --phase boundary --resume-report data/capacity-measurements/gmail-boundary.json --output data/capacity-measurements/gmail-boundary-resumed.json
+```
+
+Boundary resume requires exactly 16 distinct cells with attempts 1 through 5. It preserves successful and fidelity-failure attempts in their original order, replaces only provider rejections at the same attempt number, and rejects incomplete, duplicate, mismatched, or non-boundary evidence.

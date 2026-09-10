@@ -17,7 +17,6 @@ describe("Gmail invitation-decline drafting chat integration", () => {
     const connectorRead = vi.fn(async () => ({ sender: "Raman Bhola <raman@example.invalid>", subject: "LinkedIn invitation",
       plainTextBody: "I would like to invite you to connect on LinkedIn." }));
     const draftingModel = vi.fn<GmailInvitationDeclineDraftDependencies["callDraftModel"]>(async () => JSON.stringify({
-      sender: "Raman Bhola <raman@example.invalid>", subject: "LinkedIn invitation",
       draft: "Hi Raman, thank you for the invitation. I appreciate it, but I must politely decline.",
     }));
     const policy: ContentRetrievalPolicy = { policyVersion: "test", rules: [{ id: "gmail", match: { connectorType: "email" },

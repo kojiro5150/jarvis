@@ -67,8 +67,6 @@ export type GmailInvitationDeclineDraftDiagnostic =
   | "processing_limit"
   | "model_call_failed"
   | "model_response_malformed"
-  | "model_sender_mismatch"
-  | "model_subject_mismatch"
   | "draft_empty_or_oversized"
   | "draft_missing_thank"
   | "draft_missing_decline"
@@ -97,7 +95,7 @@ function parseRequest(utterance: string): { instruction: string; namedAddressee:
   return { instruction: normalized, namedAddressee: match[2] ?? null };
 }
 
-function parseModelResult(raw: string): { sender: string; subject: string; draft: string } | null {
+function parseModelResult(raw: string): { draft: string } | null {
   const trimmed = raw.trim();
   const candidate = trimmed.startsWith("```")
     ? trimmed.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "")
@@ -106,10 +104,10 @@ function parseModelResult(raw: string): { sender: string; subject: string; draft
     const value = JSON.parse(candidate) as unknown;
     if (!value || typeof value !== "object" || Array.isArray(value)) return null;
     const keys = Object.keys(value).sort();
-    if (keys.join(",") !== "draft,sender,subject") return null;
+    if (keys.join(",") !== "draft") return null;
     const result = value as Record<string, unknown>;
-    if (typeof result.sender !== "string" || typeof result.subject !== "string" || typeof result.draft !== "string") return null;
-    return { sender: result.sender, subject: result.subject, draft: result.draft };
+    if (typeof result.draft !== "string") return null;
+    return { draft: result.draft };
   } catch {
     return null;
   }
@@ -119,8 +117,6 @@ function validateDraft(result: ReturnType<typeof parseModelResult>, context: Gma
   | Readonly<{ draft: string; diagnostic: null }>
   | Readonly<{ draft: null; diagnostic: GmailInvitationDeclineDraftDiagnostic }> {
   if (!result) return { draft: null, diagnostic: "model_response_malformed" };
-  if (result.sender !== context.sender) return { draft: null, diagnostic: "model_sender_mismatch" };
-  if (result.subject !== context.subject) return { draft: null, diagnostic: "model_subject_mismatch" };
   const draft = result.draft.trim();
   if (!draft || draft.length >= 8_000) return { draft: null, diagnostic: "draft_empty_or_oversized" };
   if (!THANK.test(draft)) return { draft: null, diagnostic: "draft_missing_thank" };

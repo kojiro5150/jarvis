@@ -11,6 +11,7 @@ import { ClientAuthorityTurnState, type OpaquePendingAuthorization } from "@/lib
 import { ConversationTransportHistory } from "@/lib/lighter-jarvis/conversation-transport-history";
 import { projectGmailPrivateReleasesForTransport } from "@/lib/lighter-jarvis/gmail-private-release-transport";
 import { projectDrivePrivateReleasesForTransport } from "@/lib/lighter-jarvis/drive-private-release-transport";
+import { projectGmailInvitationDeclineDraftsForTransport } from "@/lib/lighter-jarvis/gmail-invitation-decline-draft-transport";
 
 type Specialist = {
   id: string;
@@ -103,6 +104,7 @@ export default function UnifiedOpsConsole() {
   const gmailSenderDisambiguationRef = useRef<OpaqueGmailSenderDisambiguation | null>(null);
   const gmailMessageListRef = useRef<OpaqueGmailMessageList | null>(null);
   const gmailPrivateReleaseRef = useRef<OpaqueGmailPrivateRelease | null>(null);
+  const gmailInvitationDeclineDraftReleaseRef = useRef(false);
   const drivePrivateReleaseRef = useRef<OpaqueDrivePrivateRelease | null>(null);
   const governedReferentialScopeRef = useRef<OpaqueGovernedReferentialScope | null>(null);
   const governedResultSetRef = useRef<OpaqueGovernedResultSet | null>(null);
@@ -302,13 +304,13 @@ export default function UnifiedOpsConsole() {
         body: JSON.stringify({
           specialistId: specialist.id,
           messages: specialist.id === "jarvis"
-            ? projectDrivePrivateReleasesForTransport(
+            ? projectGmailInvitationDeclineDraftsForTransport(projectDrivePrivateReleasesForTransport(
                 projectGmailPrivateReleasesForTransport(
                   nextMessages,
                   gmailPrivateReleaseRef.current !== null,
                 ),
                 drivePrivateReleaseRef.current !== null,
-              )
+              ), gmailInvitationDeclineDraftReleaseRef.current)
             : nextMessages.map(({ role, content: text }) => ({ role, content: text })),
           ...(authorityRequest?.pendingAuthorizationReference
             ? { pendingAuthorizationReference: authorityRequest.pendingAuthorizationReference }
@@ -366,6 +368,7 @@ export default function UnifiedOpsConsole() {
         gmailSenderDisambiguationReference?: OpaqueGmailSenderDisambiguation | null;
         gmailMessageListReference?: OpaqueGmailMessageList | null;
         gmailPrivateReleaseReference?: OpaqueGmailPrivateRelease | null;
+        gmailInvitationDeclineDraftRelease?: boolean;
         drivePrivateReleaseReference?: OpaqueDrivePrivateRelease | null;
         governedReferentialScopeReference?: OpaqueGovernedReferentialScope | null;
         governedResultSetReference?: OpaqueGovernedResultSet | null;
@@ -399,6 +402,9 @@ export default function UnifiedOpsConsole() {
       }
       if (data.gmailPrivateReleaseReference !== undefined) {
         gmailPrivateReleaseRef.current = data.gmailPrivateReleaseReference;
+      }
+      if (data.gmailInvitationDeclineDraftRelease === true) {
+        gmailInvitationDeclineDraftReleaseRef.current = true;
       }
       if (data.drivePrivateReleaseReference !== undefined) {
         drivePrivateReleaseRef.current = data.drivePrivateReleaseReference;

@@ -8,6 +8,7 @@ import { writeMeasurementCheckpoint } from "../lib/measurement/measurement-check
 import {
   MEASUREMENT_SCHEMA_VERSION,
   assessDraftFidelity,
+  buildBoundaryProviderRejectionResumePlan,
   buildFailureResumePlan,
   buildReportProgress,
   buildFixture,
@@ -16,6 +17,7 @@ import {
   buildProviderRejectionResumePlan,
   buildScreeningPlan,
   fixtureDigest,
+  measurementAttemptKey,
   measurementCellKey,
   parseMeasurementReply,
   selectBoundaryCandidates,
@@ -81,17 +83,22 @@ interface ScreeningReport {
   results?: ResultRow[];
 }
 
-async function loadResume(path: string): Promise<{
+interface ResumeState {
   retained: ResultRow[];
-  retry: MeasurementCell[];
+  retryTasks: Array<{ cell: MeasurementCell; attempt: number }>;
+  orderedKeys: string[];
   sourceReportDigest: string;
   retryFailureKind: "provider_rejection" | "fidelity_failure";
   replacedFailures: number;
-}> {
+  totalResults: number;
+  keyFor: (row: MeasurementCell & { attempt: number }) => string;
+}
+
+async function loadResume(path: string, phase: Phase): Promise<ResumeState> {
   const content = await readFile(path, "utf8");
   const parsed = JSON.parse(content) as ScreeningReport;
-  if (parsed.schemaVersion !== MEASUREMENT_SCHEMA_VERSION || parsed.phase !== "screening") {
-    throw new Error("resume requires a compatible screening report");
+  if (parsed.schemaVersion !== MEASUREMENT_SCHEMA_VERSION || parsed.phase !== phase) {
+    throw new Error(`resume requires a compatible ${phase} report`);
   }
   if (parsed.model !== CLAUDE_MODEL || parsed.maxOutputTokens !== CLAUDE_MAX_TOKENS || parsed.timeoutMs !== CLAUDE_TIMEOUT_MS) {
     throw new Error("resume report model configuration does not match the current measurement contract");
@@ -101,14 +108,39 @@ async function loadResume(path: string): Promise<{
   if (retryFailureKind !== "provider_rejection" && retryFailureKind !== "fidelity_failure") {
     throw new Error("--retry-failure must be provider_rejection or fidelity_failure");
   }
-  const resume = retryFailureKind === "provider_rejection"
-    ? buildProviderRejectionResumePlan(parsed.results)
-    : buildFailureResumePlan(parsed.results, retryFailureKind);
+  if (phase === "boundary" && retryFailureKind !== "provider_rejection") {
+    throw new Error("boundary resume currently retries only provider_rejection attempts");
+  }
+  const keyFor = phase === "boundary" ? measurementAttemptKey : measurementCellKey;
+  let retained: ResultRow[];
+  let retryTasks: Array<{ cell: MeasurementCell; attempt: number }>;
+  if (phase === "boundary") {
+    const boundaryResume = buildBoundaryProviderRejectionResumePlan(parsed.results);
+    retained = boundaryResume.retained;
+    retryTasks = boundaryResume.retry.map(row => ({
+      cell: { fixtureKind: row.fixtureKind, targetCharacters: row.targetCharacters, historyKind: row.historyKind },
+      attempt: row.attempt,
+    }));
+  } else {
+    const screeningResume = retryFailureKind === "provider_rejection"
+      ? buildProviderRejectionResumePlan(parsed.results)
+      : buildFailureResumePlan(parsed.results, retryFailureKind);
+    retained = screeningResume.retained;
+    retryTasks = screeningResume.retry.map(cell => {
+        const prior = parsed.results?.find(row => measurementCellKey(row) === measurementCellKey(cell));
+        if (!prior) throw new Error("resume source row is missing");
+        return { cell, attempt: prior.attempt + 1 };
+      });
+  }
   return {
-    ...resume,
+    retained,
+    retryTasks,
+    orderedKeys: parsed.results.map(keyFor),
     sourceReportDigest: createHash("sha256").update(content).digest("hex"),
     retryFailureKind,
-    replacedFailures: resume.retry.length,
+    replacedFailures: retryTasks.length,
+    totalResults: parsed.results.length,
+    keyFor,
   };
 }
 
@@ -213,18 +245,28 @@ async function main(): Promise<void> {
   const phase = (argument("--phase") ?? "screening") as Phase;
   if (phase !== "screening" && phase !== "boundary") throw new Error("--phase must be screening or boundary");
   const resumePathArgument = argument("--resume-report");
-  if (resumePathArgument && phase !== "screening") throw new Error("--resume-report is available only for screening phase");
   const resumePath = resumePathArgument ? resolve(resumePathArgument) : undefined;
-  const resume = resumePath ? await loadResume(resumePath) : undefined;
-  const plan = resume
-    ? resume.retry
-    : phase === "screening"
-      ? buildScreeningPlan()
+  const resume = resumePath ? await loadResume(resumePath, phase) : undefined;
+  const plan = phase === "screening"
+    ? buildScreeningPlan()
+    : resume
+      ? []
       : await loadBoundaryPlan(resolve(argument("--screening-report") ?? (() => { throw new Error("--screening-report is required for boundary phase"); })()));
   const attempts = phase === "boundary" ? 5 : 1;
+  const tasks = resume?.retryTasks ?? plan.flatMap(cell =>
+    Array.from({ length: attempts }, (_, index) => ({ cell, attempt: index + 1 })));
 
   if (!process.argv.includes("--run")) {
-    console.log(JSON.stringify({ mode: "plan-only", phase, resume: Boolean(resume), retainedResults: resume?.retained.length ?? 0, cells: plan.length, attemptsPerCell: attempts, projectedCalls: plan.length * attempts, plan }, null, 2));
+    console.log(JSON.stringify({
+      mode: "plan-only",
+      phase,
+      resume: Boolean(resume),
+      retainedResults: resume?.retained.length ?? 0,
+      cells: resume ? new Set(tasks.map(task => measurementCellKey(task.cell))).size : plan.length,
+      attemptsPerCell: resume ? "selected rejected attempts only" : attempts,
+      projectedCalls: tasks.length,
+      plan: resume ? tasks.map(task => ({ ...task.cell, attempt: task.attempt })) : plan,
+    }, null, 2));
     return;
   }
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is required with --run");
@@ -232,16 +274,15 @@ async function main(): Promise<void> {
   if (resumePath && output === resumePath) throw new Error("resume output must not overwrite the source report");
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: CLAUDE_TIMEOUT_MS, maxRetries: 0 });
   const systemPrompt = await buildSpecialistPrompt();
-  const resultByCell = new Map((resume?.retained ?? []).map(row => [measurementCellKey(row), row]));
+  const resultByKey = new Map((resume?.retained ?? []).map(row => [resume?.keyFor(row) ?? measurementCellKey(row), row]));
   const results: ResultRow[] = [];
-  const orderedPlan = phase === "screening" ? buildScreeningPlan() : plan;
   const reportResults = () => resume
-    ? orderedPlan.map(cell => resultByCell.get(measurementCellKey(cell))).filter((row): row is ResultRow => Boolean(row))
+    ? resume.orderedKeys.map(key => resultByKey.get(key)).filter((row): row is ResultRow => Boolean(row))
     : results;
   const metadata = {
     generatedAt: new Date().toISOString(),
     phase,
-    projectedCalls: orderedPlan.length * attempts,
+    projectedCalls: resume?.totalResults ?? tasks.length,
     ...(resume ? { resume: { sourceReportDigest: resume.sourceReportDigest, retryFailureKind: resume.retryFailureKind, replacedFailures: resume.replacedFailures } } : {}),
   };
   let interrupted = false;
@@ -250,17 +291,13 @@ async function main(): Promise<void> {
     console.log("\nInterrupt requested; preserving the latest completed checkpoint.");
   });
   await writeMeasurementCheckpoint(output, buildReport(metadata, reportResults(), false), true);
-  for (const cell of plan) {
-    for (let attempt = 1; attempt <= attempts; attempt += 1) {
-      if (interrupted) break;
-      const priorAttempt = resume ? 1 : 0;
-      const row = await measure(client, systemPrompt, cell, attempt + priorAttempt);
-      if (resume) resultByCell.set(measurementCellKey(cell), row);
-      else results.push(row);
-      console.log(`${row.status.toUpperCase()} ${cell.fixtureKind} ${cell.targetCharacters} ${cell.historyKind} attempt ${row.attempt}${row.failureKind ? ` (${row.failureKind})` : ""}`);
-      await writeMeasurementCheckpoint(output, buildReport(metadata, reportResults(), interrupted));
-    }
+  for (const task of tasks) {
     if (interrupted) break;
+    const row = await measure(client, systemPrompt, task.cell, task.attempt);
+    if (resume) resultByKey.set(resume.keyFor(row), row);
+    else results.push(row);
+    console.log(`${row.status.toUpperCase()} ${task.cell.fixtureKind} ${task.cell.targetCharacters} ${task.cell.historyKind} attempt ${row.attempt}${row.failureKind ? ` (${row.failureKind})` : ""}`);
+    await writeMeasurementCheckpoint(output, buildReport(metadata, reportResults(), interrupted));
   }
   await writeMeasurementCheckpoint(output, buildReport(metadata, reportResults(), interrupted));
   console.log(`${interrupted ? "Preserved partial" : "Wrote complete"} report at ${output}`);

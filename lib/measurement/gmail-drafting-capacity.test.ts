@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   assessDraftFidelity,
+  buildBoundaryProviderRejectionResumePlan,
   buildFailureResumePlan,
   buildFixture,
   buildHistory,
@@ -47,6 +48,8 @@ describe("Gmail drafting capacity measurement", () => {
     "Thank you for the invitation, but I have to pass.",
     "I appreciate the invitation, but I can't accept.",
     "I am grateful for the invitation but will not participate.",
+    "Thank you for reaching out, but I can't connect at this time.",
+    "I appreciate the invitation, but I won't be able to connect.",
     "Thanks for reaching out. I must decline.",
   ])("accepts a bounded deterministic decline equivalent: %s", draft => {
     expect(validateDraftReply({ sender: "Raman Bhola", subject: "LinkedIn connection invitation", draft }).ok).toBe(true);
@@ -122,5 +125,30 @@ describe("Gmail drafting capacity measurement", () => {
     const rows = buildScreeningPlan().map(cell => ({ ...cell, attempt: 1, status: "failed" as const, failureKind: "provider_rejection" as const }));
     expect(() => buildProviderRejectionResumePlan(rows.slice(1))).toThrow("exactly 60");
     expect(() => buildProviderRejectionResumePlan([rows[0], ...rows.slice(0, -1)])).toThrow("exact screening matrix");
+  });
+
+  it("retains 59 boundary attempts and retries only 21 provider rejections", () => {
+    const cells = buildScreeningPlan().slice(0, 16);
+    const rows = cells.flatMap(cell => Array.from({ length: 5 }, (_, index) => ({
+      ...cell,
+      attempt: index + 1,
+      status: cells.indexOf(cell) >= 12 || (cells.indexOf(cell) === 11 && index === 4) ? "failed" as const : "passed" as const,
+      ...(cells.indexOf(cell) >= 12 || (cells.indexOf(cell) === 11 && index === 4) ? { failureKind: "provider_rejection" as const } : {}),
+    })));
+    const resume = buildBoundaryProviderRejectionResumePlan(rows);
+    expect(resume.retained).toHaveLength(59);
+    expect(resume.retry).toHaveLength(21);
+    expect(resume.retry.slice(0, 6).map(row => row.attempt)).toEqual([5, 1, 2, 3, 4, 5]);
+  });
+
+  it("rejects incomplete and duplicate boundary attempt matrices", () => {
+    const rows = buildScreeningPlan().slice(0, 16).flatMap(cell => Array.from({ length: 5 }, (_, index) => ({
+      ...cell,
+      attempt: index + 1,
+      status: "failed" as const,
+      failureKind: "provider_rejection" as const,
+    })));
+    expect(() => buildBoundaryProviderRejectionResumePlan(rows.slice(1))).toThrow("exactly 80");
+    expect(() => buildBoundaryProviderRejectionResumePlan([rows[0], ...rows.slice(0, -1)])).toThrow("duplicate or invalid attempts");
   });
 });

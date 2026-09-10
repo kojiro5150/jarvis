@@ -84,6 +84,9 @@ import { resolveProductionProductGapResolution, type ProductionProductGapResolut
 import { resolveProductionDiscretionaryAvailabilityPreference, type ProductionDiscretionaryAvailabilityPreferenceDependencies } from "@/lib/operating-picture/discretionary-availability-preference";
 import { calculateCalendarFreeTime } from "@/lib/lighter-jarvis/calendar-free-time";
 import { renderCalendarFreeTime } from "@/lib/lighter-jarvis/calendar-free-time-renderer";
+import { resolveGmailInvitationDeclineDraft, type GmailInvitationDeclineDraftDependencies } from "@/lib/lighter-jarvis/gmail-invitation-decline-drafting";
+import { GMAIL_INVITATION_DECLINE_REUSE_CONTAINMENT, OMITTED_GMAIL_INVITATION_DECLINE_DRAFT } from "@/lib/lighter-jarvis/gmail-invitation-decline-draft-contract";
+import { isGmailInvitationDeclineDraftReuse } from "@/lib/lighter-jarvis/gmail-invitation-decline-draft-transport";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -489,7 +492,8 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
   modelContinuityDependencies?: ProductionModelContinuityDependencies,
   userContinuityCaptureDependencies?: Partial<ProductionUserContinuityCaptureDependencies>,
   productGapResolutionDependencies?: Partial<ProductionProductGapResolutionDependencies>,
-  discretionaryAvailabilityDependencies?: ProductionDiscretionaryAvailabilityPreferenceDependencies) {
+  discretionaryAvailabilityDependencies?: ProductionDiscretionaryAvailabilityPreferenceDependencies,
+  gmailInvitationDeclineDraftDependencies?: GmailInvitationDeclineDraftDependencies) {
   return async function POST(request: Request) {
     let body: LighterChatBody;
     try { body = await request.json() as LighterChatBody; }
@@ -518,6 +522,44 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     const shouldCarryPendingAuthorization = Object.hasOwn(body, "pendingAuthorizationReference")
       && !freshCapabilityRequest
       && !standingGmailAuthorityRequest;
+
+    const gmailInvitationDeclineDraft = specialist.id === "jarvis" && currentUserUtterance !== undefined
+      ? await resolveGmailInvitationDeclineDraft({
+          currentUserUtterance,
+          ...(Object.hasOwn(body, "gmailPrivateReleaseReference")
+            ? { gmailPrivateReleaseReference: body.gmailPrivateReleaseReference }
+            : {}),
+          ...(shouldCarryPendingAuthorization
+            ? { pendingAuthorizationReference: body.pendingAuthorizationReference }
+            : {}),
+        }, gmailInvitationDeclineDraftDependencies)
+      : null;
+    if (gmailInvitationDeclineDraft?.handled) {
+      return NextResponse.json({
+        reply: gmailInvitationDeclineDraft.reply,
+        specialistId: specialist.id,
+        execution: "none",
+        gmailInvitationDeclineDraft: { status: gmailInvitationDeclineDraft.status },
+        ...(gmailInvitationDeclineDraft.pendingAuthorizationReference !== undefined
+          ? { pendingAuthorizationReference: gmailInvitationDeclineDraft.pendingAuthorizationReference }
+          : {}),
+        ...(gmailInvitationDeclineDraft.draftRelease ? { gmailInvitationDeclineDraftRelease: true } : {}),
+        ...(Object.hasOwn(body, "gmailPrivateReleaseReference")
+          ? { gmailPrivateReleaseReference: body.gmailPrivateReleaseReference }
+          : {}),
+      });
+    }
+
+    if (specialist.id === "jarvis"
+      && currentUserUtterance !== undefined
+      && body.messages.some(({ content }) => content === OMITTED_GMAIL_INVITATION_DECLINE_DRAFT)
+      && isGmailInvitationDeclineDraftReuse(currentUserUtterance)) {
+      return NextResponse.json({
+        reply: GMAIL_INVITATION_DECLINE_REUSE_CONTAINMENT,
+        specialistId: specialist.id,
+        execution: "none",
+      });
+    }
 
     if (specialist.id === "jarvis"
       && currentUserUtterance !== undefined

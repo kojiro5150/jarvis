@@ -5,8 +5,9 @@ import type { ProposedGmailReadOperation } from "./gmail-read-authority";
 import type { ProposedGmailSearchOperation } from "./gmail-search-authority";
 import type { ProposedDriveSearchOperation } from "./drive-search-authority";
 import type { DriveReadOperation } from "./drive-read-authority";
+import type { GmailInvitationDeclineDraftOperation } from "./gmail-invitation-decline-drafting";
 
-type ProposedOperation = ProposedCalendarReadOperation | ProposedGmailReadOperation | ProposedGmailSearchOperation | ProposedDriveSearchOperation | DriveReadOperation;
+type ProposedOperation = ProposedCalendarReadOperation | ProposedGmailReadOperation | ProposedGmailSearchOperation | ProposedDriveSearchOperation | DriveReadOperation | GmailInvitationDeclineDraftOperation;
 
 /**
  * An opaque, non-authoritative handle that may cross the client boundary.
@@ -51,6 +52,12 @@ export type PendingAuthorizationResolution = Readonly<{
 const pendingAuthorizations = new Map<string, PendingAuthorization>();
 const EXPLICIT_CONFIRMATION = /^(?:yes|yes,?\s+please|confirm|confirmed|proceed|go\s+ahead)[.!]?$/i;
 const EXPLICIT_DECLINE = /^(?:no|no,?\s+thanks|decline|cancel|never\s+mind)[.!]?$/i;
+
+/** Server-side routing hint only. It returns no operation data and grants no authority. */
+export function pendingAuthorizationCapability(reference: unknown): ProposedOperation["capability"] | null {
+  if (!isPendingAuthorizationReference(reference)) return null;
+  return pendingAuthorizations.get(reference.pendingAuthorizationId)?.proposedOperation.capability ?? null;
+}
 
 /** Creates server-owned pending state and returns only its non-authoritative reference. */
 export function createPendingAuthorization(

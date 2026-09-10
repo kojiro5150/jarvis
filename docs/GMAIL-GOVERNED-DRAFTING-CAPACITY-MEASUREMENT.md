@@ -109,3 +109,19 @@ npm run measure:gmail-drafting:live -- --phase step_down_confirmation --probe-re
 ```
 
 The probe phase accepts only a complete 80-attempt boundary report with no provider rejections. Selection is deterministic, uses the immediately lower configured fixture size, and never repeats a cell that already passed 5/5. The confirmation phase preserves every probe result and adds exactly four attempts only for probe cells that passed.
+
+## Diagnose fidelity grammar
+
+When fidelity failures occur across both small and large request envelopes, inspect the lowest-token failing cell before spending more calls on size reduction:
+
+```bash
+npm run measure:gmail-drafting -- --phase fidelity_diagnostic --source-report data/capacity-measurements/gmail-step-down-confirmed.json
+```
+
+Run five synthetic-only diagnostic attempts explicitly:
+
+```bash
+npm run measure:gmail-drafting:live -- --phase fidelity_diagnostic --source-report data/capacity-measurements/gmail-step-down-confirmed.json --show-failed-synthetic-draft --output data/capacity-measurements/gmail-fidelity-diagnostic.json
+```
+
+The diagnostic phase selects the fidelity-failing cell with the lowest recorded input-token use. Failed synthetic drafts are printed to the terminal only and are never written into the JSON report. Live diagnostic execution fails closed unless the explicit display flag is present. This exception is limited to deterministic synthetic fixtures and must never be used with real Gmail content.

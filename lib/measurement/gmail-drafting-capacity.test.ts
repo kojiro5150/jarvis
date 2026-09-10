@@ -13,6 +13,7 @@ import {
   fixtureDigest,
   measurementCellKey,
   parseMeasurementReply,
+  selectLowestCostFidelityFailure,
   selectBoundaryCandidates,
   validateDraftReply,
 } from "./gmail-drafting-capacity";
@@ -181,5 +182,14 @@ describe("Gmail drafting capacity measurement", () => {
     expect(plan).toHaveLength(8);
     expect(plan.map(task => task.attempt)).toEqual([2, 3, 4, 5, 2, 3, 4, 5]);
     expect(plan.some(task => measurementCellKey(task.cell) === measurementCellKey(cells[1]))).toBe(false);
+  });
+
+  it("selects the lowest-token fidelity failure for synthetic diagnosis", () => {
+    const cells = buildScreeningPlan().slice(0, 3);
+    expect(selectLowestCostFidelityFailure([
+      { ...cells[0], attempt: 1, status: "failed", failureKind: "fidelity_failure", usage: { inputTokens: 70_000 } },
+      { ...cells[1], attempt: 1, status: "passed", usage: { inputTokens: 2_000 } },
+      { ...cells[2], attempt: 1, status: "failed", failureKind: "fidelity_failure", usage: { inputTokens: 6_000 } },
+    ])).toEqual(cells[2]);
   });
 });

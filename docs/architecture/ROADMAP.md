@@ -1,8 +1,34 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Reconciled 3 September 2026 after direct live verification of the Governed Operating Picture semantic/lifecycle foundation, Supabase persistence foundation, Store Parity & Restart Durability, Purpose-Bounded Durable Projection, Narrow Model-Facing Continuity, Explicit User-Authored Continuity Capture, Morning Executive Orientation v1, post-promotion durable-continuity reliability/scalability closure, bounded Drive ordinal result continuity, bounded Gmail named-result continuity, and bounded explicit Product Gap resolution. Existing governed Calendar/Gmail/Drive work remains the proven substrate. Morning Executive Orientation v1, durable-continuity recall reliability, Drive ordinal continuity, Gmail named-result continuity and Product Gap explicit resolution are now **LIVE PASS / FROZEN** within their bounded scopes.
+**Status:** Living document. Reconciled 10 September 2026 after direct verification of the Governed Operating Picture semantic/lifecycle foundation, Supabase persistence foundation, Store Parity & Restart Durability, Purpose-Bounded Durable Projection, Narrow Model-Facing Continuity, Explicit User-Authored Continuity Capture, Morning Executive Orientation v1, post-promotion durable-continuity reliability/scalability closure, bounded Drive ordinal result continuity, bounded Gmail named-result continuity, bounded explicit Product Gap resolution, Gmail topic search, oversized Gmail/Drive private-release continuity, and the Gmail governed-drafting processing-bound prerequisite. Existing governed Calendar/Gmail/Drive work remains the proven substrate. Promotion remains capability-specific; the processing-bound freeze does not represent governed Gmail drafting as implemented.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
+
+---
+
+## Verified milestone — September Gmail/Drive continuity and drafting-capacity prerequisite
+
+The completed processing-bound decision is recorded in:
+
+- `../GMAIL-GOVERNED-DRAFTING-PROCESSING-BOUND-FREEZE.md`
+
+PRs #551–#557 are completed production capabilities and corrections, not future roadmap proposals:
+
+- **#551 — Gmail topic search:** named-topic and named-organisation requests now use a bounded topic-specific Gmail search across a broader time horizon rather than screening only the five most recent messages.
+- **#552 — Calendar authentication recovery:** typed Google authentication reasons survive acquisition and produce specific connect/reconnect guidance.
+- **#553 — governed Calendar no-local-fallback:** a failed governed Calendar acquisition cannot silently substitute local fixture evidence.
+- **#554 — long-session model compaction:** deterministic 39-message retention permits long conversations while pending server-owned references remain out of band.
+- **#555 — Gmail oversized private-release continuity:** legitimate governed Gmail releases may remain visible without replaying oversized bodies into later model history; opaque capability-specific server state, not client labels, establishes legitimacy.
+- **#556 — response-format precedence:** a closed response-format instruction such as `Reply exactly with Gmail control test complete` is handled before unsupported Gmail-mutation classification. This precedence must be revisited if governed Gmail sending is later designed.
+- **#557 — Drive oversized private-release continuity:** Drive applies its own capability-specific release reference, fixed replay omission and pre-model containment boundary; Gmail and Drive references are not interchangeable.
+
+These milestones preserve the existing constitutional boundary: prior private release is not standing authority, omitted content cannot be reasoned over through ordinary history, and fresh private acquisition remains separately authorised.
+
+PRs #558–#565 then established the Gmail governed-drafting capacity prerequisite. The sequence is intentionally preserved rather than presented as a first-pass success: the initial harness required checkpoint hardening; provider-credit failures required exact-identity resume; apparent fidelity failures exposed a bounded deterministic grammar miss; adaptive step-down and a synthetic-only diagnostic isolated the phrase `not accepting`; and PR #565 repaired that evidenced validator form before the final measurement completed.
+
+The final evidence proves a 24,000-code-unit cross-condition ceiling under the measured configuration. The frozen production processing bound is 16,000 code units. Raw reports remain ignored and uncommitted; the freeze record carries their cryptographic provenance and independently verified aggregates.
+
+> **Promotion decision:** The Gmail governed-drafting **capacity prerequisite** is **RESOLVED / FROZEN**. Governed Gmail drafting, summarisation, reply sending and mailbox mutation remain unimplemented and unauthorised.
 
 ---
 

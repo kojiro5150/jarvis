@@ -49,9 +49,39 @@ describe("production identified-message Gmail read", () => {
       decision: "ALLOW",
       reason: "pending_authorization_confirmed",
       reply: "From: Georgia <georgia@example.com>\nSubject: Project update\nPlain text body: Deterministic private body",
+      gmailPrivateReleaseReference: {
+        gmailPrivateReleaseReferenceId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+      },
     });
     expect(result.reply).not.toContain("MUST NOT LEAK");
     expect(retrieveMessage).toHaveBeenCalledWith("message-1");
+  });
+
+  it("creates a drafting-eligible reference for a short Raman-shaped governed read", async () => {
+    const result = await resolveProductionGmailRead({
+      currentUserUtterance: "gmail.read short-raman [sender,subject,plain_text_body]",
+    }, {
+      loadPolicy: () => loadContentRetrievalPolicy("config/content-retrieval-policy.dev.json"),
+      createConnector: () => ({ retrieveMessage: vi.fn(async () => ({
+        sender: "Raman Bhola <invitations@linkedin.com>",
+        subject: "I want to connect",
+        plainTextBody: "Hi Sam, I would love to connect. Regards, Raman",
+      })) }),
+    });
+
+    expect(result.reply?.length).toBeLessThan(8_000);
+    expect(result.gmailPrivateReleaseReference).toEqual({
+      gmailPrivateReleaseReferenceId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+    });
+  });
+
+  it("does not create a reference for a short read lacking the complete drafting field set", async () => {
+    const result = await resolveProductionGmailRead({ currentUserUtterance: "gmail.read short-subject [subject]" }, {
+      loadPolicy: () => loadContentRetrievalPolicy("config/content-retrieval-policy.dev.json"),
+      createConnector: () => ({ retrieveMessage: vi.fn(async () => ({ subject: "Short subject" })) }),
+    });
+    expect(result.reply?.length).toBeLessThan(8_000);
+    expect(result).not.toHaveProperty("gmailPrivateReleaseReference");
   });
 
   it("preserves the exact field binding and presents governed content deterministically", async () => {

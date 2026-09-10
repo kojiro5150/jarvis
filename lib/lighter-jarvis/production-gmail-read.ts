@@ -44,6 +44,11 @@ function present(content: GmailReleasedContent, requestedFields: readonly GmailC
   }).join("\n");
 }
 
+function supportsInvitationDeclineDrafting(requestedFields: readonly GmailContentField[]): boolean {
+  return (["sender", "subject", "plain_text_body"] as const)
+    .every((field) => requestedFields.includes(field));
+}
+
 /** Intercepts only the closed, identified-message grammar. It never searches or interprets Gmail. */
 export async function resolveProductionGmailRead(
   input: { readonly currentUserUtterance: string; readonly pendingAuthorizationReference?: unknown },
@@ -111,7 +116,7 @@ async function retrieveAuthorized(operation: NonNullable<ReturnType<typeof autho
   if (retrieval.outcome === "failed" || !retrieval.content) return Object.freeze({ handled: true, decision: "ALLOW", reason: "gmail_retrieval_failed", reply: "I couldn't retrieve that Gmail message right now." });
   const reply = present(retrieval.content, operation.requestedFields);
   return Object.freeze({ handled: true, decision: "ALLOW", reason, reply,
-    ...(reply.length >= 8_000
+    ...(reply.length >= 8_000 || supportsInvitationDeclineDrafting(operation.requestedFields)
       ? { gmailPrivateReleaseReference: createGmailPrivateReleaseReference({
           resourceId: operation.request.resource.resourceId,
           requestedFields: operation.requestedFields,

@@ -66,7 +66,7 @@ describe("governed Gmail invitation-decline drafting", () => {
     const deps = dependencies("LinkedIn invitation", model);
     const selected = await propose(release(), deps);
     const result = await resolveGmailInvitationDeclineDraft({ currentUserUtterance: "yes", pendingAuthorizationReference: selected.pendingAuthorizationReference }, deps);
-    expect(result).toMatchObject({ status: "failed", reply: GMAIL_INVITATION_DECLINE_UNAVAILABLE });
+    expect(result).toMatchObject({ status: "failed", diagnostic: "draft_unsupported_detail", reply: GMAIL_INVITATION_DECLINE_UNAVAILABLE });
   });
 
   it("fails before model invocation above the 16,000-code-unit admission bound", async () => {
@@ -74,7 +74,7 @@ describe("governed Gmail invitation-decline drafting", () => {
     const deps = dependencies(body);
     const selected = await propose(release(body), deps);
     const result = await resolveGmailInvitationDeclineDraft({ currentUserUtterance: "yes", pendingAuthorizationReference: selected.pendingAuthorizationReference }, deps);
-    expect(result).toMatchObject({ status: "failed", reply: GMAIL_INVITATION_DECLINE_PROCESSING_LIMIT });
+    expect(result).toMatchObject({ status: "failed", diagnostic: "processing_limit", reply: GMAIL_INVITATION_DECLINE_PROCESSING_LIMIT });
     expect(deps.callDraftModel).not.toHaveBeenCalled();
   });
 
@@ -90,5 +90,19 @@ describe("governed Gmail invitation-decline drafting", () => {
     const result = await resolveGmailInvitationDeclineDraft({ currentUserUtterance: "yes", pendingAuthorizationReference: selected.pendingAuthorizationReference }, deps);
     expect(result.reply).toContain("named addressee does not match");
     expect(model).not.toHaveBeenCalled();
+  });
+
+  it("distinguishes malformed structure and exact sender mismatch without exposing content", async () => {
+    for (const [raw, diagnostic] of [
+      ["not json", "model_response_malformed"],
+      [JSON.stringify({ sender: "Raman", subject: "Invitation", draft: "Thank you, but I decline." }), "model_sender_mismatch"],
+    ] as const) {
+      const deps = dependencies("LinkedIn invitation", vi.fn(async () => raw));
+      const selected = await propose(release(), deps);
+      const result = await resolveGmailInvitationDeclineDraft({ currentUserUtterance: "yes", pendingAuthorizationReference: selected.pendingAuthorizationReference }, deps);
+      expect(result).toMatchObject({ status: "failed", diagnostic, reply: GMAIL_INVITATION_DECLINE_UNAVAILABLE });
+      expect(JSON.stringify(result)).not.toContain("raman@example.invalid");
+      expect(JSON.stringify(result)).not.toContain("LinkedIn invitation");
+    }
   });
 });

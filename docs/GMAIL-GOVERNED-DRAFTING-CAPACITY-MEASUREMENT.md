@@ -81,3 +81,31 @@ npm run measure:gmail-drafting:live -- --phase boundary --resume-report data/cap
 ```
 
 Boundary resume requires exactly 16 distinct cells with attempts 1 through 5. It preserves successful and fidelity-failure attempts in their original order, replaces only provider rejections at the same attempt number, and rejects incomplete, duplicate, mismatched, or non-boundary evidence.
+
+## Adaptive step-down
+
+When the completed boundary report contains inconsistent fidelity results, derive the next-lower configured size for each affected fixture/history cell and inspect the one-call probe plan:
+
+```bash
+npm run measure:gmail-drafting -- --phase step_down_probe --boundary-report data/capacity-measurements/gmail-boundary-resumed.json
+```
+
+Run one probe for each affected cell:
+
+```bash
+npm run measure:gmail-drafting:live -- --phase step_down_probe --boundary-report data/capacity-measurements/gmail-boundary-resumed.json --output data/capacity-measurements/gmail-step-down-probe.json
+```
+
+Then inspect the confirmation plan. Only probes that passed receive attempts 2 through 5:
+
+```bash
+npm run measure:gmail-drafting -- --phase step_down_confirmation --probe-report data/capacity-measurements/gmail-step-down-probe.json
+```
+
+Run the confirmations into a consolidated probe-plus-confirmation report:
+
+```bash
+npm run measure:gmail-drafting:live -- --phase step_down_confirmation --probe-report data/capacity-measurements/gmail-step-down-probe.json --output data/capacity-measurements/gmail-step-down-confirmed.json
+```
+
+The probe phase accepts only a complete 80-attempt boundary report with no provider rejections. Selection is deterministic, uses the immediately lower configured fixture size, and never repeats a cell that already passed 5/5. The confirmation phase preserves every probe result and adds exactly four attempts only for probe cells that passed.

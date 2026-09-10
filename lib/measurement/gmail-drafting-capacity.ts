@@ -55,6 +55,9 @@ const FIXTURE_SIZES: Record<FixtureKind, number[]> = {
   dense_prose: [8_000, 16_000, 24_000, 32_000],
 };
 
+const BOUNDARY_ATTEMPTS_PER_CELL = 5;
+const BOUNDARY_CELL_COUNT = 16;
+
 export const HISTORY_KINDS: HistoryKind[] = ["empty", "representative_39", "maximum_admissible_39"];
 
 export function buildScreeningPlan(): MeasurementCell[] {
@@ -97,28 +100,64 @@ export function measurementAttemptKey(row: MeasurementCell & { attempt: number }
   return `${measurementCellKey(row)}:${row.attempt}`;
 }
 
-export function buildBoundaryProviderRejectionResumePlan<T extends ScreeningResult>(rows: T[]): {
-  retained: T[];
-  retry: T[];
-} {
-  const attemptsPerCell = 5;
-  const expectedCells = 16;
-  if (rows.length !== expectedCells * attemptsPerCell) {
-    throw new Error(`boundary resume report must contain exactly ${expectedCells * attemptsPerCell} results`);
+function validateBoundaryMatrix<T extends ScreeningResult>(rows: T[]): Map<string, T[]> {
+  if (rows.length !== BOUNDARY_CELL_COUNT * BOUNDARY_ATTEMPTS_PER_CELL) {
+    throw new Error(`boundary report must contain exactly ${BOUNDARY_CELL_COUNT * BOUNDARY_ATTEMPTS_PER_CELL} results`);
   }
   const screeningKeys = new Set(buildScreeningPlan().map(measurementCellKey));
   const attemptKeys = rows.map(measurementAttemptKey);
   if (new Set(attemptKeys).size !== attemptKeys.length || rows.some(row => !screeningKeys.has(measurementCellKey(row)))) {
-    throw new Error("boundary resume report contains duplicate or invalid attempts");
+    throw new Error("boundary report contains duplicate or invalid attempts");
   }
   const groups = new Map<string, T[]>();
   for (const row of rows) groups.set(measurementCellKey(row), [...(groups.get(measurementCellKey(row)) ?? []), row]);
-  if (groups.size !== expectedCells || [...groups.values()].some(group => {
+  if (groups.size !== BOUNDARY_CELL_COUNT || [...groups.values()].some(group => {
     const attempts = group.map(row => row.attempt).sort((a, b) => a - b);
     return attempts.join(",") !== "1,2,3,4,5";
   })) {
-    throw new Error("boundary resume report must contain attempts 1 through 5 for exactly 16 cells");
+    throw new Error("boundary report must contain attempts 1 through 5 for exactly 16 cells");
   }
+  return groups;
+}
+
+export function buildStepDownProbePlan<T extends ScreeningResult>(rows: T[]): MeasurementCell[] {
+  const groups = validateBoundaryMatrix(rows);
+  if (rows.some(row => row.failureKind === "provider_rejection")) {
+    throw new Error("step-down probe requires boundary evidence with no provider rejections");
+  }
+  const selected = new Map<string, MeasurementCell>();
+  for (const group of groups.values()) {
+    if (group.every(row => row.status === "passed")) continue;
+    const current = group[0];
+    const sizes = FIXTURE_SIZES[current.fixtureKind];
+    const lower = [...sizes].filter(size => size < current.targetCharacters).at(-1);
+    if (!lower) throw new Error(`no lower configured size exists for ${measurementCellKey(current)}`);
+    const candidate = { fixtureKind: current.fixtureKind, targetCharacters: lower, historyKind: current.historyKind };
+    selected.set(measurementCellKey(candidate), candidate);
+  }
+  if (selected.size === 0) throw new Error("boundary report contains no inconsistent cells to step down");
+  return [...selected.values()];
+}
+
+export function buildStepDownConfirmationPlan<T extends ScreeningResult>(rows: T[]): Array<{ cell: MeasurementCell; attempt: number }> {
+  if (rows.length === 0) throw new Error("step-down confirmation requires probe results");
+  const keys = rows.map(measurementAttemptKey);
+  const screeningKeys = new Set(buildScreeningPlan().map(measurementCellKey));
+  if (new Set(keys).size !== keys.length || rows.some(row => row.attempt !== 1 || !screeningKeys.has(measurementCellKey(row)))) {
+    throw new Error("step-down probe report must contain one unique attempt 1 per cell");
+  }
+  return rows.filter(row => row.status === "passed").flatMap(row =>
+    [2, 3, 4, 5].map(attempt => ({
+      cell: { fixtureKind: row.fixtureKind, targetCharacters: row.targetCharacters, historyKind: row.historyKind },
+      attempt,
+    })));
+}
+
+export function buildBoundaryProviderRejectionResumePlan<T extends ScreeningResult>(rows: T[]): {
+  retained: T[];
+  retry: T[];
+} {
+  validateBoundaryMatrix(rows);
   const retry = rows.filter(row => row.failureKind === "provider_rejection");
   if (retry.length === 0) throw new Error("boundary resume report contains no provider_rejection results to retry");
   return {

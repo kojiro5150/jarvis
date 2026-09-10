@@ -1,6 +1,6 @@
 # Gmail Governed Invitation-Decline Drafting — Frozen Contract
 
-**Status:** Doctrine **FROZEN** on 10 September 2026. No implementation or production proof is claimed.
+**Status:** Doctrine **FROZEN** on 10 September 2026. Implemented separately in PRs #568–#571 and live-accepted on 11 September 2026. This contract does not itself serve as production proof; see `GMAIL-GOVERNED-INVITATION-DECLINE-DRAFTING-LIVE-PASS.md`.
 
 ## Purpose
 

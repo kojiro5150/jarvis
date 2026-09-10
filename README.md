@@ -14,9 +14,9 @@ USER ↔ JARVIS
 
 Named specialists may still exist as internal reasoning or implementation modules, but they are not the user's coordination model and they do not carry independent authority.
 
-## Current state — 1 September 2026
+## Current state — 11 September 2026
 
-JARVIS is well beyond the original Phase-1 dashboard prototype. The current repository includes a single governed conversational runtime, live Google connectors, a Governed Operating Picture with durable Supabase-backed continuity, bounded public-web research, deterministic executive cognition, and one narrowly verified Calendar action path.
+JARVIS is well beyond the original Phase-1 dashboard prototype. The current repository includes a single governed conversational runtime, live Google connectors, a Governed Operating Picture with durable Supabase-backed continuity, bounded public-web research, deterministic executive cognition, one narrowly verified Calendar action path, and one live purpose-bounded semantic composition over governed private Gmail evidence.
 
 The current product direction is **everyday executive cognition**: awareness, orientation, attention, dependency recognition, capacity understanding, planning support, role-aware context and progressively stronger voice-first use.
 
@@ -78,6 +78,7 @@ Verified behaviour includes:
 
 - bounded factual Calendar reads;
 - deterministic date/time handling in the Melbourne time zone;
+- discretionary free-time calculation within the user's remembered bounded availability window;
 - descriptive weekly allocation and capacity reporting;
 - attention/change detection over supported Calendar changes;
 - Morning Executive Orientation v1;
@@ -99,13 +100,17 @@ Verified Gmail capability is intentionally bounded.
 Current supported behaviour includes:
 
 - bounded Gmail search;
+- bounded topic-specific search across a broader time horizon for named-topic and named-organisation requests;
 - bounded recent-message listing;
 - identified-message reads;
 - ordinal result-to-read continuity for supported Gmail result sets;
 - strict named-sender result-to-read continuity over the current bounded recent-message result;
+- oversized private-release continuity using a Gmail-specific opaque server-owned reference and fixed replay omission;
 - governed authority before private acquisition.
 
-Gmail remains **read-only at the governed action layer**. JARVIS does not currently send replies, create labels, move messages, establish filters or create standing routing rules.
+Gmail remains **read-only at the governed provider-action layer**. JARVIS does not currently create Gmail drafts, send replies, create labels, move messages, establish filters or create standing routing rules.
+
+One narrower semantic-composition capability is **LIVE PASS within its exact scope**: after a freshly authorised re-read of one exact Gmail message, JARVIS may prepare a thank-and-decline proposal for a professional-network invitation. Sender and subject remain server-owned, the complete evidence is admitted only within the frozen 16,000-code-unit processing bound, and the result states explicitly that it has not been sent. The generated proposal is not saved to Gmail. Editing, reuse and sending fail closed.
 
 Mutation-shaped Gmail requests are recognised and returned as an explicit unsupported governed-action boundary rather than falling through as ordinary conversation.
 
@@ -118,6 +123,7 @@ Verified Drive capability includes:
 - bounded Drive search;
 - identified Google Doc reads;
 - server-owned ordered continuity for recent Drive search results;
+- oversized private-release continuity using a Drive-specific opaque server-owned reference and fixed replay omission;
 - closed first-through-fifth ordinal selection with separate exact-file read authority;
 - fail-closed handling for out-of-range, expired, turn-exhausted, superseded, fabricated and cross-scope references;
 - governed authority before private acquisition.
@@ -370,7 +376,8 @@ Do not infer capability merely because a connector or model could technically su
 
 Not currently established as general JARVIS capabilities:
 
-- Gmail send/reply/write;
+- Gmail provider mutations, including creating Gmail drafts, sending replies and modifying messages;
+- general-purpose email drafting and generated-draft editing or reuse;
 - Gmail label/filter/routing creation;
 - arbitrary Calendar event creation;
 - unrestricted Calendar mutation;

@@ -8,6 +8,7 @@ import {
   type RetrievalRequest,
   type TransformationStatus,
 } from "../content-retrieval-policy";
+import { GoogleServiceAuthError } from "../connectors/google/auth-error";
 
 export const GMAIL_CONTENT_FIELDS = [
   "sender",
@@ -59,6 +60,7 @@ export type ContentRetrievalResult = Readonly<{
   resourceId: string;
   policyVersion: string | null;
   outcome: "permitted" | "denied" | "failed";
+  failureReason?: "not_connected" | "refresh_failed" | "provider_failure";
   content?: GmailReleasedContent;
   audit: RetrievalAuditRecord;
 }>;
@@ -142,8 +144,12 @@ export class GmailContentRetrievalAdapter {
     try {
       const message = await this.options.connector.retrieveMessage(request.resource.resourceId);
       return finish("permitted", selectContent(message, releasedFields));
-    } catch {
-      return finish("failed");
+    } catch (error) {
+      const result = finish("failed");
+      return freeze({
+        ...result,
+        failureReason: error instanceof GoogleServiceAuthError ? error.reason : "provider_failure",
+      });
     }
   }
 }

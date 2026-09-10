@@ -539,7 +539,12 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         reply: gmailInvitationDeclineDraft.reply,
         specialistId: specialist.id,
         execution: "none",
-        gmailInvitationDeclineDraft: { status: gmailInvitationDeclineDraft.status },
+        gmailInvitationDeclineDraft: {
+          status: gmailInvitationDeclineDraft.status,
+          ...(gmailInvitationDeclineDraft.diagnostic
+            ? { diagnostic: gmailInvitationDeclineDraft.diagnostic }
+            : {}),
+        },
         ...(gmailInvitationDeclineDraft.pendingAuthorizationReference !== undefined
           ? { pendingAuthorizationReference: gmailInvitationDeclineDraft.pendingAuthorizationReference }
           : {}),

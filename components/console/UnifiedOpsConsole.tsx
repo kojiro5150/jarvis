@@ -35,6 +35,7 @@ type OpaqueCalendarMoveAuthorization = Readonly<{ calendarMoveAuthorizationRefer
 type OpaqueUserContinuityCaptureClarification = Readonly<{ userContinuityCaptureClarificationReferenceId: string }>;
 type OpaqueProductGapResolutionList = string;
 type OpaqueProductGapResolutionTarget = string;
+type OpaqueProductGapSupersession = string;
 type ConnectorName = "calendar" | "gmail" | "drive";
 type ConnectorServiceStatus =
   | "online"
@@ -117,6 +118,7 @@ export default function UnifiedOpsConsole() {
   const userContinuityCaptureClarificationRef = useRef<OpaqueUserContinuityCaptureClarification | null>(null);
   const productGapResolutionListRef = useRef<OpaqueProductGapResolutionList | null>(null);
   const productGapResolutionTargetRef = useRef<OpaqueProductGapResolutionTarget | null>(null);
+  const productGapSupersessionRef = useRef<OpaqueProductGapSupersession | null>(null);
   const conversationHistoryRef = useRef(new ConversationTransportHistory());
   const [connectorStatuses, setConnectorStatuses] = useState<Record<
     ConnectorName,
@@ -360,6 +362,9 @@ export default function UnifiedOpsConsole() {
           ...(specialist.id === "jarvis" && productGapResolutionTargetRef.current
             ? { productGapResolutionTargetReference: productGapResolutionTargetRef.current }
             : {}),
+          ...(specialist.id === "jarvis" && productGapSupersessionRef.current
+            ? { productGapSupersessionReference: productGapSupersessionRef.current }
+            : {}),
         }),
       });
       const data = (await response.json()) as {
@@ -381,6 +386,7 @@ export default function UnifiedOpsConsole() {
         userContinuityCaptureClarificationReference?: OpaqueUserContinuityCaptureClarification | null;
         productGapResolutionListReference?: OpaqueProductGapResolutionList | null;
         productGapResolutionTargetReference?: OpaqueProductGapResolutionTarget | null;
+        productGapSupersessionReference?: OpaqueProductGapSupersession | null;
         error?: string;
       };
       if (!response.ok)
@@ -442,6 +448,9 @@ export default function UnifiedOpsConsole() {
       }
       if (data.productGapResolutionTargetReference !== undefined) {
         productGapResolutionTargetRef.current = data.productGapResolutionTargetReference;
+      }
+      if (data.productGapSupersessionReference !== undefined) {
+        productGapSupersessionRef.current = data.productGapSupersessionReference;
       }
       const acceptedMessages = conversationHistoryRef.current.acceptAssistant(specialist.id, reply);
       setConversations((current) => ({ ...current, [specialist.id]: acceptedMessages }));

@@ -48,4 +48,27 @@ describe("Product Gap effective-status projection", () => {
     expect(projectProductGapResolutionStatus(projected([original, resolution, duplicate]))).toEqual({ status: "rejected", reason: "resolution_integrity_failure" });
     expect(projectProductGapResolutionStatus(projected([resolution]))).toEqual({ status: "rejected", reason: "resolution_integrity_failure" });
   });
+
+  it("removes a superseded original while preserving its resolved successor", () => {
+    const successor = Object.freeze({
+      ...original, recordId: "user-continuity:correct", versionId: "correct-head",
+      subject: Object.freeze({ ...original.subject, entity: "user-continuity:correct" }),
+      payload: Object.freeze({ statement: "JARVIS product gap correction — exact successor" }),
+    });
+    const successorResolution = Object.freeze({
+      ...resolution, recordId: "product-gap-resolution:successor", versionId: "successor-resolution-head",
+      subject: Object.freeze({ ...resolution.subject, entity: successor.recordId }),
+      payload: Object.freeze({ status: "resolved", targetRecordId: successor.recordId }),
+    });
+    const supersession = Object.freeze({
+      ...resolution, recordId: "product-gap-supersession:target", versionId: "supersession-head",
+      subject: Object.freeze({ namespace: "product_gap_supersession", entity: original.recordId, attribute: "successor", revision: "append_only" as const }),
+      payload: Object.freeze({ relationship: "superseded_by", targetRecordId: original.recordId, successorRecordId: successor.recordId, successorVersionId: successor.versionId }),
+    });
+    const result = projectProductGapResolutionStatus(projected([original, successor, successorResolution, supersession]));
+    expect(result).toMatchObject({ status: "projected", active: [], history: [
+      { recordId: original.recordId, status: "superseded", supersededByRecordId: successor.recordId },
+      { recordId: successor.recordId, status: "resolved" },
+    ] });
+  });
 });

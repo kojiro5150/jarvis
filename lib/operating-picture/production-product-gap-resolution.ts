@@ -14,7 +14,7 @@ import {
   persistProductGapResolutionAssertion,
   type ProductGapResolutionPersistenceResult,
 } from "./product-gap-resolution-persistence";
-import { projectProductGapResolutionStatus } from "./product-gap-resolution-projection";
+import { projectProductGapResolutionStatus, type ProductGapResolutionHistoryItem } from "./product-gap-resolution-projection";
 import { retrieveDurableOperatingPictureForPurpose, type DurablePurposeProjectionResult } from "./purpose-projection-retrieval";
 import {
   createSupabaseOperatingPicturePersistence,
@@ -92,6 +92,15 @@ function persistenceReply(result: ProductGapResolutionPersistenceResult): string
     return "That Product Gap target is no longer active. Please prepare the active list again.";
   }
   return "I couldn't safely persist that Product Gap resolution.";
+}
+
+function renderHistoryItem(item: ProductGapResolutionHistoryItem, byId: ReadonlyMap<string, { statement: string }>): string {
+  if (item.status === "resolved") return `[resolved] ${item.statement}${item.resolvedAt ? ` — explicitly resolved ${item.resolvedAt}` : ""}`;
+  if (item.status === "superseded") {
+    const successor = item.supersededByRecordId ? byId.get(item.supersededByRecordId) : undefined;
+    return `[superseded] ${item.statement}${successor ? ` — superseded by: ${successor.statement}` : ""}${item.supersededAt ? ` — explicitly superseded ${item.supersededAt}` : ""}`;
+  }
+  return `[active] ${item.statement}`;
 }
 
 export async function resolveProductionProductGapResolution(input: Readonly<{
@@ -180,6 +189,7 @@ export async function resolveProductionProductGapResolution(input: Readonly<{
     const status = projectProductGapResolutionStatus(projection);
     if (status.status === "rejected") return rejected("I couldn't safely retrieve Product Gap resolution history right now.");
     const page = status.history.slice(0, 10);
+    const byId = new Map(status.history.map(item => [item.recordId, item] as const));
     const reference = page.length > 0
       ? createProductGapResolutionListReference({ candidates: status.history, now: dependencies.clock(), kind: "history" })
       : null;
@@ -188,7 +198,7 @@ export async function resolveProductionProductGapResolution(input: Readonly<{
       status: "history",
       reply: page.length === 0
         ? "There is no conversation-visible JARVIS Product Gap history."
-        : ["JARVIS Product Gap resolution history:", ...page.map((item, index) => `${index + 1}. [${item.status}] ${item.statement}${item.resolvedAt ? ` — explicitly resolved ${item.resolvedAt}` : ""}`), ...(status.history.length > 10 ? ["Show me the next JARVIS product gap resolution history page."] : [])].join("\n"),
+        : ["JARVIS Product Gap resolution history:", ...page.map((item, index) => `${index + 1}. ${renderHistoryItem(item, byId)}`), ...(status.history.length > 10 ? ["Show me the next JARVIS product gap resolution history page."] : [])].join("\n"),
       listReference: reference,
       targetReference: null,
     });
@@ -208,7 +218,7 @@ export async function resolveProductionProductGapResolution(input: Readonly<{
     return Object.freeze({
       handled: true,
       status: "history",
-      reply: ["JARVIS Product Gap resolution history:", ...page.map((item, index) => `${index + 1}. [${item.status}] ${item.statement}${item.resolvedAt ? ` — explicitly resolved ${item.resolvedAt}` : ""}`), ...(next.hasMore ? ["Show me the next JARVIS product gap resolution history page."] : [])].join("\n"),
+      reply: ["JARVIS Product Gap resolution history:", ...page.map((item, index) => `${index + 1}. ${renderHistoryItem(item, byId)}`), ...(next.hasMore ? ["Show me the next JARVIS product gap resolution history page."] : [])].join("\n"),
       listReference: next.reference,
       targetReference: null,
     });

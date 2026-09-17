@@ -69,6 +69,15 @@ function validResolutionFor(item: Extract<DurablePurposeProjectionResult, { stat
   return payload.status === "resolved" && payload.targetRecordId === targetRecordId;
 }
 
+function validSupersessionFor(item: Extract<DurablePurposeProjectionResult, { status: "projected" }>["items"][number], targetRecordId: string): boolean {
+  if (item.semanticClass !== "decision" || item.authorshipSource !== "user"
+    || item.subject.namespace !== "product_gap_supersession" || item.subject.entity !== targetRecordId
+    || item.subject.attribute !== "successor" || item.subject.revision !== "append_only"
+    || typeof item.payload !== "object" || item.payload === null || Array.isArray(item.payload)) return false;
+  const payload = item.payload as Record<string, unknown>;
+  return payload.relationship === "superseded_by" && payload.targetRecordId === targetRecordId;
+}
+
 export function createProductGapResolutionInitialVersion(input: Readonly<{
   targetRecordId: string;
   statedAt: string;
@@ -117,7 +126,7 @@ export async function persistProductGapResolutionAssertion(input: Readonly<{
   if (!productGapStatement(target)) {
     return Object.freeze({ status: "rejected", reason: "target_ineligible" });
   }
-  if (projection.items.some(item => validResolutionFor(item, input.target.recordId))) {
+  if (projection.items.some(item => validResolutionFor(item, input.target.recordId) || validSupersessionFor(item, input.target.recordId))) {
     return Object.freeze({ status: "rejected", reason: "already_resolved" });
   }
 

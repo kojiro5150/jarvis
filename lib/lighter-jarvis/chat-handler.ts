@@ -81,6 +81,7 @@ import type { ScopedCalendarAcquisitionPort } from "@/lib/governed-conversation/
 import { isDurableContinuityRecallRequest, resolveProductionModelContinuityRecall, type ProductionModelContinuityDependencies } from "@/lib/operating-picture/production-model-continuity";
 import { resolveProductionUserContinuityCapture, type ProductionUserContinuityCaptureDependencies } from "@/lib/operating-picture/production-user-continuity-capture";
 import { resolveProductionProductGapResolution, type ProductionProductGapResolutionDependencies } from "@/lib/operating-picture/production-product-gap-resolution";
+import { resolveProductionProductGapSupersession, type ProductionProductGapSupersessionDependencies } from "@/lib/operating-picture/production-product-gap-supersession";
 import { resolveProductionDiscretionaryAvailabilityPreference, type ProductionDiscretionaryAvailabilityPreferenceDependencies } from "@/lib/operating-picture/discretionary-availability-preference";
 import { calculateCalendarFreeTime } from "@/lib/lighter-jarvis/calendar-free-time";
 import { renderCalendarFreeTime } from "@/lib/lighter-jarvis/calendar-free-time-renderer";
@@ -105,6 +106,7 @@ interface LighterChatBody {
   userContinuityCaptureClarificationReference?: unknown;
   productGapResolutionListReference?: unknown;
   productGapResolutionTargetReference?: unknown;
+  productGapSupersessionReference?: unknown;
   gmailPrivateReleaseReference?: unknown;
   drivePrivateReleaseReference?: unknown;
 }
@@ -493,7 +495,8 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
   userContinuityCaptureDependencies?: Partial<ProductionUserContinuityCaptureDependencies>,
   productGapResolutionDependencies?: Partial<ProductionProductGapResolutionDependencies>,
   discretionaryAvailabilityDependencies?: ProductionDiscretionaryAvailabilityPreferenceDependencies,
-  gmailInvitationDeclineDraftDependencies?: GmailInvitationDeclineDraftDependencies) {
+  gmailInvitationDeclineDraftDependencies?: GmailInvitationDeclineDraftDependencies,
+  productGapSupersessionDependencies?: Partial<ProductionProductGapSupersessionDependencies>) {
   return async function POST(request: Request) {
     let body: LighterChatBody;
     try { body = await request.json() as LighterChatBody; }
@@ -610,6 +613,25 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           userContinuityCapture: { status: capture.status },
           userContinuityCaptureClarificationReference:
             capture.clarificationReference ?? null,
+        });
+      }
+    }
+
+    if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {
+      const supersession = await resolveProductionProductGapSupersession({
+        utterance: currentUserUtterance,
+        ...(Object.hasOwn(body, "productGapSupersessionReference")
+          ? { reference: body.productGapSupersessionReference }
+          : {}),
+        ...(productGapSupersessionDependencies ? { dependencies: productGapSupersessionDependencies } : {}),
+      });
+      if (supersession.handled) {
+        return NextResponse.json({
+          reply: supersession.reply,
+          specialistId: specialist.id,
+          execution: "none",
+          productGapSupersession: { status: supersession.status },
+          productGapSupersessionReference: supersession.reference ?? null,
         });
       }
     }

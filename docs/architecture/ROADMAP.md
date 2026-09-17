@@ -43,6 +43,14 @@ The doctrine and production proof are recorded in:
 
 ---
 
+## Implemented milestone awaiting production proof — Explicit Product Gap supersession assertion
+
+One deliberately narrow lifecycle extension now exists for a factually wrong Product Gap replaced by one exact existing successor. The path uses a closed four-stage grammar, one opaque server-owned flow reference, positional selection for both records, fresh exact-head validation and a separate append-only `superseded_by` decision. The target leaves the active projection; both original records remain unchanged; the successor's independent resolution status is preserved.
+
+This does not introduce correction, deduplication, mixed-record splitting, semantic target inference or bulk reconciliation. Its first and only proving case is the incorrect retained-Gmail-context diagnosis replaced by the verified current-utterance regex diagnosis. Production promotion remains pending until that exact real relationship is written and inspected through the governed lifecycle surface.
+
+The frozen scope is recorded in `docs/PRODUCT-GAP-EXPLICIT-SUPERSESSION-ASSERTION-CONTRACT.md`.
+
 ## Verified milestone — Explicit Product Gap resolution assertion
 
 The completed production proof is recorded in:

@@ -140,6 +140,8 @@ The Operating Picture preserves semantic class, authorship and lifecycle rather 
 
 Bounded Product Gap explicit resolution is **LIVE PASS / FROZEN**. JARVIS may prepare a deterministic active list, bind a closed positional selection to one opaque server-owned target, and append one separate user-authored resolution assertion only after the exact resolution command. Original Product Gap records remain unchanged and append-only; descriptive target inference, model-authored lifecycle decisions, duplicate assertions and invalid references fail closed.
 
+Bounded Product Gap supersession is implemented with production proof pending. It separately binds one active factually wrong Product Gap to one exactly selected existing successor and appends a `superseded_by` assertion. It does not reuse `resolved`, mutate either record, deduplicate accurate records, split mixed-scope records or let a model choose the relationship.
+
 Current explicit user-authored continuity flow:
 
 ~~~text

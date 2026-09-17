@@ -43,13 +43,20 @@ The doctrine and production proof are recorded in:
 
 ---
 
-## Implemented milestone awaiting production proof — Explicit Product Gap supersession assertion
+## Verified milestone — Explicit Product Gap supersession assertion
 
 One deliberately narrow lifecycle extension now exists for a factually wrong Product Gap replaced by one exact existing successor. The path uses a closed four-stage grammar, one opaque server-owned flow reference, positional selection for both records, fresh exact-head validation and a separate append-only `superseded_by` decision. The target leaves the active projection; both original records remain unchanged; the successor's independent resolution status is preserved.
 
-This does not introduce correction, deduplication, mixed-record splitting, semantic target inference or bulk reconciliation. Its first and only proving case is the incorrect retained-Gmail-context diagnosis replaced by the verified current-utterance regex diagnosis. Production promotion remains pending until that exact real relationship is written and inspected through the governed lifecycle surface.
+This does not introduce correction, deduplication, mixed-record splitting, semantic target inference or bulk reconciliation. Its first and only proving case is the incorrect retained-Gmail-context diagnosis replaced by the verified current-utterance regex diagnosis.
 
-The frozen scope is recorded in `docs/PRODUCT-GAP-EXPLICIT-SUPERSESSION-ASSERTION-CONTRACT.md`.
+Production testing wrote that exact relationship, confirmed that the incorrect target disappeared from the active projection, and retrieved it in paged history as `[superseded]` with the complete exact successor statement and timestamp `2026-09-17T11:19:34.413+00:00`. The successor independently remained `[resolved]`; neither original record was rewritten, deleted or reactivated.
+
+> **Promotion decision:** Bounded active-target Product Gap supersession is **LIVE PASS / FROZEN**. The proof does not transfer to already-resolved targets or another lifecycle relationship.
+
+The frozen scope and production proof are recorded in:
+
+- `../PRODUCT-GAP-EXPLICIT-SUPERSESSION-ASSERTION-CONTRACT.md`
+- `../PRODUCT-GAP-EXPLICIT-SUPERSESSION-ASSERTION-LIVE-PASS.md`
 
 ## Verified milestone — Explicit Product Gap resolution assertion
 

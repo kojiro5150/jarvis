@@ -1,6 +1,6 @@
 # Product Gap explicit supersession assertion — frozen contract
 
-**Status:** implementation complete; production proof pending.
+**Status:** **LIVE PASS / FROZEN** on 17 September 2026. Implemented in PR #573 and promoted only after the exact production relationship and both lifecycle projections were inspected. See `PRODUCT-GAP-EXPLICIT-SUPERSESSION-ASSERTION-LIVE-PASS.md`.
 
 ## Scope
 
@@ -93,4 +93,4 @@ Repository tests must prove:
 9. resolution cannot later close an already-superseded target;
 10. no schema migration or general lifecycle broadening occurs.
 
-Production promotion additionally requires the exact historical wrong diagnosis to disappear from the active view, remain visible as superseded in history, point to the exact accurate diagnosis, and leave that successor's existing status unchanged.
+Production promotion additionally required the exact historical wrong diagnosis to disappear from the active view, remain visible as superseded in history, point to the exact accurate diagnosis, and leave that successor's existing status unchanged. That proof passed on 17 September 2026.

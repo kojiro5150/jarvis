@@ -6,6 +6,10 @@ describe("gmail.search natural-language proposal boundary", () => {
   it.each([
     ["What was my last Rotary email?", "Rotary"],
     ["What was my latest Barwon Health email?", "Barwon Health"],
+    ["What's my last email from Georgia?", "Georgia"],
+    ["What’s my last email from Georgia?", "Georgia"],
+    ["What is my latest email from Georgia?", "Georgia"],
+    ["What was my last email from Georgia?", "Georgia"],
   ] as const)("proposes a bounded topic search without granting authority: %s", (utterance, topic) => {
     const proposal = proposeNaturalLanguageGmailSearch(utterance);
     expect(proposal).toEqual({ capability: "gmail.search", topic, maxResults: 5, resultMode: "topic_match" });
@@ -62,6 +66,9 @@ describe("gmail.search natural-language proposal boundary", () => {
     "What are my emails from the last month?",
     "Read my Gmail from the last day",
     "What's in my Gmail?",
+    "Search my last email for Georgia",
+    "What's my last email about Georgia?",
+    "What's my last email from Georgia and send it?",
     "gmail.search [q:from:anyone]",
     "What was my last from:someone@example.com email?",
   ])("does not propose broader or ambiguous Gmail access: %s", utterance => {

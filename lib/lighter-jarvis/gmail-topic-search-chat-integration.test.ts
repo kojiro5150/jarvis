@@ -40,4 +40,29 @@ describe("Gmail topic-search chat integration", () => {
     expect(JSON.stringify(allowed)).not.toContain("MUST NOT LEAK");
     expect(model).not.toHaveBeenCalled();
   });
+
+  it.each([
+    "What's my last email from Georgia?",
+    "What’s my last email from Georgia?",
+    "What is my latest email from Georgia?",
+    "What was my last email from Georgia?",
+  ])("routes the closed email-from topic variant through the existing authority path: %s", async utterance => {
+    const model = vi.fn(async () => "must not run");
+    const searchByTopic = vi.fn(async () => []);
+    const handler = createLighterChatHandler(model, undefined, undefined, {
+      createConnector: () => ({ search: vi.fn(async () => []) }),
+      createTopicConnector: () => ({ searchByTopic }),
+      createSubjectConnector: () => ({ retrieveMessage: vi.fn(async () => { throw new Error("must not read"); }) }),
+      loadPolicy: async () => ({ policyVersion: "test-v1", rules: [] }),
+    });
+
+    const ask = await (await handler(request(utterance))).json();
+    expect(ask).toMatchObject({
+      reply: "Please explicitly confirm that I may search Gmail.",
+      gmailSearchAuthority: { decision: "ASK" },
+      pendingAuthorizationReference: expect.any(Object),
+    });
+    expect(searchByTopic).not.toHaveBeenCalled();
+    expect(model).not.toHaveBeenCalled();
+  });
 });

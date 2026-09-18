@@ -5,33 +5,45 @@ import { CALENDAR_TIME_ZONE } from "@/lib/lighter-jarvis/calendar-read-window";
 
 const PRODUCT_PATH = "/anon/gen/fwo/IDV10753.xml";
 const PRODUCT_IDENTIFIER = "IDV10753";
-const GEELONG_AAC = "VIC_PT025";
 const MAX_PRODUCT_BYTES = 2 * 1024 * 1024;
-const UNAVAILABLE_REPLY = "I couldn't retrieve a current date-bound Bureau of Meteorology forecast for Geelong tomorrow.";
+
+const SUPPORTED_LOCATIONS = {
+  geelong: { aac: "VIC_PT025", name: "Geelong" },
+  melbourne: { aac: "VIC_PT042", name: "Melbourne" },
+} as const;
 
 type QueryKind = "forecast" | "temperature";
+type LocationKey = keyof typeof SUPPORTED_LOCATIONS;
+type ClassifiedQuery = { kind: QueryKind; locationKey: LocationKey };
 type Values = Record<string, string[]>;
 type Period = { start: string; end: string; elements: Values; texts: Values };
 type Area = { aac: string; type: string; periods: Period[] };
 type Product = { identifier: string; issueTime: string; expiryTime: string; areas: Area[] };
 
-export type GeelongTomorrowWeatherDependencies = Readonly<{
+export type VictorianTomorrowWeatherDependencies = Readonly<{
   fetchProduct: () => Promise<string>;
   clock: () => Date;
 }>;
 
-export type GeelongTomorrowWeatherResult = Readonly<{
+export type VictorianTomorrowWeatherResult = Readonly<{
   handled: boolean;
   status?: "resolved" | "unavailable";
   reply?: string;
   diagnostic?: string;
+  locationKey?: LocationKey;
 }>;
 
-function classify(utterance: string): QueryKind | null {
+export type GeelongTomorrowWeatherDependencies = VictorianTomorrowWeatherDependencies;
+export type GeelongTomorrowWeatherResult = VictorianTomorrowWeatherResult;
+
+function classify(utterance: string): ClassifiedQuery | null {
   const normalized = utterance.trim();
-  if (/^what(?:'s| is| will be) the weather(?: be)? in geelong tomorrow[?!.]?$/i.test(normalized)) return "forecast";
-  if (/^what(?:'s| is| will be) the temperature(?: be)? in geelong tomorrow[?!.]?$/i.test(normalized)) return "temperature";
-  return null;
+  const match = /^what(?:'s| is| will be) the (weather|temperature)(?: be)? in (geelong|melbourne) tomorrow[?!.]?$/i.exec(normalized);
+  if (!match) return null;
+  return {
+    kind: match[1].toLowerCase() as QueryKind,
+    locationKey: match[2].toLowerCase() as LocationKey,
+  };
 }
 
 async function fetchBomProduct(): Promise<string> {
@@ -56,10 +68,12 @@ async function fetchBomProduct(): Promise<string> {
   }
 }
 
-export const defaultGeelongTomorrowWeatherDependencies: GeelongTomorrowWeatherDependencies = {
+export const defaultVictorianTomorrowWeatherDependencies: VictorianTomorrowWeatherDependencies = {
   fetchProduct: fetchBomProduct,
   clock: () => new Date(),
 };
+
+export const defaultGeelongTomorrowWeatherDependencies = defaultVictorianTomorrowWeatherDependencies;
 
 function addValue(values: Values, type: string, value: string) {
   (values[type] ??= []).push(value.trim());
@@ -170,7 +184,7 @@ function targetPresentation(target: string): string {
     .format(new Date(`${target}T12:00:00Z`));
 }
 
-function render(kind: QueryKind, period: Period, issue: Date, target: string): string {
+function render(kind: QueryKind, locationName: string, period: Period, issue: Date, target: string): string {
   const min = temperature(period, "air_temperature_minimum");
   const max = temperature(period, "air_temperature_maximum");
   const precis = one(period.texts, "precis");
@@ -182,9 +196,9 @@ function render(kind: QueryKind, period: Period, issue: Date, target: string): s
       : min ? `a minimum of ${min}; the maximum is unavailable`
         : max ? `a maximum of ${max}; the minimum is unavailable`
           : "minimum and maximum temperatures unavailable";
-    return `Tomorrow, ${day}, Geelong has ${detail}. ${provenance}`;
+    return `Tomorrow, ${day}, ${locationName} has ${detail}. ${provenance}`;
   }
-  const pieces = [`Tomorrow, ${day}, Geelong: ${precis ?? "Conditions unavailable."}`];
+  const pieces = [`Tomorrow, ${day}, ${locationName}: ${precis ?? "Conditions unavailable."}`];
   pieces.push(min ? `Minimum ${min}.` : "Minimum temperature unavailable.");
   pieces.push(max ? `Maximum ${max}.` : "Maximum temperature unavailable.");
   pieces.push(rain ? `Chance of rain: ${rain}.` : "Chance of rain unavailable.");
@@ -194,12 +208,13 @@ function render(kind: QueryKind, period: Period, issue: Date, target: string): s
   return pieces.join(" ");
 }
 
-export async function resolveGeelongTomorrowWeather(
+export async function resolveVictorianTomorrowWeather(
   utterance: string,
-  dependencies: GeelongTomorrowWeatherDependencies = defaultGeelongTomorrowWeatherDependencies,
-): Promise<GeelongTomorrowWeatherResult> {
-  const kind = classify(utterance);
-  if (kind === null) return { handled: false };
+  dependencies: VictorianTomorrowWeatherDependencies = defaultVictorianTomorrowWeatherDependencies,
+): Promise<VictorianTomorrowWeatherResult> {
+  const query = classify(utterance);
+  if (query === null) return { handled: false };
+  const location = SUPPORTED_LOCATIONS[query.locationKey];
   try {
     const now = dependencies.clock();
     const product = parseProduct(await dependencies.fetchProduct());
@@ -209,15 +224,19 @@ export async function resolveGeelongTomorrowWeather(
     if (!Number.isFinite(issue.valueOf()) || !Number.isFinite(expiry.valueOf())) throw new Error("weather_invalid_freshness");
     if (now < issue) throw new Error("weather_future_product");
     if (now >= expiry) throw new Error("weather_expired_product");
-    const areas = product.areas.filter(candidate => candidate.aac === GEELONG_AAC && candidate.type === "location");
+    const areas = product.areas.filter(candidate => candidate.aac === location.aac && candidate.type === "location");
     if (areas.length !== 1) throw new Error("weather_location_ambiguous");
     const target = shiftedDateKey(now, 1);
     const next = shiftedDateKey(now, 2);
     const periods = areas[0].periods.filter(period => isExactLocalDay(period, target, next));
     if (periods.length !== 1) throw new Error("weather_period_ambiguous");
-    return { handled: true, status: "resolved", reply: render(kind, periods[0], issue, target) };
+    return { handled: true, status: "resolved", locationKey: query.locationKey,
+      reply: render(query.kind, location.name, periods[0], issue, target) };
   } catch (error) {
-    return { handled: true, status: "unavailable", reply: UNAVAILABLE_REPLY,
+    return { handled: true, status: "unavailable", locationKey: query.locationKey,
+      reply: `I couldn't retrieve a current date-bound Bureau of Meteorology forecast for ${location.name} tomorrow.`,
       diagnostic: error instanceof Error ? error.message : "weather_unknown_failure" };
   }
 }
+
+export const resolveGeelongTomorrowWeather = resolveVictorianTomorrowWeather;

@@ -88,7 +88,7 @@ import { renderCalendarFreeTime } from "@/lib/lighter-jarvis/calendar-free-time-
 import { resolveGmailInvitationDeclineDraft, type GmailInvitationDeclineDraftDependencies } from "@/lib/lighter-jarvis/gmail-invitation-decline-drafting";
 import { GMAIL_INVITATION_DECLINE_REUSE_CONTAINMENT, OMITTED_GMAIL_INVITATION_DECLINE_DRAFT } from "@/lib/lighter-jarvis/gmail-invitation-decline-draft-contract";
 import { isGmailInvitationDeclineDraftReuse } from "@/lib/lighter-jarvis/gmail-invitation-decline-draft-transport";
-import { resolveGeelongTomorrowWeather, type GeelongTomorrowWeatherDependencies } from "@/lib/lighter-jarvis/geelong-tomorrow-weather";
+import { resolveVictorianTomorrowWeather, type VictorianTomorrowWeatherDependencies } from "@/lib/lighter-jarvis/geelong-tomorrow-weather";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -498,7 +498,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
   discretionaryAvailabilityDependencies?: ProductionDiscretionaryAvailabilityPreferenceDependencies,
   gmailInvitationDeclineDraftDependencies?: GmailInvitationDeclineDraftDependencies,
   productGapSupersessionDependencies?: Partial<ProductionProductGapSupersessionDependencies>,
-  geelongTomorrowWeatherDependencies?: GeelongTomorrowWeatherDependencies) {
+  victorianTomorrowWeatherDependencies?: VictorianTomorrowWeatherDependencies) {
   return async function POST(request: Request) {
     let body: LighterChatBody;
     try { body = await request.json() as LighterChatBody; }
@@ -519,17 +519,20 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
     const modelTranscript = compactModelTranscript(body.messages);
     const currentUserUtterance = [...body.messages].reverse().find(({ role }) => role === "user")?.content;
-    const geelongTomorrowWeather = specialist.id === "jarvis" && currentUserUtterance !== undefined
-      ? await resolveGeelongTomorrowWeather(currentUserUtterance, geelongTomorrowWeatherDependencies)
+    const victorianTomorrowWeather = specialist.id === "jarvis" && currentUserUtterance !== undefined
+      ? await resolveVictorianTomorrowWeather(currentUserUtterance, victorianTomorrowWeatherDependencies)
       : null;
-    if (geelongTomorrowWeather?.handled) {
+    if (victorianTomorrowWeather?.handled) {
+      const weatherResultKey = victorianTomorrowWeather.locationKey === "melbourne"
+        ? "melbourneTomorrowWeather"
+        : "geelongTomorrowWeather";
       return NextResponse.json({
-        reply: geelongTomorrowWeather.reply,
+        reply: victorianTomorrowWeather.reply,
         specialistId: specialist.id,
         execution: "none",
-        geelongTomorrowWeather: {
-          status: geelongTomorrowWeather.status,
-          ...(geelongTomorrowWeather.diagnostic ? { diagnostic: geelongTomorrowWeather.diagnostic } : {}),
+        [weatherResultKey]: {
+          status: victorianTomorrowWeather.status,
+          ...(victorianTomorrowWeather.diagnostic ? { diagnostic: victorianTomorrowWeather.diagnostic } : {}),
         },
       });
     }

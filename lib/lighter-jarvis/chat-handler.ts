@@ -88,6 +88,7 @@ import { renderCalendarFreeTime } from "@/lib/lighter-jarvis/calendar-free-time-
 import { resolveGmailInvitationDeclineDraft, type GmailInvitationDeclineDraftDependencies } from "@/lib/lighter-jarvis/gmail-invitation-decline-drafting";
 import { GMAIL_INVITATION_DECLINE_REUSE_CONTAINMENT, OMITTED_GMAIL_INVITATION_DECLINE_DRAFT } from "@/lib/lighter-jarvis/gmail-invitation-decline-draft-contract";
 import { isGmailInvitationDeclineDraftReuse } from "@/lib/lighter-jarvis/gmail-invitation-decline-draft-transport";
+import { resolveGeelongTomorrowWeather, type GeelongTomorrowWeatherDependencies } from "@/lib/lighter-jarvis/geelong-tomorrow-weather";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -496,7 +497,8 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
   productGapResolutionDependencies?: Partial<ProductionProductGapResolutionDependencies>,
   discretionaryAvailabilityDependencies?: ProductionDiscretionaryAvailabilityPreferenceDependencies,
   gmailInvitationDeclineDraftDependencies?: GmailInvitationDeclineDraftDependencies,
-  productGapSupersessionDependencies?: Partial<ProductionProductGapSupersessionDependencies>) {
+  productGapSupersessionDependencies?: Partial<ProductionProductGapSupersessionDependencies>,
+  geelongTomorrowWeatherDependencies?: GeelongTomorrowWeatherDependencies) {
   return async function POST(request: Request) {
     let body: LighterChatBody;
     try { body = await request.json() as LighterChatBody; }
@@ -517,6 +519,20 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
     const modelTranscript = compactModelTranscript(body.messages);
     const currentUserUtterance = [...body.messages].reverse().find(({ role }) => role === "user")?.content;
+    const geelongTomorrowWeather = specialist.id === "jarvis" && currentUserUtterance !== undefined
+      ? await resolveGeelongTomorrowWeather(currentUserUtterance, geelongTomorrowWeatherDependencies)
+      : null;
+    if (geelongTomorrowWeather?.handled) {
+      return NextResponse.json({
+        reply: geelongTomorrowWeather.reply,
+        specialistId: specialist.id,
+        execution: "none",
+        geelongTomorrowWeather: {
+          status: geelongTomorrowWeather.status,
+          ...(geelongTomorrowWeather.diagnostic ? { diagnostic: geelongTomorrowWeather.diagnostic } : {}),
+        },
+      });
+    }
     const standingGmailAuthorityRequest = currentUserUtterance !== undefined
       && isGmailStandingAuthorityRequest(currentUserUtterance);
     const freshCapabilityRequest = currentUserUtterance !== undefined

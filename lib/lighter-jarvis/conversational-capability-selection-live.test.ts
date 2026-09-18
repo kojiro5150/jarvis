@@ -286,7 +286,7 @@ describe("Sprint 3.180b live capability selection", () => {
     )).toBe("Australia's annual CPI inflation rate is 3.5% for the 12 months to July 2026. According to the ABS, this is the latest available CPI figure.");
   });
 
-  it("keeps weather public and lets ordinary JARVIS use native web search without authorization", async () => {
+  it("keeps an unsupported weather location out of ordinary web search", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-30T01:15:00Z"));
     const model = vi.fn(async (systemPrompt: string, messages: { content: string }[], tools?: ClaudeTool[]) => {
@@ -317,21 +317,21 @@ describe("Sprint 3.180b live capability selection", () => {
     const response = await (await handler(request([
       { role: "user", content: "When am I next doing something on JARVIS?" },
       { role: "assistant", content: "I can check your Calendar for that, but I couldn't resolve the factual query safely from that wording." },
-      { role: "user", content: "Will it rain in Geelong tomorrow?" },
+      { role: "user", content: "Will it rain in New York tomorrow?" },
     ]))).json();
 
     expect(response).toEqual({
-      reply: "Tomorrow in Geelong: 17°C with a chance of showers.",
+      reply: "I don't yet have a deterministic Bureau of Meteorology forecast for New York.",
       specialistId: "jarvis",
       execution: "none",
+      weatherRouting: { status: "unsupported_location" },
     });
     expect(response).not.toHaveProperty("pendingAuthorizationReference");
-    expect(model).toHaveBeenCalledTimes(2);
-    expect(hasWebSearch(model.mock.calls[1][2])).toBe(true);
+    expect(model).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
 
-  it("still exposes web search to ordinary JARVIS when the selector itself declines public capability", async () => {
+  it("contains weather even if the conversational selector would decline public capability", async () => {
     const model = vi.fn(async (_systemPrompt: string, _messages: { content: string }[], tools?: ClaudeTool[]) =>
       hasWebSearch(tools)
         ? {
@@ -342,13 +342,12 @@ describe("Sprint 3.180b live capability selection", () => {
     const handler = createLighterChatHandler(model);
 
     const response = await (await handler(request([
-      { role: "user", content: "Will it rain in Geelong tomorrow?" },
+      { role: "user", content: "Will it rain in Paris tomorrow?" },
     ]))).json();
 
-    expect(response.reply).toBe("Geelong's forecast is available from current web results.");
+    expect(response.reply).toBe("I don't yet have a deterministic Bureau of Meteorology forecast for Paris.");
     expect(response).not.toHaveProperty("pendingAuthorizationReference");
-    expect(model).toHaveBeenCalledTimes(2);
-    expect(hasWebSearch(model.mock.calls[1][2])).toBe(true);
+    expect(model).not.toHaveBeenCalled();
   });
 
   it("recognizes natural Gmail wording without pretending Gmail is unavailable", async () => {
@@ -476,7 +475,7 @@ describe("Sprint 3.180b live capability selection", () => {
     expect(model).toHaveBeenCalledOnce();
   });
 
-  it("returns a plain failure message when the web-enabled model invocation fails", async () => {
+  it("contains unsupported Sydney before a failing web-enabled model can run", async () => {
     const model = vi.fn(async (_systemPrompt: string, _messages: { content: string }[], tools?: ClaudeTool[]) => {
       if (hasWebSearch(tools)) throw new Error("web search unavailable");
       return JSON.stringify({
@@ -492,10 +491,11 @@ describe("Sprint 3.180b live capability selection", () => {
     ]))).json();
 
     expect(response).toEqual({
-      reply: "I couldn't retrieve the public information needed for that answer right now.",
+      reply: "I don't yet have a deterministic Bureau of Meteorology forecast for Sydney.",
       specialistId: "jarvis",
       execution: "none",
+      weatherRouting: { status: "unsupported_location" },
     });
-    expect(model).toHaveBeenCalledTimes(2);
+    expect(model).not.toHaveBeenCalled();
   });
 });

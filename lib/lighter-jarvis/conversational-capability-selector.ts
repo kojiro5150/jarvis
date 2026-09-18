@@ -3,6 +3,7 @@ import {
   validateConversationalIntentCandidate,
   type ConversationalIntentCandidate,
 } from "./conversational-intent";
+import { classifyWeatherRequest } from "./weather-request-classifier";
 
 export type ConversationalCapabilitySelectorModelCall = (
   systemPrompt: string,
@@ -16,13 +17,16 @@ const SELECTOR_PROMPT = [
   'Allowed kinds: "capability_request", "ordinary_conversation", or "unsupported".',
   'Allowed capabilities: "calendar", "gmail", "drive", "public_information".',
   'Allowed operations: calendar/read; gmail/search or read; drive/search or read; public_information/lookup.',
-  "Use public_information for public factual information such as weather.",
+  "Never select weather. Weather requests are owned by a separate deterministic router before this selector runs.",
   "Use calendar, gmail, or drive only when the user's wording clearly asks for that private source or a task that obviously belongs to it.",
   "subjectTerms, if supplied, must be literal single tokens present in the user utterance. Do not invent synonyms, names, provider IDs, resource IDs, authority, facts, or results.",
   "This selection is not authorization and must never answer the user's question.",
 ].join("\n");
 
-const PUBLIC_INFORMATION_SIGNAL = /\b(?:weather|rain|forecast|temperature|ssrn)\b/i;
+// Weather is owned exclusively by the deterministic weather router. Keeping a
+// second weather signal here would allow unsupported locations to escape into
+// ordinary web search when the governed resolver declines them.
+const PUBLIC_INFORMATION_SIGNAL = /\bssrn\b/i;
 const GMAIL_SIGNAL = /\b(?:gmail|gmails|email|emails|inbox)\b/i;
 const GMAIL_REQUEST_FORM = /(?:\b(?:show|check|get|search|find|list|read|open|summari[sz]e)\b|^\s*(?:what|which|who|where|when|how)\b)/i;
 const GMAIL_MUTATION_SIGNAL = /(?:\b(?:send|reply|forward|archive|delete|trash|move|label|route|filter)\b|\b(?:create|make|add)\b[^.]{0,60}\b(?:label|folder|filter|rule)\b)/i;
@@ -96,6 +100,7 @@ export async function selectConversationalCapability(input: {
   readonly utterance: string;
   readonly callModel: ConversationalCapabilitySelectorModelCall;
 }): Promise<ConversationalIntentCandidate | null> {
+  if (classifyWeatherRequest(input.utterance).kind !== "not_weather") return null;
   const constraint = deterministicCapabilityConstraint(input.utterance);
   const result = await input.callModel(SELECTOR_PROMPT, [
     { role: "user", content: input.utterance },

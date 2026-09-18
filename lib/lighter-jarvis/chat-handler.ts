@@ -525,7 +525,9 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     if (victorianTomorrowWeather?.handled) {
       const weatherResultKey = victorianTomorrowWeather.locationKey === "melbourne"
         ? "melbourneTomorrowWeather"
-        : "geelongTomorrowWeather";
+        : victorianTomorrowWeather.locationKey === "geelong"
+          ? "geelongTomorrowWeather"
+          : "weatherRouting";
       return NextResponse.json({
         reply: victorianTomorrowWeather.reply,
         specialistId: specialist.id,

@@ -67,3 +67,46 @@ describe("Melbourne tomorrow weather routing", () => {
     expect(model).not.toHaveBeenCalled();
   });
 });
+
+describe("unsupported weather containment", () => {
+  it.each([
+    ["What's the weather in New York tomorrow?", "New York"],
+    ["Will it rain in Paris tomorrow?", "Paris"],
+    ["London forecast tomorrow", "London"],
+    ["Temperature in Tokyo tomorrow", "Tokyo"],
+    ["What's the weather in Sydney tomorrow?", "Sydney"],
+  ])("fails closed for %s without model, web search, or BOM acquisition", async (utterance, location) => {
+    const model = vi.fn();
+    const fetchProduct = vi.fn(async () => "unused");
+    const response = await handler(model, fetchProduct)(request(utterance));
+    expect(await response.json()).toEqual(expect.objectContaining({
+      reply: `I don't yet have a deterministic Bureau of Meteorology forecast for ${location}.`,
+      execution: "none",
+      weatherRouting: { status: "unsupported_location" },
+    }));
+    expect(model).not.toHaveBeenCalled();
+    expect(fetchProduct).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["Will it snow in Aspen?", "Please specify tomorrow for the deterministic weather forecast."],
+    ["Will it be windy tomorrow?", "Please specify the location for the weather forecast."],
+    ["a windy road ahead", "I detected possible weather wording, but not a complete forecast request. Could you clarify what you'd like?"],
+  ])("keeps incomplete or incidental weather terminal for %s", async (utterance, reply) => {
+    const model = vi.fn();
+    const fetchProduct = vi.fn(async () => "unused");
+    const response = await handler(model, fetchProduct)(request(utterance));
+    expect(await response.json()).toEqual(expect.objectContaining({ reply, execution: "none" }));
+    expect(model).not.toHaveBeenCalled();
+    expect(fetchProduct).not.toHaveBeenCalled();
+  });
+
+  it("leaves weathering steel outside weather containment", async () => {
+    const model = vi.fn(async () => ({ content: [], text: "Ordinary answer." }));
+    const fetchProduct = vi.fn(async () => "unused");
+    const response = await handler(model, fetchProduct)(request("What is weathering steel?"));
+    expect((await response.json()).reply).toBe("Ordinary answer.");
+    expect(model).toHaveBeenCalled();
+    expect(fetchProduct).not.toHaveBeenCalled();
+  });
+});

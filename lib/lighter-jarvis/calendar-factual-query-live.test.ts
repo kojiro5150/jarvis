@@ -312,7 +312,7 @@ describe("live governed Calendar factual query", () => {
     expect(model.mock.calls[0][0]).toContain("bounded Calendar factual-intent interpreter");
   });
 
-  it("keeps pronoun-led weather wording out of Calendar and on ordinary web-enabled JARVIS", async () => {
+  it("keeps pronoun-led weather wording out of Calendar and inside weather containment", async () => {
     const model = vi.fn(async (systemPrompt: string, _messages: unknown, tools?: unknown[]) =>
       Array.isArray(tools)
         ? "Current weather answer."
@@ -328,9 +328,9 @@ describe("live governed Calendar factual query", () => {
       specialistId: "jarvis",
       messages: [{ role: "user", content: "When is it going to rain next?" }],
     }))).json();
-    expect(response.reply).toBe("Current weather answer.");
+    expect(response.reply).toBe("Please specify the location for the weather forecast.");
     expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
-    expect(model).toHaveBeenCalledTimes(2);
+    expect(model).not.toHaveBeenCalled();
   });
 
   it("contains doing-something Level-2 wording without Calendar authority or acquisition", async () => {
@@ -396,7 +396,7 @@ describe("live governed Calendar factual query", () => {
     expect(model).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps a non-schedule when-again question on ordinary web-enabled JARVIS", async () => {
+  it("keeps a non-schedule when-again question inside weather containment", async () => {
     const model = vi.fn(async (systemPrompt: string, _messages: unknown, tools?: unknown[]) =>
       Array.isArray(tools)
         ? "Current weather answer."
@@ -414,9 +414,9 @@ describe("live governed Calendar factual query", () => {
       messages: [{ role: "user", content: "When will it rain again?" }],
     }))).json();
 
-    expect(response.reply).toBe("Current weather answer.");
+    expect(response.reply).toBe("Please specify the location for the weather forecast.");
     expect(c.listBetweenWithCompleteness).not.toHaveBeenCalled();
-    expect(model).toHaveBeenCalledTimes(2);
+    expect(model).not.toHaveBeenCalled();
   });
 
   it("does not let a malformed follow-up turn a prior negative factual result into a commitment", async () => {

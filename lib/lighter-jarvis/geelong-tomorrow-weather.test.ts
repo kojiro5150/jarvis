@@ -37,10 +37,14 @@ describe("Geelong tomorrow weather", () => {
     expect(result.reply).not.toContain("Sunny");
   });
 
-  it("does not claim unproven utterance shapes", async () => {
+  it("contains an unproven location without acquiring or searching", async () => {
     const fetchProduct = vi.fn(async () => product());
     expect(await resolveGeelongTomorrowWeather("What's the weather in Sydney tomorrow?", { fetchProduct, clock: () => NOW }))
-      .toEqual({ handled: false });
+      .toEqual({
+        handled: true,
+        status: "unsupported_location",
+        reply: "I don't yet have a deterministic Bureau of Meteorology forecast for Sydney.",
+      });
     expect(fetchProduct).not.toHaveBeenCalled();
   });
 
@@ -137,10 +141,14 @@ describe("Melbourne tomorrow weather", () => {
     expect(result).toEqual(expect.objectContaining({ handled: true, status: "unavailable", locationKey: "melbourne" }));
   });
 
-  it("does not widen the deterministic route to Sydney", async () => {
+  it("does not widen the deterministic route or fallback to Sydney", async () => {
     const fetchProduct = vi.fn(async () => product());
     expect(await resolveVictorianTomorrowWeather("What's the weather in Sydney tomorrow?", { fetchProduct, clock: () => NOW }))
-      .toEqual({ handled: false });
+      .toEqual({
+        handled: true,
+        status: "unsupported_location",
+        reply: "I don't yet have a deterministic Bureau of Meteorology forecast for Sydney.",
+      });
     expect(fetchProduct).not.toHaveBeenCalled();
   });
 

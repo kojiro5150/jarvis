@@ -8,7 +8,7 @@ import {
 
 describe("conversational capability selection", () => {
   it.each([
-    ["Will it rain in Geelong tomorrow?", true],
+    ["Will it rain in Geelong tomorrow?", false],
     ["What are my last five emails?", true],
     ["What are my last five Gmails?", true],
     ["One of my last five emails.", false],
@@ -46,7 +46,7 @@ describe("conversational capability selection", () => {
     })).resolves.toBeNull();
   });
 
-  it("classifies a public weather request", async () => {
+  it("defers a public weather request to the deterministic weather router", async () => {
     const model = vi.fn(async () => JSON.stringify({
       kind: "capability_request",
       capability: "public_information",
@@ -59,12 +59,8 @@ describe("conversational capability selection", () => {
       utterance: "Will it rain in Geelong tomorrow?",
       callModel: model,
     });
-    expect(selected).toMatchObject({
-      kind: "capability_request",
-      capability: "public_information",
-      operation: "lookup",
-    });
-    expect(selected).not.toHaveProperty("result");
+    expect(selected).toBeNull();
+    expect(model).not.toHaveBeenCalled();
   });
 
   it("classifies a private Gmail request without execution state", async () => {
@@ -96,16 +92,13 @@ describe("conversational capability selection", () => {
     })).toBeNull();
   });
 
-  it("deterministically retains public-information class when the model declines it", async () => {
+  it("does not independently force weather into public-information fallback", async () => {
     const model = vi.fn(async () => JSON.stringify({ kind: "ordinary_conversation" }));
     await expect(selectConversationalCapability({
       utterance: "Will it rain in Geelong tomorrow?",
       callModel: model,
-    })).resolves.toEqual({
-      kind: "capability_request",
-      capability: "public_information",
-      operation: "lookup",
-    });
+    })).resolves.toBeNull();
+    expect(model).not.toHaveBeenCalled();
   });
 
   it("treats the closed spoken plural Gmails as Gmail", async () => {

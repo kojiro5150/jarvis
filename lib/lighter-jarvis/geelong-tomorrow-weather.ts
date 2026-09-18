@@ -2,6 +2,11 @@ import { Writable } from "node:stream";
 import { Client } from "basic-ftp";
 import { SaxesParser, type SaxesTagPlain } from "saxes";
 import { CALENDAR_TIME_ZONE } from "@/lib/lighter-jarvis/calendar-read-window";
+import {
+  classifyWeatherRequest,
+  type SupportedWeatherLocationKey,
+  type WeatherQueryKind,
+} from "@/lib/lighter-jarvis/weather-request-classifier";
 
 const PRODUCT_PATH = "/anon/gen/fwo/IDV10753.xml";
 const PRODUCT_IDENTIFIER = "IDV10753";
@@ -12,8 +17,8 @@ const SUPPORTED_LOCATIONS = {
   melbourne: { aac: "VIC_PT042", name: "Melbourne" },
 } as const;
 
-type QueryKind = "forecast" | "temperature";
-type LocationKey = keyof typeof SUPPORTED_LOCATIONS;
+type QueryKind = WeatherQueryKind;
+type LocationKey = SupportedWeatherLocationKey;
 type ClassifiedQuery = { kind: QueryKind; locationKey: LocationKey };
 type Values = Record<string, string[]>;
 type Period = { start: string; end: string; elements: Values; texts: Values };
@@ -27,7 +32,7 @@ export type VictorianTomorrowWeatherDependencies = Readonly<{
 
 export type VictorianTomorrowWeatherResult = Readonly<{
   handled: boolean;
-  status?: "resolved" | "unavailable";
+  status?: "resolved" | "unavailable" | "unsupported_location" | "unsupported_timeframe" | "clarification_required" | "unresolved_weather_signal";
   reply?: string;
   diagnostic?: string;
   locationKey?: LocationKey;
@@ -35,16 +40,6 @@ export type VictorianTomorrowWeatherResult = Readonly<{
 
 export type GeelongTomorrowWeatherDependencies = VictorianTomorrowWeatherDependencies;
 export type GeelongTomorrowWeatherResult = VictorianTomorrowWeatherResult;
-
-function classify(utterance: string): ClassifiedQuery | null {
-  const normalized = utterance.trim();
-  const match = /^what(?:'s| is| will be) the (weather|temperature)(?: be)? in (geelong|melbourne) tomorrow[?!.]?$/i.exec(normalized);
-  if (!match) return null;
-  return {
-    kind: match[1].toLowerCase() as QueryKind,
-    locationKey: match[2].toLowerCase() as LocationKey,
-  };
-}
 
 async function fetchBomProduct(): Promise<string> {
   const client = new Client(15_000);
@@ -212,8 +207,27 @@ export async function resolveVictorianTomorrowWeather(
   utterance: string,
   dependencies: VictorianTomorrowWeatherDependencies = defaultVictorianTomorrowWeatherDependencies,
 ): Promise<VictorianTomorrowWeatherResult> {
-  const query = classify(utterance);
-  if (query === null) return { handled: false };
+  const classification = classifyWeatherRequest(utterance);
+  if (classification.kind === "not_weather") return { handled: false };
+  if (classification.kind === "unresolved_weather_signal") {
+    return { handled: true, status: classification.kind,
+      reply: "I detected possible weather wording, but not a complete forecast request. Could you clarify what you'd like?" };
+  }
+  if (classification.kind === "clarification_required") {
+    const reply = classification.reason === "missing_location"
+      ? "Please specify the location for the weather forecast."
+      : "Please specify tomorrow for the deterministic weather forecast.";
+    return { handled: true, status: classification.kind, reply };
+  }
+  if (classification.kind === "unsupported_timeframe") {
+    return { handled: true, status: classification.kind,
+      reply: "I currently have a deterministic Bureau of Meteorology forecast path for tomorrow only." };
+  }
+  if (classification.kind === "unsupported_location") {
+    return { handled: true, status: classification.kind,
+      reply: `I don't yet have a deterministic Bureau of Meteorology forecast for ${classification.location}.` };
+  }
+  const query: ClassifiedQuery = { kind: classification.queryKind, locationKey: classification.locationKey };
   const location = SUPPORTED_LOCATIONS[query.locationKey];
   try {
     const now = dependencies.clock();

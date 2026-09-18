@@ -194,7 +194,7 @@ describe("POST /api/lighter/chat", () => {
     expect(model).not.toHaveBeenCalled();
   });
 
-  it("uses an explicit current-turn personal plan as user-provided context for public weather without leaking prior Calendar facts", async () => {
+  it("contains an unsupported weather location without leaking prior Calendar facts", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-30T01:15:00Z"));
     const calendarConnector = vi.fn();
@@ -227,12 +227,13 @@ describe("POST /api/lighter/chat", () => {
     }));
 
     expect(await response.json()).toEqual({
-      reply: "Based on what you've told me about being at Barwon Health tomorrow, rain is likely during part of the day.",
+      reply: "I don't yet have a deterministic Bureau of Meteorology forecast for Barwon Health.",
       specialistId: "jarvis",
       execution: "none",
+      weatherRouting: { status: "unsupported_location" },
     });
     expect(calendarConnector).not.toHaveBeenCalled();
-    expect(model).toHaveBeenCalledTimes(2);
+    expect(model).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
 

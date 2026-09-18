@@ -488,7 +488,7 @@ describe("Sprint 3.180b live capability selection", () => {
     const handler = createLighterChatHandler(model);
 
     const response = await (await handler(request([
-      { role: "user", content: "What's the weather in Geelong tomorrow?" },
+      { role: "user", content: "What's the weather in Sydney tomorrow?" },
     ]))).json();
 
     expect(response).toEqual({

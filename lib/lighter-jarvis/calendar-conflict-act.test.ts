@@ -59,8 +59,8 @@ describe("first bounded Calendar Act validation", () => {
     expect(isCalendarActInstruction("Move it")).toBe(false);
   });
 
-  it("creates one exact opaque proposal only after current-state validation", () => {
-    const result = validateCalendarAdviceForAct({
+  it("creates one exact opaque proposal only after current-state validation", async () => {
+    const result = await validateCalendarAdviceForAct({
       adviceReference: advice(),
       evidence: evidence(),
       window,
@@ -98,8 +98,8 @@ describe("first bounded Calendar Act validation", () => {
     });
   });
 
-  it("fails closed when the source changed or target is newly occupied", () => {
-    const valid = validateCalendarAdviceForAct({
+  it("fails closed when the source changed or target is newly occupied", async () => {
+    const valid = await validateCalendarAdviceForAct({
       adviceReference: advice(),
       evidence: evidence(),
       window,

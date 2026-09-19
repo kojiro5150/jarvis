@@ -78,7 +78,7 @@ import { GoogleCalendarEventWriteConnector, type CalendarEventWritePort } from "
 import { GoogleCalendarConnector } from "@/lib/connectors/google/calendar";
 import { hasGoogleCalendarWriteScope } from "@/lib/connectors/google/calendar-write-scope";
 import type { ScopedCalendarAcquisitionPort } from "@/lib/governed-conversation/scoped-calendar-evidence-acquisition-adapter";
-import { isDurableContinuityRecallRequest, resolveProductionModelContinuityRecall, type ProductionModelContinuityDependencies } from "@/lib/operating-picture/production-model-continuity";
+import { isDurableContinuityRecallRequest, resolveProductionModelContinuityRecall, type ProductionModelContinuityDependencies, type ProductionModelContinuityUnavailableDiagnostic } from "@/lib/operating-picture/production-model-continuity";
 import { resolveProductionUserContinuityCapture, type ProductionUserContinuityCaptureDependencies } from "@/lib/operating-picture/production-user-continuity-capture";
 import { resolveProductionProductGapResolution, type ProductionProductGapResolutionDependencies } from "@/lib/operating-picture/production-product-gap-resolution";
 import { resolveProductionProductGapSupersession, type ProductionProductGapSupersessionDependencies } from "@/lib/operating-picture/production-product-gap-supersession";
@@ -124,6 +124,27 @@ type ModelCall = (
 const PUBLIC_WEB_TOOLS: ClaudeTool[] = [
   { type: "web_search_20250305", name: "web_search" },
 ];
+
+type PublicContinuityUnavailableCategory = "temporarily_unavailable" | "governed_check_failed";
+
+function publicContinuityUnavailablePresentation(
+  diagnostic: ProductionModelContinuityUnavailableDiagnostic,
+): Readonly<{ category: PublicContinuityUnavailableCategory; reply: string }> {
+  switch (diagnostic) {
+    case "projection_exception":
+    case "context_projection_not_available":
+    case "assessment_model_failed":
+      return Object.freeze({
+        category: "temporarily_unavailable",
+        reply: "I can't safely retrieve durable continuity right now because the continuity service is temporarily unavailable. Please try again.",
+      });
+    default:
+      return Object.freeze({
+        category: "governed_check_failed",
+        reply: "I can't safely retrieve durable continuity for that request because the governed continuity check could not be completed safely.",
+      });
+  }
+}
 
 const PUBLIC_WEB_GUIDANCE = [
   "You have access to web search for public information.",
@@ -1495,6 +1516,16 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
             "[/api/lighter/chat] Durable continuity recall unavailable:",
             continuity.diagnostic,
           );
+          const presentation = publicContinuityUnavailablePresentation(continuity.diagnostic);
+          return NextResponse.json({
+            reply: presentation.reply,
+            specialistId: specialist.id,
+            execution: "none",
+            modelContinuity: {
+              status: continuity.status,
+              category: presentation.category,
+            },
+          });
         }
         return NextResponse.json({
           reply: continuity.reply,

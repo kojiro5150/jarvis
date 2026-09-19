@@ -82,8 +82,12 @@ import type { ScopedCalendarAcquisitionPort } from "@/lib/governed-conversation/
 import { isDurableContinuityRecallRequest, resolveProductionModelContinuityRecall, type ProductionModelContinuityDependencies, type ProductionModelContinuityUnavailableDiagnostic } from "@/lib/operating-picture/production-model-continuity";
 import { createDurableContinuityReleaseReference } from "@/lib/lighter-jarvis/durable-continuity-release-reference";
 import { resolveProductionUserContinuityCapture, type ProductionUserContinuityCaptureDependencies } from "@/lib/operating-picture/production-user-continuity-capture";
+import { parseExplicitUserContinuityCaptureRequest } from "@/lib/operating-picture/user-continuity-capture-contract";
+import { parseUserContinuityCaptureClassClarification } from "@/lib/operating-picture/user-continuity-capture-clarification-reference";
 import { resolveProductionProductGapResolution, type ProductionProductGapResolutionDependencies } from "@/lib/operating-picture/production-product-gap-resolution";
+import { parseProductGapResolutionWriteIntent } from "@/lib/operating-picture/product-gap-resolution-reference";
 import { resolveProductionProductGapSupersession, type ProductionProductGapSupersessionDependencies } from "@/lib/operating-picture/production-product-gap-supersession";
+import { parseProductGapSupersessionWriteIntent } from "@/lib/operating-picture/product-gap-supersession-reference";
 import { resolveProductionDiscretionaryAvailabilityPreference, type ProductionDiscretionaryAvailabilityPreferenceDependencies } from "@/lib/operating-picture/discretionary-availability-preference";
 import { calculateCalendarFreeTime } from "@/lib/lighter-jarvis/calendar-free-time";
 import { renderCalendarFreeTime } from "@/lib/lighter-jarvis/calendar-free-time-renderer";
@@ -95,6 +99,7 @@ import { createWeatherClarificationReference, consumeWeatherClarificationReferen
 
 interface LighterChatBody {
   specialistId?: unknown;
+  inputModality?: unknown;
   messages?: unknown;
   pendingAuthorizationReference?: unknown;
   gmailSenderDisambiguationReference?: unknown;
@@ -116,6 +121,9 @@ interface LighterChatBody {
   durableContinuityReleaseReference?: unknown;
   weatherClarificationReference?: unknown;
 }
+export const TYPED_WRITE_CONFIRMATION_REQUIRED_REPLY =
+  "I can't confirm changes from voice yet. Please type your confirmation.";
+
 type ModelCall = (
   systemPrompt: string,
   messages: ChatMessage[],
@@ -581,11 +589,26 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
     const modelTranscript = compactModelTranscript(body.messages);
     const currentUserUtterance = [...body.messages].reverse().find(({ role }) => role === "user")?.content;
+    const writeAuthorityPermitted = body.inputModality === "typed";
 
     // An explicit user-authored continuity capture is a closed, established
     // operation. Resolve it before content-based routers inspect words inside
     // the statement being preserved (for example, a Product Gap about weather).
     if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {
+      const captureWriteShaped =
+        parseExplicitUserContinuityCaptureRequest(currentUserUtterance).status === "matched"
+        || (Object.hasOwn(body, "userContinuityCaptureClarificationReference")
+          && parseUserContinuityCaptureClassClarification(currentUserUtterance) !== null);
+      if (captureWriteShaped && !writeAuthorityPermitted) {
+        return NextResponse.json({
+          reply: TYPED_WRITE_CONFIRMATION_REQUIRED_REPLY,
+          specialistId: specialist.id,
+          execution: "none",
+          ...(Object.hasOwn(body, "userContinuityCaptureClarificationReference")
+            ? { userContinuityCaptureClarificationReference: body.userContinuityCaptureClarificationReference }
+            : {}),
+        });
+      }
       const capture = await resolveProductionUserContinuityCapture({
         utterance: currentUserUtterance,
         ...(Object.hasOwn(body, "userContinuityCaptureClarificationReference")
@@ -747,6 +770,16 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
 
     if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {
+      if (parseProductGapSupersessionWriteIntent(currentUserUtterance) && !writeAuthorityPermitted) {
+        return NextResponse.json({
+          reply: TYPED_WRITE_CONFIRMATION_REQUIRED_REPLY,
+          specialistId: specialist.id,
+          execution: "none",
+          ...(Object.hasOwn(body, "productGapSupersessionReference")
+            ? { productGapSupersessionReference: body.productGapSupersessionReference }
+            : {}),
+        });
+      }
       const supersession = await resolveProductionProductGapSupersession({
         utterance: currentUserUtterance,
         ...(Object.hasOwn(body, "productGapSupersessionReference")
@@ -766,6 +799,19 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
 
     if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {
+      if (parseProductGapResolutionWriteIntent(currentUserUtterance) && !writeAuthorityPermitted) {
+        return NextResponse.json({
+          reply: TYPED_WRITE_CONFIRMATION_REQUIRED_REPLY,
+          specialistId: specialist.id,
+          execution: "none",
+          ...(Object.hasOwn(body, "productGapResolutionListReference")
+            ? { productGapResolutionListReference: body.productGapResolutionListReference }
+            : {}),
+          ...(Object.hasOwn(body, "productGapResolutionTargetReference")
+            ? { productGapResolutionTargetReference: body.productGapResolutionTargetReference }
+            : {}),
+        });
+      }
       const resolution = await resolveProductionProductGapResolution({
         utterance: currentUserUtterance,
         ...(Object.hasOwn(body, "productGapResolutionListReference")
@@ -807,6 +853,16 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       }
 
       if (Object.hasOwn(body, "calendarMoveAuthorizationReference")) {
+        if (!writeAuthorityPermitted) {
+          return NextResponse.json({
+            reply: TYPED_WRITE_CONFIRMATION_REQUIRED_REPLY,
+            specialistId: specialist.id,
+            execution: "none",
+            calendarMoveAuthorizationReference: body.calendarMoveAuthorizationReference,
+            calendarMoveProposalReference: body.calendarMoveProposalReference ?? null,
+            calendarAdviceReference: body.calendarAdviceReference ?? null,
+          });
+        }
         const execution = await executeConfirmedCalendarMove({
           authorizationReference: body.calendarMoveAuthorizationReference,
           currentUserUtterance,

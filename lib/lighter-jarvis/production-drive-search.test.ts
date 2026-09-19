@@ -98,7 +98,7 @@ describe("production drive.search", () => {
 
   it("does not treat bare confirmation or another capability's pending state as Drive authority", async () => {
     expect((await resolveProductionDriveSearch({ currentUserUtterance: "yes" })).handled).toBe(false);
-    const foreign = (await import("./pending-authorization")).createPendingAuthorization(
+    const foreign = await (await import("./durable-pending-authorization")).createDurablePendingAuthorization(
       (await import("./gmail-search-authority")).proposeGmailSearch("1d"),
     );
     expect((await resolveProductionDriveSearch({ currentUserUtterance: "yes", pendingAuthorizationReference: foreign })).handled).toBe(false);

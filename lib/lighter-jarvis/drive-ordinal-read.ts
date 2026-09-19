@@ -4,7 +4,8 @@ import {
   type GovernedReferentialScopeReference,
   type GovernedResultSetReference,
 } from "./governed-result-set-reference";
-import { createPendingAuthorization, type PendingAuthorizationReference } from "./pending-authorization";
+import { type PendingAuthorizationReference } from "./pending-authorization";
+import { createDurablePendingAuthorization } from "./durable-pending-authorization";
 
 export type DriveOrdinalReadProposalResult = Readonly<{
   handled: boolean;
@@ -41,11 +42,11 @@ function requestedOrdinal(utterance: string): number | null {
   return Number.isInteger(numeric) && numeric > 0 ? numeric : null;
 }
 
-export function resolveDriveOrdinalReadProposal(input: {
+export async function resolveDriveOrdinalReadProposal(input: {
   readonly currentUserUtterance: string;
   readonly governedReferentialScopeReference?: unknown;
   readonly governedResultSetReference?: unknown;
-}): DriveOrdinalReadProposalResult {
+}): Promise<DriveOrdinalReadProposalResult> {
   const normalized = input.currentUserUtterance.normalize("NFKC").trim();
   if (SUPERSEDED_DRIVE_ORDINAL_REQUEST.test(normalized)) {
     return Object.freeze({
@@ -92,7 +93,7 @@ export function resolveDriveOrdinalReadProposal(input: {
   return Object.freeze({
     handled: true,
     reply: `I can read file ${resolution.ordinal} from the recent Drive result. Please explicitly confirm that I may read that exact Drive file.`,
-    pendingAuthorizationReference: createPendingAuthorization(operation),
+    pendingAuthorizationReference: await createDurablePendingAuthorization(operation),
     governedReferentialScopeReference: input.governedReferentialScopeReference as GovernedReferentialScopeReference,
     governedResultSetReference: input.governedResultSetReference as GovernedResultSetReference,
   });

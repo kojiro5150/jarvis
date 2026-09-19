@@ -2,8 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { CalendarEvent } from "../connectors/calendar-event";
 import type { CalendarEventWritePort } from "../connectors/google/calendar-write";
 import type { ScopedCalendarAcquisitionPort } from "../governed-conversation/scoped-calendar-evidence-acquisition-adapter";
-import { createCalendarMoveProposalReference } from "./calendar-move-proposal-reference";
-import { createCalendarMoveAuthorizationReference } from "./calendar-move-authorization";
+import { createDurableCalendarMoveAuthorizationReference } from "./durable-calendar-move-authorization";
 import { executeConfirmedCalendarMove } from "./calendar-move-execution";
 
 const source: CalendarEvent = {
@@ -19,8 +18,8 @@ const source: CalendarEvent = {
   timeMode: "deep_work",
 };
 
-function authorization() {
-  const proposal = createCalendarMoveProposalReference({
+async function authorization() {
+  const proposal = {
     commitmentReference: "google-calendar:calendar:primary:event:deep",
     calendarId: "primary",
     eventId: "deep",
@@ -30,8 +29,10 @@ function authorization() {
     targetEnd: "2026-08-29T12:00:00.000Z",
     durationMinutes: 90,
     observedAt: "2026-08-29T08:00:00.000Z",
+  };
+  return createDurableCalendarMoveAuthorizationReference(proposal, {
+    now: new Date("2026-08-29T08:05:00.000Z"),
   });
-  return createCalendarMoveAuthorizationReference(proposal);
 }
 
 function completeRead(events: readonly CalendarEvent[]): ScopedCalendarAcquisitionPort {
@@ -83,7 +84,7 @@ describe("confirmed Calendar move execution", () => {
     };
 
     const result = await executeConfirmedCalendarMove({
-      authorizationReference: authorization(),
+      authorizationReference: await authorization(),
       currentUserUtterance: "Yes.",
       readConnector: completeRead([source]),
       writeConnector,
@@ -118,7 +119,7 @@ describe("confirmed Calendar move execution", () => {
     };
 
     const result = await executeConfirmedCalendarMove({
-      authorizationReference: authorization(),
+      authorizationReference: await authorization(),
       currentUserUtterance: "Yes.",
       readConnector: completeRead([movedSource]),
       writeConnector,
@@ -139,7 +140,7 @@ describe("confirmed Calendar move execution", () => {
     };
 
     const result = await executeConfirmedCalendarMove({
-      authorizationReference: authorization(),
+      authorizationReference: await authorization(),
       currentUserUtterance: "Yes.",
       readConnector: completeRead([source]),
       writeConnector,

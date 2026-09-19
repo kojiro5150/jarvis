@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { loadContentRetrievalPolicy, type ContentRetrievalPolicy } from "../content-retrieval-policy";
 import { resolveProductionGmailRead } from "./production-gmail-read";
-import { createPendingAuthorization } from "./pending-authorization";
+import { createDurablePendingAuthorization } from "./durable-pending-authorization";
 import { proposeGmailRead } from "./gmail-read-authority";
 import { proposeCalendarRead } from "./calendar-read-proposal";
 
@@ -31,7 +31,7 @@ describe("production identified-message Gmail read", () => {
       plainTextBody: "Deterministic private body",
       snippet: "MUST NOT LEAK",
     }));
-    const pendingAuthorizationReference = createPendingAuthorization(proposeGmailRead({
+    const pendingAuthorizationReference = await createDurablePendingAuthorization(proposeGmailRead({
       resource: { resourceId: "message-1", connectorType: "email" as const },
       requestedFields: ["sender", "subject", "plain_text_body"] as const,
       requestingRuntime: "api-lighter-chat:gmail-ordinal-read",
@@ -154,7 +154,7 @@ describe("production identified-message Gmail read", () => {
   it("confirms the exact server-stored Gmail operation, then rejects replay", async () => {
     const stored = { resource: { resourceId: "stored-message", connectorType: "email" as const },
       requestedFields: ["subject"] as const, requestingRuntime: "api-chat" };
-    const pendingAuthorizationReference = createPendingAuthorization(proposeGmailRead(stored));
+    const pendingAuthorizationReference = await createDurablePendingAuthorization(proposeGmailRead(stored));
     const retrieveMessage = vi.fn(async () => ({ subject: "Stored subject" }));
     const dependencies = { loadPolicy: vi.fn(async () => policy), createConnector: vi.fn(() => ({ retrieveMessage })) };
     const confirmed = await resolveProductionGmailRead({ currentUserUtterance: "confirm", pendingAuthorizationReference }, dependencies);
@@ -170,7 +170,7 @@ describe("production identified-message Gmail read", () => {
       requestedFields: ["subject"] as const, requestingRuntime: "api-chat" };
     const createConnector = vi.fn(); const loadPolicy = vi.fn();
     const declined = await resolveProductionGmailRead({ currentUserUtterance: "no",
-      pendingAuthorizationReference: createPendingAuthorization(proposeGmailRead(stored)) }, { createConnector, loadPolicy });
+      pendingAuthorizationReference: await createDurablePendingAuthorization(proposeGmailRead(stored)) }, { createConnector, loadPolicy });
     expect(declined).toMatchObject({ decision: "DENY", reason: "pending_authorization_declined" });
     const fabricated = await resolveProductionGmailRead({ currentUserUtterance: "confirm",
       pendingAuthorizationReference: { pendingAuthorizationId: "fabricated" } }, { createConnector, loadPolicy });
@@ -181,7 +181,7 @@ describe("production identified-message Gmail read", () => {
   it("leaves a Calendar pending reference untouched for Calendar handling", async () => {
     const calendar = proposeCalendarRead("What’s on tomorrow?", () => new Date("2026-08-25T00:00:00Z"));
     expect(calendar).not.toBeNull();
-    const reference = createPendingAuthorization(calendar!);
+    const reference = await createDurablePendingAuthorization(calendar!);
     await expect(resolveProductionGmailRead({ currentUserUtterance: "confirm", pendingAuthorizationReference: reference },
       { createConnector: vi.fn(), loadPolicy: vi.fn() })).resolves.toEqual({ handled: false });
   });

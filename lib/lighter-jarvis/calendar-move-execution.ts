@@ -1,6 +1,6 @@
 import { acquireScopedCalendarEvidence, type ScopedCalendarAcquisitionPort } from "../governed-conversation/scoped-calendar-evidence-acquisition-adapter";
 import type { CalendarEventWritePort } from "../connectors/google/calendar-write";
-import { resolveCalendarMoveAuthorization } from "./calendar-move-authorization";
+import { resolveDurableCalendarMoveAuthorization } from "./durable-calendar-move-authorization";
 import { resolveCalendarReadWindow } from "./calendar-read-window";
 import { validateCalendarMoveProposalAgainstEvidence } from "./calendar-conflict-act";
 
@@ -36,9 +36,10 @@ export async function executeConfirmedCalendarMove(input: {
   readonly writeConnector: CalendarEventWritePort;
   readonly clock: () => Date;
 }): Promise<CalendarMoveExecutionResult> {
-  const authority = resolveCalendarMoveAuthorization({
+  const authority = await resolveDurableCalendarMoveAuthorization({
     reference: input.authorizationReference,
     utterance: input.currentUserUtterance,
+    now: input.clock(),
   });
 
   if (authority.status === "declined") {

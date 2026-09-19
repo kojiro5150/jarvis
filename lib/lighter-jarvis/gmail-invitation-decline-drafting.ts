@@ -2,12 +2,11 @@ import { GoogleServiceAuthError } from "../connectors/google/auth-error";
 import { GoogleGmailContentConnector } from "../chat-capabilities/google-gmail-content";
 import { GmailContentRetrievalAdapter, type GmailContentConnector } from "../content-retrieval";
 import { loadContentRetrievalPolicy, type ContentRetrievalPolicy } from "../content-retrieval-policy";
+import { type PendingAuthorizationReference } from "./pending-authorization";
 import {
-  createPendingAuthorization,
-  pendingAuthorizationCapability,
-  resolvePendingAuthorization,
-  type PendingAuthorizationReference,
-} from "./pending-authorization";
+  createDurablePendingAuthorization,
+  resolveDurablePendingAuthorization,
+} from "./durable-pending-authorization";
 import {
   resolveGmailPrivateReleaseReference,
   type GmailPrivateReleaseReference,
@@ -58,6 +57,7 @@ export type GmailInvitationDeclineDraftResult = Readonly<{
 export type GmailInvitationDeclineDraftDiagnostic =
   | "release_not_eligible"
   | "release_resolution_failed"
+  | "authority_persistence_unavailable"
   | "gmail_not_connected"
   | "gmail_refresh_required"
   | "retrieval_failed"
@@ -163,15 +163,28 @@ export async function resolveGmailInvitationDeclineDraft(
       namedAddressee: parsed.namedAddressee,
       originatingReleaseReference,
     });
-    return Object.freeze({ handled: true, status: "selected", reply: GMAIL_INVITATION_DECLINE_AUTHORITY_PROMPT,
-      pendingAuthorizationReference: createPendingAuthorization(operation) });
+    const pendingAuthorizationReference = await createDurablePendingAuthorization(operation);
+    if (!pendingAuthorizationReference) {
+      return Object.freeze({
+        handled: true,
+        status: "failed",
+        diagnostic: "authority_persistence_unavailable",
+        reply: GMAIL_INVITATION_DECLINE_UNAVAILABLE,
+        pendingAuthorizationReference: null,
+      });
+    }
+    return Object.freeze({
+      handled: true,
+      status: "selected",
+      reply: GMAIL_INVITATION_DECLINE_AUTHORITY_PROMPT,
+      pendingAuthorizationReference,
+    });
   }
 
-  if (input.pendingAuthorizationReference === undefined
-    || pendingAuthorizationCapability(input.pendingAuthorizationReference) !== GMAIL_INVITATION_DECLINE_DRAFT_CAPABILITY) {
+  if (input.pendingAuthorizationReference === undefined) {
     return Object.freeze({ handled: false });
   }
-  const authority = resolvePendingAuthorization({
+  const authority = await resolveDurablePendingAuthorization({
     currentUserUtterance: input.currentUserUtterance,
     pendingAuthorizationReference: input.pendingAuthorizationReference,
     expectedCapability: GMAIL_INVITATION_DECLINE_DRAFT_CAPABILITY,

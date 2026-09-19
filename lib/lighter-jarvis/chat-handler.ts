@@ -42,7 +42,10 @@ import { interpretCalendarConversationalIntent, isCalendarConversationalIntentCa
 import { deterministicCapabilityConstraint, isConversationalCapabilitySelectionCandidate, isUnsupportedGmailMutationRequest, selectConversationalCapability } from "@/lib/lighter-jarvis/conversational-capability-selector";
 import { resolveClosedResponseFormatInstruction } from "@/lib/lighter-jarvis/response-format-instruction";
 import { materializeConversationalPrivateOperation } from "@/lib/lighter-jarvis/conversational-private-operation";
-import { createPendingAuthorization } from "@/lib/lighter-jarvis/pending-authorization";
+import {
+  createDurablePendingAuthorization,
+  inspectDurablePendingAuthorization,
+} from "@/lib/lighter-jarvis/durable-pending-authorization";
 import { proposeCalendarRead } from "@/lib/lighter-jarvis/calendar-read-proposal";
 import {
   GMAIL_STANDING_AUTHORITY_REPLY,
@@ -700,6 +703,33 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       && !freshCapabilityRequest
       && !standingGmailAuthorityRequest;
 
+    if (specialist.id === "jarvis" && shouldCarryPendingAuthorization) {
+      const inspection = await inspectDurablePendingAuthorization(body.pendingAuthorizationReference);
+      if (inspection.status !== "active") {
+        const reason = inspection.status === "consumed"
+          ? "pending_authorization_already_consumed"
+          : inspection.status === "expired"
+            ? "pending_authorization_expired"
+            : inspection.status === "revoked"
+              ? "pending_authorization_revoked"
+              : inspection.status === "not_found"
+                ? "pending_authorization_not_found"
+                : inspection.status === "invalid"
+                  ? "pending_authorization_reference_invalid"
+                  : "pending_authorization_persistence_unavailable";
+        return NextResponse.json({
+          reply: "That authorization is no longer active. Please repeat the governed request.",
+          specialistId: specialist.id,
+          execution: "none",
+          pendingAuthorization: {
+            decision: "ASK",
+            reason,
+          },
+          pendingAuthorizationReference: null,
+        });
+      }
+    }
+
     const gmailInvitationDeclineDraft = specialist.id === "jarvis" && currentUserUtterance !== undefined
       ? await resolveGmailInvitationDeclineDraft({
           currentUserUtterance,
@@ -910,13 +940,23 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           window: resolveCalendarReadWindow("today", now),
           purpose: "calendar_act_validation" as const,
         });
+        const pendingAuthorizationReference = await createDurablePendingAuthorization(proposedOperation);
+        if (!pendingAuthorizationReference) {
+          return NextResponse.json({
+            reply: "I couldn't safely preserve the Calendar read authorization request. No Calendar read or write was attempted.",
+            specialistId: specialist.id,
+            execution: "none",
+            calendarConflictAct: { status: "authority_persistence_unavailable" },
+            calendarAdviceReference: body.calendarAdviceReference,
+          });
+        }
         return NextResponse.json({
           reply: "Please explicitly confirm that I may re-read your Calendar to validate the exact move before I ask for write approval.",
           specialistId: specialist.id,
           execution: "none",
           calendarConflictAct: { status: "ask_validation_read" },
           calendarAdviceReference: body.calendarAdviceReference,
-          pendingAuthorizationReference: createPendingAuthorization(proposedOperation),
+          pendingAuthorizationReference,
         });
       }
       if (isCalendarConflictAdviseQuestion(currentUserUtterance)
@@ -974,6 +1014,17 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           window: resolveCalendarReadWindow("today", now),
           purpose: "calendar_advise" as const,
         });
+        const pendingAuthorizationReference = await createDurablePendingAuthorization(proposedOperation);
+        if (!pendingAuthorizationReference) {
+          return NextResponse.json({
+            reply: "I couldn't safely preserve the Calendar read authorization request.",
+            specialistId: specialist.id,
+            execution: "none",
+            calendarConflictAdvise: { status: "authority_persistence_unavailable" },
+            calendarConflictReasoningReference: body.calendarConflictReasoningReference,
+            calendarAdvicePreferenceReference: preferenceReference,
+          });
+        }
         return NextResponse.json({
           reply: "Please explicitly confirm that I may read your Calendar to evaluate that option.",
           specialistId: specialist.id,
@@ -981,7 +1032,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           calendarConflictAdvise: { status: "ask_calendar_authority" },
           calendarConflictReasoningReference: body.calendarConflictReasoningReference,
           calendarAdvicePreferenceReference: preferenceReference,
-          pendingAuthorizationReference: createPendingAuthorization(proposedOperation),
+          pendingAuthorizationReference,
         });
       }
 
@@ -1039,7 +1090,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         : {}) });
 
     const driveOrdinalRead = specialist.id === "jarvis" && currentUserUtterance !== undefined
-      ? resolveDriveOrdinalReadProposal({
+      ? await resolveDriveOrdinalReadProposal({
           currentUserUtterance,
           ...(Object.hasOwn(body, "governedReferentialScopeReference")
             ? { governedReferentialScopeReference: body.governedReferentialScopeReference }
@@ -1115,7 +1166,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         : {}),
     });
     const gmailOrdinalRead = specialist.id === "jarvis" && currentUserUtterance !== undefined
-      ? resolveGmailOrdinalReadProposal({
+      ? await resolveGmailOrdinalReadProposal({
           currentUserUtterance,
           ...(Object.hasOwn(body, "gmailMessageListReference")
             ? { gmailMessageListReference: body.gmailMessageListReference }
@@ -1142,7 +1193,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
 
     const gmailNamedResultRead = specialist.id === "jarvis" && currentUserUtterance !== undefined
-      ? resolveGmailNamedResultReadProposal({
+      ? await resolveGmailNamedResultReadProposal({
           currentUserUtterance,
           ...(Object.hasOwn(body, "gmailMessageListReference")
             ? { gmailMessageListReference: body.gmailMessageListReference }
@@ -1275,7 +1326,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
             calendarConflictAct: { status: "invalid" },
           });
         }
-        const validation = validateCalendarAdviceForAct({
+        const validation = await validateCalendarAdviceForAct({
           adviceReference: body.calendarAdviceReference,
           evidence: calendar.evidence,
           window: calendar.window,
@@ -1546,6 +1597,15 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           && selectedIntent.capability !== "public_information") {
           const proposedOperation = materializeConversationalPrivateOperation(selectedIntent);
           if (proposedOperation?.capability === "gmail.search") {
+            const pendingAuthorizationReference = await createDurablePendingAuthorization(proposedOperation);
+            if (!pendingAuthorizationReference) {
+              return NextResponse.json({
+                reply: "I couldn't safely preserve the Gmail search authorization request.",
+                specialistId: specialist.id,
+                execution: "none",
+                gmailSearchAuthority: { decision: "ASK", reason: "pending_authorization_persistence_unavailable" },
+              });
+            }
             return NextResponse.json({
               reply: proposedOperation.resultMode === "sender_match"
                 ? "I can search Gmail for messages from that sender reference. Please explicitly confirm that I may do that."
@@ -1557,7 +1617,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
               specialistId: specialist.id,
               execution: "none",
               gmailSearchAuthority: { decision: "ASK", reason: "explicit_gmail_search_not_established" },
-              pendingAuthorizationReference: createPendingAuthorization(proposedOperation),
+              pendingAuthorizationReference,
             });
           }
 

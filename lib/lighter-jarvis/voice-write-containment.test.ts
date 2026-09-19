@@ -5,8 +5,7 @@ import type { ScopedCalendarAcquisitionPort } from "../governed-conversation/sco
 import type { DurablePurposeProjectionResult } from "../operating-picture/purpose-projection-retrieval";
 import { createProductGapResolutionTargetReference } from "../operating-picture/product-gap-resolution-reference";
 import { createLighterChatHandler, TYPED_WRITE_CONFIRMATION_REQUIRED_REPLY } from "./chat-handler";
-import { createCalendarMoveAuthorizationReference } from "./calendar-move-authorization";
-import { createCalendarMoveProposalReference } from "./calendar-move-proposal-reference";
+import { createDurableCalendarMoveAuthorizationReference } from "./durable-calendar-move-authorization";
 
 const request = (
   content: string,
@@ -127,8 +126,8 @@ const calendarSource: CalendarEvent = {
   timeMode: "deep_work",
 };
 
-function calendarAuthorization() {
-  const proposal = createCalendarMoveProposalReference({
+async function calendarAuthorization() {
+  const proposal = {
     commitmentReference: "google-calendar:calendar:primary:event:deep",
     calendarId: "primary",
     eventId: "deep",
@@ -138,8 +137,10 @@ function calendarAuthorization() {
     targetEnd: "2026-09-19T12:00:00.000Z",
     durationMinutes: 90,
     observedAt: "2026-09-19T08:00:00.000Z",
+  };
+  return createDurableCalendarMoveAuthorizationReference(proposal, {
+    now: new Date("2026-09-19T08:05:00.000Z"),
   });
-  return createCalendarMoveAuthorizationReference(proposal);
 }
 
 function calendarRead(): ScopedCalendarAcquisitionPort {
@@ -296,7 +297,7 @@ describe("ADR-0027 D5 voice write containment", () => {
   it.each(["voice", "action", undefined] as const)(
     "does not consume Calendar move authorization for non-typed modality %s",
     async inputModality => {
-      const authorization = calendarAuthorization();
+      const authorization = await calendarAuthorization();
       const moveEvent = vi.fn<CalendarEventWritePort["moveEvent"]>(async () => ({ ok: true, status: 200 }));
       const writeConnector: CalendarEventWritePort = {
         hasWriteScope: vi.fn(async () => true),

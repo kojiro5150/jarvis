@@ -1,7 +1,8 @@
 import { GoogleDriveSearchConnector, type DriveSearchConnector, type DriveSearchMetadata } from "../connectors/google/drive-search";
 import { evaluateDriveSearchAuthority, proposeDriveSearch } from "./drive-search-authority";
 import { proposeNaturalLanguageDriveSearch } from "./drive-search-proposal";
-import { createPendingAuthorization, resolvePendingAuthorization, type PendingAuthorizationReference } from "./pending-authorization";
+import { type PendingAuthorizationReference } from "./pending-authorization";
+import { createDurablePendingAuthorization, resolveDurablePendingAuthorization } from "./durable-pending-authorization";
 import {
   createGovernedReferentialScopeReference,
   createGovernedResultSetReference,
@@ -46,7 +47,7 @@ export async function resolveProductionDriveSearch(input: { readonly currentUser
     return execute(operation, authority.reason, input.governedReferentialScopeReference, dependencies);
   }
   if (Object.hasOwn(input, "pendingAuthorizationReference")) {
-    const resolution = resolvePendingAuthorization({ currentUserUtterance: input.currentUserUtterance,
+    const resolution = await resolveDurablePendingAuthorization({ currentUserUtterance: input.currentUserUtterance,
       pendingAuthorizationReference: input.pendingAuthorizationReference, expectedCapability: "drive.search" });
     if (resolution.reason === "pending_authorization_capability_mismatch") return Object.freeze({ handled: false });
     const operation = resolution.proposedOperation?.capability === "drive.search" ? resolution.proposedOperation : null;
@@ -58,7 +59,7 @@ export async function resolveProductionDriveSearch(input: { readonly currentUser
   const proposal = proposeNaturalLanguageDriveSearch(input.currentUserUtterance);
   if (!proposal) return Object.freeze({ handled: false });
   return Object.freeze({ handled: true, decision: "ASK", reason: "explicit_drive_search_not_established",
-    reply: "Please explicitly confirm that I may search Drive.", pendingAuthorizationReference: createPendingAuthorization(proposal) });
+    reply: "Please explicitly confirm that I may search Drive.", pendingAuthorizationReference: await createDurablePendingAuthorization(proposal) });
 }
 
 async function execute(operation: ReturnType<typeof proposeDriveSearch>, reason: string, suppliedScopeReference: unknown, dependencies: ProductionDriveSearchDependencies): Promise<ProductionDriveSearchResult> {

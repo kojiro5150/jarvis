@@ -1,4 +1,8 @@
-import { createPendingAuthorization, resolvePendingAuthorization, type PendingAuthorizationReference } from "../lighter-jarvis/pending-authorization";
+import { type PendingAuthorizationReference } from "../lighter-jarvis/pending-authorization";
+import {
+  createDurablePendingAuthorization,
+  resolveDurablePendingAuthorization,
+} from "../lighter-jarvis/durable-pending-authorization";
 import { evaluateGmailReadAuthority, proposeGmailRead, type ProposedGmailReadOperation } from "../lighter-jarvis/gmail-read-authority";
 import type { GovernedGmailCapabilityRequest } from "./types";
 
@@ -11,12 +15,12 @@ export type GmailCapabilityAuthorityResult = Readonly<{
 }>;
 
 /** Resolves trusted authority without constructing or calling a Gmail connector. */
-export function authorizeGmailCapability(input: {
+export async function authorizeGmailCapability(input: {
   readonly capability: GovernedGmailCapabilityRequest;
   readonly currentUserUtterance: string;
-}): GmailCapabilityAuthorityResult {
+}): Promise<GmailCapabilityAuthorityResult> {
   if (input.capability.pendingAuthorizationReference !== undefined) {
-    const resolution = resolvePendingAuthorization({
+    const resolution = await resolveDurablePendingAuthorization({
       currentUserUtterance: input.currentUserUtterance,
       pendingAuthorizationReference: input.capability.pendingAuthorizationReference,
       expectedCapability: "gmail.read",
@@ -30,6 +34,14 @@ export function authorizeGmailCapability(input: {
   const authority = evaluateGmailReadAuthority(operation, input.currentUserUtterance);
   if (authority.decision === "ALLOW") return Object.freeze({ decision: "ALLOW", reason: authority.reason,
     operation, authorityEvidence: authority.authorityEvidence, pendingAuthorizationReference: null });
-  return Object.freeze({ decision: "ASK", reason: authority.reason, operation: null,
-    authorityEvidence: authority.authorityEvidence, pendingAuthorizationReference: createPendingAuthorization(operation) });
+  const pendingAuthorizationReference = await createDurablePendingAuthorization(operation);
+  return Object.freeze({
+    decision: "ASK",
+    reason: pendingAuthorizationReference
+      ? authority.reason
+      : "pending_authorization_persistence_unavailable",
+    operation: null,
+    authorityEvidence: authority.authorityEvidence,
+    pendingAuthorizationReference,
+  });
 }

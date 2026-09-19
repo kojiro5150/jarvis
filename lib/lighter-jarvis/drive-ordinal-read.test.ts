@@ -5,10 +5,10 @@ import {
   createGovernedReferentialScopeReference,
   createGovernedResultSetReference,
 } from "./governed-result-set-reference";
-import { resolvePendingAuthorization } from "./pending-authorization";
+import { resolveDurablePendingAuthorization } from "./durable-pending-authorization";
 
 describe("Drive ordinal read proposal", () => {
-  it("identifies the exact stored Drive result and creates separate pending read authority", () => {
+  it("identifies the exact stored Drive result and creates separate pending read authority", async () => {
     const scope = createGovernedReferentialScopeReference();
     const result = createGovernedResultSetReference({
       scopeReference: scope,
@@ -18,7 +18,7 @@ describe("Drive ordinal read proposal", () => {
     })!;
     advanceGovernedReferentialScopeUserTurn(scope);
 
-    const proposal = resolveDriveOrdinalReadProposal({
+    const proposal = await resolveDriveOrdinalReadProposal({
       currentUserUtterance: "Read the first one.",
       governedReferentialScopeReference: scope,
       governedResultSetReference: result,
@@ -32,7 +32,7 @@ describe("Drive ordinal read proposal", () => {
     });
     expect(JSON.stringify(proposal)).not.toContain("file-1");
 
-    expect(resolvePendingAuthorization({
+    expect(await resolveDurablePendingAuthorization({
       currentUserUtterance: "yes",
       pendingAuthorizationReference: proposal.pendingAuthorizationReference,
       expectedCapability: "drive.read",
@@ -44,7 +44,7 @@ describe("Drive ordinal read proposal", () => {
 
   it.each(["Read the sixth one.", "read the seventh one", "Open the 6th one.", "Show me the 7th file."])(
     "never collapses an overflow ordinal to the trailing word one: %s",
-    utterance => {
+    async utterance => {
       const scope = createGovernedReferentialScopeReference();
       const result = createGovernedResultSetReference({
         scopeReference: scope,
@@ -54,7 +54,7 @@ describe("Drive ordinal read proposal", () => {
       })!;
       advanceGovernedReferentialScopeUserTurn(scope);
 
-      const resolved = resolveDriveOrdinalReadProposal({
+      const resolved = await resolveDriveOrdinalReadProposal({
         currentUserUtterance: utterance,
         governedReferentialScopeReference: scope,
         governedResultSetReference: result,
@@ -69,7 +69,7 @@ describe("Drive ordinal read proposal", () => {
     },
   );
 
-  it("fails closed for out-of-range and fabricated references", () => {
+  it("fails closed for out-of-range and fabricated references", async () => {
     const scope = createGovernedReferentialScopeReference();
     const result = createGovernedResultSetReference({
       scopeReference: scope,
@@ -79,7 +79,7 @@ describe("Drive ordinal read proposal", () => {
     })!;
     advanceGovernedReferentialScopeUserTurn(scope);
 
-    const outOfRange = resolveDriveOrdinalReadProposal({
+    const outOfRange = await resolveDriveOrdinalReadProposal({
       currentUserUtterance: "Read the fifth one.",
       governedReferentialScopeReference: scope,
       governedResultSetReference: result,
@@ -87,7 +87,7 @@ describe("Drive ordinal read proposal", () => {
     expect(outOfRange).toMatchObject({ handled: true });
     expect(outOfRange).not.toHaveProperty("pendingAuthorizationReference");
 
-    expect(resolveDriveOrdinalReadProposal({
+    expect(await resolveDriveOrdinalReadProposal({
       currentUserUtterance: "Read the first one.",
       governedReferentialScopeReference: scope,
       governedResultSetReference: { governedResultSetReferenceId: "fabricated" },

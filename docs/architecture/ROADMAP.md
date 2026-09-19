@@ -604,6 +604,8 @@ An open finding blocks any new write capability, named grant or voice approval c
 
 ### Step C — durable authority and governed-reference state
 
+**Status:** authority-bearing durability slice implemented in `durable-authority-reference-state`. Generic pending authorization and Calendar move authorization are persisted in server-only Supabase state with fixed 15-minute lifetime and atomic one-shot consumption. Remaining process-local references are classified in `DURABLE-AUTHORITY-REFERENCE-STATE.md`; only references whose restart loss can alter execution eligibility are required to become durable.
+
 Run in parallel with cognition integration once Steps A and B define the governing rules.
 
 Reuse the existing Supabase operating-picture persistence substrate where it fits rather than creating a second persistence system. Persist only authority/reference state that must survive process restart. Preserve short expiries and fail-closed behaviour.

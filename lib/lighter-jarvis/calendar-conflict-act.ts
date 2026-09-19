@@ -7,10 +7,8 @@ import {
   type CalendarMoveProposalReference,
   type CalendarMoveProposalSnapshot,
 } from "./calendar-move-proposal-reference";
-import {
-  createCalendarMoveAuthorizationReference,
-  type CalendarMoveAuthorizationReference,
-} from "./calendar-move-authorization";
+import { type CalendarMoveAuthorizationReference } from "./calendar-move-authorization";
+import { createDurableCalendarMoveAuthorizationReference } from "./durable-calendar-move-authorization";
 
 export type CalendarActValidationResult = Readonly<{
   status:
@@ -19,6 +17,7 @@ export type CalendarActValidationResult = Readonly<{
     | "current_situation_changed"
     | "insufficient_coverage"
     | "target_occupied"
+    | "authority_persistence_unavailable"
     | "invalid";
   reply: string;
   calendarMoveProposalReference?: CalendarMoveProposalReference;
@@ -141,12 +140,12 @@ export function validateCalendarMoveProposalAgainstEvidence(input: {
     : Object.freeze({ status: "resolved", observedAt });
 }
 
-export function validateCalendarAdviceForAct(input: {
+export async function validateCalendarAdviceForAct(input: {
   readonly adviceReference: unknown;
   readonly evidence: ScopedCalendarEvidenceResult;
   readonly window: CalendarReadWindow;
   readonly now?: Date;
-}): CalendarActValidationResult {
+}): Promise<CalendarActValidationResult> {
   const advice = resolveCalendarAdviceReference({
     reference: input.adviceReference,
     ...(input.now ? { now: input.now } : {}),
@@ -223,14 +222,21 @@ export function validateCalendarAdviceForAct(input: {
     });
   }
 
-  const proposalReference = createCalendarMoveProposalReference(
-    Object.freeze({
-      ...provisional,
-      observedAt: validation.observedAt,
-    }),
-  );
+  const proposalSnapshot = Object.freeze({
+    ...provisional,
+    observedAt: validation.observedAt,
+  });
+  const proposalReference = createCalendarMoveProposalReference(proposalSnapshot);
   const authorizationReference =
-    createCalendarMoveAuthorizationReference(proposalReference);
+    await createDurableCalendarMoveAuthorizationReference(proposalSnapshot, { now: input.now });
+
+  if (!authorizationReference) {
+    return Object.freeze({
+      status: "authority_persistence_unavailable",
+      reply: "I couldn't safely preserve the exact Calendar move authorization request.",
+      calendarMoveProposalReference: proposalReference,
+    });
+  }
 
   return Object.freeze({
     status: "resolved",

@@ -1,7 +1,8 @@
 import { DRIVE_READONLY_SCOPE, GOOGLE_DOC_MIME, GoogleDriveReadConnector, type DriveReadConnector } from "../connectors/google/drive-read";
 import { readGoogleTokens } from "../connectors/google/tokens";
 import { evaluateDriveReadAuthority, proposeDriveRead, type DriveReadOperation } from "./drive-read-authority";
-import { resolvePendingAuthorization, type PendingAuthorizationReference } from "./pending-authorization";
+import { type PendingAuthorizationReference } from "./pending-authorization";
+import { resolveDurablePendingAuthorization } from "./durable-pending-authorization";
 import { createDrivePrivateReleaseReference, type DrivePrivateReleaseReference } from "./drive-private-release-reference";
 export const DRIVE_READ_MAX_BYTES = 65_536;
 const SYNTAX = "drive.read <provider-file-id> [text]";
@@ -22,7 +23,7 @@ export async function resolveProductionDriveRead(input: { readonly currentUserUt
     return acquire(operation, authority.reason, dependencies);
   }
   if (Object.hasOwn(input, "pendingAuthorizationReference")) {
-    const resolution = resolvePendingAuthorization({ currentUserUtterance: input.currentUserUtterance,
+    const resolution = await resolveDurablePendingAuthorization({ currentUserUtterance: input.currentUserUtterance,
       pendingAuthorizationReference: input.pendingAuthorizationReference, expectedCapability: "drive.read" });
     if (resolution.reason === "pending_authorization_capability_mismatch") return Object.freeze({ handled: false as const });
     const operation = resolution.proposedOperation?.capability === "drive.read" ? resolution.proposedOperation : null;

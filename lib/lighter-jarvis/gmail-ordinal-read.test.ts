@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { createGmailMessageListReference } from "./gmail-message-list-reference";
 import { resolveGmailOrdinalReadProposal } from "./gmail-ordinal-read";
-import { resolvePendingAuthorization } from "./pending-authorization";
+import { resolveDurablePendingAuthorization } from "./durable-pending-authorization";
 
 describe("Gmail ordinal read proposal", () => {
-  it("turns 'Read the first one' into exact read authority for list item 1", () => {
+  it("turns 'Read the first one' into exact read authority for list item 1", async () => {
     const listReference = createGmailMessageListReference({
       messageIds: ["id-1", "id-2"],
     })!;
 
-    const proposal = resolveGmailOrdinalReadProposal({
+    const proposal = await resolveGmailOrdinalReadProposal({
       currentUserUtterance: "Read the first one.",
       gmailMessageListReference: listReference,
     });
@@ -21,7 +21,7 @@ describe("Gmail ordinal read proposal", () => {
     });
     expect(proposal.reply).toContain("message 1");
 
-    const resolution = resolvePendingAuthorization({
+    const resolution = await resolveDurablePendingAuthorization({
       currentUserUtterance: "Yes.",
       pendingAuthorizationReference: proposal.pendingAuthorizationReference,
       expectedCapability: "gmail.read",
@@ -41,12 +41,12 @@ describe("Gmail ordinal read proposal", () => {
 
   it.each(["Read the sixth one.", "Read the seventh one."])(
     "fails closed for overflow ordinal language without creating read authority: %s",
-    currentUserUtterance => {
+    async currentUserUtterance => {
       const listReference = createGmailMessageListReference({
         messageIds: ["id-1", "id-2", "id-3", "id-4", "id-5"],
       })!;
 
-      const proposal = resolveGmailOrdinalReadProposal({
+      const proposal = await resolveGmailOrdinalReadProposal({
         currentUserUtterance,
         gmailMessageListReference: listReference,
       });

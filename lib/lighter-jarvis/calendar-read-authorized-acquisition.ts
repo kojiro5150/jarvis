@@ -62,8 +62,18 @@ export async function acquirePendingAuthorizedCalendarEvidence(input: {
   readonly currentUserUtterance: string;
   readonly pendingAuthorizationReference?: unknown;
   readonly acquisition: (operation: Extract<NonNullable<PendingAuthorizationResolution["proposedOperation"]>, { capability: "calendar.read" }>) => GovernedCalendarAcquisitionRequest;
+  readonly resolveAuthorization?: (input: {
+    readonly currentUserUtterance: string;
+    readonly pendingAuthorizationReference?: unknown;
+    readonly expectedCapability?: "calendar.read";
+  }) => PendingAuthorizationResolution | Promise<PendingAuthorizationResolution>;
 }): Promise<PendingAuthorizedCalendarAcquisitionResult> {
-  const authority = resolvePendingAuthorization(input);
+  const resolver = input.resolveAuthorization ?? resolvePendingAuthorization;
+  const authority = await resolver({
+    currentUserUtterance: input.currentUserUtterance,
+    pendingAuthorizationReference: input.pendingAuthorizationReference,
+    expectedCapability: "calendar.read",
+  });
   if (authority.decision !== "ALLOW" ||
       authority.proposedOperation?.capability !== "calendar.read") {
     return Object.freeze({ authority, evidence: null });

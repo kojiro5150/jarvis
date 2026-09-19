@@ -136,7 +136,9 @@ function calendarRead(): ScopedCalendarAcquisitionPort {
   return {
     source: "google",
     listBetween: vi.fn(async () => [calendarSource]),
-    listBetweenWithCompleteness: vi.fn(async (start, end, limit = 100) => ({
+    listBetweenWithCompleteness: vi.fn<
+      NonNullable<ScopedCalendarAcquisitionPort["listBetweenWithCompleteness"]>
+    >(async (start, end, limit = 100) => ({
       events: [calendarSource],
       completeness: {
         sourceId: "google-calendar",
@@ -145,7 +147,12 @@ function calendarRead(): ScopedCalendarAcquisitionPort {
         requestedLimit: limit,
         targetDiscovery: "calendar_list",
         targetCount: 1,
-        targets: [{ calendarId: "primary", status: "complete", returnedCount: 1, continuation: "none" }],
+        targets: [{
+          calendarId: "primary",
+          status: "complete",
+          returnedCount: 1,
+          continuation: "none",
+        }],
         mergedReturnedCount: 1,
         mergeTruncated: false,
         completeness: "complete",

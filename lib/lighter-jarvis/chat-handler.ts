@@ -89,7 +89,7 @@ import { resolveGmailInvitationDeclineDraft, type GmailInvitationDeclineDraftDep
 import { GMAIL_INVITATION_DECLINE_REUSE_CONTAINMENT, OMITTED_GMAIL_INVITATION_DECLINE_DRAFT } from "@/lib/lighter-jarvis/gmail-invitation-decline-draft-contract";
 import { isGmailInvitationDeclineDraftReuse } from "@/lib/lighter-jarvis/gmail-invitation-decline-draft-transport";
 import { resolveVictorianTomorrowWeather, type VictorianTomorrowWeatherDependencies } from "@/lib/lighter-jarvis/geelong-tomorrow-weather";
-import { consumeWeatherClarificationReference } from "@/lib/lighter-jarvis/weather-clarification-reference";
+import { createWeatherClarificationReference, consumeWeatherClarificationReference } from "@/lib/lighter-jarvis/weather-clarification-reference";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -548,6 +548,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
 
     let weatherUtterance = currentUserUtterance;
+    let weatherContinuationContext: Readonly<{ queryKind: "forecast" | "temperature" | "wind"; date: "tomorrow" }> | null = null;
     if (specialist.id === "jarvis"
       && currentUserUtterance !== undefined
       && Object.hasOwn(body, "weatherClarificationReference")) {
@@ -565,9 +566,12 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           weatherClarificationReference: null,
         });
       }
+      weatherContinuationContext = { queryKind: continuation.queryKind, date: continuation.date };
       weatherUtterance = continuation.queryKind === "temperature"
         ? `What is the temperature in ${continuation.location} ${continuation.date}?`
-        : `What's the weather in ${continuation.location} ${continuation.date}?`;
+        : continuation.queryKind === "wind"
+          ? `Will it be windy in ${continuation.location} ${continuation.date}?`
+          : `What's the weather in ${continuation.location} ${continuation.date}?`;
     }
 
     const victorianTomorrowWeather = specialist.id === "jarvis" && weatherUtterance !== undefined
@@ -579,16 +583,26 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         : victorianTomorrowWeather.locationKey === "geelong"
           ? "geelongTomorrowWeather"
           : "weatherRouting";
+      const repairReference = victorianTomorrowWeather.status === "unsupported_location" && weatherContinuationContext
+        ? createWeatherClarificationReference({
+            queryKind: weatherContinuationContext.queryKind,
+            date: weatherContinuationContext.date,
+            now: victorianTomorrowWeatherDependencies?.clock?.() ?? new Date(),
+          })
+        : null;
+      const clarificationReference = repairReference ?? victorianTomorrowWeather.clarificationReference ?? null;
       return NextResponse.json({
-        reply: victorianTomorrowWeather.reply,
+        reply: repairReference
+          ? `${victorianTomorrowWeather.reply} Please specify Geelong or Melbourne.`
+          : victorianTomorrowWeather.reply,
         specialistId: specialist.id,
         execution: "none",
         [weatherResultKey]: {
           status: victorianTomorrowWeather.status,
           ...(victorianTomorrowWeather.diagnostic ? { diagnostic: victorianTomorrowWeather.diagnostic } : {}),
         },
-        ...(victorianTomorrowWeather.clarificationReference
-          ? { weatherClarificationReference: victorianTomorrowWeather.clarificationReference }
+        ...(clarificationReference
+          ? { weatherClarificationReference: clarificationReference }
           : Object.hasOwn(body, "weatherClarificationReference")
             ? { weatherClarificationReference: null }
             : {}),

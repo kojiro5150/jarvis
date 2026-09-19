@@ -19,6 +19,7 @@ describe("weather request classifier", () => {
     ["What is the temperature in Melbourne tomorrow?", "temperature", "melbourne"],
     ["Temperature in Geelong tomorrow", "temperature", "geelong"],
     ["Melbourne weather tomorrow", "forecast", "melbourne"],
+    ["Will it be windy in Geelong tomorrow?", "wind", "geelong"],
   ])("resolves supported semantic captures for %s", (input, queryKind, locationKey) => {
     expect(classifyWeatherRequest(input)).toEqual({
       kind: "resolved",
@@ -45,8 +46,17 @@ describe("weather request classifier", () => {
     expect(classifyWeatherRequest(input)).toEqual({ kind: "clarification_required", reason });
   });
 
-  it("preserves the bounded tomorrow request when only location is missing", () => {
+  it("preserves the bounded wind request when only location is missing", () => {
     expect(classifyWeatherRequest("Will it be windy tomorrow?")).toEqual({
+      kind: "clarification_required",
+      reason: "missing_location",
+      queryKind: "wind",
+      date: "tomorrow",
+    });
+  });
+
+  it("does not reinterpret a question prefix as a location", () => {
+    expect(classifyWeatherRequest("What's the weather tomorrow?")).toEqual({
       kind: "clarification_required",
       reason: "missing_location",
       queryKind: "forecast",

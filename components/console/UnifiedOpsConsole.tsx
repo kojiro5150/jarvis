@@ -33,6 +33,7 @@ type OpaqueCalendarAdvice = Readonly<{ calendarAdviceReferenceId: string }>;
 type OpaqueCalendarMoveProposal = Readonly<{ calendarMoveProposalReferenceId: string }>;
 type OpaqueCalendarMoveAuthorization = Readonly<{ calendarMoveAuthorizationReferenceId: string }>;
 type OpaqueUserContinuityCaptureClarification = Readonly<{ userContinuityCaptureClarificationReferenceId: string }>;
+type OpaqueWeatherClarification = Readonly<{ weatherClarificationReferenceId: string }>;
 type OpaqueProductGapResolutionList = string;
 type OpaqueProductGapResolutionTarget = string;
 type OpaqueProductGapSupersession = string;
@@ -116,6 +117,7 @@ export default function UnifiedOpsConsole() {
   const calendarMoveProposalRef = useRef<OpaqueCalendarMoveProposal | null>(null);
   const calendarMoveAuthorizationRef = useRef<OpaqueCalendarMoveAuthorization | null>(null);
   const userContinuityCaptureClarificationRef = useRef<OpaqueUserContinuityCaptureClarification | null>(null);
+  const weatherClarificationRef = useRef<OpaqueWeatherClarification | null>(null);
   const productGapResolutionListRef = useRef<OpaqueProductGapResolutionList | null>(null);
   const productGapResolutionTargetRef = useRef<OpaqueProductGapResolutionTarget | null>(null);
   const productGapSupersessionRef = useRef<OpaqueProductGapSupersession | null>(null);
@@ -289,8 +291,12 @@ export default function UnifiedOpsConsole() {
     const captureClarificationReference = specialist.id === "jarvis"
       ? userContinuityCaptureClarificationRef.current
       : null;
+    const weatherClarificationReference = specialist.id === "jarvis"
+      ? weatherClarificationRef.current
+      : null;
     if (specialist.id === "jarvis") {
       userContinuityCaptureClarificationRef.current = null;
+      weatherClarificationRef.current = null;
     }
     const nextMessages = conversationHistoryRef.current.acceptUser(specialist.id, content);
     setConversations((current) => ({
@@ -356,6 +362,9 @@ export default function UnifiedOpsConsole() {
           ...(captureClarificationReference
             ? { userContinuityCaptureClarificationReference: captureClarificationReference }
             : {}),
+          ...(weatherClarificationReference
+            ? { weatherClarificationReference }
+            : {}),
           ...(specialist.id === "jarvis" && productGapResolutionListRef.current
             ? { productGapResolutionListReference: productGapResolutionListRef.current }
             : {}),
@@ -384,6 +393,7 @@ export default function UnifiedOpsConsole() {
         calendarMoveProposalReference?: OpaqueCalendarMoveProposal | null;
         calendarMoveAuthorizationReference?: OpaqueCalendarMoveAuthorization | null;
         userContinuityCaptureClarificationReference?: OpaqueUserContinuityCaptureClarification | null;
+        weatherClarificationReference?: OpaqueWeatherClarification | null;
         productGapResolutionListReference?: OpaqueProductGapResolutionList | null;
         productGapResolutionTargetReference?: OpaqueProductGapResolutionTarget | null;
         productGapSupersessionReference?: OpaqueProductGapSupersession | null;
@@ -442,6 +452,9 @@ export default function UnifiedOpsConsole() {
       if (data.userContinuityCaptureClarificationReference !== undefined) {
         userContinuityCaptureClarificationRef.current =
           data.userContinuityCaptureClarificationReference;
+      }
+      if (data.weatherClarificationReference !== undefined) {
+        weatherClarificationRef.current = data.weatherClarificationReference;
       }
       if (data.productGapResolutionListReference !== undefined) {
         productGapResolutionListRef.current = data.productGapResolutionListReference;

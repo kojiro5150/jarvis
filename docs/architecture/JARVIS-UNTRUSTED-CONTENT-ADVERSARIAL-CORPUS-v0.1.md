@@ -1,6 +1,6 @@
 # JARVIS Untrusted Content Adversarial Corpus v0.1
 
-**Status:** Proposed engineering control; active on merge  
+**Status:** ACTIVE / FROZEN v0.1 engineering control  
 **Date:** 20 September 2026  
 **Baseline:** `main` at `4f0a48e4c8573323ff6e46d06010d0609f1c8fc3`  
 **Related:** ADR-0027; ADR-0009 attention-policy lineage; `AUTHORITY-PATH-MATRIX.md`
@@ -115,7 +115,7 @@ The protected-build expectation is:
 - bidi/homoglyph content cannot become the only visible representation of a governed field;
 - governed fields cannot be displaced out of view by arbitrarily long hostile text.
 
-On the `4f0a48e4` baseline, the console renders assistant reply text as one ordinary message paragraph and has no dedicated governed-approval-field region. The v0.1 Playwright cases therefore use expected-failure semantics. These are findings, not repairs.
+On the original `4f0a48e4` corpus baseline, the console rendered assistant reply text as one ordinary message paragraph and had no dedicated governed-approval-field region. The v0.1 Playwright cases remain expected-failure findings until a separately reviewed presentation remediation lands. These are active findings, not silently accepted repairs.
 
 An open presentation finding blocks new write capability on a UI surface that would rely on that presentation property.
 

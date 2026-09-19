@@ -569,7 +569,7 @@ This tranche is the near-term development gate before broader externally consequ
 
 ### Step A — ADR-0027: authority-source reconciliation and voice write containment
 
-**Status:** completes on merge of ADR-0027 and its same-PR voice-write containment.
+**Status:** COMPLETE on `main` through PR #594. ADR-0027 governs authority sources; standing grants are removed and non-typed write confirmation fails closed.
 
 Land `ADR-0027-Authority-Sources-Named-Grants-Without-Standing-Grants.md` and its same-PR containment.
 
@@ -585,7 +585,7 @@ The same change must reconcile the North Star, ADR-0025 amendment notes, authori
 
 ### Step B — Untrusted Content Adversarial Corpus v0.1
 
-**Status:** completes on merge of the executable v0.1 corpus and its presentation-verification job.
+**Status:** COMPLETE on `main` through PR #595. The executable corpus is ACTIVE / FROZEN v0.1; UC-10/11/12 remain explicit presentation findings.
 
 After Step A merges, land `JARVIS-UNTRUSTED-CONTENT-ADVERSARIAL-CORPUS-v0.1.md` and its executable harness.
 
@@ -604,7 +604,7 @@ An open finding blocks any new write capability, named grant or voice approval c
 
 ### Step C — durable authority and governed-reference state
 
-**Status:** authority-bearing durability slice implemented in `durable-authority-reference-state`. Generic pending authorization and Calendar move authorization are persisted in server-only Supabase state with fixed 15-minute lifetime and atomic one-shot consumption. Remaining process-local references are classified in `DURABLE-AUTHORITY-REFERENCE-STATE.md`; only references whose restart loss can alter execution eligibility are required to become durable.
+**Status:** COMPLETE on `main` through PR #596. Generic pending authorization and Calendar move authorization are persisted in server-only Supabase state with fixed 15-minute lifetime and atomic one-shot consumption. Remaining process-local references are classified in `DURABLE-AUTHORITY-REFERENCE-STATE.md`; only references whose restart loss can alter execution eligibility are required to become durable.
 
 Run in parallel with cognition integration once Steps A and B define the governing rules.
 
@@ -623,7 +623,7 @@ This step is complete only when restart and concurrent-consumption tests prove t
 
 ### Step D — executive cognition integration under deterministic significance
 
-**Status:** deterministic three-source cognition publication implemented in `executive-cognition-deterministic-significance`. Already-governed Calendar/Gmail/Drive evidence can now feed a replay-stable Executive Orientation publication. Significance remains restricted to existing deterministic Attention Policies; Gmail communication content and Drive semantic content cannot independently elevate attention. Conversational multi-source acquisition remains deliberately unimplemented because it would require its own governed read-authority contract.
+**Status:** COMPLETE on `main` through PR #597. Already-governed Calendar/Gmail/Drive evidence can feed a replay-stable Executive Orientation publication. Significance remains restricted to existing deterministic Attention Policies; Gmail communication content and Drive semantic content cannot independently elevate attention. Conversational multi-source acquisition remains deliberately unimplemented because it would require its own governed read-authority contract.
 
 Proceed in parallel with Step C because this work increases understanding rather than external authority.
 
@@ -632,6 +632,26 @@ Existing cognition/EOS machinery should be connected to governed Calendar/Gmail/
 The immediate product objective is to move from factual observation toward useful executive orientation — what changed, what warrants attention, what dependencies exist — without allowing source content or the model to manufacture significance.
 
 This step should reuse the ADR-0009 attention-policy lineage and the corpus's attention cases as the regression boundary.
+
+## September A–D closeout checkpoint
+
+**Current `main`:** `cd6421b673f01bd40db307ac972c8d832d99d835`
+
+The authority / adversarial / durability / cognition tranche is closed:
+
+- **Step A — authority doctrine and voice-write containment:** COMPLETE.
+- **Step B — untrusted-content adversarial corpus v0.1:** COMPLETE and active in CI.
+- **Step C — durable authority/reference state:** COMPLETE for authority-bearing state.
+- **Step D — deterministic Executive Orientation publication:** COMPLETE.
+
+This checkpoint does not promote Step E or Step F automatically.
+
+The next product frontier is evidence-led:
+
+1. activate Executive Orientation through a separately reviewed governed multi-source acquisition boundary if an observed product need justifies it; or
+2. wait for an observed need that earns a Step E authority ADR.
+
+Existing open presentation findings continue to block affected future write surfaces. `verify` remains the required protected-branch status check; `verify-presentation` is additional CI evidence and is not currently a required branch-protection context.
 
 ### Step E — future authority ADRs only when an observed need exists
 

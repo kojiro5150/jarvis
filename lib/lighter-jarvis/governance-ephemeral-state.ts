@@ -235,7 +235,12 @@ export function createGovernanceEphemeralStateStore(
 export type GovernanceEphemeralStateStore = ReturnType<typeof createGovernanceEphemeralStateStore>;
 
 type TestStoredRow = GovernanceEphemeralStateRow;
-const testRows = new Map<string, TestStoredRow>();
+const testGlobal = globalThis as typeof globalThis & {
+  __jarvisGovernanceEphemeralStateRows?: Map<string, TestStoredRow>;
+};
+const testRows = testGlobal.__jarvisGovernanceEphemeralStateRows
+  ?? new Map<string, TestStoredRow>();
+testGlobal.__jarvisGovernanceEphemeralStateRows = testRows;
 
 const testStore: GovernanceEphemeralStateStore = Object.freeze({
   async create(input) {

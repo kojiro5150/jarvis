@@ -519,6 +519,32 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     }
     const modelTranscript = compactModelTranscript(body.messages);
     const currentUserUtterance = [...body.messages].reverse().find(({ role }) => role === "user")?.content;
+
+    // An explicit user-authored continuity capture is a closed, established
+    // operation. Resolve it before content-based routers inspect words inside
+    // the statement being preserved (for example, a Product Gap about weather).
+    if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {
+      const capture = await resolveProductionUserContinuityCapture({
+        utterance: currentUserUtterance,
+        ...(Object.hasOwn(body, "userContinuityCaptureClarificationReference")
+          ? { clarificationReference: body.userContinuityCaptureClarificationReference }
+          : {}),
+        ...(userContinuityCaptureDependencies
+          ? { dependencies: userContinuityCaptureDependencies }
+          : {}),
+      });
+      if (capture.handled) {
+        return NextResponse.json({
+          reply: capture.reply,
+          specialistId: specialist.id,
+          execution: "none",
+          userContinuityCapture: { status: capture.status },
+          userContinuityCaptureClarificationReference:
+            capture.clarificationReference ?? null,
+        });
+      }
+    }
+
     const victorianTomorrowWeather = specialist.id === "jarvis" && currentUserUtterance !== undefined
       ? await resolveVictorianTomorrowWeather(currentUserUtterance, victorianTomorrowWeatherDependencies)
       : null;
@@ -614,28 +640,6 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         execution: "none",
         drivePrivateReleaseReference: body.drivePrivateReleaseReference,
       });
-    }
-
-    if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {
-      const capture = await resolveProductionUserContinuityCapture({
-        utterance: currentUserUtterance,
-        ...(Object.hasOwn(body, "userContinuityCaptureClarificationReference")
-          ? { clarificationReference: body.userContinuityCaptureClarificationReference }
-          : {}),
-        ...(userContinuityCaptureDependencies
-          ? { dependencies: userContinuityCaptureDependencies }
-          : {}),
-      });
-      if (capture.handled) {
-        return NextResponse.json({
-          reply: capture.reply,
-          specialistId: specialist.id,
-          execution: "none",
-          userContinuityCapture: { status: capture.status },
-          userContinuityCaptureClarificationReference:
-            capture.clarificationReference ?? null,
-        });
-      }
     }
 
     if (specialist.id === "jarvis" && currentUserUtterance !== undefined) {

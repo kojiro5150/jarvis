@@ -44,6 +44,46 @@ function handler(
 }
 
 describe("sole-runtime explicit user continuity capture integration", () => {
+  it("gives explicit Product Gap capture precedence over embedded weather wording", async () => {
+    const statement = "JARVIS product gap — after “Will it be windy tomorrow?” produced the deterministic clarification “Please specify the location for the weather forecast,” I replied “geelong.” That bare clarification response was not bound back to the pending weather request. It escaped into ordinary web-enabled conversation and returned an ungoverned Geelong forecast that contradicted the deterministic BOM result returned by the full request immediately afterward. Weather clarification must create a server-owned, bounded reference preserving the original query kind and date. An exact location-only follow-up must resolve through that reference into the deterministic weather capability, never through model or web-search fallback.";
+    const persist = vi.fn(async (_candidate: UserContinuityCaptureCandidate) => ({
+      status: "persisted" as const,
+      recordId: "user-continuity:weather-gap",
+      versionId: "version-weather-gap",
+    }));
+    const { post, model } = handler({
+      clock: () => new Date("2026-09-18T10:00:00.000Z"),
+      classify: async () => ({
+        status: "classified",
+        classification: {
+          responseType: "user_continuity_capture_classification",
+          status: "classified",
+          semanticClass: "user_assertion",
+        },
+      }),
+      persist,
+    });
+
+    const response = await post(request([
+      { role: "user", content: `Remember this: ${statement}` },
+    ]));
+
+    expect(await response.json()).toEqual({
+      reply: "Remembered.",
+      specialistId: "jarvis",
+      execution: "none",
+      userContinuityCapture: { status: "persisted" },
+      userContinuityCaptureClarificationReference: null,
+    });
+    expect(persist).toHaveBeenCalledOnce();
+    expect(persist.mock.calls[0][0]).toMatchObject({
+      semanticClass: "user_assertion",
+      value: { statement },
+      authorship: { source: "user" },
+    });
+    expect(model).not.toHaveBeenCalled();
+  });
+
   it("intercepts a valid explicit capture before ordinary model routing and acknowledges only after persistence", async () => {
     const persist = vi.fn(async (_candidate: UserContinuityCaptureCandidate) => ({
       status: "persisted" as const,

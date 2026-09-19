@@ -38,7 +38,10 @@ function exactLocationOnly(utterance: string): string | null {
   if (!normalized || normalized.length > 80) return null;
   if (!/^[\p{L}][\p{L}\p{M} .'-]{0,79}$/u.test(normalized)) return null;
   const tokens = normalized.toLowerCase().split(/\s+/);
-  const disallowed = new Set(["yes", "no", "please", "thanks", "thank", "weather", "forecast", "tomorrow", "today"]);
+  const disallowed = new Set([
+    "yes", "no", "not", "please", "thanks", "thank",
+    "weather", "forecast", "tomorrow", "today", "location",
+  ]);
   if (tokens.some(token => disallowed.has(token))) return null;
   return normalized;
 }

@@ -485,6 +485,42 @@ export function calendarReplyPreservesProjection(content: string,
   return observed.length === expected.length && observed.every((value, index) => value === expected[index]);
 }
 
+const CALENDAR_EXPLICIT_FULL_DATE =
+  /\b(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b/gi;
+const melbourneFullDatePresentation = new Intl.DateTimeFormat("en-AU", {
+  timeZone: CALENDAR_TIME_ZONE,
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
+function normalizedCalendarFullDate(value: string): string {
+  return value.normalize("NFKC").replace(/,/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+/**
+ * If a governed Calendar reply chooses to state an explicit weekday/date for
+ * today or tomorrow, that civil date must be the exact authorised window date.
+ * Absence of an explicit date remains valid; deterministic presentation does
+ * not require adding one.
+ */
+export function calendarReplyPreservesRelativeDate(
+  content: string,
+  window: NonNullable<Awaited<ReturnType<typeof resolveProductionCalendarRead>>["window"]>,
+): boolean {
+  if (window.period !== "today" && window.period !== "tomorrow") return true;
+  const observed = [...content.matchAll(CALENDAR_EXPLICIT_FULL_DATE)]
+    .map(match => normalizedCalendarFullDate(match[0]));
+  CALENDAR_EXPLICIT_FULL_DATE.lastIndex = 0;
+  if (observed.length === 0) return true;
+  const expected = normalizedCalendarFullDate(
+    melbourneFullDatePresentation.format(new Date(window.start)),
+  );
+  return observed.every(value => value === expected);
+}
+
+
 export type CalendarActDependencies = Readonly<{
   createReadConnector: () => ScopedCalendarAcquisitionPort;
   createWriteConnector: () => CalendarEventWritePort;
@@ -1393,6 +1429,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
         });
         const reply = calendarReplyPreservesProjection(guardedReply, projected.commitments)
           && calendarReplyPreservesCompleteness(guardedReply, calendar.evidence!.coverageState)
+          && calendarReplyPreservesRelativeDate(guardedReply, calendar.window)
           ? scheduleTitles
             ? attachCalendarScheduleTitles(guardedReply, projected.commitments, scheduleTitles)
             : guardedReply

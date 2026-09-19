@@ -70,7 +70,7 @@ describe("POST /api/lighter/chat", () => {
     }));
 
     expect(await response.json()).toEqual({
-      reply: "I can't establish permanent standing authority for Gmail from a conversational instruction. Gmail searches and reads require the applicable governed authorization for each operation.",
+      reply: "JARVIS doesn't hold standing authority for Gmail. Each Gmail search or read needs its own governed authorization.",
       specialistId: "jarvis",
       execution: "none",
     });

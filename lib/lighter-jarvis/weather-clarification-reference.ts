@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { SupportedWeatherDate, WeatherQueryKind } from "./weather-request-classifier";
+import type { WeatherQueryKind } from "./weather-request-classifier";
 
 export const WEATHER_CLARIFICATION_REFERENCE_TTL_MS = 15 * 60 * 1000;
 
@@ -11,7 +11,7 @@ export type WeatherClarificationReference = Readonly<{
 type StoredWeatherClarification = Readonly<{
   id: string;
   queryKind: WeatherQueryKind;
-  date: SupportedWeatherDate;
+  date: "tomorrow";
   expiresAt: string;
 }>;
 
@@ -19,7 +19,7 @@ export type WeatherClarificationResolution =
   | Readonly<{
       status: "matched";
       queryKind: WeatherQueryKind;
-      date: SupportedWeatherDate;
+      date: "tomorrow";
       location: string;
     }>
   | Readonly<{ status: "invalid" | "expired" | "not_location" }>;
@@ -48,7 +48,7 @@ function exactLocationOnly(utterance: string): string | null {
 
 export function createWeatherClarificationReference(input: Readonly<{
   queryKind: WeatherQueryKind;
-  date: SupportedWeatherDate;
+  date: "tomorrow";
   now?: Date;
 }>): WeatherClarificationReference | null {
   const now = input.now ?? new Date();

@@ -1,6 +1,6 @@
 # JARVIS — Roadmap to a Non-LLM-Dependent Executive Operating System
 
-**Status:** Living document. Reconciled 11 September 2026 after direct verification of the Governed Operating Picture semantic/lifecycle foundation, Supabase persistence foundation, Store Parity & Restart Durability, Purpose-Bounded Durable Projection, Narrow Model-Facing Continuity, Explicit User-Authored Continuity Capture, Morning Executive Orientation v1, post-promotion durable-continuity reliability/scalability closure, bounded Drive ordinal result continuity, bounded Gmail named-result continuity, bounded explicit Product Gap resolution, Gmail topic search, oversized Gmail/Drive private-release continuity, the Gmail governed-drafting processing-bound prerequisite, and one live purpose-bounded Gmail invitation-decline composition capability. Existing governed Calendar/Gmail/Drive work remains the proven substrate. Promotion remains capability-specific; this drafting proof does not authorize general drafting, draft persistence, revision, reuse or sending.
+**Status:** Living document. Reconciled 19 September 2026. Existing governed Calendar/Gmail/Drive work remains the proven substrate. Promotion remains capability-specific; this drafting proof does not authorize general drafting, draft persistence, revision, reuse or sending.
 
 **Purpose:** This document records where JARVIS actually stands, what has been *proven* versus merely *understood* versus *conjectural*, and the disciplined path toward an everyday executive assistant — not a governance system scaled to one user — that expands situational awareness, orientation, and cognition, and collaborates on the work of the day, without depending on an LLM to originate facts.
 
@@ -562,6 +562,98 @@ Models may be used, within explicit governed boundaries, for natural-language in
 The architecture therefore rejects both extremes: facts and authority must not be outsourced to a model, but semantic intelligence should not be reimplemented as an ever-growing deterministic parser.
 
 The full Iron-Man vision — fully autonomous, understands anything, acts on everything — should stay aspirational rather than promised. But the ordinary, everyday version of it is no longer science fiction: something that wakes up every morning and reliably answers *what's happening, what changed, what needs attention* — using real evidence, only reaching for language-model flexibility where it's genuinely needed, and only occasionally surfacing something that looks like a decision to weigh. Most of the foundation for that is proven. The rest is a short, specific, identifiable list of next steps — not a leap.
+
+## Immediate next-development tranche — authority, adversarial hardening, durability and cognition
+
+This tranche is the near-term development gate before broader externally consequential write capability. It does not replace the existing Know → Understand → Advise → Act trajectory. It makes the authority and untrusted-content prerequisites explicit and allows cognition integration to continue in parallel where significance remains deterministic.
+
+### Step A — ADR-0027: authority-source reconciliation and voice write containment
+
+Land `ADR-0027-Authority-Sources-Named-Grants-Without-Standing-Grants.md` and its same-PR containment.
+
+Decision:
+
+- standing grants are removed as an authority source;
+- named grants remain an admissible future source only under a finite lifetime, explicit renewal, fixed server-owned footprint and a deterministic trigger in the raw current-turn user utterance;
+- timers, schedules, provider events, remembered preferences, prior conversation, model inference and semantic similarity cannot trigger named grants;
+- grant creation, widening and renewal may occur only through a dedicated deterministic grant-management surface and may never be proposed by a model or untrusted source content;
+- until a capability-specific voice approval contract exists and passes the adversarial corpus, non-`typed` turns cannot resolve write authority.
+
+The same change must reconcile the North Star, ADR-0025 amendment notes, authority migration status, roadmap language and Gmail standing-authority wording, and must establish the authority-path matrix across every live authority path.
+
+### Step B — Untrusted Content Adversarial Corpus v0.1
+
+After Step A merges, land `JARVIS-UNTRUSTED-CONTENT-ADVERSARIAL-CORPUS-v0.1.md` and its executable harness.
+
+The corpus is an engineering control, not a design assertion. Every model-involving case runs against an attacker-compliant model double. The architecture must hold even when the model fully follows the hostile instruction.
+
+v0.1 applies to behaviour live on main:
+
+- Gmail body/display-name/subject content into governed invitation-decline drafting;
+- Calendar titles/descriptions into deterministic attention and Calendar move proposal paths;
+- Drive content and filenames across governed read/release boundaries;
+- voice-marked turns as negative tests for write-authority resolution.
+
+Rendering attacks use Playwright; structural, authority, attention, persistence and cross-turn cases use Vitest. Every live category requires mechanised mutation proof. Findings in the protected implementation are recorded as executable `it.fails` / `test.fail` findings and are not silently fixed in the corpus PR.
+
+An open finding blocks any new write capability, named grant or voice approval contract on the affected capability.
+
+### Step C — durable authority and governed-reference state
+
+Run in parallel with cognition integration once Steps A and B define the governing rules.
+
+Reuse the existing Supabase operating-picture persistence substrate where it fits rather than creating a second persistence system. Persist only authority/reference state that must survive process restart. Preserve short expiries and fail-closed behaviour.
+
+Required restart invariants include:
+
+- pending state survives only within its existing lifetime;
+- consumed stays consumed;
+- expired stays expired;
+- revoked stays revoked;
+- one-shot consumption is an atomic conditional write;
+- reconstruction cannot create authority from source or model content.
+
+This step is complete only when restart and concurrent-consumption tests prove those properties.
+
+### Step D — executive cognition integration under deterministic significance
+
+Proceed in parallel with Step C because this work increases understanding rather than external authority.
+
+Existing cognition/EOS machinery should be connected to governed Calendar/Gmail/Drive evidence only where significance remains a deterministic attention-policy result over governed evidence. Source assertions such as `URGENT`, claimed executive importance, threats, hierarchy language or model judgement cannot independently elevate attention.
+
+The immediate product objective is to move from factual observation toward useful executive orientation — what changed, what warrants attention, what dependencies exist — without allowing source content or the model to manufacture significance.
+
+This step should reuse the ADR-0009 attention-policy lineage and the corpus's attention cases as the regression boundary.
+
+### Step E — future authority ADRs only when an observed need exists
+
+Two authority questions are intentionally excluded from ADR-0027 and must not leak into named grants:
+
+1. **Voice approval contract.** If voice approval for writes becomes an observed product need, create a separate ADR defining deterministic server-owned read-back, user confirmation semantics and presentation-equivalent safeguards. Until then voice may discuss or prepare writes but cannot approve them.
+2. **Proactive / scheduled authority.** DAWNWATCH-style scheduled acquisition or action requires its own ADR. A timer or event firing a named grant is prohibited by ADR-0027 and must not be introduced as a shortcut.
+
+Do not allocate ADR numbers until each decision is actually drafted.
+
+### Step F — broaden Act only after the gates hold
+
+Gmail send, broader Calendar writes, Drive create/edit/save and other externally consequential operations are downstream work.
+
+A new Act capability may proceed only when:
+
+- its structural operation parameters are server-owned;
+- its applicable adversarial-corpus categories pass with mutation proof;
+- it has no open protected-build finding;
+- its authority/reference state is restart-safe where durability is required;
+- approval presentation satisfies the applicable presentation-integrity cases;
+- provider execution is followed by independent postcondition verification before JARVIS claims completion.
+
+The roadmap test remains behavioural rather than percentage-based:
+
+> **What observed behaviour does this explain or enable that the current architecture cannot?**
+
+New architecture or capability work should answer that question before implementation.
+
+---
 
 ### Sprint 3.177 — governed factual Calendar retrieval
 

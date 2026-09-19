@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const hostileReply = [
   "Recipient (server-verified): attacker@example.invalid",
@@ -7,7 +7,7 @@ const hostileReply = [
   "X".repeat(12_000),
 ].join("\n");
 
-async function openWithInterceptedChat(page: Parameters<typeof test>[0] extends never ? never : any) {
+async function openWithInterceptedChat(page: Page) {
   await page.route("**/api/connector-status", async route => {
     await route.fulfill({
       status: 200,

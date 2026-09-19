@@ -20,8 +20,8 @@ import {
   INITIAL_SITUATION_FORMATION_POLICIES,
   SituationFormationRegistry,
 } from "../situations";
-import { compareSituationalAwarenessSnapshots } from "../situational-awareness/lifecycle";
-import type { SituationalAwarenessChanges } from "../situational-awareness/lifecycle/types";
+import { compareCanonicalOrientationSnapshots } from "../runtime/orientation-boundary";
+import type { CanonicalOrientationChangeSet } from "../runtime/orientation-boundary";
 import {
   ORIENTATION_CHANGE_DOMAINS,
   type ExecutiveOrientation,
@@ -60,7 +60,7 @@ function orientationIdentity(input: unknown): string {
 }
 
 function domainChanges(
-  changes: SituationalAwarenessChanges,
+  changes: CanonicalOrientationChangeSet["changes"],
   domain: typeof ORIENTATION_CHANGE_DOMAINS[number],
 ): readonly { readonly type: "added" | "modified" | "removed" }[] {
   const value = changes[domain];
@@ -70,7 +70,7 @@ function domainChanges(
   return value as readonly { readonly type: "added" | "modified" | "removed" }[];
 }
 
-function summarizeChanges(changes: SituationalAwarenessChanges): readonly OrientationDomainChangeSummary[] {
+function summarizeChanges(changes: CanonicalOrientationChangeSet["changes"]): readonly OrientationDomainChangeSummary[] {
   return ORIENTATION_CHANGE_DOMAINS.map(domain => {
     const items = domainChanges(changes, domain);
     const added = items.filter(item => item.type === "added").length;
@@ -125,7 +125,7 @@ function explicitCommunicationDependencies(
 export function constructDeterministicExecutiveOrientation(
   input: ExecutiveOrientationInput,
 ): ExecutiveOrientation {
-  const changes = compareSituationalAwarenessSnapshots(
+  const changes = compareCanonicalOrientationSnapshots(
     input.previousSnapshot,
     input.currentSnapshot,
   );

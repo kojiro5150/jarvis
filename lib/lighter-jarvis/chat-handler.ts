@@ -42,7 +42,10 @@ import { interpretCalendarConversationalIntent, isCalendarConversationalIntentCa
 import { deterministicCapabilityConstraint, isConversationalCapabilitySelectionCandidate, isUnsupportedGmailMutationRequest, selectConversationalCapability } from "@/lib/lighter-jarvis/conversational-capability-selector";
 import { resolveClosedResponseFormatInstruction } from "@/lib/lighter-jarvis/response-format-instruction";
 import { materializeConversationalPrivateOperation } from "@/lib/lighter-jarvis/conversational-private-operation";
-import { createDurablePendingAuthorization } from "@/lib/lighter-jarvis/durable-pending-authorization";
+import {
+  createDurablePendingAuthorization,
+  inspectDurablePendingAuthorization,
+} from "@/lib/lighter-jarvis/durable-pending-authorization";
 import { proposeCalendarRead } from "@/lib/lighter-jarvis/calendar-read-proposal";
 import {
   GMAIL_STANDING_AUTHORITY_REPLY,
@@ -699,6 +702,33 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
     const shouldCarryPendingAuthorization = Object.hasOwn(body, "pendingAuthorizationReference")
       && !freshCapabilityRequest
       && !standingGmailAuthorityRequest;
+
+    if (specialist.id === "jarvis" && shouldCarryPendingAuthorization) {
+      const inspection = await inspectDurablePendingAuthorization(body.pendingAuthorizationReference);
+      if (inspection.status !== "active") {
+        const reason = inspection.status === "consumed"
+          ? "pending_authorization_already_consumed"
+          : inspection.status === "expired"
+            ? "pending_authorization_expired"
+            : inspection.status === "revoked"
+              ? "pending_authorization_revoked"
+              : inspection.status === "not_found"
+                ? "pending_authorization_not_found"
+                : inspection.status === "invalid"
+                  ? "pending_authorization_reference_invalid"
+                  : "pending_authorization_persistence_unavailable";
+        return NextResponse.json({
+          reply: "That authorization is no longer active. Please repeat the governed request.",
+          specialistId: specialist.id,
+          execution: "none",
+          pendingAuthorization: {
+            decision: "ASK",
+            reason,
+          },
+          pendingAuthorizationReference: null,
+        });
+      }
+    }
 
     const gmailInvitationDeclineDraft = specialist.id === "jarvis" && currentUserUtterance !== undefined
       ? await resolveGmailInvitationDeclineDraft({

@@ -7,7 +7,8 @@ import type { ProposedDriveSearchOperation } from "./drive-search-authority";
 import type { DriveReadOperation } from "./drive-read-authority";
 import type { GmailInvitationDeclineDraftOperation } from "./gmail-invitation-decline-drafting";
 
-type ProposedOperation = ProposedCalendarReadOperation | ProposedGmailReadOperation | ProposedGmailSearchOperation | ProposedDriveSearchOperation | DriveReadOperation | GmailInvitationDeclineDraftOperation;
+export type ProposedPendingOperation = ProposedCalendarReadOperation | ProposedGmailReadOperation | ProposedGmailSearchOperation | ProposedDriveSearchOperation | DriveReadOperation | GmailInvitationDeclineDraftOperation;
+type ProposedOperation = ProposedPendingOperation;
 
 /**
  * An opaque, non-authoritative handle that may cross the client boundary.
@@ -41,7 +42,10 @@ export type PendingAuthorizationResolution = Readonly<{
     | "pending_authorization_already_consumed"
     | "pending_authorization_reference_invalid"
     | "pending_authorization_not_found"
-    | "pending_authorization_capability_mismatch";
+    | "pending_authorization_capability_mismatch"
+    | "pending_authorization_expired"
+    | "pending_authorization_revoked"
+    | "pending_authorization_persistence_unavailable";
   proposedOperation: ProposedOperation | null;
   authorityEvidence: readonly PendingAuthorizationConfirmationEvidence[];
   pendingAuthorizationReference: PendingAuthorizationReference | null;

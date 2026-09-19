@@ -79,8 +79,18 @@ function resolutionProjection(): Extract<DurablePurposeProjectionResult, { statu
   });
 }
 
-const wrongGap = Object.freeze({ ...baseGap, recordId: "gap:wrong", versionId: "gap:wrong:head", payload: Object.freeze({ statement: "Wrong diagnosis." }) });
-const rightGap = Object.freeze({ ...baseGap, recordId: "gap:right", versionId: "gap:right:head", payload: Object.freeze({ statement: "Correct diagnosis." }) });
+const wrongGap = Object.freeze({
+  ...baseGap,
+  recordId: "gap:wrong",
+  versionId: "gap:wrong:head",
+  payload: Object.freeze({ statement: "JARVIS product gap — wrong diagnosis." }),
+});
+const rightGap = Object.freeze({
+  ...baseGap,
+  recordId: "gap:right",
+  versionId: "gap:right:head",
+  payload: Object.freeze({ statement: "JARVIS product gap — correct diagnosis." }),
+});
 
 function supersessionProjection(): Extract<DurablePurposeProjectionResult, { status: "projected" }> {
   const resolved = Object.freeze({

@@ -66,6 +66,45 @@ function operationFromPayload(
   }
 }
 
+
+export type DurablePendingAuthorizationInspection =
+  | Readonly<{ status: "active" }>
+  | Readonly<{ status: "not_found" | "expired" | "consumed" | "revoked" | "invalid" | "unavailable" }>;
+
+export async function inspectDurablePendingAuthorization(
+  reference: unknown,
+  dependencies: Readonly<{
+    store?: GovernanceEphemeralStateStore | null;
+    now?: Date;
+  }> = {},
+): Promise<DurablePendingAuthorizationInspection> {
+  if (!isReference(reference)) return Object.freeze({ status: "invalid" });
+
+  const store = dependencies.store ?? createProductionGovernanceEphemeralStateStore();
+  const now = dependencies.now ?? new Date();
+  if (!store || !Number.isFinite(now.getTime())) {
+    return Object.freeze({ status: "unavailable" });
+  }
+
+  const read = await store.read({
+    id: reference.pendingAuthorizationId,
+    kind: "pending_authorization",
+    now,
+  });
+
+  switch (read.status) {
+    case "active":
+      return Object.freeze({ status: "active" });
+    case "not_found":
+    case "expired":
+    case "consumed":
+    case "revoked":
+      return Object.freeze({ status: read.status });
+    default:
+      return Object.freeze({ status: "unavailable" });
+  }
+}
+
 export async function createDurablePendingAuthorization(
   proposedOperation: ProposedPendingOperation,
   dependencies: Readonly<{

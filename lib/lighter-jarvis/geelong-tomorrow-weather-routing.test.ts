@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { createLighterChatHandler } from "@/lib/lighter-jarvis/chat-handler";
 
-function request(content: string) {
+function request(content: string, extra: Record<string, unknown> = {}) {
   return new Request("http://localhost/api/lighter/chat", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ specialistId: "jarvis", messages: [{ role: "user", content }] }),
+    body: JSON.stringify({ specialistId: "jarvis", messages: [{ role: "user", content }], ...extra }),
   });
 }
 
@@ -99,6 +99,62 @@ describe("unsupported weather containment", () => {
     expect(await response.json()).toEqual(expect.objectContaining({ reply, execution: "none" }));
     expect(model).not.toHaveBeenCalled();
     expect(fetchProduct).not.toHaveBeenCalled();
+  });
+
+
+  it("binds an exact location-only follow-up to the pending deterministic weather request", async () => {
+    const model = vi.fn();
+    const xml = `<product><amoc><identifier>IDV10753</identifier><issue-time-utc>2026-09-17T23:45:37Z</issue-time-utc><expiry-time>2026-09-18T23:45:37Z</expiry-time></amoc><forecast><area aac="VIC_PT025" type="location"><forecast-period start-time-local="2026-09-19T00:00:00+10:00" end-time-local="2026-09-20T00:00:00+10:00"><element type="air_temperature_minimum" units="Celsius">13</element><element type="air_temperature_maximum" units="Celsius">24</element><text type="precis">Sunny.</text><text type="probability_of_precipitation">10%</text></forecast-period></area></forecast></product>`;
+    const fetchProduct = vi.fn(async () => xml);
+    const post = handler(model, fetchProduct);
+
+    const clarification = await (await post(request("Will it be windy tomorrow?"))).json();
+    expect(clarification).toEqual(expect.objectContaining({
+      reply: "Please specify the location for the weather forecast.",
+      weatherRouting: { status: "clarification_required" },
+      weatherClarificationReference: expect.objectContaining({
+        weatherClarificationReferenceId: expect.any(String),
+      }),
+    }));
+    expect(fetchProduct).not.toHaveBeenCalled();
+
+    const resolved = await (await post(request("geelong", {
+      weatherClarificationReference: clarification.weatherClarificationReference,
+    }))).json();
+    expect(resolved).toEqual(expect.objectContaining({
+      reply: expect.stringContaining("Geelong: Sunny."),
+      geelongTomorrowWeather: { status: "resolved" },
+      weatherClarificationReference: null,
+    }));
+    expect(fetchProduct).toHaveBeenCalledOnce();
+    expect(model).not.toHaveBeenCalled();
+  });
+
+  it("consumes the weather clarification reference once and never falls through to the model", async () => {
+    const model = vi.fn();
+    const fetchProduct = vi.fn(async () => "unused");
+    const post = handler(model, fetchProduct);
+
+    const clarification = await (await post(request("Will it be windy tomorrow?"))).json();
+    const reference = clarification.weatherClarificationReference;
+
+    const first = await (await post(request("not a location?", {
+      weatherClarificationReference: reference,
+    }))).json();
+    expect(first).toEqual(expect.objectContaining({
+      weatherRouting: { status: "clarification_reference_not_location" },
+      weatherClarificationReference: null,
+    }));
+
+    const second = await (await post(request("geelong", {
+      weatherClarificationReference: reference,
+    }))).json();
+    expect(second).toEqual(expect.objectContaining({
+      weatherRouting: { status: "clarification_reference_invalid" },
+      weatherClarificationReference: null,
+    }));
+    expect(fetchProduct).not.toHaveBeenCalled();
+    expect(model).not.toHaveBeenCalled();
   });
 
   it("leaves weathering steel outside weather containment", async () => {

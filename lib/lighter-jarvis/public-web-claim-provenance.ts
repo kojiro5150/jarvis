@@ -21,7 +21,7 @@ export type PublicWebTextSegment = Readonly<{
 
 export type PublicWebRejectedCitation = Readonly<{
   segmentIndex: number;
-  reason: "malformed_citation" | "source_not_admitted";
+  reason: "malformed_citation" | "source_not_admitted" | "source_identity_mismatch";
 }>;
 
 export type PublicWebClaimProvenanceProjection = Readonly<{
@@ -62,15 +62,17 @@ function sourceResults(block: ClaudeContentBlock): readonly unknown[] | null {
 
 function projectCitation(
   value: unknown,
-  admittedUrls: ReadonlySet<string>,
-): PublicWebCitation | "source_not_admitted" | "malformed_citation" {
+  admittedSources: ReadonlyMap<string, PublicWebSource>,
+): PublicWebCitation | "source_not_admitted" | "source_identity_mismatch" | "malformed_citation" {
   const candidate = record(value);
   if (!candidate || candidate.type !== "web_search_result_location") return "malformed_citation";
   const url = nonEmptyString(candidate.url);
   const title = nonEmptyString(candidate.title);
   const citedText = nonEmptyString(candidate.cited_text);
   if (!url || !title || !citedText) return "malformed_citation";
-  if (!admittedUrls.has(url)) return "source_not_admitted";
+  const admittedSource = admittedSources.get(url);
+  if (!admittedSource) return "source_not_admitted";
+  if (admittedSource.title !== title) return "source_identity_mismatch";
   return Object.freeze({ sourceUrl: url, title, citedText });
 }
 
@@ -95,7 +97,7 @@ export function projectPublicWebClaimProvenance(
     }
   }
 
-  const admittedUrls = new Set(sources.map(source => source.url));
+  const admittedSources = new Map(sources.map(source => [source.url, source] as const));
   const segments: PublicWebTextSegment[] = [];
   const rejectedCitations: PublicWebRejectedCitation[] = [];
 
@@ -106,7 +108,7 @@ export function projectPublicWebClaimProvenance(
     const admittedCitations: PublicWebCitation[] = [];
 
     for (const rawCitation of citations) {
-      const citation = projectCitation(rawCitation, admittedUrls);
+      const citation = projectCitation(rawCitation, admittedSources);
       if (typeof citation === "string") {
         rejectedCitations.push(Object.freeze({ segmentIndex, reason: citation }));
       } else {

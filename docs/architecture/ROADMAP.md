@@ -585,6 +585,8 @@ The same change must reconcile the North Star, ADR-0025 amendment notes, authori
 
 ### Step B — Untrusted Content Adversarial Corpus v0.1
 
+**Status:** completes on merge of the executable v0.1 corpus and its presentation-verification job.
+
 After Step A merges, land `JARVIS-UNTRUSTED-CONTENT-ADVERSARIAL-CORPUS-v0.1.md` and its executable harness.
 
 The corpus is an engineering control, not a design assertion. Every model-involving case runs against an attacker-compliant model double. The architecture must hold even when the model fully follows the hostile instruction.

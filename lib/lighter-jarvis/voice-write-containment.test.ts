@@ -83,10 +83,23 @@ const wrongGap = Object.freeze({ ...baseGap, recordId: "gap:wrong", versionId: "
 const rightGap = Object.freeze({ ...baseGap, recordId: "gap:right", versionId: "gap:right:head", payload: Object.freeze({ statement: "Correct diagnosis." }) });
 
 function supersessionProjection(): Extract<DurablePurposeProjectionResult, { status: "projected" }> {
+  const resolved = Object.freeze({
+    ...rightGap,
+    recordId: "resolution:right",
+    versionId: "resolution:right:head",
+    semanticClass: "decision" as const,
+    subject: Object.freeze({
+      namespace: "product_gap_resolution",
+      entity: rightGap.recordId,
+      attribute: "status",
+      revision: "append_only" as const,
+    }),
+    payload: Object.freeze({ status: "resolved", targetRecordId: rightGap.recordId }),
+  });
   return Object.freeze({
     status: "projected",
     purpose: "conversation",
-    items: Object.freeze([wrongGap, rightGap]),
+    items: Object.freeze([wrongGap, rightGap, resolved]),
     decisions: Object.freeze([]),
   });
 }

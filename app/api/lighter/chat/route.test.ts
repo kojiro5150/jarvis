@@ -174,6 +174,31 @@ describe("POST /api/lighter/chat", () => {
     expect(listBetween).toHaveBeenCalledOnce();
   });
 
+  it("falls back deterministically when a governed tomorrow reply states the wrong Melbourne weekday/date", async () => {
+    const listBetween = vi.fn(async () => []);
+    const calendarConnector = vi.fn(() => ({
+      source: "google" as const,
+      listUpcoming: vi.fn(async () => []),
+      listBetween,
+    }));
+    const model = vi.fn(async () => "Tomorrow (Saturday, 19 September 2026) is clear.");
+    const response = await createLighterChatHandler(
+      model,
+      { createConnector: calendarConnector, clock: () => new Date("2026-09-19T11:00:00Z") },
+    )(request({
+      specialistId: "jarvis",
+      messages: [{ role: "user", content: "What's on my calendar tomorrow?" }],
+    }));
+
+    expect(await response.json()).toMatchObject({
+      reply: "Tomorrow is clear.",
+      calendarAuthority: { decision: "ALLOW", reason: "explicit_calendar_read" },
+    });
+    expect(calendarConnector).toHaveBeenCalledOnce();
+    expect(listBetween).toHaveBeenCalledOnce();
+    expect(model).toHaveBeenCalledOnce();
+  });
+
   it("routes natural personal-schedule wording to governed Calendar ASK instead of ordinary model claims", async () => {
     const calendarConnector = vi.fn();
     const model = vi.fn(async () => "I don't have access to your calendar at the moment.");

@@ -14,6 +14,8 @@ const OMITTED_CALENDAR_FACTUAL_REQUEST = "[Prior governed Calendar factual reque
 const OMITTED_GMAIL_READ_REQUEST = "[Prior governed Gmail read request omitted from ordinary model context.]";
 const OMITTED_DRIVE_READ_REQUEST = "[Prior governed Drive read request omitted from ordinary model context.]";
 const OMITTED_DRIVE_PROVIDER_ID_FOLLOW_UP = "[Prior governed Drive provider-ID follow-up omitted from ordinary model context.]";
+const OMITTED_WEATHER_REQUEST = "[Prior governed weather request omitted from ordinary model context.]";
+const OMITTED_WEATHER_RELEASE = "[Prior governed weather result omitted from ordinary model context.]";
 
 const GMAIL_FIELD_RELEASE = /^(?:From|Subject|Snippet|Plain text body|Attachment filenames|Attachment MIME metadata):/;
 const GMAIL_SUBJECT_LIST_RELEASE = /^(?:Recent Gmail messages:\n(?:-|1\. From:)|No recent Gmail messages found\.$)/;
@@ -24,6 +26,7 @@ const DRIVE_CONTENT_RELEASE = /^Drive document(?: \([A-Za-z0-9_-]+\))?:\n/;
 const EXACT_GMAIL_READ_REQUEST = /^gmail\.read [^\s\[\],<>]+ \[(?:sender|subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata)(?:,(?:sender|subject|snippet|plain_text_body|attachment_filenames|attachment_mime_metadata))*\]$/;
 const EXACT_DRIVE_READ_REQUEST = /^drive\.read [A-Za-z0-9_-]+ \[text\]$/;
 const EXPLICIT_CONFIRMATION = /^(?:yes|yes,?\s+please|confirm|confirmed|proceed|go\s+ahead)[.!]?$/i;
+const WEATHER_RELEASE = /^(?:Please specify the location for the weather forecast\.|Please specify tomorrow for the deterministic weather forecast\.|I detected possible weather wording, but not a complete forecast request\. Could you clarify what you'd like\?|I don't yet have a deterministic Bureau of Meteorology forecast for .+\.|I have a deterministic Bureau of Meteorology forecast path for .+ tomorrow, but verified wind detail is not yet available on that governed path\.|Tomorrow, .+, (?:Geelong|Melbourne): .+ Bureau of Meteorology forecast issued .+\.)$/;
 
 function priorCalendarRequestIndexes(messages: readonly ChatMessage[], currentUserIndex: number): ReadonlySet<number> {
   const requestIndexes = new Set<number>();
@@ -45,6 +48,16 @@ function priorCalendarRequestIndexes(messages: readonly ChatMessage[], currentUs
     if (!request || request.role !== "user") return;
 
     requestIndexes.add(requestIndex);
+  });
+  return requestIndexes;
+}
+
+function priorWeatherRequestIndexes(messages: readonly ChatMessage[], currentUserIndex: number): ReadonlySet<number> {
+  const requestIndexes = new Set<number>();
+  messages.forEach((message, releaseIndex) => {
+    if (releaseIndex >= currentUserIndex || message.role !== "assistant" || !WEATHER_RELEASE.test(message.content)) return;
+    const requestIndex = releaseIndex - 1;
+    if (requestIndex >= 0 && messages[requestIndex]?.role === "user") requestIndexes.add(requestIndex);
   });
   return requestIndexes;
 }
@@ -93,6 +106,7 @@ export function isDeterministicPrivateRelease(content: string): boolean {
 export function sanitizeModelHistory(messages: readonly ChatMessage[]): ChatMessage[] {
   const currentUserIndex = messages.findLastIndex(message => message.role === "user");
   const calendarRequestIndexes = priorCalendarRequestIndexes(messages, currentUserIndex);
+  const weatherRequestIndexes = priorWeatherRequestIndexes(messages, currentUserIndex);
   let governedDriveHistorySeen = false;
   return messages.map((message, index) => {
     const hadPriorGovernedDriveHistory = governedDriveHistorySeen;
@@ -100,11 +114,17 @@ export function sanitizeModelHistory(messages: readonly ChatMessage[]): ChatMess
       || (message.role === "user" && EXACT_DRIVE_READ_REQUEST.test(message.content))) {
       governedDriveHistorySeen = true;
     }
+    if (message.role === "assistant" && WEATHER_RELEASE.test(message.content)) {
+      return { role: "assistant", content: OMITTED_WEATHER_RELEASE };
+    }
     if (message.role === "assistant" && isNegativeCalendarFactualRelease(message.content)) {
       return { role: "assistant", content: NEGATIVE_CALENDAR_FACTUAL_RELEASE };
     }
     if (message.role === "assistant" && isDeterministicPrivateRelease(message.content)) {
       return { role: "assistant", content: OMITTED_PRIVATE_RELEASE };
+    }
+    if (message.role === "user" && index !== currentUserIndex && weatherRequestIndexes.has(index)) {
+      return { role: "user", content: OMITTED_WEATHER_REQUEST };
     }
     if (message.role === "user" && index !== currentUserIndex && calendarRequestIndexes.has(index)) {
       return { role: "user", content: OMITTED_CALENDAR_FACTUAL_REQUEST };

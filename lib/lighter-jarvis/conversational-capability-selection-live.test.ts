@@ -373,12 +373,31 @@ describe("Sprint 3.180b live capability selection", () => {
     expect(model).toHaveBeenCalledTimes(1);
   });
 
-  it("lets public research use the same native web-search-enabled JARVIS path", async () => {
+  it("lets public research use the same native web-search-enabled JARVIS path with admitted claim provenance", async () => {
+    const source = {
+      type: "web_search_result",
+      url: "https://papers.ssrn.com/example",
+      title: "SSRN result",
+      page_age: "2026-09-19",
+    };
     const model = vi.fn(async (_systemPrompt: string, _messages: { content: string }[], tools?: ClaudeTool[]) =>
       hasWebSearch(tools)
         ? {
-            content: [{ type: "text", text: "I found current SSRN results and can summarize them." }],
-            text: "I found current SSRN results and can summarize them.",
+            content: [
+              { type: "server_tool_use", name: "web_search", input: { query: "Sam Hayward SSRN" } },
+              { type: "web_search_tool_result", tool_use_id: "web_search_1", content: [source] },
+              {
+                type: "text",
+                text: "SSRN lists a current result for Sam Hayward.",
+                citations: [{
+                  type: "web_search_result_location",
+                  url: source.url,
+                  title: source.title,
+                  cited_text: "A current SSRN result for Sam Hayward.",
+                }],
+              },
+            ],
+            text: "SSRN lists a current result for Sam Hayward.",
           }
         : JSON.stringify({
             kind: "capability_request",
@@ -394,13 +413,50 @@ describe("Sprint 3.180b live capability selection", () => {
     ]))).json();
 
     expect(response).toEqual({
-      reply: "I found current SSRN results and can summarize them.",
+      reply: "SSRN lists a current result for Sam Hayward.\nSource: SSRN result — https://papers.ssrn.com/example",
       specialistId: "jarvis",
       execution: "none",
     });
     expect(response).not.toHaveProperty("pendingAuthorizationReference");
     expect(model).toHaveBeenCalledTimes(2);
     expect(hasWebSearch(model.mock.calls[1][2])).toBe(true);
+  });
+
+  it("fails closed on a public research answer with no admitted claim-level citation", async () => {
+    const model = vi.fn(async (_systemPrompt: string, _messages: { content: string }[], tools?: ClaudeTool[]) =>
+      hasWebSearch(tools)
+        ? {
+            content: [
+              {
+                type: "web_search_tool_result",
+                tool_use_id: "web_search_1",
+                content: [{
+                  type: "web_search_result",
+                  url: "https://health.example/scribes",
+                  title: "AI scribes report",
+                  page_age: "2026-09-19",
+                }],
+              },
+              { type: "text", text: "Several Australian hospitals use AI scribes at scale." },
+            ],
+            text: "Several Australian hospitals use AI scribes at scale.",
+          }
+        : JSON.stringify({
+            kind: "capability_request",
+            capability: "public_information",
+            operation: "lookup",
+            subjectTerms: ["AI scribes", "Australian hospitals"],
+            requestedOutput: "summary",
+          }));
+    const handler = createLighterChatHandler(model);
+
+    const response = await (await handler(request([
+      { role: "user", content: "Research AI scribes in Australian hospitals." },
+    ]))).json();
+
+    expect(response.reply).toBe(
+      "I found public-web material, but I couldn't verify claim-level provenance well enough to publish a research answer safely.",
+    );
   });
 
   it("does not ask permission before public web search when JARVIS lacks specific public information", async () => {

@@ -3,7 +3,8 @@ import {
   resolveGmailMessageListSenderReference,
   type GmailMessageListReference,
 } from "./gmail-message-list-reference";
-import { createPendingAuthorization, type PendingAuthorizationReference } from "./pending-authorization";
+import { type PendingAuthorizationReference } from "./pending-authorization";
+import { createDurablePendingAuthorization } from "./durable-pending-authorization";
 
 export type GmailNamedResultReadProposalResult = Readonly<{
   handled: boolean;
@@ -12,10 +13,10 @@ export type GmailNamedResultReadProposalResult = Readonly<{
   gmailMessageListReference?: GmailMessageListReference | null;
 }>;
 
-export function resolveGmailNamedResultReadProposal(input: {
+export async function resolveGmailNamedResultReadProposal(input: {
   readonly currentUserUtterance: string;
   readonly gmailMessageListReference?: unknown;
-}): GmailNamedResultReadProposalResult {
+}): Promise<GmailNamedResultReadProposalResult> {
   if (!Object.hasOwn(input, "gmailMessageListReference")) {
     return Object.freeze({ handled: false });
   }
@@ -63,7 +64,7 @@ export function resolveGmailNamedResultReadProposal(input: {
   return Object.freeze({
     handled: true,
     reply: `I can read the uniquely matched Gmail message from position ${selection.ordinal} in the recent result. Please explicitly confirm that I may read that exact Gmail message.`,
-    pendingAuthorizationReference: createPendingAuthorization(operation),
+    pendingAuthorizationReference: await createDurablePendingAuthorization(operation),
     gmailMessageListReference: selection.reference,
   });
 }

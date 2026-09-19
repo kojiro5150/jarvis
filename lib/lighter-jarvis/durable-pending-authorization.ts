@@ -59,7 +59,7 @@ function operationFromPayload(
       return operation as ProposedPendingOperation;
     case "drive.read":
       return operation as ProposedPendingOperation;
-    case "gmail.invitation_decline_draft":
+    case "gmail.read_for_invitation_decline_draft":
       return operation as ProposedPendingOperation;
     default:
       return null;

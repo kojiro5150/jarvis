@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createLighterChatHandler } from "@/lib/lighter-jarvis/chat-handler";
 import type { ChatMessage } from "@/lib/agents/types";
 import type { ClaudeResult, ClaudeTool } from "@/lib/claude";
-import { createPendingAuthorization } from "@/lib/lighter-jarvis/pending-authorization";
+import { createDurablePendingAuthorization } from "@/lib/lighter-jarvis/durable-pending-authorization";
 import { proposeGmailRead } from "@/lib/lighter-jarvis/gmail-read-authority";
 import { loadContentRetrievalPolicy } from "@/lib/content-retrieval-policy";
 import { ClientAuthorityTurnState } from "@/lib/lighter-jarvis/client-authority-turn-state";
@@ -1294,7 +1294,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
 
   it("resolves an opaque Gmail confirmation through the stored operation without model or handoff", async () => {
     const model = vi.fn(async () => handoffResult("dawnwatch", "handoff"));
-    const pendingAuthorizationReference = createPendingAuthorization(proposeGmailRead({
+    const pendingAuthorizationReference = await createDurablePendingAuthorization(proposeGmailRead({
       resource: { resourceId: "stored-message", connectorType: "email" }, requestedFields: ["subject"], requestingRuntime: "api-chat",
     }));
     const retrieveMessage = vi.fn(async () => ({ subject: "Stored subject" }));

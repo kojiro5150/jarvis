@@ -79,6 +79,7 @@ import { GoogleCalendarConnector } from "@/lib/connectors/google/calendar";
 import { hasGoogleCalendarWriteScope } from "@/lib/connectors/google/calendar-write-scope";
 import type { ScopedCalendarAcquisitionPort } from "@/lib/governed-conversation/scoped-calendar-evidence-acquisition-adapter";
 import { isDurableContinuityRecallRequest, resolveProductionModelContinuityRecall, type ProductionModelContinuityDependencies, type ProductionModelContinuityUnavailableDiagnostic } from "@/lib/operating-picture/production-model-continuity";
+import { createDurableContinuityReleaseReference } from "@/lib/lighter-jarvis/durable-continuity-release-reference";
 import { resolveProductionUserContinuityCapture, type ProductionUserContinuityCaptureDependencies } from "@/lib/operating-picture/production-user-continuity-capture";
 import { resolveProductionProductGapResolution, type ProductionProductGapResolutionDependencies } from "@/lib/operating-picture/production-product-gap-resolution";
 import { resolveProductionProductGapSupersession, type ProductionProductGapSupersessionDependencies } from "@/lib/operating-picture/production-product-gap-supersession";
@@ -111,6 +112,7 @@ interface LighterChatBody {
   productGapSupersessionReference?: unknown;
   gmailPrivateReleaseReference?: unknown;
   drivePrivateReleaseReference?: unknown;
+  durableContinuityReleaseReference?: unknown;
   weatherClarificationReference?: unknown;
 }
 type ModelCall = (
@@ -1527,11 +1529,18 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
             },
           });
         }
+        const durableContinuityReleaseReference = continuity.status === "rendered"
+          && continuity.reply.length >= 8_000
+          ? createDurableContinuityReleaseReference({ presentation: continuity.reply })
+          : null;
         return NextResponse.json({
           reply: continuity.reply,
           specialistId: specialist.id,
           execution: "none",
           modelContinuity: { status: continuity.status },
+          ...(durableContinuityReleaseReference
+            ? { durableContinuityReleaseReference }
+            : {}),
         });
       }
     }

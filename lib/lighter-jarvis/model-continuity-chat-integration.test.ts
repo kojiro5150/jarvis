@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { createLighterChatHandler } from "./chat-handler";
 import type { DurablePurposeProjectionResult } from "../operating-picture/purpose-projection-retrieval";
+import { projectDurableContinuityReleasesForTransport } from "./durable-continuity-release-transport";
+import { OMITTED_DURABLE_CONTINUITY_RELEASE } from "./durable-continuity-release-contract";
 
 const request = (body: unknown) => new Request("http://localhost/api/lighter/chat", {
   method: "POST",
@@ -144,6 +146,109 @@ describe("durable continuity integration in the sole chat runtime", () => {
     expect(retrieveProjection).toHaveBeenCalledTimes(1);
     expect(continuityModel).not.toHaveBeenCalled();
     expect(ordinaryModel).not.toHaveBeenCalled();
+  });
+
+  it("keeps an oversized durable-continuity release out of the next request transport while preserving fresh recall", async () => {
+    const oversizedStatement = `JARVIS product gap — ${"x".repeat(8_100)}`;
+    const oversizedProjection = Object.freeze({
+      status: "projected" as const,
+      purpose: "conversation",
+      items: Object.freeze([
+        Object.freeze({
+          recordId: "user-continuity:oversized",
+          versionId: "version:oversized",
+          purpose: "conversation",
+          semanticClass: "user_assertion" as const,
+          lifecycle: "current" as const,
+          recoveryDisposition: "recoverable_user_continuity" as const,
+          subject: Object.freeze({
+            namespace: "user_continuity",
+            entity: "user-continuity:oversized",
+            attribute: "user_assertion",
+            revision: "append_only" as const,
+          }),
+          payload: Object.freeze({ statement: oversizedStatement }),
+          visibilityPurposes: Object.freeze(["conversation"]),
+          validFrom: null,
+          validUntil: null,
+          staleAfter: null,
+          authorshipSource: "user" as const,
+          authorshipAt: "2026-09-19T10:00:00.000Z",
+        }),
+      ]),
+      decisions: Object.freeze([]),
+    });
+
+    const retrieveProjection = vi.fn()
+      .mockResolvedValueOnce(oversizedProjection)
+      .mockResolvedValueOnce(projected());
+    const continuityModel = vi.fn(async () =>
+      '{"responseType":"continuity_relevance","relevance":"relevant","relevantItemIds":["continuity:1"]}');
+    const model = vi.fn(async () => "ordinary model must not run");
+    const handler = createLighterChatHandler(
+      model,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      unusedCalendarActDependencies,
+      {
+        retrieveProjection,
+        createContinuityModelCall: () => continuityModel,
+      },
+    );
+
+    const firstResponse = await handler(request({
+      specialistId: "jarvis",
+      messages: [{
+        role: "user",
+        content: "Show me everything you remember about JARVIS product gaps.",
+      }],
+    }));
+    const first = await firstResponse.json() as {
+      reply: string;
+      durableContinuityReleaseReference?: { durableContinuityReleaseReferenceId: string };
+    };
+
+    expect(first.reply.length).toBeGreaterThanOrEqual(8_000);
+    expect(first.durableContinuityReleaseReference).toEqual({
+      durableContinuityReleaseReferenceId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+    });
+
+    const visibleTranscript = [
+      { role: "user" as const, content: "Show me everything you remember about JARVIS product gaps." },
+      { role: "assistant" as const, content: first.reply },
+      { role: "user" as const, content: "What do you remember about status updates?" },
+    ];
+    const transported = projectDurableContinuityReleasesForTransport(
+      visibleTranscript,
+      first.durableContinuityReleaseReference !== undefined,
+    );
+    expect(transported[1]).toEqual({
+      role: "assistant",
+      content: OMITTED_DURABLE_CONTINUITY_RELEASE,
+    });
+
+    const secondResponse = await handler(request({
+      specialistId: "jarvis",
+      messages: transported,
+      durableContinuityReleaseReference: first.durableContinuityReleaseReference,
+    }));
+
+    expect(secondResponse.status).toBe(200);
+    expect(await secondResponse.json()).toEqual({
+      reply: [
+        "Relevant remembered context:",
+        "- You previously stated a preference: I prefer short status updates.",
+      ].join("\n"),
+      specialistId: "jarvis",
+      execution: "none",
+      modelContinuity: { status: "rendered" },
+    });
+    expect(retrieveProjection).toHaveBeenCalledTimes(2);
+    expect(continuityModel).toHaveBeenCalledTimes(1);
+    expect(model).not.toHaveBeenCalled();
   });
 
   it("routes explicit recall through exactly one bounded continuity model call and deterministic rendering", async () => {

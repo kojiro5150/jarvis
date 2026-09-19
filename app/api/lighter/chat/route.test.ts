@@ -383,8 +383,11 @@ describe("POST /api/lighter/chat", () => {
       pendingAuthorizationReference: { pendingAuthorizationId: "fabricated-unknown" } }));
     const body = await response.json();
 
-    expect(body).toMatchObject({ driveSearchAuthority: { decision: "ASK", reason: "pending_authorization_not_found" },
-      pendingAuthorizationReference: null });
+    expect(body).toMatchObject({
+      pendingAuthorization: { decision: "ASK", reason: "pending_authorization_not_found" },
+      pendingAuthorizationReference: null,
+    });
+    expect(body).not.toHaveProperty("driveSearchAuthority");
     expect(body).not.toHaveProperty("gmailAuthority");
     expect(body).not.toHaveProperty("gmailSearchAuthority");
     expect(body).not.toHaveProperty("calendarAuthority");
@@ -1585,7 +1588,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
       pendingAuthorizationReference: exactReference,
     }));
     expect(await consumedResponse.json()).toMatchObject({
-      calendarAuthority: {
+      pendingAuthorization: {
         decision: "ASK",
         reason: "pending_authorization_already_consumed",
       },

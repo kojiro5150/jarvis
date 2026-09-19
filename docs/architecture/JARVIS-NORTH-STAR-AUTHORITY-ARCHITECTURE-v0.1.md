@@ -92,35 +92,36 @@ Conversation history may inform reasoning but is not a substitute for current au
 
 ### 2. Named capability grants
 
-A deliberately defined operation bundle bound to a named user-requested purpose or trigger.
+**Amended by ADR-0027 (19 September 2026).**
 
-A named grant must have an explicit and inspectable footprint. It must not mean "whatever context JARVIS finds relevant".
+A named grant is a server-owned authority object for a fixed operation footprint. It is admissible only when all of the following hold:
 
-Conceptual example:
+- it has a finite maximum lifetime and requires explicit renewal;
+- its trigger is a deterministic match against the raw current-turn user utterance;
+- its operations, targets or target classes, and scope are fixed at creation;
+- its identity, contract version, creation provenance, revocation state and last-use metadata are server-owned;
+- it cannot be triggered by a timer, schedule, external event, provider notification, remembered preference, prior conversation, model inference or semantic similarity;
+- it cannot create, widen or renew itself.
 
-```text
-BRIEF_ME_GRANT
-  calendar.read
-  gmail.search/read
-  drive.search/read
-  memory.read
-```
+Grant creation, widening, renewal and revocation occur only through a dedicated deterministic grant-management surface directly initiated by the user. Models and untrusted source content may not create or propose creation, widening or renewal.
 
-The grant applies only to the bounded purpose for which it was established and does not authorize unrelated writes or later unrelated reuse.
+ADR-0027 makes named grants architecturally admissible but does not implement them. No named grant may reach production before the applicable Untrusted Content Adversarial Corpus cases pass with mutation proof.
 
-### 3. Standing grants
+### Removed by ADR-0027 — historical section 3: Standing grants
 
-Persistent, inspectable and revocable authority deliberately established by the user.
+~~Persistent, inspectable and revocable authority deliberately established by the user.~~
 
-Standing grants must never be inferred from repeated behaviour, historical usage, convenience or model confidence.
+~~Standing grants must never be inferred from repeated behaviour, historical usage, convenience or model confidence.~~
 
-### 4. Pending authorization confirmation
+**Standing grants are no longer an admissible authority evidence class.** Prior approval, repeated behaviour, routine usage, remembered preference, successful past execution, conversational persistence, schedules and elapsed time cannot become standing authority.
+
+### 3. Pending authorization confirmation
 
 A deterministic confirmation bound to one exact previously proposed operation.
 
 A bare confirmation such as `yes` has no authority meaning unless a valid `PendingAuthorization` exists. Confirmation consumes only the bound pending operation; authority does not spill into other operations.
 
-### 5. Resource policy
+### 4. Resource policy
 
 Hard deterministic system policy that may prohibit, restrict or elevate an operation regardless of user or model intent.
 
@@ -220,11 +221,11 @@ STATE BUILDER
 fetch whatever it needs
 ```
 
-## Voice equivalence
+## Voice authority transport
 
-Voice and typed interaction must produce the same authority result for equivalent user language.
+A transcription channel is an input transport, not an authority source. Speech does not strengthen authority.
 
-A transcription channel is an input transport, not an authority source. The fact that speech was transcribed does not strengthen or weaken authority.
+ADR-0027 adds a temporary write-specific containment: until a capability-specific voice approval contract exists and passes the adversarial corpus, only a turn explicitly marked `typed` by the supported first-party client may resolve write authority. Voice remains eligible for read authority under the existing capability rules. Missing or unrecognised modality fails closed for writes.
 
 ## Canonical adversarial cases
 
@@ -315,7 +316,7 @@ Not yet implemented as a complete production authority path:
 - authority-gated Calendar acquisition;
 - general `PendingAuthorization`;
 - named grants;
-- standing grants;
+- standing grants — removed as an authority source by ADR-0027;
 - `BRIEF_ME_GRANT`;
 - general multi-operation Authority Engine;
 - authority-before-acquisition migration for Gmail, Drive and Memory;

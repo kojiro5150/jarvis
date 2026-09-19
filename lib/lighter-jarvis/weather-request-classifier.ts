@@ -3,21 +3,72 @@ const WEATHER_QUESTION_OPENING = /^(?:what(?:'s|’s| is| will)|when|where|how|w
 const WEATHER_REQUEST_OPENING = /^(?:tell|show|give|check|find|get)\s+(?:me\s+)?/i;
 const LOCATION_TEXT = String.raw`[\p{L}][\p{L}\p{M} .'-]{0,79}`;
 const WEATHER_FIRST_SHORTHAND = new RegExp(
-  String.raw`^(?<kind>weather|forecast|temperature)(?:\s+(?:in|for))?\s+(?<location>${LOCATION_TEXT})$`,
+  String.raw`^(?<kind>weather|forecast|temperature|wind|windy)(?:\s+(?:in|for))?\s+(?<location>${LOCATION_TEXT})const WEATHER_SIGNAL = /\b(?:weather|forecast|rain|showers?|temperature|snow|wind(?:y)?)\b/i;
+const WEATHER_QUESTION_OPENING = /^(?:what(?:'s|’s| is| will)|when|where|how|will|is|are|do|does|can|could|should)\b/i;
+const WEATHER_REQUEST_OPENING = /^(?:tell|show|give|check|find|get)\s+(?:me\s+)?/i;
+const LOCATION_TEXT = String.raw`[\p{L}][\p{L}\p{M} .'-]{0,79}`;
+const WEATHER_FIRST_SHORTHAND = new RegExp(
+  ,
   "iu",
 );
 const LOCATION_FIRST_SHORTHAND = new RegExp(
-  String.raw`^(?<location>${LOCATION_TEXT})\s+(?<kind>weather|forecast|temperature)$`,
+  String.raw`^(?<location>${LOCATION_TEXT})\s+(?<kind>weather|forecast|temperature|wind|windy)const WEATHER_SIGNAL = /\b(?:weather|forecast|rain|showers?|temperature|snow|wind(?:y)?)\b/i;
+const WEATHER_QUESTION_OPENING = /^(?:what(?:'s|’s| is| will)|when|where|how|will|is|are|do|does|can|could|should)\b/i;
+const WEATHER_REQUEST_OPENING = /^(?:tell|show|give|check|find|get)\s+(?:me\s+)?/i;
+const LOCATION_TEXT = String.raw`[\p{L}][\p{L}\p{M} .'-]{0,79}`;
+const WEATHER_FIRST_SHORTHAND = new RegExp(
+  String.raw`^(?<kind>weather|forecast|temperature|wind|windy)(?:\s+(?:in|for))?\s+(?<location>${LOCATION_TEXT})const WEATHER_SIGNAL = /\b(?:weather|forecast|rain|showers?|temperature|snow|wind(?:y)?)\b/i;
+const WEATHER_QUESTION_OPENING = /^(?:what(?:'s|’s| is| will)|when|where|how|will|is|are|do|does|can|could|should)\b/i;
+const WEATHER_REQUEST_OPENING = /^(?:tell|show|give|check|find|get)\s+(?:me\s+)?/i;
+const LOCATION_TEXT = String.raw`[\p{L}][\p{L}\p{M} .'-]{0,79}`;
+const WEATHER_FIRST_SHORTHAND = new RegExp(
+  ,
+  "iu",
+);
+const LOCATION_FIRST_SHORTHAND = new RegExp(
+  ,
   "iu",
 );
 const WHAT_WEATHER_QUESTION = new RegExp(
-  String.raw`^what(?:'s|’s| is| will be)\s+the\s+(?<kind>weather|temperature)(?:\s+be)?\s+in\s+(?<location>${LOCATION_TEXT})$`,
+  String.raw`^what(?:'s|’s| is| will be)\s+the\s+(?<kind>weather|temperature|wind)(?:\s+be)?\s+in\s+(?<location>${LOCATION_TEXT})const WEATHER_SIGNAL = /\b(?:weather|forecast|rain|showers?|temperature|snow|wind(?:y)?)\b/i;
+const WEATHER_QUESTION_OPENING = /^(?:what(?:'s|’s| is| will)|when|where|how|will|is|are|do|does|can|could|should)\b/i;
+const WEATHER_REQUEST_OPENING = /^(?:tell|show|give|check|find|get)\s+(?:me\s+)?/i;
+const LOCATION_TEXT = String.raw`[\p{L}][\p{L}\p{M} .'-]{0,79}`;
+const WEATHER_FIRST_SHORTHAND = new RegExp(
+  String.raw`^(?<kind>weather|forecast|temperature|wind|windy)(?:\s+(?:in|for))?\s+(?<location>${LOCATION_TEXT})const WEATHER_SIGNAL = /\b(?:weather|forecast|rain|showers?|temperature|snow|wind(?:y)?)\b/i;
+const WEATHER_QUESTION_OPENING = /^(?:what(?:'s|’s| is| will)|when|where|how|will|is|are|do|does|can|could|should)\b/i;
+const WEATHER_REQUEST_OPENING = /^(?:tell|show|give|check|find|get)\s+(?:me\s+)?/i;
+const LOCATION_TEXT = String.raw`[\p{L}][\p{L}\p{M} .'-]{0,79}`;
+const WEATHER_FIRST_SHORTHAND = new RegExp(
+  ,
+  "iu",
+);
+const LOCATION_FIRST_SHORTHAND = new RegExp(
+  String.raw`^(?<location>${LOCATION_TEXT})\s+(?<kind>weather|forecast|temperature|wind|windy)const WEATHER_SIGNAL = /\b(?:weather|forecast|rain|showers?|temperature|snow|wind(?:y)?)\b/i;
+const WEATHER_QUESTION_OPENING = /^(?:what(?:'s|’s| is| will)|when|where|how|will|is|are|do|does|can|could|should)\b/i;
+const WEATHER_REQUEST_OPENING = /^(?:tell|show|give|check|find|get)\s+(?:me\s+)?/i;
+const LOCATION_TEXT = String.raw`[\p{L}][\p{L}\p{M} .'-]{0,79}`;
+const WEATHER_FIRST_SHORTHAND = new RegExp(
+  String.raw`^(?<kind>weather|forecast|temperature|wind|windy)(?:\s+(?:in|for))?\s+(?<location>${LOCATION_TEXT})const WEATHER_SIGNAL = /\b(?:weather|forecast|rain|showers?|temperature|snow|wind(?:y)?)\b/i;
+const WEATHER_QUESTION_OPENING = /^(?:what(?:'s|’s| is| will)|when|where|how|will|is|are|do|does|can|could|should)\b/i;
+const WEATHER_REQUEST_OPENING = /^(?:tell|show|give|check|find|get)\s+(?:me\s+)?/i;
+const LOCATION_TEXT = String.raw`[\p{L}][\p{L}\p{M} .'-]{0,79}`;
+const WEATHER_FIRST_SHORTHAND = new RegExp(
+  ,
+  "iu",
+);
+const LOCATION_FIRST_SHORTHAND = new RegExp(
+  ,
+  "iu",
+);
+const WHAT_WEATHER_QUESTION = new RegExp(
+  ,
   "iu",
 );
 const TRAILING_LOCATION = new RegExp(String.raw`\b(?:in|for|at)\s+(?<location>${LOCATION_TEXT})$`, "iu");
 
 export type SupportedWeatherDate = "today" | "tomorrow";
-export type WeatherQueryKind = "forecast" | "temperature";
+export type WeatherQueryKind = "forecast" | "temperature" | "wind";
 export type SupportedWeatherLocationKey = "geelong" | "melbourne";
 
 export type WeatherRequestClassification =
@@ -52,7 +103,10 @@ export function extractTrailingWeatherDate(input: string): Readonly<{
 }
 
 function queryKind(value: string | undefined): WeatherQueryKind {
-  return value?.toLowerCase() === "temperature" ? "temperature" : "forecast";
+  const normalized = value?.toLowerCase();
+  if (normalized === "temperature") return "temperature";
+  if (normalized === "wind" || normalized === "windy") return "wind";
+  return "forecast";
 }
 
 function normalizedLocation(value: string): string {
@@ -74,6 +128,18 @@ function structuredRequest(core: string): Readonly<{ queryKind: WeatherQueryKind
     });
   }
 
+  if (WEATHER_QUESTION_OPENING.test(core)) {
+    const trailingLocation = TRAILING_LOCATION.exec(core)?.groups?.location;
+    return Object.freeze({
+      queryKind: /\btemperature\b/i.test(core)
+        ? "temperature"
+        : /\bwind(?:y)?\b/i.test(core)
+          ? "wind"
+          : "forecast",
+      location: trailingLocation ? normalizedLocation(trailingLocation) : null,
+    });
+  }
+
   const weatherFirst = WEATHER_FIRST_SHORTHAND.exec(core);
   if (weatherFirst?.groups?.location && isPlausibleLocation(weatherFirst.groups.location)) {
     return Object.freeze({
@@ -90,11 +156,14 @@ function structuredRequest(core: string): Readonly<{ queryKind: WeatherQueryKind
     });
   }
 
-  const requestShaped = WEATHER_QUESTION_OPENING.test(core) || WEATHER_REQUEST_OPENING.test(core);
-  if (!requestShaped) return null;
+  if (!WEATHER_REQUEST_OPENING.test(core)) return null;
   const trailingLocation = TRAILING_LOCATION.exec(core)?.groups?.location;
   return Object.freeze({
-    queryKind: /\btemperature\b/i.test(core) ? "temperature" : "forecast",
+    queryKind: /\btemperature\b/i.test(core)
+      ? "temperature"
+      : /\bwind(?:y)?\b/i.test(core)
+        ? "wind"
+        : "forecast",
     location: trailingLocation ? normalizedLocation(trailingLocation) : null,
   });
 }

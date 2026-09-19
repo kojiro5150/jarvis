@@ -136,6 +136,8 @@ Creating, editing or saving documents back to Drive is not yet a verified capabi
 
 JARVIS has a persistent Governed Operating Picture designed for **continuity, not transcript storage**.
 
+Authority-bearing conversational state is now also separated from ordinary process memory: generic pending authorizations and Calendar move authorizations use server-only Supabase-backed ephemeral governance state with fixed expiry and atomic one-shot consumption. Missing persistence fails closed rather than falling back to in-process authority.
+
 The Operating Picture preserves semantic class, authorship and lifecycle rather than silently turning remembered material into fact.
 
 Bounded Product Gap explicit resolution is **LIVE PASS / FROZEN**. JARVIS may prepare a deterministic active list, bind a closed positional selection to one opaque server-owned target, and append one separate user-authored resolution assertion only after the exact resolution command. Original Product Gap records remain unchanged and append-only; descriptive target inference, model-authored lifecycle decisions, duplicate assertions and invalid references fail closed.
@@ -208,7 +210,7 @@ Public research is not treated as hallucination-proof. Claim-level provenance is
 
 ## Executive cognition
 
-JARVIS contains deterministic Executive Operating System machinery for structured operational reasoning, including:
+JARVIS contains deterministic Executive Operating System machinery for structured operational reasoning, including a merged **Executive Orientation** publication over already-governed Calendar, Gmail and Drive evidence:
 
 ~~~text
 Situational Awareness
@@ -236,6 +238,8 @@ The standing capability-level test is:
 4. **Act** — execute an external operation under independently established authority.
 
 Each higher level re-earns trust independently.
+
+The Executive Orientation publication separates **what changed**, **what warrants attention**, **explicit dependencies**, and **source state**. Only deterministic Attention Policies may elevate a change into the attention section. Gmail communication content and Drive semantic content do not independently acquire significance.
 
 ## Morning Executive Orientation
 
@@ -402,7 +406,14 @@ These are product and governance questions to be earned from observed need, not 
 
 The memory substrate, Morning Executive Orientation, bounded public-web claim provenance and the other promoted capabilities described above are frozen only within their proven scopes.
 
-The immediate next-development tranche is now explicit in the roadmap: reconcile authority sources and contain voice writes through ADR-0027; establish the untrusted-content adversarial corpus; make authority/reference state restart-safe where required; integrate executive cognition in parallel while significance remains deterministic; and only then broaden externally consequential Act capabilities. Voice approval and proactive/scheduled authority remain separate future decisions that require observed need.
+The September authority/cognition tranche is complete on `main`:
+
+- **Step A — authority doctrine and voice-write containment:** complete through ADR-0027.
+- **Step B — untrusted-content adversarial corpus:** active in CI, with presentation findings kept explicit rather than silently remediated.
+- **Step C — durable authority/reference state:** generic pending authority and Calendar move authority are restart-safe, bounded and atomically one-shot.
+- **Step D — deterministic executive cognition:** already-governed Calendar/Gmail/Drive evidence can produce replay-stable Executive Orientation without allowing source text or model judgement to manufacture significance.
+
+The current frontier is no longer “finish A–D.” It is to activate Executive Orientation through a separately governed private-evidence acquisition boundary when an observed product need justifies it, or to wait for another observed need that earns a Step E authority decision. Voice approval and proactive/scheduled authority remain separate future decisions rather than implied next steps.
 
 Product gaps discovered during normal use remain evidence for sequencing, but new architecture or capability work should answer the roadmap test: **What observed behaviour does this explain or enable that the current architecture cannot?**
 

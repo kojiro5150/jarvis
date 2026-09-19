@@ -22,6 +22,9 @@ describe("public-web claim provenance presentation", () => {
     expect(isPublicWebResearchRequest("Research AI scribes in Australian hospitals")).toBe(true);
     expect(isPublicWebResearchRequest("Compare AI scribes used in hospitals")).toBe(true);
     expect(isPublicWebResearchRequest("Who is the current CEO of OpenAI?")).toBe(false);
+    expect(isPublicWebResearchRequest("summarize it")).toBe(false);
+    expect(isPublicWebResearchRequest("research")).toBe(false);
+    expect(isPublicWebResearchRequest("explain this")).toBe(false);
   });
 
   it("publishes sourced segments with exact admitted sources and omits uncited synthesis", () => {

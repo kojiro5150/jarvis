@@ -623,6 +623,8 @@ This step is complete only when restart and concurrent-consumption tests prove t
 
 ### Step D — executive cognition integration under deterministic significance
 
+**Status:** deterministic three-source cognition publication implemented in `executive-cognition-deterministic-significance`. Already-governed Calendar/Gmail/Drive evidence can now feed a replay-stable Executive Orientation publication. Significance remains restricted to existing deterministic Attention Policies; Gmail communication content and Drive semantic content cannot independently elevate attention. Conversational multi-source acquisition remains deliberately unimplemented because it would require its own governed read-authority contract.
+
 Proceed in parallel with Step C because this work increases understanding rather than external authority.
 
 Existing cognition/EOS machinery should be connected to governed Calendar/Gmail/Drive evidence only where significance remains a deterministic attention-policy result over governed evidence. Source assertions such as `URGENT`, claimed executive importance, threats, hierarchy language or model judgement cannot independently elevate attention.

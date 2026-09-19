@@ -11,6 +11,7 @@ import { ClientAuthorityTurnState, type OpaquePendingAuthorization } from "@/lib
 import { ConversationTransportHistory } from "@/lib/lighter-jarvis/conversation-transport-history";
 import { projectGmailPrivateReleasesForTransport } from "@/lib/lighter-jarvis/gmail-private-release-transport";
 import { projectDrivePrivateReleasesForTransport } from "@/lib/lighter-jarvis/drive-private-release-transport";
+import { projectDurableContinuityReleasesForTransport } from "@/lib/lighter-jarvis/durable-continuity-release-transport";
 import { projectGmailInvitationDeclineDraftsForTransport } from "@/lib/lighter-jarvis/gmail-invitation-decline-draft-transport";
 
 type Specialist = {
@@ -24,6 +25,7 @@ type OpaqueGmailSenderDisambiguation = Readonly<{ gmailSenderDisambiguationRefer
 type OpaqueGmailMessageList = Readonly<{ gmailMessageListReferenceId: string }>;
 type OpaqueGmailPrivateRelease = Readonly<{ gmailPrivateReleaseReferenceId: string }>;
 type OpaqueDrivePrivateRelease = Readonly<{ drivePrivateReleaseReferenceId: string }>;
+type OpaqueDurableContinuityRelease = Readonly<{ durableContinuityReleaseReferenceId: string }>;
 type OpaqueGovernedReferentialScope = Readonly<{ governedReferentialScopeId: string }>;
 type OpaqueGovernedResultSet = Readonly<{ governedResultSetReferenceId: string }>;
 type OpaqueCalendarAttentionObservation = Readonly<{ calendarAttentionObservationReferenceId: string }>;
@@ -108,6 +110,7 @@ export default function UnifiedOpsConsole() {
   const gmailPrivateReleaseRef = useRef<OpaqueGmailPrivateRelease | null>(null);
   const gmailInvitationDeclineDraftReleaseRef = useRef(false);
   const drivePrivateReleaseRef = useRef<OpaqueDrivePrivateRelease | null>(null);
+  const durableContinuityReleaseRef = useRef<OpaqueDurableContinuityRelease | null>(null);
   const governedReferentialScopeRef = useRef<OpaqueGovernedReferentialScope | null>(null);
   const governedResultSetRef = useRef<OpaqueGovernedResultSet | null>(null);
   const calendarAttentionObservationRef = useRef<OpaqueCalendarAttentionObservation | null>(null);
@@ -312,13 +315,19 @@ export default function UnifiedOpsConsole() {
         body: JSON.stringify({
           specialistId: specialist.id,
           messages: specialist.id === "jarvis"
-            ? projectGmailInvitationDeclineDraftsForTransport(projectDrivePrivateReleasesForTransport(
-                projectGmailPrivateReleasesForTransport(
-                  nextMessages,
-                  gmailPrivateReleaseRef.current !== null,
+            ? projectGmailInvitationDeclineDraftsForTransport(
+                projectDurableContinuityReleasesForTransport(
+                  projectDrivePrivateReleasesForTransport(
+                    projectGmailPrivateReleasesForTransport(
+                      nextMessages,
+                      gmailPrivateReleaseRef.current !== null,
+                    ),
+                    drivePrivateReleaseRef.current !== null,
+                  ),
+                  durableContinuityReleaseRef.current !== null,
                 ),
-                drivePrivateReleaseRef.current !== null,
-              ), gmailInvitationDeclineDraftReleaseRef.current)
+                gmailInvitationDeclineDraftReleaseRef.current,
+              )
             : nextMessages.map(({ role, content: text }) => ({ role, content: text })),
           ...(authorityRequest?.pendingAuthorizationReference
             ? { pendingAuthorizationReference: authorityRequest.pendingAuthorizationReference }
@@ -334,6 +343,9 @@ export default function UnifiedOpsConsole() {
             : {}),
           ...(specialist.id === "jarvis" && drivePrivateReleaseRef.current
             ? { drivePrivateReleaseReference: drivePrivateReleaseRef.current }
+            : {}),
+          ...(specialist.id === "jarvis" && durableContinuityReleaseRef.current
+            ? { durableContinuityReleaseReference: durableContinuityReleaseRef.current }
             : {}),
           ...(specialist.id === "jarvis" && governedReferentialScopeRef.current
             ? { governedReferentialScopeReference: governedReferentialScopeRef.current }
@@ -384,6 +396,7 @@ export default function UnifiedOpsConsole() {
         gmailPrivateReleaseReference?: OpaqueGmailPrivateRelease | null;
         gmailInvitationDeclineDraftRelease?: boolean;
         drivePrivateReleaseReference?: OpaqueDrivePrivateRelease | null;
+        durableContinuityReleaseReference?: OpaqueDurableContinuityRelease | null;
         governedReferentialScopeReference?: OpaqueGovernedReferentialScope | null;
         governedResultSetReference?: OpaqueGovernedResultSet | null;
         calendarAttentionObservationReference?: OpaqueCalendarAttentionObservation;
@@ -424,6 +437,9 @@ export default function UnifiedOpsConsole() {
       }
       if (data.drivePrivateReleaseReference !== undefined) {
         drivePrivateReleaseRef.current = data.drivePrivateReleaseReference;
+      }
+      if (data.durableContinuityReleaseReference !== undefined) {
+        durableContinuityReleaseRef.current = data.durableContinuityReleaseReference;
       }
       if (data.governedReferentialScopeReference !== undefined) {
         governedReferentialScopeRef.current = data.governedReferentialScopeReference;

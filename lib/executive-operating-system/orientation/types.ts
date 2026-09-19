@@ -8,9 +8,9 @@ import type {
   AttentionEvidence,
 } from "../attention/types";
 import type {
-  SituationalAwarenessChangeSet,
-  SituationalAwarenessSnapshot,
-} from "../situational-awareness/lifecycle";
+  CanonicalOrientationChangeSet,
+  CanonicalOrientationSnapshot,
+} from "../runtime/orientation-boundary";
 
 export const ORIENTATION_CHANGE_DOMAINS = [
   "identity",
@@ -65,7 +65,7 @@ export interface ExecutiveOrientation {
   readonly previousSnapshotId: string;
   readonly currentSnapshotId: string;
   readonly currentObservedAt: string;
-  readonly changes: SituationalAwarenessChangeSet;
+  readonly changes: CanonicalOrientationChangeSet;
   readonly changeSummary: readonly OrientationDomainChangeSummary[];
   readonly attention: ExecutiveAttentionQueue;
   readonly attentionItems: readonly OrientationAttentionItem[];
@@ -86,6 +86,6 @@ export interface ExecutiveOrientation {
 }
 
 export interface ExecutiveOrientationInput {
-  readonly previousSnapshot: SituationalAwarenessSnapshot;
-  readonly currentSnapshot: SituationalAwarenessSnapshot;
+  readonly previousSnapshot: CanonicalOrientationSnapshot;
+  readonly currentSnapshot: CanonicalOrientationSnapshot;
 }

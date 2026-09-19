@@ -56,6 +56,7 @@ describe("UnifiedOpsConsole JARVIS Core surface", () => {
     expect(submission).toContain("calendarAdviceReference");
     expect(submission).toContain("calendarMoveProposalReference");
     expect(submission).toContain("calendarMoveAuthorizationReference");
+    expect(submission).toContain("inputModality: source");
     expect(submission).not.toContain("proposedOperation");
   });
 

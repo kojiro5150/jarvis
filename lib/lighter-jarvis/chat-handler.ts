@@ -1296,7 +1296,7 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
             calendarConflictAct: { status: "invalid" },
           });
         }
-        const validation = validateCalendarAdviceForAct({
+        const validation = await validateCalendarAdviceForAct({
           adviceReference: body.calendarAdviceReference,
           evidence: calendar.evidence,
           window: calendar.window,

@@ -1,12 +1,20 @@
 # JARVIS System Architecture
 
-> **Active architecture note — 30 August 2026:** `JARVIS-GOVERNANCE-CORE.md` governs the forward architecture. Sections below that describe specialist selection, named specialist coordination, handoff routing, or legacy runtime structure are implementation-history snapshots unless explicitly marked current. The target boundary is `USER ↔ JARVIS`: one persistent intelligence may use internal reasoning modules, while governed capabilities alone control private acquisition and action.
+> **Active architecture note — 19 September 2026:** `JARVIS-GOVERNANCE-CORE.md` governs the forward architecture. Sections below that describe specialist selection, named specialist coordination, handoff routing, or legacy runtime structure are implementation-history snapshots unless explicitly marked current. The product boundary is `USER ↔ JARVIS`: one persistent intelligence may use internal reasoning modules, while governed capabilities alone control private acquisition and action. The sole production conversational runtime is `/api/lighter/chat`; broader Act expansion is gated by the authority/adversarial/durability tranche recorded in `ROADMAP.md`.
 
 ## Purpose
 
 JARVIS is a personal AI operating environment built around one persistent conversational intelligence and bounded governed capabilities across situational awareness, research, communication, engineering, reflection and execution.
 
 The forward architecture separates **cognition** from **trust**: the LLM may reason, understand and propose broadly; typed governance boundaries determine what counts as policy, evidence, provenance, authority, execution and verification.
+
+## Current production reconciliation — 19 September 2026
+
+Current promoted behaviour includes bounded governed Calendar/Gmail/Drive reads, one narrow verified Calendar move path, durable Supabase-backed Operating Picture continuity, one purpose-bounded Gmail invitation-decline composition path over freshly re-read governed evidence, and bounded public-web claim provenance for research-shaped requests. These are capability-specific proofs, not general authority.
+
+The sections below remain useful repository inventory. Where they describe the older agent-registry/specialist-routing runtime as if it were the governing user-facing architecture, read them as historical implementation structure unless a section is explicitly marked current. New work should target the persistent JARVIS boundary and the governed capability seams rather than revive legacy specialist handoff as product architecture.
+
+
 
 ## Forward target architecture
 

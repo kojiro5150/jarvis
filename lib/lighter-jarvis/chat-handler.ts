@@ -587,7 +587,11 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           status: victorianTomorrowWeather.status,
           ...(victorianTomorrowWeather.diagnostic ? { diagnostic: victorianTomorrowWeather.diagnostic } : {}),
         },
-        weatherClarificationReference: victorianTomorrowWeather.clarificationReference ?? null,
+        ...(victorianTomorrowWeather.clarificationReference
+          ? { weatherClarificationReference: victorianTomorrowWeather.clarificationReference }
+          : Object.hasOwn(body, "weatherClarificationReference")
+            ? { weatherClarificationReference: null }
+            : {}),
       });
     }
     const standingGmailAuthorityRequest = currentUserUtterance !== undefined

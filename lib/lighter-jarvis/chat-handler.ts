@@ -20,6 +20,7 @@ import {
   isUnsupportedGmailReadAuthorityContinuation,
 } from "@/lib/lighter-jarvis/private-capability-handoff-guard";
 import { guardOrdinaryModelReply } from "@/lib/lighter-jarvis/ordinary-model-reply-guard";
+import { isPublicWebResearchRequest, renderPublicWebResearchWithProvenance } from "@/lib/lighter-jarvis/public-web-claim-provenance-presentation";
 import { resolveProductionDriveSearch, type ProductionDriveSearchDependencies } from "@/lib/lighter-jarvis/production-drive-search";
 import { resolveProductionDriveRead, type ProductionDriveReadDependencies } from "@/lib/lighter-jarvis/production-drive-read";
 import { isDrivePrivateReleaseContentFollowUp, resolveDrivePrivateReleaseReference } from "@/lib/lighter-jarvis/drive-private-release-reference";
@@ -1602,7 +1603,13 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       }
       let reply = typeof result === "string" ? result : result.text;
       if (currentUserUtterance !== undefined) {
-        reply = enforceMinimalPublicFactReply(reply, currentUserUtterance);
+        if (isPublicWebResearchRequest(currentUserUtterance)) {
+          reply = typeof result === "string"
+            ? PUBLIC_WEB_FAILURE_REPLY
+            : renderPublicWebResearchWithProvenance(result);
+        } else {
+          reply = enforceMinimalPublicFactReply(reply, currentUserUtterance);
+        }
       }
 
       const calendarRecall = calendarRecallDiagnostics(body.messages);

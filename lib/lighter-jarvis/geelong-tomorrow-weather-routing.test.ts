@@ -102,10 +102,9 @@ describe("unsupported weather containment", () => {
   });
 
 
-  it("binds an exact location-only follow-up to the pending deterministic weather request", async () => {
+  it("binds an exact location-only follow-up to the original wind request without web fallback", async () => {
     const model = vi.fn();
-    const xml = `<product><amoc><identifier>IDV10753</identifier><issue-time-utc>2026-09-17T23:45:37Z</issue-time-utc><expiry-time>2026-09-18T23:45:37Z</expiry-time></amoc><forecast><area aac="VIC_PT025" type="location"><forecast-period start-time-local="2026-09-19T00:00:00+10:00" end-time-local="2026-09-20T00:00:00+10:00"><element type="air_temperature_minimum" units="Celsius">13</element><element type="air_temperature_maximum" units="Celsius">24</element><text type="precis">Sunny.</text><text type="probability_of_precipitation">10%</text></forecast-period></area></forecast></product>`;
-    const fetchProduct = vi.fn(async () => xml);
+    const fetchProduct = vi.fn(async () => "unused");
     const post = handler(model, fetchProduct);
 
     const clarification = await (await post(request("Will it be windy tomorrow?"))).json();
@@ -116,17 +115,64 @@ describe("unsupported weather containment", () => {
         weatherClarificationReferenceId: expect.any(String),
       }),
     }));
-    expect(fetchProduct).not.toHaveBeenCalled();
 
     const resolved = await (await post(request("geelong", {
       weatherClarificationReference: clarification.weatherClarificationReference,
     }))).json();
     expect(resolved).toEqual(expect.objectContaining({
-      reply: expect.stringContaining("Geelong: Sunny."),
-      geelongTomorrowWeather: { status: "resolved" },
+      reply: "I have a deterministic Bureau of Meteorology forecast path for Geelong tomorrow, but verified wind detail is not yet available on that governed path.",
+      geelongTomorrowWeather: { status: "unsupported_detail" },
       weatherClarificationReference: null,
     }));
-    expect(fetchProduct).toHaveBeenCalledOnce();
+    expect(fetchProduct).not.toHaveBeenCalled();
+    expect(model).not.toHaveBeenCalled();
+  });
+
+  it("treats a location-less weather question as clarification, not as a fabricated location", async () => {
+    const model = vi.fn();
+    const fetchProduct = vi.fn(async () => "unused");
+    const response = await handler(model, fetchProduct)(request("What's the weather tomorrow?"));
+    expect(await response.json()).toEqual(expect.objectContaining({
+      reply: "Please specify the location for the weather forecast.",
+      weatherRouting: { status: "clarification_required" },
+      weatherClarificationReference: expect.objectContaining({
+        weatherClarificationReferenceId: expect.any(String),
+      }),
+    }));
+    expect(fetchProduct).not.toHaveBeenCalled();
+    expect(model).not.toHaveBeenCalled();
+  });
+
+  it("repairs an unsupported location with a fresh weather-only continuation", async () => {
+    const model = vi.fn();
+    const fetchProduct = vi.fn(async () => "unused");
+    const post = handler(model, fetchProduct);
+
+    const clarification = await (await post(request("Will it be windy tomorrow?"))).json();
+    const firstReference = clarification.weatherClarificationReference;
+
+    const repair = await (await post(request("Chillon.", {
+      weatherClarificationReference: firstReference,
+    }))).json();
+    expect(repair).toEqual(expect.objectContaining({
+      reply: "I don't yet have a deterministic Bureau of Meteorology forecast for Chillon. Please specify Geelong or Melbourne.",
+      weatherRouting: { status: "unsupported_location" },
+      weatherClarificationReference: expect.objectContaining({
+        weatherClarificationReferenceId: expect.any(String),
+      }),
+    }));
+    expect(repair.weatherClarificationReference.weatherClarificationReferenceId)
+      .not.toBe(firstReference.weatherClarificationReferenceId);
+
+    const corrected = await (await post(request("Geelong.", {
+      weatherClarificationReference: repair.weatherClarificationReference,
+    }))).json();
+    expect(corrected).toEqual(expect.objectContaining({
+      reply: "I have a deterministic Bureau of Meteorology forecast path for Geelong tomorrow, but verified wind detail is not yet available on that governed path.",
+      geelongTomorrowWeather: { status: "unsupported_detail" },
+      weatherClarificationReference: null,
+    }));
+    expect(fetchProduct).not.toHaveBeenCalled();
     expect(model).not.toHaveBeenCalled();
   });
 

@@ -1,9 +1,9 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 19 September 2026 (reconciled through bounded public-web claim provenance, Product Gap lifecycle controls, weather continuity, Calendar relative-date binding and current authority-hardening roadmap)
+- **Last updated:** 19 September 2026 (reconciled through ADR-0027, adversarial corpus v0.1, durable authority state and deterministic Executive Orientation)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
-- **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
+- **Governing ADRs:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`; `docs/architecture/ADR-0027-Authority-Sources-Named-Grants-Without-Standing-Grants.md`
 
 ## Purpose
 
@@ -36,7 +36,7 @@ Since the previous 2 September reconciliation, the live governed runtime has add
 
 ADR-0027 now governs the authority-source decision: standing grants are removed as an authority source. Named grants remain admissible future architecture only under a finite maximum lifetime, explicit renewal, a fixed server-owned footprint, and a deterministic raw-current-turn user-utterance trigger. Named-grant implementation remains unbuilt and is gated by a separate observed need, dedicated deterministic grant-management surface, and applicable adversarial-corpus mutation proof.
 
-Durable authority/reference state is also still incomplete. The roadmap now places restart-safe one-shot authority/reference state after ADR-0027 and the untrusted-content adversarial corpus; the existing process-local mechanisms remain valid only within their already proven runtime assumptions.
+The authority-bearing durability slice is now complete on `main`. Generic `PendingAuthorization` and Calendar move authorization are persisted in server-only Supabase governance state with fixed 15-minute lifetime and atomic one-shot consumption. Consumed, expired and revoked states remain terminal across restart, and production does not fall back to process-local authority when persistence is unavailable. Remaining process-local references are limited to classes whose loss can only fail closed and force fresh governed acquisition or selection; they are inventoried in `docs/architecture/DURABLE-AUTHORITY-REFERENCE-STATE.md`.
 
 ## Operation-level authority
 
@@ -59,8 +59,25 @@ Durable authority/reference state is also still incomplete. The roadmap now plac
 | Explicit current-user utterance | ✓ for `calendar.read`, identified-message `gmail.read`, bounded `gmail.search`, metadata-only `drive.search`, and identified-Google-Doc `drive.read` | Raw current utterance is independently matched; capability/proposal metadata is non-authoritative. |
 | Named capability grants | ○ — admissible future design only | No named-grant machinery exists. ADR-0027 requires finite lifetime, explicit renewal, fixed server-owned footprint, deterministic raw-current-turn triggers, dedicated user-initiated grant management, and adversarial-corpus proof before activation. |
 | Standing grants | Removed — ADR-0027 | Standing grants are not an admissible authority source. Prior approval, routine behaviour, remembered preference, schedules, elapsed time and conversational persistence cannot manufacture standing authority. |
-| `PendingAuthorization` confirmation | ✓ — live | Server-owned, capability-bound, one-shot state is integrated for Calendar reads, identified-message Gmail reads, and natural-language bounded Gmail and Drive search proposals. The client receives only an opaque reference. Bare, stale, fabricated, unknown, consumed, and capability-mismatched references fail closed and resolve before model invocation. The authoritative registry is a module-private process-local `Map`; durable or distributed persistence remains incomplete. |
+| `PendingAuthorization` confirmation | ✓ — live and restart-safe | Server-owned, capability-bound, one-shot state is integrated across governed Calendar/Gmail/Drive acquisition and relevant handoff paths. The client receives only an opaque reference. State is persisted in server-only Supabase governance storage with a fixed 15-minute lifetime and atomic conditional consume. Bare, stale, fabricated, unknown, consumed, expired, revoked and capability-mismatched references fail closed. Missing persistence does not fall back to process memory. |
 | Resource policy | △ | Mature Gmail content-retrieval policy follows authority for the identified-message path; it is not positive user authority and is not yet composed into a general Authority Engine. |
+
+## Durable authority-state closeout
+
+The authority-bearing restart boundary is now closed for the shared pending-authority primitive and Calendar move authorization.
+
+Verified invariants on `main`:
+
+- active authority survives process replacement only within its fixed lifetime;
+- one consumer wins an atomic conditional consume;
+- consumed stays consumed;
+- expired stays expired;
+- revoked stays revoked;
+- capability mismatch cannot consume authority;
+- Calendar move confirmation reconstructs from the persisted exact validated move snapshot rather than a client/source/model reconstruction;
+- production persistence failure is fail-closed.
+
+A live Supabase probe issued two competing consumes against one disposable authority row and observed exactly one `consumed` result and one `already_consumed` result.
 
 ## Non-authoritative resource identification
 

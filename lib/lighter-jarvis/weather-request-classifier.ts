@@ -3,12 +3,7 @@ const WEATHER_QUESTION_OPENING = /^(?:what(?:'s|’s| is| will)|when|where|how|w
 const WEATHER_REQUEST_OPENING = /^(?:tell|show|give|check|find|get)\s+(?:me\s+)?/i;
 const LOCATION_TEXT = String.raw`[\p{L}][\p{L}\p{M} .'-]{0,79}`;
 const WEATHER_FIRST_SHORTHAND = new RegExp(
-  String.raw`^(?<kind>weather|forecast|temperature|wind)(?:\s+(?:in|for))?\s+(?<location>${LOCATION_TEXT})const WEATHER_SIGNAL = /\b(?:weather|forecast|rain|showers?|temperature|snow|wind(?:y)?)\b/i;
-const WEATHER_QUESTION_OPENING = /^(?:what(?:'s|’s| is| will)|when|where|how|will|is|are|do|does|can|could|should)\b/i;
-const WEATHER_REQUEST_OPENING = /^(?:tell|show|give|check|find|get)\s+(?:me\s+)?/i;
-const LOCATION_TEXT = String.raw`[\p{L}][\p{L}\p{M} .'-]{0,79}`;
-const WEATHER_FIRST_SHORTHAND = new RegExp(
-  ,
+  String.raw`^(?<kind>weather|forecast|temperature|wind)(?:\s+(?:in|for))?\s+(?<location>${LOCATION_TEXT})$`,
   "iu",
 );
 const LOCATION_FIRST_SHORTHAND = new RegExp(

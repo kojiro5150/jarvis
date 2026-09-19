@@ -46,7 +46,7 @@ describe("Gmail ordinal read proposal", () => {
         messageIds: ["id-1", "id-2", "id-3", "id-4", "id-5"],
       })!;
 
-      const proposal = resolveGmailOrdinalReadProposal({
+      const proposal = await resolveGmailOrdinalReadProposal({
         currentUserUtterance,
         gmailMessageListReference: listReference,
       });

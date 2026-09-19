@@ -7,6 +7,10 @@ import {
   type SupportedWeatherLocationKey,
   type WeatherQueryKind,
 } from "@/lib/lighter-jarvis/weather-request-classifier";
+import {
+  createWeatherClarificationReference,
+  type WeatherClarificationReference,
+} from "@/lib/lighter-jarvis/weather-clarification-reference";
 
 const PRODUCT_PATH = "/anon/gen/fwo/IDV10753.xml";
 const PRODUCT_IDENTIFIER = "IDV10753";
@@ -36,6 +40,7 @@ export type VictorianTomorrowWeatherResult = Readonly<{
   reply?: string;
   diagnostic?: string;
   locationKey?: LocationKey;
+  clarificationReference?: WeatherClarificationReference;
 }>;
 
 export type GeelongTomorrowWeatherDependencies = VictorianTomorrowWeatherDependencies;
@@ -217,7 +222,21 @@ export async function resolveVictorianTomorrowWeather(
     const reply = classification.reason === "missing_location"
       ? "Please specify the location for the weather forecast."
       : "Please specify tomorrow for the deterministic weather forecast.";
-    return { handled: true, status: classification.kind, reply };
+    const clarificationReference = classification.reason === "missing_location"
+      && classification.queryKind
+      && classification.date === "tomorrow"
+      ? createWeatherClarificationReference({
+          queryKind: classification.queryKind,
+          date: classification.date,
+          now: dependencies.clock(),
+        })
+      : null;
+    return {
+      handled: true,
+      status: classification.kind,
+      reply,
+      ...(clarificationReference ? { clarificationReference } : {}),
+    };
   }
   if (classification.kind === "unsupported_timeframe") {
     return { handled: true, status: classification.kind,

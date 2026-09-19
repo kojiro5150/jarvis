@@ -40,10 +40,18 @@ describe("weather request classifier", () => {
 
   it.each([
     ["Will it snow in Aspen?", "missing_date"],
-    ["Will it be windy tomorrow?", "missing_location"],
     ["Melbourne weather", "missing_date"],
   ])("requires clarification for %s", (input, reason) => {
     expect(classifyWeatherRequest(input)).toEqual({ kind: "clarification_required", reason });
+  });
+
+  it("preserves the bounded tomorrow request when only location is missing", () => {
+    expect(classifyWeatherRequest("Will it be windy tomorrow?")).toEqual({
+      kind: "clarification_required",
+      reason: "missing_location",
+      queryKind: "forecast",
+      date: "tomorrow",
+    });
   });
 
   it.each([

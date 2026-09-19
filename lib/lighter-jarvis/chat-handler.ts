@@ -89,6 +89,7 @@ import { resolveGmailInvitationDeclineDraft, type GmailInvitationDeclineDraftDep
 import { GMAIL_INVITATION_DECLINE_REUSE_CONTAINMENT, OMITTED_GMAIL_INVITATION_DECLINE_DRAFT } from "@/lib/lighter-jarvis/gmail-invitation-decline-draft-contract";
 import { isGmailInvitationDeclineDraftReuse } from "@/lib/lighter-jarvis/gmail-invitation-decline-draft-transport";
 import { resolveVictorianTomorrowWeather, type VictorianTomorrowWeatherDependencies } from "@/lib/lighter-jarvis/geelong-tomorrow-weather";
+import { consumeWeatherClarificationReference } from "@/lib/lighter-jarvis/weather-clarification-reference";
 
 interface LighterChatBody {
   specialistId?: unknown;
@@ -110,6 +111,7 @@ interface LighterChatBody {
   productGapSupersessionReference?: unknown;
   gmailPrivateReleaseReference?: unknown;
   drivePrivateReleaseReference?: unknown;
+  weatherClarificationReference?: unknown;
 }
 type ModelCall = (
   systemPrompt: string,
@@ -545,8 +547,31 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
       }
     }
 
-    const victorianTomorrowWeather = specialist.id === "jarvis" && currentUserUtterance !== undefined
-      ? await resolveVictorianTomorrowWeather(currentUserUtterance, victorianTomorrowWeatherDependencies)
+    let weatherUtterance = currentUserUtterance;
+    if (specialist.id === "jarvis"
+      && currentUserUtterance !== undefined
+      && Object.hasOwn(body, "weatherClarificationReference")) {
+      const continuation = consumeWeatherClarificationReference({
+        reference: body.weatherClarificationReference,
+        currentUserUtterance,
+        now: victorianTomorrowWeatherDependencies?.clock?.() ?? new Date(),
+      });
+      if (continuation.status !== "matched") {
+        return NextResponse.json({
+          reply: "That weather clarification is no longer active. Please restate the weather request.",
+          specialistId: specialist.id,
+          execution: "none",
+          weatherRouting: { status: `clarification_reference_${continuation.status}` },
+          weatherClarificationReference: null,
+        });
+      }
+      weatherUtterance = continuation.queryKind === "temperature"
+        ? `What is the temperature in ${continuation.location} ${continuation.date}?`
+        : `What's the weather in ${continuation.location} ${continuation.date}?`;
+    }
+
+    const victorianTomorrowWeather = specialist.id === "jarvis" && weatherUtterance !== undefined
+      ? await resolveVictorianTomorrowWeather(weatherUtterance, victorianTomorrowWeatherDependencies)
       : null;
     if (victorianTomorrowWeather?.handled) {
       const weatherResultKey = victorianTomorrowWeather.locationKey === "melbourne"
@@ -562,6 +587,11 @@ export function createLighterChatHandler(callModel: ModelCall = callClaude, cale
           status: victorianTomorrowWeather.status,
           ...(victorianTomorrowWeather.diagnostic ? { diagnostic: victorianTomorrowWeather.diagnostic } : {}),
         },
+        ...(victorianTomorrowWeather.clarificationReference
+          ? { weatherClarificationReference: victorianTomorrowWeather.clarificationReference }
+          : Object.hasOwn(body, "weatherClarificationReference")
+            ? { weatherClarificationReference: null }
+            : {}),
       });
     }
     const standingGmailAuthorityRequest = currentUserUtterance !== undefined

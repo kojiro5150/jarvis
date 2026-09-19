@@ -23,7 +23,12 @@ export type SupportedWeatherLocationKey = "geelong" | "melbourne";
 export type WeatherRequestClassification =
   | Readonly<{ kind: "not_weather" }>
   | Readonly<{ kind: "unresolved_weather_signal"; signal: string }>
-  | Readonly<{ kind: "clarification_required"; reason: "missing_date" | "missing_location" }>
+  | Readonly<{
+      kind: "clarification_required";
+      reason: "missing_date" | "missing_location";
+      queryKind?: WeatherQueryKind;
+      date?: "tomorrow";
+    }>
   | Readonly<{ kind: "unsupported_timeframe"; date: "today" }>
   | Readonly<{ kind: "unsupported_location"; location: string }>
   | Readonly<{
@@ -101,7 +106,13 @@ export function classifyWeatherRequest(utterance: string): WeatherRequestClassif
 
   const request = structuredRequest(core);
   if (!request) return Object.freeze({ kind: "unresolved_weather_signal", signal: signal.toLowerCase() });
-  if (!request.location) return Object.freeze({ kind: "clarification_required", reason: "missing_location" });
+  if (!request.location) {
+    return Object.freeze({
+      kind: "clarification_required",
+      reason: "missing_location",
+      ...(date === "tomorrow" ? { queryKind: request.queryKind, date } : {}),
+    });
+  }
   if (date === null) return Object.freeze({ kind: "clarification_required", reason: "missing_date" });
   if (date === "today") return Object.freeze({ kind: "unsupported_timeframe", date });
 

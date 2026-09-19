@@ -34,7 +34,12 @@ Every specification shall reinforce the Engineering Constitution:
 * Validation before enforcement  
 * Behaviour before orchestration  
 * Backwards compatibility unless intentionally changed  
-* Small, independently reviewable pull requests
+* Small, independently reviewable pull requests  
+* Generalize the pattern before generalizing the mechanism
+
+Repeated architectural similarity is sufficient reason to standardize vocabulary, invariants, tests, and design expectations. It is not, by itself, sufficient reason to unify runtime machinery. Mechanism unification is earned only when capability boundaries remain structurally non-substitutable by construction.
+
+A candidate shared mechanism SHALL be tested adversarially by attempting to pass a real reference or continuation from one capability into another capability's resolver. Safe unification requires rejection by structural incompatibility, not by a shared discriminator, tag, or branch that must be checked correctly at runtime.
 
 ---
 

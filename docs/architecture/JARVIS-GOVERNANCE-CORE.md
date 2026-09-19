@@ -1,7 +1,8 @@
 # JARVIS Governance Core
 
-**Status:** Frozen doctrine with implementation status reconciled through 30 August 2026  
+**Status:** Frozen doctrine with implementation status reconciled through 19 September 2026  
 **Frozen:** 30 August 2026  
+**Implementation reconciliation:** 19 September 2026  
 **Scope:** Architecture and migration rules. Implementation is treated as proven only where a bounded milestone is explicitly recorded as verified against code, tests, and observed behaviour; unverified target architecture remains prospective.
 
 > **PLAN-TRUST-01:** Architectural doctrine may be frozen before implementation, but implementation claims remain untrusted until verified against real code, tests, and observed behaviour. A sound plan authorises construction, not confidence.
@@ -38,7 +39,7 @@ uncertainty / failure
 
 JARVIS must never silently jump upward from uncertainty, missing support, or model inference into an asserted fact. The architectural objective is to turn trust from “the model is probably right” into **“the architecture requires evidence before this class of claim can be presented as fact.”**
 
-This hierarchy is directional rather than a claim that all current runtime paths already implement claim-level provenance. Each implementation milestone must state which transitions are structurally enforced and which still depend on model compliance.
+This hierarchy is directional rather than a claim that every runtime path has identical provenance strength. Public research now has one bounded claim-level provenance implementation; simple public facts and private governed capabilities retain their own separately proven trust boundaries. Each implementation milestone must state which transitions are structurally enforced and which still depend on model compliance.
 
 The target implementation must make violations type errors. A future Governance Core is not acceptable if a plain model-generated string or model-produced object can be supplied where trusted evidence, authority, provenance, policy proof, or verification is required.
 
@@ -64,7 +65,9 @@ The historical `task_summary` failure is the reference counterexample: a model-a
 
 ### Current implementation boundary
 
-These rules do **not** mean that public claims now have deterministic claim-level provenance. The current runtime can require actual server-side web-search evidence for freshness-sensitive requests, constrain synthesis, and deterministically filter some classes of non-answer or embellishment. It cannot yet prove that every surviving natural-language sentence is semantically entailed by a specific retrieved source field.
+As of 19 September 2026, research-shaped public-web requests have a bounded deterministic claim-provenance path. Provider-returned web-search results are admitted only from the same model turn; provider citations are admitted only when their exact URL and source title match an admitted result; cited text segments are published as source-derived; uncited synthesis remains synthesis and is omitted from the governed research presentation; malformed or fabricated citation identity fails closed. Live UI testing has exercised multi-source separation, simple-public-fact non-regression and Drive/private-continuation containment.
+
+This is **not** a general semantic entailment proof. The runtime does not score source quality, infer evidence classes from prose, prove that every cited sentence is logically entailed by provider `cited_text`, preserve public provenance durably across turns, or transfer this mechanism to governed private evidence. Simple public facts retain the separate freshness/minimal-answer path.
 
 The trust hierarchy therefore remains:
 

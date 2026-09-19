@@ -24,6 +24,8 @@ Execution authority is also interpreted under the current governing rule:
 
 This amendment preserves the historical body rather than silently rewriting the engineering principles that produced earlier architecture.
 
+\---
+
 \# Purpose
 
 This document defines the engineering principles that govern the evolution of JARVIS.

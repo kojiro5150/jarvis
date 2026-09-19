@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import type { CalendarEvent } from "../connectors/calendar-event";
 import type { CalendarEventWritePort } from "../connectors/google/calendar-write";
 import type { ScopedCalendarAcquisitionPort } from "../governed-conversation/scoped-calendar-evidence-acquisition-adapter";
-import { createCalendarMoveProposalReference } from "./calendar-move-proposal-reference";
 import { createDurableCalendarMoveAuthorizationReference } from "./durable-calendar-move-authorization";
 import { executeConfirmedCalendarMove } from "./calendar-move-execution";
 

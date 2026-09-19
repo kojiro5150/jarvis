@@ -49,7 +49,18 @@ Do not rewrite these to sound current. If later work changes their status, link 
 
 ## Current reconciliation boundary
 
-This 19 September 2026 reconciliation updates current-state documentation for:
+This closeout reconciliation updates current-state documentation through the merged September A–D tranche on `main` at `cd6421b673f01bd40db307ac972c8d832d99d835`.
+
+Current living-state reconciliation now includes:
+
+- ADR-0027 authority-source reconciliation and non-typed write containment;
+- the active/frozen Untrusted Content Adversarial Corpus v0.1;
+- restart-safe server-only durable pending authority and Calendar move authority;
+- deterministic three-source Executive Orientation over already-governed Calendar/Gmail/Drive evidence;
+- the fact that Step E remains demand-triggered rather than automatically active;
+- branch-protection reality: `verify` is required; `verify-presentation` is additional CI evidence.
+
+The earlier 19 September reconciliation also updated current-state documentation for:
 
 - one persistent user-facing JARVIS intelligence and governed capability boundaries;
 - bounded public-web claim-level provenance for research-shaped requests;
@@ -58,7 +69,7 @@ This 19 September 2026 reconciliation updates current-state documentation for:
 - Product Gap lifecycle controls and other recent governed continuity hardening;
 - the roadmap's immediate authority/adversarial/durability/cognition tranche.
 
-ADR-0027 now supplies the explicit authority-source amendment that this index previously deferred: standing grants are removed as an admissible authority source, while named grants remain future architecture only under ADR-0027's bounded activation requirements. The North Star and ADR-0025 preserve their historical text with explicit amendment notes rather than silent rewriting.
+ADR-0027 supplies the explicit authority-source amendment: standing grants are removed as an admissible authority source, while named grants remain future architecture only under ADR-0027's bounded activation requirements. Steps B–D now add executable adversarial control, durable authority state, and deterministic Executive Orientation without changing that doctrine. The North Star, ADR-0025, historical sprint records, live-pass records, and Step C/D baseline hashes preserve their point-in-time evidence rather than being rewritten to the latest commit.
 
 ## Drift rule
 

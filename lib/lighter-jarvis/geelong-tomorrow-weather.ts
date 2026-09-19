@@ -36,7 +36,7 @@ export type VictorianTomorrowWeatherDependencies = Readonly<{
 
 export type VictorianTomorrowWeatherResult = Readonly<{
   handled: boolean;
-  status?: "resolved" | "unavailable" | "unsupported_location" | "unsupported_timeframe" | "clarification_required" | "unresolved_weather_signal";
+  status?: "resolved" | "unavailable" | "unsupported_location" | "unsupported_timeframe" | "unsupported_detail" | "clarification_required" | "unresolved_weather_signal";
   reply?: string;
   diagnostic?: string;
   locationKey?: LocationKey;
@@ -248,6 +248,14 @@ export async function resolveVictorianTomorrowWeather(
   }
   const query: ClassifiedQuery = { kind: classification.queryKind, locationKey: classification.locationKey };
   const location = SUPPORTED_LOCATIONS[query.locationKey];
+  if (query.kind === "wind") {
+    return {
+      handled: true,
+      status: "unsupported_detail",
+      locationKey: query.locationKey,
+      reply: `I have a deterministic Bureau of Meteorology forecast path for ${location.name} tomorrow, but verified wind detail is not yet available on that governed path.`,
+    };
+  }
   try {
     const now = dependencies.clock();
     const product = parseProduct(await dependencies.fetchProduct());

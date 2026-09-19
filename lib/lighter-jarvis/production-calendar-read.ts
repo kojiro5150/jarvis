@@ -8,10 +8,11 @@ import {
   acquirePendingAuthorizedCalendarEvidence,
 } from "./calendar-read-authorized-acquisition";
 import { evaluateCalendarReadAuthority } from "./calendar-read-authority";
+import { type PendingAuthorizationReference } from "./pending-authorization";
 import {
-  createPendingAuthorization,
-  type PendingAuthorizationReference,
-} from "./pending-authorization";
+  createDurablePendingAuthorization,
+  resolveDurablePendingAuthorization,
+} from "./durable-pending-authorization";
 import { proposeCalendarRead } from "./calendar-read-proposal";
 import { composeProductionMorningExecutiveOrientation } from "./production-morning-executive-orientation";
 import type { MorningExecutiveOrientationBrief } from "../governed-conversation/morning-executive-orientation-contract";
@@ -82,6 +83,7 @@ export async function resolveProductionCalendarRead(input: {
       ...input,
       acquisition: (operation) => ({ connector: dependencies.createConnector(), clock: dependencies.clock,
         requestedLimit: requestedLimitFor(operation), horizonDays: 7, window: operation.window }),
+      resolveAuthorization: resolveDurablePendingAuthorization,
     });
     const resolution = acquired.authority;
     const operation = resolution.proposedOperation?.capability === "calendar.read" ? resolution.proposedOperation : null;
@@ -142,9 +144,15 @@ export async function resolveProductionCalendarRead(input: {
       morningBriefTodayWindow: proposedOperation.morningBriefTodayWindow ?? null, morningBrief,
       freeTimeQuery: proposedOperation.freeTimeQuery ?? null });
   }
-  return Object.freeze({ handled: true, decision: "ASK", reason: authority.reason,
-    evidence: null, pendingAuthorizationReference: createPendingAuthorization(proposedOperation),
-    authorityEvidence: authority.authorityEvidence, window: proposedOperation.window,
+  const pendingAuthorizationReference = await createDurablePendingAuthorization(proposedOperation);
+  return Object.freeze({
+    handled: true,
+    decision: "ASK",
+    reason: pendingAuthorizationReference ? authority.reason : "pending_authorization_persistence_unavailable",
+    evidence: null,
+    pendingAuthorizationReference,
+    authorityEvidence: authority.authorityEvidence,
+    window: proposedOperation.window,
     purpose: proposedOperation.purpose ?? null, factualQuery: proposedOperation.factualQuery ?? null,
     morningBriefTodayWindow: proposedOperation.morningBriefTodayWindow ?? null, morningBrief: null,
     freeTimeQuery: proposedOperation.freeTimeQuery ?? null });

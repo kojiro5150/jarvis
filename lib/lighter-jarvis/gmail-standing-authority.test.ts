@@ -23,8 +23,8 @@ describe("Gmail standing-authority containment", () => {
   });
 
   it("keeps the response constitutional rather than feature-gap language", () => {
-    expect(GMAIL_STANDING_AUTHORITY_REPLY).toMatch(/can't establish permanent standing authority/i);
-    expect(GMAIL_STANDING_AUTHORITY_REPLY).toMatch(/each operation/i);
+    expect(GMAIL_STANDING_AUTHORITY_REPLY).toMatch(/doesn't hold standing authority for Gmail/i);
+    expect(GMAIL_STANDING_AUTHORITY_REPLY).toMatch(/each Gmail search or read/i);
     expect(GMAIL_STANDING_AUTHORITY_REPLY).not.toMatch(/not yet available|handoff/i);
   });
 });

@@ -314,6 +314,7 @@ export default function UnifiedOpsConsole() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           specialistId: specialist.id,
+          inputModality: source,
           messages: specialist.id === "jarvis"
             ? projectGmailInvitationDeclineDraftsForTransport(
                 projectDurableContinuityReleasesForTransport(

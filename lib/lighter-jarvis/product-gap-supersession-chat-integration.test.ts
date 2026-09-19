@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { DurablePurposeProjectionResult } from "../operating-picture/purpose-projection-retrieval";
 import { createLighterChatHandler } from "./chat-handler";
 
-const request = (content: string, reference?: unknown) => new Request("http://localhost/api/lighter/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ specialistId: "jarvis", messages: [{ role: "user", content }], ...(reference ? { productGapSupersessionReference: reference } : {}) }) });
+const request = (content: string, reference?: unknown) => new Request("http://localhost/api/lighter/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ specialistId: "jarvis", inputModality: "typed", messages: [{ role: "user", content }], ...(reference ? { productGapSupersessionReference: reference } : {}) }) });
 const gap = (id: string, statement: string) => ({ recordId: id, versionId: `${id}:head`, purpose: "conversation", semanticClass: "user_assertion" as const, lifecycle: "current" as const, recoveryDisposition: "recoverable_user_continuity" as const, subject: { namespace: "user_continuity", entity: id, attribute: "user_assertion", revision: "append_only" as const }, payload: { statement }, visibilityPurposes: ["conversation"], validFrom: null, validUntil: null, staleAfter: null, authorshipSource: "user" as const, authorshipAt: "2026-09-01T00:00:00.000Z" });
 function projection(): Extract<DurablePurposeProjectionResult, { status: "projected" }> {
   const wrong = gap("gap:wrong", "JARVIS product gap correction — retained Gmail context caused the classification.");

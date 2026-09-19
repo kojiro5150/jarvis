@@ -6,7 +6,7 @@ import { createLighterChatHandler } from "./chat-handler";
 const request = (content: string, references: Record<string, unknown> = {}) => new Request("http://localhost/api/lighter/chat", {
   method: "POST",
   headers: { "content-type": "application/json" },
-  body: JSON.stringify({ specialistId: "jarvis", messages: [{ role: "user", content }], ...references }),
+  body: JSON.stringify({ specialistId: "jarvis", inputModality: "typed", messages: [{ role: "user", content }], ...references }),
 });
 
 function projection(): Extract<DurablePurposeProjectionResult, { status: "projected" }> {

@@ -58,7 +58,7 @@ This 19 September 2026 reconciliation updates current-state documentation for:
 - Product Gap lifecycle controls and other recent governed continuity hardening;
 - the roadmap's immediate authority/adversarial/durability/cognition tranche.
 
-It deliberately does **not** amend `JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md` to remove standing grants. The current roadmap assigns that authority-source decision to ADR-0027. Until ADR-0027 lands, the frozen baseline remains historically and constitutionally intact even though the migration-status document flags it for reconciliation.
+ADR-0027 now supplies the explicit authority-source amendment that this index previously deferred: standing grants are removed as an admissible authority source, while named grants remain future architecture only under ADR-0027's bounded activation requirements. The North Star and ADR-0025 preserve their historical text with explicit amendment notes rather than silent rewriting.
 
 ## Drift rule
 

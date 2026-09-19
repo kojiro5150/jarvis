@@ -1,5 +1,5 @@
 export const GMAIL_STANDING_AUTHORITY_REPLY =
-  "I can't establish permanent standing authority for Gmail from a conversational instruction. Gmail searches and reads require the applicable governed authorization for each operation.";
+  "JARVIS doesn't hold standing authority for Gmail. Each Gmail search or read needs its own governed authorization.";
 
 const STANDING_AUTHORITY =
   /\b(?:permanent|permanently|always|standing|ongoing|forever|whenever you want|any time|anytime)\b/i;

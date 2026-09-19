@@ -243,7 +243,7 @@ no read / no Morning Brief
 
 The decline wording came from the existing shared Calendar non-ALLOW branch rather than a Morning-Brief-specific implementation.
 
-The milestone remains deliberately Level 1 — Know. It does **not** establish priority, urgency, schedule adequacy, recommendation, supported-change comparison, remembered-context synthesis, Gmail/Drive synthesis, proactive briefing, standing Calendar authority or generic executive synthesis.
+The milestone remains deliberately Level 1 — Know. It does **not** establish priority, urgency, schedule adequacy, recommendation, supported-change comparison, remembered-context synthesis, Gmail/Drive synthesis, proactive briefing, standing authority (not permitted under ADR-0027) or generic executive synthesis.
 
 > **Promotion decision:** Morning Executive Orientation v1 is **LIVE PASS / FROZEN within bounded Level-1 scope**.
 
@@ -568,6 +568,8 @@ The full Iron-Man vision — fully autonomous, understands anything, acts on eve
 This tranche is the near-term development gate before broader externally consequential write capability. It does not replace the existing Know → Understand → Advise → Act trajectory. It makes the authority and untrusted-content prerequisites explicit and allows cognition integration to continue in parallel where significance remains deterministic.
 
 ### Step A — ADR-0027: authority-source reconciliation and voice write containment
+
+**Status:** completes on merge of ADR-0027 and its same-PR voice-write containment.
 
 Land `ADR-0027-Authority-Sources-Named-Grants-Without-Standing-Grants.md` and its same-PR containment.
 

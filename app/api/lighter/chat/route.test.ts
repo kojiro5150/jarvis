@@ -70,7 +70,7 @@ describe("POST /api/lighter/chat", () => {
     }));
 
     expect(await response.json()).toEqual({
-      reply: "I can't establish permanent standing authority for Gmail from a conversational instruction. Gmail searches and reads require the applicable governed authorization for each operation.",
+      reply: "JARVIS doesn't hold standing authority for Gmail. Each Gmail search or read needs its own governed authorization.",
       specialistId: "jarvis",
       execution: "none",
     });
@@ -2711,6 +2711,7 @@ If you'd like to know more about the 3 PM meeting, you may need to check the ori
     observedAt = "2026-08-28T01:07:00.000Z";
     const actDone = await (await handler(request({
       specialistId: "jarvis",
+      inputModality: "typed",
       messages: [{ role: "user", content: "Yes." }],
       calendarAdviceReference: advice.calendarAdviceReference,
       calendarMoveProposalReference: actValidated.calendarMoveProposalReference,

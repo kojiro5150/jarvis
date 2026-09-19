@@ -21,6 +21,7 @@ function request(messages: readonly Readonly<{ role: "user" | "assistant"; conte
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       specialistId: "jarvis",
+      inputModality: "typed",
       messages,
     }),
   });

@@ -17,6 +17,7 @@ function request(
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       specialistId: "jarvis",
+      inputModality: "typed",
       messages,
       ...extra,
     }),

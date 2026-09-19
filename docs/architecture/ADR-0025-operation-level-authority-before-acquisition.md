@@ -173,6 +173,8 @@ Is this specific operation authorized for this purpose?
 
 ## Named and standing grants
 
+> **Amended by ADR-0027 (19 September 2026):** standing grants are no longer an admissible authority source. Named grants remain a future source only under ADR-0027's finite-lifetime, current-turn-trigger, dedicated-management-surface and adversarial-corpus requirements. The original text below is retained as accepted historical context.
+
 Named grants and standing grants are future positive authority sources defined by the North Star.
 
 They must be explicit, bounded, inspectable and revocable. They must not be inferred from repeated usage or model confidence.
@@ -254,7 +256,7 @@ The intended migration sequence is:
 4. live conversational Calendar integration;
 5. separate private acquisition from legacy state assembly;
 6. extend operation-level authority to Gmail, Drive and Memory;
-7. implement bounded named/standing grants, including briefing authority;
+7. implement bounded named grants only if an observed need earns a separate implementation proposal and the ADR-0027 activation gate is satisfied; proactive/scheduled authority requires a separate ADR;
 8. complete one-JARVIS user-facing migration and retire authority-bypassing legacy paths.
 
 Progress is tracked in `docs/AUTHORITY-MIGRATION-STATUS.md`.

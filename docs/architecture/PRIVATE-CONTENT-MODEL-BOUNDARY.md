@@ -1,7 +1,8 @@
 # Private Content → Model Boundary
 
-**Status:** Frozen architecture contract; implementation not authorised
-**Date:** 30 August 2026
+**Status:** Frozen architecture contract with one bounded promoted implementation exception
+**Frozen:** 30 August 2026
+**Implementation reconciliation:** 19 September 2026
 
 This document sharpens `MODEL-CONTENT-01` into an implementation gate.
 
@@ -11,12 +12,14 @@ This document sharpens `MODEL-CONTENT-01` into an implementation gate.
 
 JARVIS may deterministically present bounded private content after an exact governed read. That presentation does **not** authorise the LLM to receive the same fields for reasoning.
 
-The current safe boundary is:
+The default safe boundary is:
 
 - governed acquisition;
 - field/policy release;
 - deterministic presentation to the user;
 - **no automatic path from that presentation into ordinary model context**.
+
+One capability-specific exception has now been promoted: governed Gmail invitation-decline composition. That path does not replay a prior visible release into ordinary model history. It performs a fresh one-shot exact-message re-read under current authority, admits only the bounded evidence required by the frozen drafting contract, uses a distinct governed model channel, keeps sender and subject server-owned, accepts only the proposed body from the model, and omits the derived private draft from later ordinary model history. The production processing bound is 16,000 code units. This exception authorises no other private summarisation, drafting purpose, revision, reuse, persistence or sending.
 
 ## Separate purpose classes
 
@@ -93,11 +96,13 @@ Future private-content reasoning must distinguish at least source unavailable, p
 
 Failure must never trigger broader reacquisition, silent field widening, transcript reconstruction, reuse of presentation authority, or invention of missing evidence.
 
-## Current invariant until implementation
+## Default invariant and promoted exception
 
-> **No private deterministic release may be supplied to the ordinary JARVIS model as reasoning context.**
+> **No private deterministic release may be supplied to the ordinary JARVIS model as reasoning context merely because it was previously displayed to the user.**
 
-This includes Gmail body content, sender/subject list content, Drive private document content, and governed Calendar private releases.
+This remains the default for Gmail body content, sender/subject list content, Drive private document content, governed Calendar private releases and later transcript replay.
+
+The sole promoted exception as of 19 September 2026 is the exact governed Gmail invitation-decline composition class described above. Its authority and evidence are reacquired through its own capability-specific path; it is not an exception to the no-ambient-history rule and it creates no standing model visibility or provider write authority.
 
 ## Adversarial acceptance matrix
 
@@ -116,6 +121,6 @@ Any implementation PR that crosses this boundary must prove at least:
 11. expired reasoning state cannot be repaired from model memory;
 12. failure to reason does not cause silent broader retrieval.
 
-## Exit condition
+## Exit condition for additional capability classes
 
-This contract does not authorise implementation. A later implementation PR may cross this boundary only after a separate adversarial review concludes that its typed purpose, server-owned exposure state, field projection, lifetime, provenance and regression tests satisfy this contract.
+This contract does not authorise any implementation beyond the single promoted Gmail invitation-decline class recorded above. Any additional capability crossing this boundary must earn its own bounded purpose, server-owned exposure state, field projection, lifetime, provenance, adversarial review and regression/live proof. A successful implementation in one capability does not transfer model-visibility authority to another.

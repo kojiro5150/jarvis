@@ -1,7 +1,7 @@
 # JARVIS Authority Migration Status
 
 - **Status:** Living migration record
-- **Last updated:** 2 September 2026 (reconciled through bounded Drive ordinal and Gmail named-result continuity LIVE PASS)
+- **Last updated:** 19 September 2026 (reconciled through bounded public-web claim provenance, Product Gap lifecycle controls, weather continuity, Calendar relative-date binding and current authority-hardening roadmap)
 - **Governing architecture:** `docs/architecture/JARVIS-NORTH-STAR-AUTHORITY-ARCHITECTURE-v0.1.md`
 - **Governing ADR:** `docs/architecture/ADR-0025-operation-level-authority-before-acquisition.md`
 
@@ -23,6 +23,21 @@ Legend:
 - `○` not yet implemented
 - `!` current legacy behaviour conflicts with the target architecture and requires migration
 
+## 19 September 2026 reconciliation
+
+Since the previous 2 September reconciliation, the live governed runtime has added and production-proven several adjacent trust mechanisms without broadening general authority:
+
+- bounded Product Gap resolution and factually-wrong-target supersession remain append-only and user-authored;
+- weather clarification continuity now preserves the original governed query kind/date through one opaque server-owned reference rather than falling into public-web fallback;
+- oversized durable-continuity releases can be omitted from request transport while fresh recall re-acquires governed continuity;
+- Calendar relative-date presentation is checked against the exact authorised Melbourne-time window before a model-authored weekday/date is accepted;
+- public-web research now admits claim-level provider citations only against same-turn admitted search results and omits unsupported synthesis;
+- one purpose-bounded Gmail invitation-decline composition path may expose freshly re-read private evidence to a distinct governed model channel, but it creates no Gmail provider write authority.
+
+The current frozen authority baseline still names both named capability grants and standing grants as admissible future evidence classes. **Do not implement standing grants from that baseline.** The accepted near-term roadmap now requires ADR-0027 to reconcile authority sources, remove standing grants as an authority source, bound any future named grants, and contain non-typed write approval in the same change. Until ADR-0027 lands, this file records that decision as **planned reconciliation**, not current doctrine.
+
+Durable authority/reference state is also still incomplete. The roadmap now places restart-safe one-shot authority/reference state after ADR-0027 and the untrusted-content adversarial corpus; the existing process-local mechanisms remain valid only within their already proven runtime assumptions.
+
 ## Operation-level authority
 
 | Capability / mechanism | Adjudication | Acquisition gate | Live production path | Notes |
@@ -33,7 +48,8 @@ Legend:
 | metadata-only `drive.search` and identified Google Doc `drive.read` | ✓ | ✓ | ✓ — bounded production paths; ordinal continuity frozen | Search remains metadata-only. `drive.read <provider-file-id> [text]` remains an exact raw-utterance authority path. A recent bounded Drive search may also identify one exact file through a server-owned ordinal result reference, but that selection creates a separate one-shot pending `drive.read` operation and never inherits search authority. Both routes retain the 65,536-byte complete-verbatim Google Docs policy. |
 | arbitrary `drive.read` beyond identified Google Docs | ○ | ○ | ○ | The bounded identified-Google-Doc paths above are live; arbitrary Drive content acquisition is not implemented. |
 | `memory.read` | ○ | ○ | ○ | Memory is still acquired through legacy state-building paths; operation-level authority not yet implemented. |
-| `calendar.write` | ○ | ○ | ○ | Future action capability; not part of current read migration. |
+| narrow Calendar move write | ✓ — capability-specific | n/a — fresh pre-write reread is mandatory | ✓ — one bounded move path LIVE PASS | This does not establish general `calendar.write`, event creation or unrestricted mutation. Exact operation validation, explicit authority, fresh reread and independent post-write verification are required. |
+| general `calendar.write` | ○ | n/a | ○ | Arbitrary appointment creation and broader Calendar mutation remain unimplemented. |
 | `gmail.send` | ○ | ○ | ○ | Future action capability; must never inherit from Gmail read authority. |
 
 ## Authority evidence sources
@@ -41,8 +57,8 @@ Legend:
 | Evidence class | Status | Notes |
 | --- | --- | --- |
 | Explicit current-user utterance | ✓ for `calendar.read`, identified-message `gmail.read`, bounded `gmail.search`, metadata-only `drive.search`, and identified-Google-Doc `drive.read` | Raw current utterance is independently matched; capability/proposal metadata is non-authoritative. |
-| Named capability grants | ○ | No general named-grant machinery yet. |
-| Standing grants | ○ | No standing-grant store or adjudication yet. |
+| Named capability grants | ○ — future design only | No general named-grant machinery exists. The 19 September roadmap permits future named grants only after ADR-0027 defines finite lifetime, explicit renewal, fixed server-owned footprint and deterministic raw-current-turn triggers. |
+| Standing grants | ! — baseline reconciliation pending | No standing-grant store or adjudication exists. ADR-0027 is the planned authority-source reconciliation and is intended to remove standing grants as an authority source; no implementation may be inferred before that ADR lands. |
 | `PendingAuthorization` confirmation | ✓ — live | Server-owned, capability-bound, one-shot state is integrated for Calendar reads, identified-message Gmail reads, and natural-language bounded Gmail and Drive search proposals. The client receives only an opaque reference. Bare, stale, fabricated, unknown, consumed, and capability-mismatched references fail closed and resolve before model invocation. The authoritative registry is a module-private process-local `Map`; durable or distributed persistence remains incomplete. |
 | Resource policy | △ | Mature Gmail content-retrieval policy follows authority for the identified-message path; it is not positive user authority and is not yet composed into a general Authority Engine. |
 

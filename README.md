@@ -14,9 +14,9 @@ USER ↔ JARVIS
 
 Named specialists may still exist as internal reasoning or implementation modules, but they are not the user's coordination model and they do not carry independent authority.
 
-## Current state — 11 September 2026
+## Current state — 19 September 2026
 
-JARVIS is well beyond the original Phase-1 dashboard prototype. The current repository includes a single governed conversational runtime, live Google connectors, a Governed Operating Picture with durable Supabase-backed continuity, bounded public-web research, deterministic executive cognition, one narrowly verified Calendar action path, and one live purpose-bounded semantic composition over governed private Gmail evidence.
+JARVIS is well beyond the original Phase-1 dashboard prototype. The current repository includes a single governed conversational runtime, live Google connectors, a Governed Operating Picture with durable Supabase-backed continuity, bounded public-web research with claim-level same-turn provenance for research-shaped requests, deterministic executive cognition, one narrowly verified Calendar action path, and one live purpose-bounded semantic composition over governed private Gmail evidence.
 
 The current product direction is **everyday executive cognition**: awareness, orientation, attention, dependency recognition, capacity understanding, planning support, role-aware context and progressively stronger voice-first use.
 
@@ -198,11 +198,13 @@ Current public-information safeguards include:
 - source-period matching;
 - exact entity/date/location/attribute checks;
 - concise answer-first presentation for simple current facts;
-- fail-closed behaviour when required current evidence is not established.
+- fail-closed behaviour when required current evidence is not established;
+- deterministic admission of same-turn public-web sources for research-shaped requests;
+- claim-level binding of provider citations to exact admitted source URLs and titles;
+- explicit separation of cited source-derived segments from uncited synthesis;
+- fail-closed omission of unsupported or malformed research material.
 
-Public research is not treated as hallucination-proof. The architecture progressively narrows when unsupported factual assertions are allowed to reach the user as fact.
-
-Claim-level provenance and evidence-class presentation are still active product-development needs for richer research outputs.
+Public research is not treated as hallucination-proof. Claim-level provenance is now **LIVE PASS within its bounded public-research scope**: research-shaped responses may publish only segments carrying admitted same-turn provider citations, while unsupported synthesis is omitted rather than presented as sourced fact. This does not constitute source-quality scoring, semantic entailment proof for every natural-language sentence, durable provenance across turns, or permission to generalise the mechanism to private-source evidence.
 
 ## Executive cognition
 
@@ -360,6 +362,8 @@ docs/architecture/ROADMAP.md
 
 Then use the relevant ADR, sprint specification or verification record for the capability being changed.
 
+For document authority and staleness rules, see [Documentation Status](./docs/architecture/DOCUMENTATION-STATUS.md). Living status documents may be reconciled to current behaviour; accepted ADRs, frozen contracts and historical sprint/live-pass records remain point-in-time evidence unless explicitly amended.
+
 Important implementation areas include:
 
 ~~~text
@@ -396,9 +400,11 @@ These are product and governance questions to be earned from observed need, not 
 
 ## Current product posture
 
-The memory substrate and Morning Executive Orientation milestones are frozen within their proven scopes.
+The memory substrate, Morning Executive Orientation, bounded public-web claim provenance and the other promoted capabilities described above are frozen only within their proven scopes.
 
-The next JARVIS milestone should come from **real executive-use burden**, not architectural adjacency. Product gaps discovered during normal use are accumulated explicitly, then prioritised by their practical consequence and cognitive burden.
+The immediate next-development tranche is now explicit in the roadmap: reconcile authority sources and contain voice writes through ADR-0027; establish the untrusted-content adversarial corpus; make authority/reference state restart-safe where required; integrate executive cognition in parallel while significance remains deterministic; and only then broaden externally consequential Act capabilities. Voice approval and proactive/scheduled authority remain separate future decisions that require observed need.
+
+Product gaps discovered during normal use remain evidence for sequencing, but new architecture or capability work should answer the roadmap test: **What observed behaviour does this explain or enable that the current architecture cannot?**
 
 The goal remains simple:
 

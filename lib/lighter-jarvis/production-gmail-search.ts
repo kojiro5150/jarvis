@@ -26,7 +26,8 @@ import {
   resolveGmailSenderDisambiguationReference,
   type GmailSenderDisambiguationReference,
 } from "./gmail-sender-disambiguation-reference";
-import { createPendingAuthorization, resolvePendingAuthorization, type PendingAuthorizationReference } from "./pending-authorization";
+import { type PendingAuthorizationReference } from "./pending-authorization";
+import { createDurablePendingAuthorization, resolveDurablePendingAuthorization } from "./durable-pending-authorization";
 import { createGmailMessageListReference, type GmailMessageListReference } from "./gmail-message-list-reference";
 
 const PREFIX = /^gmail\.search(?:\s|$)/;
@@ -114,7 +115,7 @@ export async function resolveProductionGmailSearch(
   }
 
   if (Object.hasOwn(input, "pendingAuthorizationReference")) {
-    const resolution = resolvePendingAuthorization({
+    const resolution = await resolveDurablePendingAuthorization({
       currentUserUtterance: input.currentUserUtterance,
       pendingAuthorizationReference: input.pendingAuthorizationReference,
       expectedCapability: "gmail.search",
@@ -143,7 +144,7 @@ export async function resolveProductionGmailSearch(
       decision: "ASK",
       reason: "explicit_gmail_search_not_established",
       reply: "Please explicitly confirm that I may search Gmail.",
-      pendingAuthorizationReference: createPendingAuthorization(proposal),
+      pendingAuthorizationReference: await createDurablePendingAuthorization(proposal),
       ...(Object.hasOwn(input, "gmailSenderDisambiguationReference")
         ? { gmailSenderDisambiguationReference: null }
         : {}),

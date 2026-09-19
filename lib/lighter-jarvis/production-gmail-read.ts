@@ -1,4 +1,5 @@
 import { authorizeGmailCapability } from "../chat-capabilities/gmail-authority";
+import type { ProposedGmailReadOperation } from "./gmail-read-authority";
 import { GoogleGmailContentConnector } from "../chat-capabilities/google-gmail-content";
 import { GmailContentRetrievalAdapter, GMAIL_CONTENT_FIELDS, type GmailContentConnector, type GmailContentField, type GmailReleasedContent } from "../content-retrieval";
 import { loadContentRetrievalPolicy, type ContentRetrievalPolicy } from "../content-retrieval-policy";
@@ -62,7 +63,7 @@ export async function resolveProductionGmailRead(
   if (hasPendingReference) {
     const placeholderRequest = Object.freeze({ resource: Object.freeze({ resourceId: "pending-server-operation", connectorType: "email" as const }),
       requestedFields: Object.freeze(["subject"] as GmailContentField[]), requestingRuntime: "api-lighter-chat" });
-    const authority = authorizeGmailCapability({ currentUserUtterance, capability: Object.freeze({
+    const authority = await authorizeGmailCapability({ currentUserUtterance, capability: Object.freeze({
       operation: "governed_gmail_retrieval", request: placeholderRequest,
       pendingAuthorizationReference: input.pendingAuthorizationReference,
     }) });
@@ -90,7 +91,7 @@ export async function resolveProductionGmailRead(
     requestedFields: Object.freeze(requestedFields as GmailContentField[]),
     requestingRuntime: "api-lighter-chat",
   });
-  const authority = authorizeGmailCapability({
+  const authority = await authorizeGmailCapability({
     capability: Object.freeze({ operation: "governed_gmail_retrieval", request }),
     currentUserUtterance,
   });
@@ -101,7 +102,7 @@ export async function resolveProductionGmailRead(
   return retrieveAuthorized(authority.operation, authority.reason, dependencies);
 }
 
-async function retrieveAuthorized(operation: NonNullable<ReturnType<typeof authorizeGmailCapability>["operation"]>, reason: string,
+async function retrieveAuthorized(operation: ProposedGmailReadOperation, reason: string,
   dependencies: ProductionGmailDependencies): Promise<ProductionGmailReadResult> {
   // Both dependency calls deliberately occur after the exact authority ALLOW.
   let retrieval;

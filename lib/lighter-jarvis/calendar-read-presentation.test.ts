@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCalendarReadResponse } from "./chat-handler";
+import { calendarReplyPreservesRelativeDate, formatCalendarReadResponse } from "./chat-handler";
 import type { CalendarReadPeriod, CalendarReadWindow } from "./calendar-read-window";
 
 const available = Object.freeze({ status: "available" as const, evidence: Object.freeze([]) });
@@ -36,6 +36,34 @@ const window = (period: CalendarReadPeriod): CalendarReadWindow => Object.freeze
   end: "2026-08-26T14:00:00.000Z",
   timeZone: "Australia/Melbourne",
   period,
+});
+
+describe("governed Calendar relative-date presentation", () => {
+  const septemberTomorrow: CalendarReadWindow = Object.freeze({
+    start: "2026-09-19T14:00:00.000Z",
+    end: "2026-09-20T14:00:00.000Z",
+    timeZone: "Australia/Melbourne",
+    period: "tomorrow",
+  });
+
+  it("rejects the exact live wrong-date shape while accepting the authorised tomorrow date", () => {
+    expect(calendarReplyPreservesRelativeDate(
+      "Tomorrow (Saturday, 19 September 2026) is clear.",
+      septemberTomorrow,
+    )).toBe(false);
+    expect(calendarReplyPreservesRelativeDate(
+      "Tomorrow (Sunday, 20 September 2026) is clear.",
+      septemberTomorrow,
+    )).toBe(true);
+  });
+
+  it("does not require an explicit date and does not police non-relative Calendar windows", () => {
+    expect(calendarReplyPreservesRelativeDate("Tomorrow is clear.", septemberTomorrow)).toBe(true);
+    expect(calendarReplyPreservesRelativeDate(
+      "Saturday, 19 September 2026",
+      { ...septemberTomorrow, period: "this_week" },
+    )).toBe(true);
+  });
 });
 
 describe("deterministic Calendar period presentation", () => {

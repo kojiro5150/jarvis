@@ -4,7 +4,11 @@ import { projectPublicWebClaimProvenance } from "./public-web-claim-provenance";
 export const PUBLIC_WEB_PROVENANCE_FAILURE_REPLY =
   "I found public-web material, but I couldn't verify claim-level provenance well enough to publish a research answer safely.";
 
+const DEICTIC_RESEARCH_CONTINUATION =
+  /^\s*(?:research|summari[sz]e(?:\s+(?:it|this|that))?|explain(?:\s+(?:it|this|that))?|compare(?:\s+(?:it|this|that|them|these|those))?|analyse(?:\s+(?:it|this|that))?|analyze(?:\s+(?:it|this|that))?)\s*[.!?]?\s*$/i;
+
 export function isPublicWebResearchRequest(utterance: string): boolean {
+  if (DEICTIC_RESEARCH_CONTINUATION.test(utterance)) return false;
   return /\b(?:research|explain|compare|analyse|analyze|summary|summarise|summarize|tell me about|what can you tell me|detail|context|background|trend|history)\b/i
     .test(utterance);
 }

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { createGmailMessageListReference } from "./gmail-message-list-reference";
 import { resolveGmailNamedResultReadProposal } from "./gmail-named-result-read";
-import { resolvePendingAuthorization } from "./pending-authorization";
+import { resolveDurablePendingAuthorization } from "./durable-pending-authorization";
 
 describe("Gmail named result read proposal", () => {
-  it("turns a unique sender name in the bounded list into exact read authority", () => {
+  it("turns a unique sender name in the bounded list into exact read authority", async () => {
     const listReference = createGmailMessageListReference({
       messageIds: ["id-1", "id-2"],
       senderIdentities: [
@@ -13,7 +13,7 @@ describe("Gmail named result read proposal", () => {
       ],
     })!;
 
-    const proposal = resolveGmailNamedResultReadProposal({
+    const proposal = await resolveGmailNamedResultReadProposal({
       currentUserUtterance: "Read the email from Raman Bhola.",
       gmailMessageListReference: listReference,
     });
@@ -25,7 +25,7 @@ describe("Gmail named result read proposal", () => {
     });
     expect(proposal.reply).toContain("position 1");
 
-    const resolution = resolvePendingAuthorization({
+    const resolution = await resolveDurablePendingAuthorization({
       currentUserUtterance: "Yes.",
       pendingAuthorizationReference: proposal.pendingAuthorizationReference,
       expectedCapability: "gmail.read",
@@ -43,7 +43,7 @@ describe("Gmail named result read proposal", () => {
     expect(JSON.stringify(proposal)).not.toContain("raman@example.com");
   });
 
-  it("fails closed for ambiguous or absent sender matches without creating authority", () => {
+  it("fails closed for ambiguous or absent sender matches without creating authority", async () => {
     const listReference = createGmailMessageListReference({
       messageIds: ["id-1", "id-2"],
       senderIdentities: [
@@ -52,7 +52,7 @@ describe("Gmail named result read proposal", () => {
       ],
     })!;
 
-    const ambiguous = resolveGmailNamedResultReadProposal({
+    const ambiguous = await resolveGmailNamedResultReadProposal({
       currentUserUtterance: "Read the email from Raman Bhola.",
       gmailMessageListReference: listReference,
     });
@@ -60,7 +60,7 @@ describe("Gmail named result read proposal", () => {
     expect(ambiguous.pendingAuthorizationReference).toBeUndefined();
     expect(ambiguous.reply).toContain("More than one message");
 
-    const absent = resolveGmailNamedResultReadProposal({
+    const absent = await resolveGmailNamedResultReadProposal({
       currentUserUtterance: "Read the email from Georgia.",
       gmailMessageListReference: listReference,
     });

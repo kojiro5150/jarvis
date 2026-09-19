@@ -3,9 +3,9 @@
 **Version:** 1.0  
 **Status:** Active  
 **Owner:** JARVIS Architecture  
-**Last Updated:** 30 August 2026
+**Last Updated:** 19 September 2026
 
-> **Active architecture note — 30 August 2026:** `JARVIS-GOVERNANCE-CORE.md` is the governing pre-implementation doctrine for trust, authority, proposal construction, private acquisition, and controlled architectural collapse. Any language below that implies named specialists are the user-facing coordination model, or that model-authored text can carry evidentiary or authority weight, is superseded. The current product boundary is one persistent JARVIS intelligence operating through governed capabilities.
+> **Active architecture note — 19 September 2026:** `JARVIS-GOVERNANCE-CORE.md` is the governing doctrine for trust, authority, proposal construction, private acquisition, and controlled architectural collapse. Any language below that implies named specialists are the user-facing coordination model, or that model-authored text can carry evidentiary or authority weight, is superseded. The current product boundary is one persistent JARVIS intelligence operating through governed capabilities. The immediate roadmap now hardens authority sources and hostile-input boundaries before broader Act, while executive cognition may advance in parallel only where significance remains deterministic over governed evidence.
 
 ---
 

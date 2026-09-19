@@ -234,7 +234,62 @@ export function createGovernanceEphemeralStateStore(
 
 export type GovernanceEphemeralStateStore = ReturnType<typeof createGovernanceEphemeralStateStore>;
 
+type TestStoredRow = GovernanceEphemeralStateRow;
+const testRows = new Map<string, TestStoredRow>();
+
+const testStore: GovernanceEphemeralStateStore = Object.freeze({
+  async create(input) {
+    if (testRows.has(input.id)) return false;
+    testRows.set(input.id, Object.freeze({
+      id: input.id,
+      kind: input.kind,
+      capability: input.capability,
+      payload: input.payload,
+      status: "active",
+      createdAt: input.createdAt,
+      expiresAt: input.expiresAt,
+    }));
+    return true;
+  },
+  async read(input) {
+    const row = testRows.get(input.id);
+    if (!row) return Object.freeze({ status: "not_found", row: null });
+    if (row.kind !== input.kind || (input.capability !== undefined && row.capability !== input.capability)) {
+      return Object.freeze({ status: "mismatch", row: null });
+    }
+    if (row.status === "consumed") return Object.freeze({ status: "consumed", row: null });
+    if (row.status === "revoked") return Object.freeze({ status: "revoked", row: null });
+    if (input.now.getTime() >= Date.parse(row.expiresAt)) {
+      return Object.freeze({ status: "expired", row: null });
+    }
+    return Object.freeze({ status: "active", row });
+  },
+  async consume(input) {
+    const row = testRows.get(input.id);
+    if (!row) return Object.freeze({ status: "not_found", payload: null, expiresAt: null });
+    if (row.kind !== input.kind || row.capability !== input.capability) {
+      return Object.freeze({ status: "mismatch", payload: null, expiresAt: row.expiresAt });
+    }
+    if (row.status === "consumed") {
+      return Object.freeze({ status: "already_consumed", payload: null, expiresAt: row.expiresAt });
+    }
+    if (row.status === "revoked") {
+      return Object.freeze({ status: "revoked", payload: null, expiresAt: row.expiresAt });
+    }
+    if (input.now.getTime() >= Date.parse(row.expiresAt)) {
+      return Object.freeze({ status: "expired", payload: null, expiresAt: row.expiresAt });
+    }
+    testRows.set(input.id, Object.freeze({ ...row, status: "consumed" }));
+    return Object.freeze({ status: "consumed", payload: row.payload, expiresAt: row.expiresAt });
+  },
+});
+
+export function resetGovernanceEphemeralStateForTests(): void {
+  testRows.clear();
+}
+
 export function createProductionGovernanceEphemeralStateStore(): GovernanceEphemeralStateStore | null {
   const config = loadGovernanceEphemeralStateConfig();
-  return config ? createGovernanceEphemeralStateStore(config) : null;
+  if (config) return createGovernanceEphemeralStateStore(config);
+  return process.env.NODE_ENV === "test" ? testStore : null;
 }

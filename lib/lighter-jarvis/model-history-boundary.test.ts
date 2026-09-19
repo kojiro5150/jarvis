@@ -118,6 +118,30 @@ describe("ordinary-model history boundary", () => {
     expect(JSON.stringify(sanitized)).not.toContain("LLEGC September Meeting");
   });
 
+  it("contains completed governed weather exchanges before a later ordinary model turn", () => {
+    const history = [
+      { role: "user" as const, content: "is it windy tomorrow?" },
+      { role: "assistant" as const, content: "Please specify the location for the weather forecast." },
+      { role: "user" as const, content: "geelong" },
+      { role: "assistant" as const, content: "I have a deterministic Bureau of Meteorology forecast path for Geelong tomorrow, but verified wind detail is not yet available on that governed path." },
+      { role: "user" as const, content: "Geelong" },
+    ];
+
+    const sanitized = sanitizeModelHistory(history);
+    expect(sanitized).toEqual([
+      { role: "user", content: "[Prior governed weather request omitted from ordinary model context.]" },
+      { role: "assistant", content: "[Prior governed weather result omitted from ordinary model context.]" },
+      { role: "user", content: "[Prior governed weather request omitted from ordinary model context.]" },
+      { role: "assistant", content: "[Prior governed weather result omitted from ordinary model context.]" },
+      history[4],
+    ]);
+    const modelVisible = JSON.stringify(sanitized);
+    expect(modelVisible).not.toContain("windy tomorrow");
+    expect(modelVisible).not.toContain("verified wind detail");
+    expect(modelVisible).not.toContain("geelong\"");
+    expect(sanitized.at(-1)).toEqual(history.at(-1));
+  });
+
   it("preserves ordinary conversation history byte-for-byte", () => {
     const history = [{ role: "user" as const, content: "Call me Sam." },
       { role: "assistant" as const, content: "Certainly, Sam." },

@@ -563,6 +563,21 @@ The architecture therefore rejects both extremes: facts and authority must not b
 
 The full Iron-Man vision — fully autonomous, understands anything, acts on everything — should stay aspirational rather than promised. But the ordinary, everyday version of it is no longer science fiction: something that wakes up every morning and reliably answers *what's happening, what changed, what needs attention* — using real evidence, only reaching for language-model flexibility where it's genuinely needed, and only occasionally surfacing something that looks like a decision to weigh. Most of the foundation for that is proven. The rest is a short, specific, identifiable list of next steps — not a leap.
 
+### Authentic JARVIS versus fictional JARVIS
+
+Stark-like JARVIS is a useful benchmark for interaction, awareness and cognition, but not for authority. The fictional system's defining autonomy includes initiating consequential action and acting on Stark's behalf without a fresh governed authority event. This project deliberately does not target that behaviour.
+
+The buildable convergence is therefore: broader situational awareness, more natural interaction, stronger executive orientation, wider but capability-specific Act paths, and eventually bounded anticipation. Each may become more capable and less obtrusive without changing who holds authority.
+
+The permanent divergence is autonomous consequential action. Under the constitutional rule — **JARVIS may propose authority-requiring operations; JARVIS may never manufacture the authority to perform them** — self-authorisation is not a missing capability to be closed later. It is outside the target architecture.
+
+The standing product test is:
+
+> **Does this make JARVIS more capable, anticipatory and natural without changing who holds authority?**
+
+If yes, it is on the authentic-JARVIS path. If the behaviour requires JARVIS to originate its own authority, it is not a roadmap gap; it is a different product philosophy.
+
+
 ## Immediate next-development tranche — authority, adversarial hardening, durability and cognition
 
 This tranche is the near-term development gate before broader externally consequential write capability. It does not replace the existing Know → Understand → Advise → Act trajectory. It makes the authority and untrusted-content prerequisites explicit and allows cognition integration to continue in parallel where significance remains deterministic.

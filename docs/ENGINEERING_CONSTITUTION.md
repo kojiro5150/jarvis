@@ -1,12 +1,28 @@
 \# JARVIS Engineering Constitution
 
-\*\*Version:\*\* 1.0  
+\*\*Version:\*\* 1.1  
 \*\*Status:\*\* Active  
 \*\*Owner:\*\* JARVIS Architecture  
 \*\*Applies to:\*\* All contributors, coding agents (Codex, Claude Code, future agents), pull requests and architectural changes.  
-\*\*Last Updated:\*\* 26 July 2026
+\*\*Last Updated:\*\* 19 September 2026
 
 \---
+
+\# Active Architecture Amendment — 19 September 2026
+
+The constitutional principles below remain active, but the original specialist-centric coordination language is no longer the current product boundary.
+
+JARVIS is now one persistent user-facing intelligence operating through governed capabilities. Internal specialist or cognitive modules may remain where they provide useful behavioural or domain discipline, but users should not need to know or coordinate those modules, and no internal module carries independent authority.
+
+Accordingly, where the historical sections **Specialists Before Generalists**, **Collaborative Intelligence**, or later specialist-oriented language imply that JARVIS must hand user work to named agents, those passages are superseded by the current North Star and Governance Core. Their enduring intent remains: preserve explicit behavioural boundaries, domain discipline, disagreement, uncertainty and modularity without turning the product into a cast of user-facing personas.
+
+Execution authority is also interpreted under the current governing rule:
+
+\> **JARVIS may propose authority-requiring operations. JARVIS may never manufacture the authority to perform them.**
+
+“Execute delegated actions” therefore means execute only through a capability-specific governed path whose authority has been independently and deterministically established. Prior approval, model inference, remembered preference, connector availability or source content never manufactures that authority.
+
+This amendment preserves the historical body rather than silently rewriting the engineering principles that produced earlier architecture.
 
 \# Purpose
 

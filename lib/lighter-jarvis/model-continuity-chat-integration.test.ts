@@ -231,13 +231,56 @@ describe("durable continuity integration in the sole chat runtime", () => {
     }));
 
     expect(await response.json()).toEqual({
-      reply: "I can't safely retrieve durable continuity for that request right now.",
+      reply: "I can't safely retrieve durable continuity right now because the continuity service is temporarily unavailable. Please try again.",
       specialistId: "jarvis",
       execution: "none",
-      modelContinuity: { status: "unavailable" },
+      modelContinuity: {
+        status: "unavailable",
+        category: "temporarily_unavailable",
+      },
     });
 
     expect(retrieveProjection).toHaveBeenCalledTimes(1);
+    expect(model).not.toHaveBeenCalled();
+  });
+
+  it("surfaces a bounded public category when the governed continuity check fails safely", async () => {
+    const retrieveProjection = vi.fn(async () => projected());
+    const continuityModel = vi.fn(async () => "not valid continuity output");
+    const model = vi.fn(async () => "ordinary model must not run");
+
+    const response = await createLighterChatHandler(
+      model,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      unusedCalendarActDependencies,
+      {
+        retrieveProjection,
+        createContinuityModelCall: () => continuityModel,
+      },
+    )(request({
+      specialistId: "jarvis",
+      messages: [{
+        role: "user",
+        content: "What do you remember about status updates?",
+      }],
+    }));
+
+    expect(await response.json()).toEqual({
+      reply: "I can't safely retrieve durable continuity for that request because the governed continuity check could not be completed safely.",
+      specialistId: "jarvis",
+      execution: "none",
+      modelContinuity: {
+        status: "unavailable",
+        category: "governed_check_failed",
+      },
+    });
+
+    expect(retrieveProjection).toHaveBeenCalledTimes(1);
+    expect(continuityModel).toHaveBeenCalledTimes(1);
     expect(model).not.toHaveBeenCalled();
   });
 

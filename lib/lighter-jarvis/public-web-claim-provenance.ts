@@ -65,7 +65,7 @@ function projectCitation(
   admittedUrls: ReadonlySet<string>,
 ): PublicWebCitation | "source_not_admitted" | "malformed_citation" {
   const candidate = record(value);
-  if (!candidate) return "malformed_citation";
+  if (!candidate || candidate.type !== "web_search_result_location") return "malformed_citation";
   const url = nonEmptyString(candidate.url);
   const title = nonEmptyString(candidate.title);
   const citedText = nonEmptyString(candidate.cited_text);

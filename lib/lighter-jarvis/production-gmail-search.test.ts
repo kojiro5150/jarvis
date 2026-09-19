@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { resolveProductionGmailSearch } from "./production-gmail-search";
-import { createPendingAuthorization, resolvePendingAuthorization } from "./pending-authorization";
+import {
+  createDurablePendingAuthorization,
+  resolveDurablePendingAuthorization,
+} from "./durable-pending-authorization";
 import { proposeGmailRead } from "./gmail-read-authority";
 import { proposeGmailSearch, proposeGmailSubjectList } from "./gmail-search-authority";
 
@@ -101,7 +104,7 @@ describe("production gmail.search", () => {
 
   it("fails closed on replay and never repeats search acquisition", async () => {
     const search = vi.fn(async () => ["one"]); const createConnector = vi.fn(() => ({ search }));
-    const reference = createPendingAuthorization(proposeGmailSearch("1d"));
+    const reference = await createDurablePendingAuthorization(proposeGmailSearch("1d"));
     expect(await resolveProductionGmailSearch({ currentUserUtterance: "confirm", pendingAuthorizationReference: reference }, { createConnector }))
       .toMatchObject({ decision: "ALLOW", messageIds: ["one"] });
     expect(await resolveProductionGmailSearch({ currentUserUtterance: "confirm", pendingAuthorizationReference: reference }, { createConnector }))
@@ -118,23 +121,23 @@ describe("production gmail.search", () => {
   });
 
   it.each([
-    ["gmail.read", () => createPendingAuthorization(proposeGmailRead({ resource: { resourceId: "message", connectorType: "email" },
+    ["gmail.read", async () => createDurablePendingAuthorization(proposeGmailRead({ resource: { resourceId: "message", connectorType: "email" },
       requestedFields: ["subject"], requestingRuntime: "test" }))],
-    ["calendar.read", () => createPendingAuthorization(Object.freeze({ capability: "calendar.read", window: Object.freeze({
+    ["calendar.read", async () => createDurablePendingAuthorization(Object.freeze({ capability: "calendar.read", window: Object.freeze({
       start: "2026-08-25T00:00:00.000Z", end: "2026-09-01T00:00:00.000Z", timeZone: "Australia/Melbourne", period: "default" as const,
     }) }))],
   ] as const)("does not authorize or consume a pending %s operation", async (capability, makeReference) => {
-    const createConnector = vi.fn(); const reference = makeReference();
+    const createConnector = vi.fn(); const reference = await makeReference();
     expect(await resolveProductionGmailSearch({ currentUserUtterance: "yes", pendingAuthorizationReference: reference }, { createConnector }))
       .toEqual({ handled: false });
     expect(createConnector).not.toHaveBeenCalled();
-    expect(resolvePendingAuthorization({ currentUserUtterance: "yes", pendingAuthorizationReference: reference,
+    expect(await resolveDurablePendingAuthorization({ currentUserUtterance: "yes", pendingAuthorizationReference: reference,
       expectedCapability: capability })).toMatchObject({ decision: "ALLOW", proposedOperation: { capability } });
   });
 
   it("does not let a search pending operation authorize Gmail read and leaves it available for search", async () => {
-    const reference = createPendingAuthorization(proposeGmailSearch("7d"));
-    expect(resolvePendingAuthorization({ currentUserUtterance: "yes", pendingAuthorizationReference: reference,
+    const reference = await createDurablePendingAuthorization(proposeGmailSearch("7d"));
+    expect(await resolveDurablePendingAuthorization({ currentUserUtterance: "yes", pendingAuthorizationReference: reference,
       expectedCapability: "gmail.read" })).toMatchObject({ decision: "ASK", reason: "pending_authorization_capability_mismatch" });
     const search = vi.fn(async () => []); const createConnector = vi.fn(() => ({ search }));
     expect(await resolveProductionGmailSearch({ currentUserUtterance: "yes", pendingAuthorizationReference: reference }, { createConnector }))
@@ -144,7 +147,7 @@ describe("production gmail.search", () => {
   it("deterministically completes a confirmed subject-list operation without releasing other message fields", async () => {
     const search = vi.fn(async () => ["one", "two", "three", "four", "five", "six"]);
     const retrieveMessage = vi.fn(async (id: string) => ({ sender: `Sender ${id} <${id}@example.com>`, subject: `Subject ${id}`, snippet: `Snippet ${id}` }));
-    const reference = createPendingAuthorization(proposeGmailSubjectList("7d"));
+    const reference = await createDurablePendingAuthorization(proposeGmailSubjectList("7d"));
     const result = await resolveProductionGmailSearch({
       currentUserUtterance: "yes",
       pendingAuthorizationReference: reference,
@@ -178,7 +181,7 @@ describe("production gmail.search", () => {
   it("fails the subject release closed when resource policy does not permit it", async () => {
     const search = vi.fn(async () => ["one"]);
     const retrieveMessage = vi.fn(async () => ({ subject: "Secret" }));
-    const reference = createPendingAuthorization(proposeGmailSubjectList("1d"));
+    const reference = await createDurablePendingAuthorization(proposeGmailSubjectList("1d"));
     const result = await resolveProductionGmailSearch({
       currentUserUtterance: "yes",
       pendingAuthorizationReference: reference,
